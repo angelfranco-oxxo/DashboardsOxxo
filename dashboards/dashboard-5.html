@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vacaciones · OXXO Plaza Oaxaca</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>.chart-container{position:relative;height:240px}</style>
+</head>
+<body>
+<nav class="topbar">
+  <div class="topbar__brand"><div class="topbar__logo">OXXO</div>
+    <div><div class="topbar__title">Control de Vacaciones</div>
+      <div class="topbar__subtitle">Actualización semanal · Plaza Oaxaca</div></div>
+  </div>
+  <div class="topbar__meta">
+    <a href="../index.html" class="topbar__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
+  </div>
+</nav>
+<div class="dashboard-page">
+
+<section class="dashboard-hero dashboard-hero--purple">
+    <div>
+      <h1>Control de Vacaciones</h1>
+      <p>Seguimiento semanal de días pendientes, periodos anteriores y empleados con mayor acumulación. Útil para planear cobertura y evitar rezagos.</p>
+    </div>
+    <span class="dashboard-hero__badge">⟳ Semanal · Plaza Oaxaca</span>
+  </section>
+
+  <div class="kpi-grid executive-kpis" id="kpi-section">
+    <div class="kpi-card"><div class="kpi-card__label">Cargando…</div><div class="kpi-card__value"><div class="spinner"></div></div></div>
+  </div>
+
+  <section class="layout-vacaciones">
+    <article class="panel panel--dark-title panel--accent-green">
+      <div class="panel__header"><div class="panel__title">Días Pendientes por Asesor</div></div>
+      <div class="chart-container tall"><canvas id="chart-barras"></canvas></div>
+    </article>
+    <div class="layout-vacantes__side">
+      <article class="panel panel--accent-red">
+        <div class="panel__header"><div class="panel__title">Empleados con más días pendientes</div></div>
+        <div id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
+      </article>
+      <article class="panel panel--accent-purple">
+        <div class="panel__header"><div class="panel__title">Calendario visual</div><span class="panel__badge badge-gris">Planeación</span></div>
+        <div class="layout-vacaciones__calendar">
+          <div class="calendar-chip">Lun</div><div class="calendar-chip active">Mar</div><div class="calendar-chip">Mié</div><div class="calendar-chip active">Jue</div><div class="calendar-chip">Vie</div><div class="calendar-chip">Sáb</div><div class="calendar-chip">Dom</div>
+          <div class="calendar-chip active">Próx.</div><div class="calendar-chip">7 días</div><div class="calendar-chip active">15 días</div><div class="calendar-chip">30 días</div><div class="calendar-chip active">Cobertura</div><div class="calendar-chip">Pend.</div><div class="calendar-chip active">OK</div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="layout-vacaciones__bottom">
+    <article class="panel panel--accent-yellow">
+      <div class="panel__header"><div class="panel__title">Por Puesto</div></div>
+      <div class="chart-container small"><canvas id="chart-dona"></canvas></div>
+    </article>
+    <article class="panel panel--accent-green">
+      <div class="panel__header"><div class="panel__title">Resumen por Asesor</div></div>
+      <div id="semaforo-table"><div class="state-box"><div class="spinner"></div></div></div>
+    </article>
+  </section>
+
+  <section class="compact-panel-grid">
+    <article class="panel col-12 panel--accent-blue layout-vacaciones__table">
+      <div class="panel__header"><div class="panel__title">Detalle por Empleado</div><span class="panel__badge badge-gris" id="row-count">— registros</span></div>
+      <div id="tabla-detalle"><div class="state-box"><div class="spinner"></div><div class="state-box__text">Cargando datos…</div></div></div>
+    </article>
+  </section>
+
+  <div class="dash-footer">
+    <div class="dash-footer__update"><div class="dash-footer__update-dot"></div>
+      Datos cargados: <span id="load-time">—</span></div>
+    <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
+  </div>
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+const TAB = OXXO.SHEETS_CONFIG.TABS.s5;
+const C = {
+  plaza:       "Plaza",
+  asesor:      "Asesor",
+  tienda:      "Tienda",
+  nombre:      "Nombre_empleado",
+  puesto:      "Puesto",
+  dias_d_ant:  "Dias_derecho_ant",
+  dias_d_act:  "Dias_derecho_act",
+  dias_dis_ant:"Dias_disfrutados_ant",
+  dias_dis_act:"Dias_disfrutados_act",
+  dias_rest_ant:"Dias_restantes_ant",
+  dias_rest_act:"Dias_restantes_act",
+  total_rest:  "Total_dias_restantes",
+  vencimiento: "Fecha_vencimiento_ant",
+  fecha:       "Fecha",
+};
+
+async function initDashboard() {
+  const data = await OXXO.fetchSheetData(TAB);
+  if(data===null){['kpi-section','ranking-container','semaforo-table','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
+  if(data.length===0){['kpi-section','ranking-container','semaforo-table','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
+
+  const total      = data.length;
+  const totalRest  = data.reduce((s,r)=>s+(parseInt(r[C.total_rest])||0),0);
+  const sinPend    = data.filter(r=>(parseInt(r[C.total_rest])||0)===0).length;
+  const conPend    = total - sinPend;
+  const criticos   = data.filter(r=>(parseInt(r[C.dias_rest_ant])||0)>0).length;
+  const promRest   = totalRest / (total||1);
+
+  document.getElementById('kpi-section').innerHTML = `
+    <div class="kpi-card ${criticos>0?'rojo':'verde'}">
+      <div class="kpi-card__label">Días Pendientes Total</div>
+      <div class="kpi-card__value">${OXXO.formatNum(totalRest)}</div>
+      <div class="kpi-card__delta ${criticos>0?'neg':'pos'}">entre ${total} empleados</div>
+      <div class="kpi-card__icon">📅</div>
+    </div>
+    <div class="kpi-card rojo">
+      <div class="kpi-card__label">Con Periodo Anterior</div>
+      <div class="kpi-card__value">${criticos}</div>
+      <div class="kpi-card__delta neg">días venciendo pronto</div>
+      <div class="kpi-card__icon">⚠️</div>
+    </div>
+    <div class="kpi-card amarillo">
+      <div class="kpi-card__label">Con Días Pendientes</div>
+      <div class="kpi-card__value">${conPend}</div>
+      <div class="kpi-card__delta neu">empleados</div>
+      <div class="kpi-card__icon">📋</div>
+    </div>
+    <div class="kpi-card verde">
+      <div class="kpi-card__label">Sin Pendientes</div>
+      <div class="kpi-card__value">${sinPend}</div>
+      <div class="kpi-card__delta pos">al corriente</div>
+      <div class="kpi-card__icon">✅</div>
+    </div>
+    <div class="kpi-card azul">
+      <div class="kpi-card__label">Promedio Días</div>
+      <div class="kpi-card__value">${promRest.toFixed(1)}</div>
+      <div class="kpi-card__delta neu">días por empleado</div>
+      <div class="kpi-card__icon">📊</div>
+    </div>`;
+
+  // Barras por asesor
+  const byAsesor = {};
+  data.forEach(r=>{const a=r[C.asesor]||'Sin asignar';if(!byAsesor[a])byAsesor[a]=0;byAsesor[a]+=(parseInt(r[C.total_rest])||0);});
+  const asesores = Object.keys(byAsesor).sort((a,b)=>byAsesor[b]-byAsesor[a]);
+  OXXO.renderBarChart('chart-barras', asesores.map(a=>OXXO.truncate(a,16)), asesores.map(a=>byAsesor[a]), 'Días pendientes', '#1D9E75');
+
+  // Ranking empleados
+  const rankData = [...data].sort((a,b)=>(parseInt(b[C.total_rest])||0)-(parseInt(a[C.total_rest])||0)).filter(r=>(parseInt(r[C.total_rest])||0)>0);
+  OXXO.renderRanking('ranking-container', rankData, C.nombre, C.total_rest, ' días', '#1D9E75');
+
+  // Dona por puesto
+  const byPuesto={};
+  data.forEach(r=>{const p=r[C.puesto]||'Sin puesto';if(!byPuesto[p])byPuesto[p]=0;byPuesto[p]+=(parseInt(r[C.total_rest])||0);});
+  const puestosK=Object.keys(byPuesto);
+  OXXO.renderDonutChart('chart-dona', puestosK, puestosK.map(p=>byPuesto[p]));
+
+  // Resumen por asesor
+  const resumen = asesores.map(a=>({
+    [C.asesor]:a,
+    empleados: data.filter(r=>r[C.asesor]===a).length,
+    dias_pend: byAsesor[a],
+    criticos:  data.filter(r=>r[C.asesor]===a&&(parseInt(r[C.dias_rest_ant])||0)>0).length,
+  }));
+  OXXO.renderTable('semaforo-table', resumen, [
+    {key:C.asesor,    label:'Asesor',         format:'text', align:'left'},
+    {key:'empleados', label:'Empleados',       format:'num',  align:'center'},
+    {key:'dias_pend', label:'Días Pendientes', format:'num',  align:'center'},
+    {key:'criticos',  label:'Per. Ant.',       format:'num',  align:'center'},
+  ]);
+
+  OXXO.renderTable('tabla-detalle', data, [
+    {key:C.asesor,       label:'Asesor',        format:'text', align:'left'},
+    {key:C.nombre,       label:'Empleado',      format:'text', align:'left'},
+    {key:C.puesto,       label:'Puesto',        format:'text', align:'left'},
+    {key:C.tienda,       label:'Tienda',        format:'text', align:'left'},
+    {key:C.dias_d_ant,   label:'Derecho Ant.',  format:'num',  align:'center'},
+    {key:C.dias_rest_ant,label:'Pend. Ant.',    format:'num',  align:'center'},
+    {key:C.dias_d_act,   label:'Derecho Act.',  format:'num',  align:'center'},
+    {key:C.dias_rest_act,label:'Pend. Act.',    format:'num',  align:'center'},
+    {key:C.total_rest,   label:'Total Pend.',   format:'num',  align:'center'},
+  ]);
+
+  document.getElementById('row-count').textContent=`${data.length} empleados`;
+  OXXO.updateFooterTime('load-time');
+}
+document.addEventListener('DOMContentLoaded', initDashboard);
+</script>
+</body></html>
