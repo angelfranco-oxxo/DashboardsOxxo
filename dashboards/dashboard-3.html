@@ -1,0 +1,1054 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aprovechamiento de Estructura · Dashboards Ats</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .page { max-width:1500px; margin:0 auto; padding:18px 20px 36px; }
+
+    /* HERO */
+    .hero { background:var(--color-dark); border-radius:14px; padding:20px 26px;
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
+      margin-bottom:16px; border-left:5px solid #FFD200; }
+    .hero h1 { font-family:var(--font-display); font-size:1.85rem; font-weight:800;
+      color:#fff; margin:0 0 4px; line-height:1; }
+    .hero p { color:#9090a8; font-size:12px; margin:0; }
+    .hero-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+    .hero-badge { background:rgba(255,210,0,.15); color:#FFD200;
+      border:1px solid rgba(255,210,0,.3); border-radius:999px; padding:8px 16px;
+      font-size:11px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; white-space:nowrap; }
+    .hero-date { font-size:11px; color:#9090a8; }
+
+    /* KPI ROW */
+    .kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:16px; }
+
+    /* CARD BASE */
+    .card { background:var(--color-surface); border-radius:14px; padding:20px; box-shadow:var(--shadow-card); }
+    .card-head { display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--color-border); }
+    .card-title { font-family:var(--font-display); font-size:1rem; font-weight:700; color:var(--color-dark); }
+    .card-badge { font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px;
+      background:var(--color-bg); color:var(--color-gray); }
+
+    /* FILA PLAZAS */
+    .plazas-row { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:16px; }
+    @media (max-width:1300px) { .plazas-row { grid-template-columns:repeat(4,1fr); } }
+    @media (max-width:900px)  { .plazas-row { grid-template-columns:repeat(3,1fr); } }
+    @media (max-width:600px)  { .plazas-row { grid-template-columns:repeat(2,1fr); } }
+    .plaza-card { background:var(--color-surface); border-radius:14px; padding:18px 16px;
+      box-shadow:var(--shadow-card); border-top:3px solid var(--color-border);
+      transition:var(--transition); cursor:pointer; }
+    .plaza-card.active { background:#1A1A2E; box-shadow:0 8px 32px rgba(0,166,80,.25); border-top-width:4px; }
+    .plaza-card.active .plaza-name { color:#FFD200; }
+    .plaza-card.active .plaza-kpi-label { color:#9090a8; }
+    .plaza-card.active .plaza-kpi-val { color:#00A650 !important; }
+    .plaza-card.active .plaza-bar-fill { background:#00A650 !important; }
+    .plaza-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-hover); }
+    .plaza-card.pc-verde  { border-top-color:var(--semaforo-verde); }
+    .plaza-card.pc-amarillo { border-top-color:var(--semaforo-amarillo); }
+    .plaza-card.pc-rojo   { border-top-color:var(--semaforo-rojo); }
+    .plaza-name { font-family:var(--font-display); font-size:1rem; font-weight:800;
+      color:var(--color-dark); margin-bottom:10px; text-transform:uppercase; letter-spacing:.3px; }
+    .plaza-meta { display:flex; flex-direction:column; gap:4px; }
+    .plaza-kpi { display:flex; justify-content:space-between; align-items:baseline; }
+    .plaza-kpi-label { font-size:10px; font-weight:600; text-transform:uppercase;
+      letter-spacing:.8px; color:var(--color-gray); }
+    .plaza-kpi-val { font-family:var(--font-display); font-size:1.5rem; font-weight:800; line-height:1; }
+    .plaza-kpi-val.verde   { color:var(--semaforo-verde); }
+    .plaza-kpi-val.amarillo{ color:#B8960C; }
+    .plaza-kpi-val.rojo    { color:var(--semaforo-rojo); }
+    .plaza-kpi-val.morado  { color:#8B4CF7; }
+    .plaza-bar { height:4px; background:var(--color-border); border-radius:2px; margin-top:8px; overflow:hidden; }
+    .plaza-bar-fill { height:100%; border-radius:2px; transition:width .8s cubic-bezier(.4,0,.2,1); }
+
+    /* GRID PRINCIPAL */
+    .main-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:14px; margin-bottom:16px; align-items:start; }
+
+    /* RANKING AT */
+    .rank-item { display:grid; grid-template-columns:22px 1fr auto; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--color-border); }
+    .rank-item:last-child { border-bottom:none; }
+    .rank-num { font-family:var(--font-display); font-size:13px; font-weight:800; color:var(--color-gray); text-align:center; }
+    .rank-name { font-size:12px; font-weight:600; color:var(--color-dark); margin-bottom:3px; }
+    .rank-bar-bg { height:5px; background:var(--color-border); border-radius:3px; overflow:hidden; }
+    .rank-bar-fill { height:100%; border-radius:3px; transition:width .8s cubic-bezier(.4,0,.2,1); }
+    .rank-val { font-family:var(--font-display); font-size:15px; font-weight:800; text-align:right; white-space:nowrap; }
+    .rank-val.verde   { color:var(--semaforo-verde); }
+    .rank-val.amarillo{ color:#B8960C; }
+    .rank-val.rojo    { color:var(--semaforo-rojo); }
+
+    /* TABLA RESUMEN AT */
+    .tbl-wrap { overflow-x:auto; max-height:420px; overflow-y:auto; }
+    .tbl { width:100%; border-collapse:collapse; font-size:12px; }
+    .tbl thead th { position:sticky; top:0; z-index:2; background:#1A1A2E; color:#FFD200;
+      padding:10px 14px; text-align:left; font-size:10px; font-weight:700;
+      letter-spacing:1.1px; text-transform:uppercase; border-right:1px solid rgba(255,255,255,.1); }
+    .tbl thead th:last-child { border-right:none; }
+    .tbl tbody tr { border-bottom:1px solid var(--color-border); transition:var(--transition); }
+    .tbl tbody tr:hover { background:var(--color-bg); }
+    .tbl tbody tr.total-row { background:#F0EDE8; font-weight:700; }
+    .tbl tbody td { padding:10px 14px; color:var(--color-dark); vertical-align:middle; }
+    .tbl tbody tr:last-child { border-bottom:none; }
+
+    /* EC % PILL */
+    .ec-pill { display:inline-flex; align-items:center; gap:5px; font-size:12px;
+      font-weight:700; padding:4px 12px; border-radius:20px; }
+    .ec-pill.verde   { background:#e8f8f0; color:#138c3e; }
+    .ec-pill.amarillo{ background:#fff9e0; color:#8a6a00; }
+    .ec-pill.rojo    { background:#fdeaea; color:var(--semaforo-rojo); }
+    .ec-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .ec-pill.verde   .ec-dot { background:var(--semaforo-verde); }
+    .ec-pill.amarillo .ec-dot { background:var(--semaforo-amarillo); }
+    .ec-pill.rojo    .ec-dot { background:var(--semaforo-rojo); }
+
+    /* FILA GRÁFICAS */
+    .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+    .chart-wrap { position:relative; height:300px; }
+
+    /* FOOTER */
+    .foot { margin-top:8px; padding-top:14px; border-top:1px solid var(--color-border);
+      display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+      gap:8px; font-size:11px; color:var(--color-gray); }
+    .foot-dot { display:inline-block; width:8px; height:8px; background:var(--semaforo-verde);
+      border-radius:50%; box-shadow:0 0 5px var(--semaforo-verde); margin-right:6px; }
+
+    /* STATE */
+    .state-box { display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:10px; padding:40px 20px; color:var(--color-gray); text-align:center; }
+    .spinner { width:32px; height:32px; border:3px solid var(--color-border);
+      border-top-color:#FFD200; border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* RESPONSIVE */
+    @media (max-width:1200px) {
+      .plazas-row { grid-template-columns:repeat(3,1fr); }
+      .main-grid { grid-template-columns:1fr; }
+      .charts-row { grid-template-columns:1fr 1fr; }
+    }
+    @media (max-width:800px) {
+      .kpis { grid-template-columns:repeat(3,1fr); }
+      .plazas-row { grid-template-columns:repeat(2,1fr); }
+      .charts-row { grid-template-columns:1fr; }
+      .hero { flex-direction:column; align-items:flex-start; }
+    }
+    @media (max-width:560px) {
+      .kpis { grid-template-columns:repeat(2,1fr); }
+      .page { padding:12px 14px; }
+    }
+  
+    /* Modern theme aligned with index */
+    :root {
+      --color-bg: #FFFFFF;
+      --color-surface: #FFFFFF;
+      --color-dark: #F71926;
+      --color-dark-mid: #F71926;
+      --color-border: #F2E6DE;
+      --color-yellow: #F2A52B;
+      --color-orange: #F2A52B;
+      --color-red: #F71926;
+      --color-green: #F2A52B;
+      --color-blue: #F71926;
+      --color-gray: #7A4A42;
+      --semaforo-verde: #F2A52B;
+      --semaforo-amarillo: #F2A52B;
+      --semaforo-rojo: #F71926;
+      --shadow-card: 0 14px 36px rgba(117,23,23,0.07);
+      --shadow-hover: 0 24px 58px rgba(117,23,23,0.16);
+    }
+
+    body {
+      background: #fff;
+      color: #331818;
+    }
+
+    .topbar {
+      height: 72px;
+      background: var(--color-red);
+      border-bottom: 4px solid var(--color-yellow) !important;
+      padding: 0 24px;
+    }
+
+    .topbar__brand { gap: 14px; }
+
+    .topbar__logo {
+      width: 112px;
+      height: 46px;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+      flex-shrink: 0;
+    }
+
+    .topbar__title {
+      font-size: 24px;
+      line-height: 1;
+      color: #fff;
+      letter-spacing: 0;
+    }
+
+    .topbar__subtitle,
+    .topbar__meta {
+      color: rgba(255,255,255,0.72);
+    }
+
+    .topbar__back {
+      color: var(--color-yellow);
+      border: 1px solid rgba(242,165,43,0.34);
+      border-radius: 999px;
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .topbar__back:hover {
+      background: var(--color-yellow);
+      color: var(--color-red);
+    }
+
+    .page {
+      max-width: 1500px;
+      padding: 26px 24px 42px;
+    }
+
+    .hero {
+      background:
+        repeating-linear-gradient(-45deg, transparent, transparent 40px, rgba(255,255,255,0.09) 40px, rgba(255,255,255,0.09) 41px),
+        linear-gradient(135deg, var(--color-red) 0%, #ff2b35 100%);
+      border-radius: 20px;
+      padding: 30px 32px;
+      margin-bottom: 22px;
+      border-left: 0;
+      border-top: 5px solid var(--color-yellow);
+      box-shadow: 0 22px 50px rgba(117,23,23,0.16);
+      animation: panelRise .55s ease both;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 3.6vw, 3.4rem);
+      color: #fff;
+      letter-spacing: 0;
+      margin-bottom: 8px;
+      line-height: .95;
+    }
+
+    .hero p,
+    .hero-date {
+      color: rgba(255,255,255,0.9);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .hero-badge {
+      background: rgba(242,165,43,0.16);
+      color: var(--color-yellow);
+      border: 1px solid rgba(242,165,43,0.42);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    .kpis {
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .kpi-card,
+    .card,
+    .plaza-card {
+      background:
+        radial-gradient(circle at 15% 10%, rgba(242,165,43,0.14), transparent 28%),
+        linear-gradient(145deg, #FFFFFF 0%, #FFF8F4 100%);
+      border-radius: 18px;
+      border: 1px solid rgba(247,25,38,0.13);
+      box-shadow: var(--shadow-card);
+      animation: panelRise .55s ease both;
+    }
+
+    .kpi-card {
+      min-height: 154px;
+      border-top-width: 5px;
+      padding: 24px 22px;
+      overflow: hidden;
+      position: relative;
+      transition: transform .32s cubic-bezier(.2,.8,.2,1), box-shadow .32s ease, border-color .32s ease;
+    }
+
+    .kpi-card:hover,
+    .card:hover,
+    .plaza-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover);
+      border-color: rgba(247,25,38,0.22);
+    }
+
+    .kpi-card__label,
+    .plaza-kpi-label {
+      color: #8D3C30;
+      font-size: 12px;
+      letter-spacing: 1.3px;
+    }
+
+    .kpi-card__value {
+      color: #1c1424;
+      font-size: 2.9rem;
+    }
+
+    .kpi-card__delta.pos,
+    .kpi-card__delta.neg,
+    .kpi-card__delta.neu {
+      color: var(--color-red);
+      font-weight: 700;
+    }
+
+    .kpi-card__icon {
+      opacity: 0.08;
+      font-size: 44px;
+    }
+
+    .card {
+      transition: transform .32s cubic-bezier(.2,.8,.2,1), box-shadow .32s ease, border-color .32s ease;
+    }
+
+    .card-head {
+      border-bottom: 1px solid rgba(122,74,66,0.16);
+    }
+
+    .card-title {
+      color: #1c1424;
+      font-size: 1.18rem;
+      letter-spacing: 0;
+    }
+
+    .card-badge {
+      background: rgba(247,25,38,0.08);
+      color: var(--color-red);
+      font-weight: 800;
+    }
+
+    .plaza-card.active {
+      background: linear-gradient(135deg, var(--color-red) 0%, #ff2b35 100%);
+      box-shadow: 0 20px 50px rgba(117,23,23,0.18);
+      border-top-color: var(--color-yellow);
+    }
+
+    .plaza-card.active .plaza-name,
+    .plaza-card.active .plaza-kpi-label,
+    .plaza-card.active .plaza-kpi-val {
+      color: #fff !important;
+    }
+
+    .plaza-name,
+    .rank-name {
+      color: #1c1424;
+    }
+
+    .plaza-kpi-val.verde,
+    .plaza-kpi-val.amarillo,
+    .plaza-kpi-val.rojo,
+    .plaza-kpi-val.morado,
+    .rank-val.verde,
+    .rank-val.amarillo,
+    .rank-val.rojo {
+      color: var(--color-red);
+    }
+
+    .plaza-bar-fill,
+    .rank-bar-fill {
+      background: var(--color-yellow) !important;
+    }
+
+    .tbl-wrap {
+      border-radius: 14px;
+    }
+
+    .tbl thead th {
+      background: var(--color-red);
+      color: #fff;
+      padding: 12px 14px;
+      border-right: 1px solid rgba(255,255,255,.14);
+    }
+
+    .tbl tbody tr:hover,
+    .tbl tbody tr.total-row {
+      background: #fff6f1;
+    }
+
+    .ec-pill.verde,
+    .ec-pill.amarillo,
+    .ec-pill.rojo {
+      background: rgba(247,25,38,0.10);
+      color: var(--color-red);
+    }
+
+    .ec-pill.verde .ec-dot,
+    .ec-pill.amarillo .ec-dot,
+    .ec-pill.rojo .ec-dot {
+      background: var(--color-yellow);
+    }
+
+    .foot-dot {
+      background: var(--color-yellow) !important;
+      box-shadow: 0 0 8px var(--color-yellow) !important;
+    }
+
+    @keyframes panelRise {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width:800px) {
+      .hero-right { align-items: flex-start; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero,
+      .kpi-card,
+      .card,
+      .plaza-card { animation: none; transition: none; }
+    }</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar__brand">
+    <img class="topbar__logo" src="../assets/plaza-oaxaca-logo.png" alt="Plaza Oaxaca" />
+    <div>
+      <div class="topbar__title">Dashboards Ats</div>
+      <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
+    </div>
+  </div>
+  <div class="topbar__meta">
+    <a href="../index.html" class="topbar__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+           stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Inicio
+    </a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div>
+      <h1>Aprovechamiento de Estructura</h1>
+      <p>Equipo Completo · Equipo Incompleto · Tienda Crítica · Aprovechamiento por AT y Plaza</p>
+    </div>
+    <div class="hero-right">
+      <span class="hero-badge">⟳ Diario · Plaza Oaxaca</span>
+      <span class="hero-date" id="hero-date">—</span>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpis kpi-grid" id="kpi-section">
+    <div class="kpi-card"><div class="kpi-card__label">Cargando…</div>
+      <div class="kpi-card__value"><div class="spinner"></div></div></div>
+  </div>
+
+
+
+  <!-- GRID PRINCIPAL: Tabla resumen AT + Ranking -->
+  <div class="main-grid">
+    <!-- Tabla resumen por AT -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Resumen por AT</div>
+        <span class="card-badge" id="row-count">— registros</span>
+      </div>
+      <div id="tabla-at">
+        <div class="state-box"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Ranking EC% por AT -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Ranking Aprovechamiento % por AT</div>
+      </div>
+      <div id="ranking-at">
+        <div class="state-box"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILA: Ranking incompletas + Lista tiendas -->
+  <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:14px;margin-bottom:16px">
+
+    <!-- Ranking asesores por incompletas+críticas -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">⚠ Ranking por Incompletas + Críticas</div>
+        <span class="card-badge" id="badge-inc">— asesores</span>
+      </div>
+      <div id="ranking-incompletas">
+        <div class="state-box"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Lista de tiendas incompletas y críticas -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">🚨 Tiendas Incompletas y Críticas</div>
+        <span class="card-badge" id="badge-tiendas-inc">— tiendas</span>
+      </div>
+      <div id="tabla-incompletas">
+        <div class="state-box"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TABLA APROVECHAMIENTO POR PLAZA -->
+  <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:16px">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Aprovechamiento por Plaza</div>
+      </div>
+      <div id="tabla-plazas">
+        <div class="state-box"><div class="spinner"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">EC % por AT (desde Sheet)</div>
+      </div>
+      <div id="tabla-ec-at">
+        <div class="state-box"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRÁFICAS -->
+  <div class="charts-row">
+    <!-- Barras EC% por AT -->
+    <div class="card">
+      <div class="card-head"><div class="card-title">EC % por AT</div></div>
+      <div class="chart-wrap"><canvas id="chart-barras"></canvas></div>
+    </div>
+    <!-- Dona distribución estatus -->
+    <div class="card">
+      <div class="card-head"><div class="card-title">Distribución Estatus</div></div>
+      <div class="chart-wrap"><canvas id="chart-dona"></canvas></div>
+    </div>
+
+  </div>
+
+  <!-- TABLA DETALLE COMPLETO -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title">Detalle por Tienda</div>
+      <span class="card-badge" id="detalle-count">— tiendas</span>
+    </div>
+    <div id="tabla-detalle">
+      <div class="state-box"><div class="spinner"></div>
+        <div style="font-size:12px;color:var(--color-gray)">Cargando datos…</div></div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="foot">
+    <div><span class="foot-dot"></span>Datos cargados: <strong id="load-time">—</strong></div>
+    <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
+  </div>
+
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+const TAB = OXXO.SHEETS_CONFIG.TABS.d3;
+
+// Columnas exactas del Google Sheets (pestaña Dashboard_3_Diario)
+const C = {
+  asesor:    'Asesor',
+  tienda:    'Tienda',
+  esquema:   'Esquema',
+  estructura:'Estructura_diaria',
+  ausent:    'Ausentismos',
+  vacante:   'Vacantes',
+  lider:     'Vac_Lider',
+  enc:       'Vac_Encargado',
+  ayud:      'Vac_Ayudante',
+  aprov:     'Aprovechamiento',
+  estatus:   'Estatus',
+  aprov_sin: 'Aprov_sin_ausentismo',
+  est_sin:   'Estatus_sin_ausentismo',
+  fecha:     'Fecha',
+};
+
+// También acepta nombres del archivo original (detección flexible)
+const ALIASES = {
+  asesor:    ['Asesor','Asesor ','ASESOR'],
+  tienda:    ['Tienda','TIENDA'],
+  esquema:   ['Esquema','ESQUEMA'],
+  estructura:['Estructura_diaria','Estructura Diaria','Estructura diaria','Estructura','ESTRUCTURA'],
+  ausent:    ['Ausentismos','AUSENTISMOS','AUSENTISMOS '],
+  vacante:   ['Vacantes','Vacante','VACANTE'],
+  lider:     ['Vac_Lider','LIDER','Lider','Líder'],
+  enc:       ['Vac_Encargado','ENCARGADO','Encargado'],
+  ayud:      ['Vac_Ayudante','AYUDANTE','Ayudante'],
+  aprov:     ['Aprovechamiento','Aprovechamiento Estructura','Aprovechamiento estructura'],
+  estatus:   ['Estatus','Estatus Con impacto Ausentismo','Estatus con impacto Ausentismo','Estatus Con Impacto Ausentismo','ESTATUS'],
+  aprov_sin: ['Aprov_sin_ausentismo','Aprovechamiento Estructura Sin ausentismo','Aprovechamiento Estructura Sin Ausentismo','Aprovechamiento Estructura Sin ausentismo ','Aprovechamiento Estructura Sin ausentismo'],
+  est_sin:   ['Estatus_sin_ausentismo','EC SIN AUSENTISMO','EC Sin Ausentismo'],
+  col_at:    ['AT'],
+  ec_por_at: ['Ec por AT','EC por AT','EC Por AT','ec por at'],
+  col_plaza: ['Plaza','PLAZA'],
+  aprov_plaza: ['Aprovechamiento de estructura de Plaza','Aprovechamiento de Estructura de Plaza','Aprov de Plaza'],
+  fecha:     ['Fecha','FECHA'],
+};
+
+function cleanKey(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+function findKey(row,aliases){
+  const keys=Object.keys(row||{});
+  const map=new Map(keys.map(k=>[cleanKey(k),k]));
+  for(const a of aliases){const f=map.get(cleanKey(a));if(f)return f;}
+  for(const a of aliases){const ac=cleanKey(a);const f=keys.find(k=>cleanKey(k).includes(ac)||ac.includes(cleanKey(k)));if(f)return f;}
+  return null;
+}
+function buildMap(data){
+  const s=data.find(r=>Object.values(r).some(v=>String(v||'').trim()!==''))||data[0]||{};
+  const m={};
+  Object.entries(ALIASES).forEach(([k,al])=>m[k]=findKey(s,al));
+  return m;
+}
+function gv(row,map,k,fb=''){const key=map[k];const v=key?row[key]:undefined;return(v===undefined||v===null||String(v).trim()==='')?fb:v;}
+function gn(row,map,k){const v=String(gv(row,map,k,0)).replace(/[,%]/g,'').trim();const n=Number(v);return isNaN(n)?0:n;}
+
+function ecColorHex(pct){ if(pct>=0.95)return'#1DB954'; if(pct>=0.80)return'#B8960C'; return'#D92B2B'; }
+function ecColor(pct){if(pct>=0.95)return'verde';if(pct>=0.80)return'amarillo';return'rojo';}
+function estatusColor(e){const s=(e||'').toLowerCase();if(s.includes('completo'))return'verde';if(s.includes('incompleto'))return'amarillo';if(s.includes('crít')||s.includes('crit'))return'rojo';return'gris';}
+function ecPill(pct,label){const c=ecColor(pct);return`<span class="ec-pill ${c}"><span class="ec-dot"></span>${label}</span>`;}
+
+// Plazas foco (hardcoded para las tarjetas superiores)
+const PLAZAS_FOCO = ['OAXACA','TUXTLA','ISTMO','VILLAHERMOSA','CHONTALPA'];
+
+let allTablaData = [];
+
+function filtrarTablaDetalle(asesor) {
+  const filtered = asesor ? allTablaData.filter(r => r.asesor === asesor) : allTablaData;
+  const detRows = filtered.map(r => `<tr>
+    <td>${OXXO.truncate(r.asesor,28)}</td>
+    <td>${OXXO.truncate(r.tienda,30)}</td>
+    <td class="text-center">${r.esquema||'—'}</td>
+    <td class="text-center">${r.estructura||'—'}</td>
+    <td class="text-center">${r.ausent||0}</td>
+    <td class="text-center">${r.vacante||0}</td>
+  </tr>`).join('');
+
+  const tbl = document.getElementById('tabla-detalle');
+  if(tbl) {
+    tbl.querySelector('tbody').innerHTML = detRows;
+    document.getElementById('detalle-count').textContent =
+      asesor ? `${filtered.length} tiendas · ${asesor.split(' ')[0]}` : `${filtered.length} tiendas`;
+  }
+}
+
+async function initDashboard(){
+  const rawData = await OXXO.fetchSheetData(TAB);
+  if(rawData===null){['kpi-section','plazas-row','tabla-at','ranking-at','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
+  if(rawData.length===0){['kpi-section','plazas-row','tabla-at','ranking-at','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
+
+  const map = buildMap(rawData);
+  console.log('Mapa de columnas:', JSON.stringify(map));
+  console.log('aprov fila 0:', rawData[0]?.[map.aprov], '| aprov_sin fila 0:', rawData[0]?.[map.aprov_sin]);
+
+  // Normalizar datos
+  const data = rawData.map(r=>({
+    asesor:    String(gv(r,map,'asesor','Sin asesor')).trim(),
+    tienda:    String(gv(r,map,'tienda','Sin tienda')).trim(),
+    esquema:   String(gv(r,map,'esquema','')).trim(),
+    estructura:gn(r,map,'estructura'),
+    ausent:    gn(r,map,'ausent'),
+    vacante:   gn(r,map,'vacante'),
+    aprov:     gn(r,map,'aprov'),
+    estatus:   String(gv(r,map,'estatus','')).trim(),
+    aprov_sin: gn(r,map,'aprov_sin'),
+    est_sin:   String(gv(r,map,'est_sin','')).trim(),
+    fecha:     String(gv(r,map,'fecha','')).trim(),
+    col_at:    String(gv(r,map,'col_at','')).trim(),
+    ec_por_at: String(gv(r,map,'ec_por_at','')).trim(),
+    col_plaza: String(gv(r,map,'col_plaza','')).trim(),
+    aprov_plaza: String(gv(r,map,'aprov_plaza','')).trim(),
+  }));
+
+  const total      = data.length;
+  const completas  = data.filter(r=>r.estatus.toLowerCase().includes('completo')).length;
+  const incompletas= data.filter(r=>r.estatus.toLowerCase().includes('incompleto')).length;
+  const criticas   = data.filter(r=>r.estatus.toLowerCase().includes('crít')||r.estatus.toLowerCase().includes('crit')).length;
+  // Promedio de Aprovechamiento Estructura (viene como "98.21%" del CSV, toNumber lo convierte a 98.21)
+  const aprovVals = data.map(r=>r.aprov).filter(v=>v>0);
+  const aprovProm = aprovVals.length > 0 ? (aprovVals.reduce((a,b)=>a+b,0)/aprovVals.length)/100 : 0;
+  const fecha      = data.find(r=>r.fecha)?.fecha || '—';
+
+  // Actualizar fecha en hero
+  document.getElementById('hero-date').textContent = fecha;
+
+  // ── KPIs ────────────────────────────────────────────────
+  document.getElementById('kpi-section').innerHTML=`
+    <div class="kpi-card ${ecColor(aprovProm)}">
+      <div class="kpi-card__label">Aprovechamiento General</div>
+      <div class="kpi-card__value">${(aprovProm*100).toFixed(2)}%</div>
+      <div class="kpi-card__delta ${aprovProm>=0.95?'pos':aprovProm>=0.80?'neu':'neg'}">Promedio aprovechamiento</div>
+      <div class="kpi-card__icon">📊</div>
+    </div>
+    <div class="kpi-card azul">
+      <div class="kpi-card__label">Tiendas Totales</div>
+      <div class="kpi-card__value">${total}</div>
+      <div class="kpi-card__delta neu">${completas} completas · ${incompletas} inc. · ${criticas} crít.</div>
+      <div class="kpi-card__icon">🏪</div>
+    </div>
+    <div class="kpi-card verde">
+      <div class="kpi-card__label">Equipo Completo</div>
+      <div class="kpi-card__value">${completas}</div>
+      <div class="kpi-card__delta pos">${total>0?Math.round(completas/total*100):0}% del total</div>
+      <div class="kpi-card__icon">✅</div>
+    </div>
+    <div class="kpi-card amarillo">
+      <div class="kpi-card__label">Equipo Incompleto</div>
+      <div class="kpi-card__value">${incompletas}</div>
+      <div class="kpi-card__delta neu">Requieren atención</div>
+      <div class="kpi-card__icon">⚠️</div>
+    </div>
+    <div class="kpi-card rojo">
+      <div class="kpi-card__label">Tienda Crítica</div>
+      <div class="kpi-card__value">${criticas}</div>
+      <div class="kpi-card__delta neg">Acción inmediata</div>
+      <div class="kpi-card__icon">🚨</div>
+    </div>`;
+
+  // ── GENERAR asesoresSorted (agrupado por asesor) ───────────
+  const byAsesor = {};
+  data.forEach(r=>{
+    const a=r.asesor;
+    if(!byAsesor[a])byAsesor[a]={total:0,completas:0,incompletas:0,criticas:0,aprovSum:0,aprovSinSum:0};
+    byAsesor[a].total++;
+    byAsesor[a].aprovSum+=(r.aprov||0);
+    byAsesor[a].aprovSinSum+=(r.aprov_sin||0);
+    if(!byAsesor[a].ecDirecto && r.ec_por_at) byAsesor[a].ecDirecto = r.ec_por_at;
+    if(r.estatus.toLowerCase().includes('completo'))byAsesor[a].completas++;
+    else if(r.estatus.toLowerCase().includes('incompleto'))byAsesor[a].incompletas++;
+    else if(r.estatus.toLowerCase().includes('crít')||r.estatus.toLowerCase().includes('crit'))byAsesor[a].criticas++;
+  });
+
+  const asesoresSorted = Object.entries(byAsesor)
+    .map(([a,v])=>{
+      const ecDirecto = v.ecDirecto ? parseFloat(String(v.ecDirecto).replace('%',''))/100 : 0;
+      return {...v, asesor:a,
+        aprov: v.total > 0 ? (v.aprovSum/v.total)/100 : 0,
+        ec: ecDirecto || (v.total > 0 ? (v.aprovSinSum/v.total)/100 : 0)
+      };
+    })
+    .sort((a,b)=>b.aprov-a.aprov);
+
+  // ── TABLA RESUMEN POR AT ─────────────────────────────────
+  const tbodyAT = asesoresSorted.map((at,i)=>{
+    const pct=(at.aprov*100).toFixed(2);
+    const ec=at.ec||0;
+    const ecPct=(ec*100).toFixed(2);
+    const color=ecColor(at.aprov);
+    return`<tr${at.criticas>0?' style="background:#FFF5F5"':''}>
+      <td><strong>${at.asesor}</strong></td>
+      <td class="text-center">${at.completas}</td>
+      <td class="text-center">${at.incompletas}</td>
+      <td class="text-center" style="color:${at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)'};font-weight:${at.criticas>0?700:400}">${at.criticas>0?at.criticas:'—'}</td>
+      <td class="text-center">${at.total}</td>
+      <td class="text-center">${ecPill(at.aprov,pct+'%')}</td>
+    </tr>`;
+  }).join('');
+
+  const totalCompletas=asesoresSorted.reduce((s,a)=>s+a.completas,0);
+  const totalInc=asesoresSorted.reduce((s,a)=>s+a.incompletas,0);
+  const totalCrit=asesoresSorted.reduce((s,a)=>s+a.criticas,0);
+
+  document.getElementById('tabla-at').innerHTML=`
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr>
+        <th>AT</th>
+        <th style="text-align:center">Equipo<br>Completo</th>
+        <th style="text-align:center">Equipo<br>Incompleto</th>
+        <th style="text-align:center">Tienda<br>Crítica</th>
+        <th style="text-align:center">Total<br>General</th>
+        <th style="text-align:center">Aprov. %</th>
+      </tr></thead>
+      <tbody>
+        ${tbodyAT}
+        <tr class="total-row">
+          <td>Total general</td>
+          <td class="text-center">${totalCompletas}</td>
+          <td class="text-center">${totalInc}</td>
+          <td class="text-center">${totalCrit}</td>
+          <td class="text-center">${total}</td>
+          <td class="text-center">${ecPill(aprovProm,(aprovProm*100).toFixed(2)+'%')}</td>
+        </tr>
+      </tbody>
+    </table></div>`;
+  document.getElementById('row-count').textContent=`${asesoresSorted.length} asesores`;
+
+  // ── RANKING AT ───────────────────────────────────────────
+  const maxAprov = Math.max(...asesoresSorted.map(a=>a.aprov),0.01);
+  const rankHTML = asesoresSorted.map((at,i)=>{
+    const pct=(at.aprov*100).toFixed(2);
+    const color=ecColor(at.aprov);
+    const parts=at.asesor.split(' ');
+    const initials=parts.map(p=>p[0]).join('').substring(0,3).toUpperCase();
+    const shortName=parts.length>=3?parts[0]+' '+parts[1].charAt(0)+'. '+parts[parts.length-1]:at.asesor;
+    return`<div class="rank-item">
+      <div class="rank-num">${i+1}</div>
+      <div>
+        <div class="rank-name">${shortName}</div>
+        <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:0%;background:${color==='verde'?'#00A650':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'}" data-w="${(at.aprov/maxAprov*100).toFixed(1)}%"></div></div>
+      </div>
+      <div class="rank-val ${color}">${pct}%</div>
+    </div>`;
+  }).join('');
+  document.getElementById('ranking-at').innerHTML=`<div>${rankHTML}</div>`;
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('#ranking-at .rank-bar-fill').forEach((b,i)=>{
+      setTimeout(()=>{b.style.width=b.dataset.w;},i*60);
+    });
+  });
+
+  // ── TABLA APROVECHAMIENTO POR PLAZA ─────────────────────
+  // Leer columnas Plaza y Aprovechamiento de estructura de Plaza
+  const plazaMap = {};
+  data.forEach(r => {
+    const plaza = r.col_plaza;
+    const aprov = r.aprov_plaza;
+    if(plaza && aprov && !plazaMap[plaza]) {
+      const n = parseFloat(String(aprov).replace('%',''));
+      if(!isNaN(n)) plazaMap[plaza] = n;
+    }
+  });
+  const plazaData = Object.entries(plazaMap)
+    .map(([plaza, aprov]) => ({ plaza, aprov }))
+    .sort((a,b) => b.aprov - a.aprov);
+
+  if(plazaData.length > 0) {
+    // Insertar tabla de plazas antes de las gráficas
+    const plazaEl = document.getElementById('tabla-plazas');
+    if(plazaEl) {
+      const maxAprovPlaza = Math.max(...plazaData.map(p => p.aprov), 1);
+      const rowsPlaza = plazaData.map((p,i) => {
+        const color = p.aprov >= 95 ? 'verde' : p.aprov >= 85 ? 'amarillo' : 'rojo';
+        const barW = (p.aprov / maxAprovPlaza * 100).toFixed(1);
+        return `<tr>
+          <td style="font-weight:600;font-size:13px;padding:10px 12px">${p.plaza}</td>
+          <td style="padding:10px 12px">
+            <div style="height:6px;background:var(--color-border);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:3px;transition:width .8s ease"></div>
+            </div>
+          </td>
+          <td style="text-align:right;padding:10px 12px">
+            <span style="font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)'}">${p.aprov.toFixed(2)}%</span>
+          </td>
+        </tr>`;
+      }).join('');
+      plazaEl.innerHTML = `
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:var(--color-bg)">
+            <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Plaza</th>
+            <th style="padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Tendencia</th>
+            <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Aprov. %</th>
+          </tr></thead>
+          <tbody>${rowsPlaza}</tbody>
+        </table>`;
+    }
+  }
+
+  // ── GRÁFICA BARRAS EC% POR AT ────────────────────────────
+  const labels = asesoresSorted.map(a=>{const p=a.asesor.split(' ');return p[0]+' '+p[p.length-1];});
+  const vals   = asesoresSorted.map(a=>parseFloat((a.aprov*100).toFixed(2)));
+  const colors = vals.map(v=>v>=95?'#00A650':v>=80?'#FFD200':'#D92B2B');
+
+  const canvas1=document.getElementById('chart-barras');
+  if(canvas1){
+    if(canvas1._ci)canvas1._ci.destroy();
+    canvas1._ci=new Chart(canvas1.getContext('2d'),{
+      type:'bar',
+      data:{labels,datasets:[{label:'EC %',data:vals,backgroundColor:colors,borderRadius:8,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1A1A2E',callbacks:{label:ctx=>`EC: ${ctx.raw}%`}}},
+        scales:{
+          x:{grid:{display:false},ticks:{font:{family:'Barlow',size:10},color:'#8A8A99',maxRotation:35}},
+          y:{beginAtZero:false,min:70,max:100,grid:{color:'#E0DAD0'},ticks:{font:{family:'Barlow',size:11},color:'#8A8A99',callback:v=>v+'%'}}
+        }
+      }
+    });
+  }
+
+  // ── GRÁFICA DONA ESTATUS ─────────────────────────────────
+  OXXO.renderDonutChart('chart-dona',['Equipo Completo','Equipo Incompleto','Tienda Crítica'],[completas,incompletas,criticas]);
+
+
+
+  // ── TABLA DETALLE COMPLETO ───────────────────────────────
+  const detRows = data.map(r=>{
+    const color=ecColor(r.aprov);
+    return`<tr>
+      <td>${OXXO.truncate(r.asesor,28)}</td>
+      <td>${OXXO.truncate(r.tienda,30)}</td>
+      <td class="text-center">${r.esquema||'—'}</td>
+      <td class="text-center">${r.estructura||'—'}</td>
+      <td class="text-center">${r.ausent||0}</td>
+      <td class="text-center">${r.vacante||0}</td>
+
+    </tr>`;
+  }).join('');
+
+  allTablaData = data;
+  document.getElementById('tabla-detalle').innerHTML=`
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr>
+        <th>Asesor</th><th>Tienda</th>
+        <th style="text-align:center">Esquema</th>
+        <th style="text-align:center">Estructura</th>
+        <th style="text-align:center">Ausentismos</th>
+        <th style="text-align:center">Vacantes</th>
+      </tr></thead>
+      <tbody>${detRows}</tbody>
+    </table></div>`;
+  document.getElementById('detalle-count').textContent=`${data.length} tiendas`;
+
+  // ── RANKING ASESORES POR INCOMPLETAS + CRÍTICAS ─────────
+  const rankInc = asesoresSorted
+    .map(at=>({...at, riesgo: at.incompletas + at.criticas}))
+    .filter(at=>at.riesgo > 0)
+    .sort((a,b)=>b.riesgo - a.riesgo);
+
+  document.getElementById('badge-inc').textContent = rankInc.length + ' con pendientes';
+
+  if(rankInc.length === 0){
+    document.getElementById('ranking-incompletas').innerHTML=`
+      <div class="state-box"><div class="state-box__icon">✅</div>
+      <div class="state-box__title">Sin incompletas</div>
+      <div class="state-box__text">Todos los asesores tienen equipo completo.</div></div>`;
+  } else {
+    const maxRiesgo = Math.max(...rankInc.map(a=>a.riesgo), 1);
+    const rankHTML = rankInc.map((at,i)=>{
+      const parts=at.asesor.split(' ');
+      const shortName=parts.length>=3?parts[0]+' '+parts[1].charAt(0)+'. '+parts[parts.length-1]:at.asesor;
+      const barW = (at.riesgo/maxRiesgo*100).toFixed(0);
+      return`<div style="display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--color-border)">
+        <div style="font-family:var(--font-display);font-size:13px;font-weight:800;color:var(--color-gray);text-align:center">${i+1}</div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--color-dark);margin-bottom:3px">${shortName}</div>
+          <div style="display:flex;gap:8px;font-size:11px;margin-bottom:4px">
+            <span style="color:#B8960C;font-weight:600">⚠ ${at.incompletas} inc.</span>
+            ${at.criticas>0?`<span style="color:var(--semaforo-rojo);font-weight:700">✗ ${at.criticas} crít.</span>`:''}
+          </div>
+          <div style="height:5px;background:var(--color-border);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:0%;background:${at.criticas>0?'var(--semaforo-rojo)':'var(--semaforo-amarillo)'};border-radius:3px;transition:width .8s ease" data-w="${barW}%"></div>
+          </div>
+        </div>
+        <div style="font-family:var(--font-display);font-size:1.3rem;font-weight:800;color:${at.criticas>0?'var(--semaforo-rojo)':'#B8960C'}">${at.riesgo}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('ranking-incompletas').innerHTML=`<div>${rankHTML}</div>`;
+    requestAnimationFrame(()=>{
+      document.querySelectorAll('#ranking-incompletas [data-w]').forEach((b,i)=>{
+        setTimeout(()=>{b.style.width=b.dataset.w;},i*80);
+      });
+    });
+  }
+
+  // ── TABLA EC POR AT (desde columna del sheet) ───────────────
+  const ecAtEl = document.getElementById('tabla-ec-at');
+  if(ecAtEl) {
+    // Recolectar AT y Ec por AT únicos
+    const ecAtMap = {};
+    data.forEach(r => {
+      const at = r.col_at;
+      const ec = r.ec_por_at;
+      if(at && ec && !ecAtMap[at]) {
+        const n = parseFloat(String(ec).replace('%',''));
+        if(!isNaN(n)) ecAtMap[at] = n;
+      }
+    });
+    const ecAtData = Object.entries(ecAtMap)
+      .map(([at, ec]) => ({ at, ec }))
+      .sort((a,b) => b.ec - a.ec);
+
+    if(ecAtData.length > 0) {
+      const maxEc = Math.max(...ecAtData.map(d => d.ec), 1);
+      const rowsEc = ecAtData.map((d,i) => {
+        const color = d.ec >= 95 ? 'verde' : d.ec >= 85 ? 'amarillo' : 'rojo';
+        const barW = (d.ec / maxEc * 100).toFixed(1);
+        const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+        return `<tr>
+          <td style="padding:9px 12px;text-align:center;font-size:13px">${medal}</td>
+          <td style="padding:9px 12px;font-weight:600;font-size:12px">${OXXO.truncate(d.at, 30)}</td>
+          <td style="padding:9px 12px">
+            <div style="height:5px;background:var(--color-border);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:3px;transition:width .8s ease"></div>
+            </div>
+          </td>
+          <td style="padding:9px 12px;text-align:right;font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)'}">${d.ec.toFixed(2)}%</td>
+        </tr>`;
+      }).join('');
+      ecAtEl.innerHTML = `
+        <div style="overflow:auto;max-height:280px">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr style="background:var(--color-bg)">
+              <th style="padding:8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">#</th>
+              <th style="padding:8px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">AT</th>
+              <th style="padding:8px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Tendencia</th>
+              <th style="padding:8px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">EC %</th>
+            </tr></thead>
+            <tbody>${rowsEc}</tbody>
+          </table>
+        </div>`;
+    } else {
+      ecAtEl.innerHTML = '<div style="font-size:12px;color:var(--color-gray);padding:16px">Agrega columnas AT y Ec por AT al sheet.</div>';
+    }
+  }
+
+  // ── TABLA TIENDAS INCOMPLETAS Y CRÍTICAS ─────────────────
+  const tiendasRiesgo = data
+    .filter(r=>r.estatus.toLowerCase().includes('incompleto')||r.estatus.toLowerCase().includes('crít')||r.estatus.toLowerCase().includes('crit'))
+    .sort((a,b)=>a.aprov-b.aprov); // ordenar de menor a mayor aprovechamiento
+
+  document.getElementById('badge-tiendas-inc').textContent = tiendasRiesgo.length + ' tiendas';
+
+  if(tiendasRiesgo.length === 0){
+    document.getElementById('tabla-incompletas').innerHTML=`
+      <div class="state-box"><div class="state-box__icon">✅</div>
+      <div class="state-box__title">Sin tiendas en riesgo</div></div>`;
+  } else {
+    const rowsInc = tiendasRiesgo.map(r=>{
+      const isCrit = r.estatus.toLowerCase().includes('crít')||r.estatus.toLowerCase().includes('crit');
+      const aprovPct = r.aprov > 0 ? (r.aprov > 1 ? r.aprov.toFixed(2) : (r.aprov*100).toFixed(2)) : '—';
+      return`<tr style="${isCrit?'background:#FFF0F0':''}">
+        <td>${OXXO.truncate(r.asesor,22)}</td>
+        <td>${OXXO.truncate(r.tienda,28)}</td>
+        <td class="text-center">
+          <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;background:${isCrit?'#FDEAEA':'#FFF9E0'};color:${isCrit?'var(--semaforo-rojo)':'#8a6a00'}">
+            ${isCrit?'🔴 Crítica':'🟡 Incompleta'}
+          </span>
+        </td>
+        <td class="text-center" style="font-family:var(--font-display);font-weight:700;color:${isCrit?'var(--semaforo-rojo)':'#B8960C'}">${aprovPct}%</td>
+        <td class="text-center" style="font-size:11px;color:var(--color-gray)">${r.vacante||0} vac.</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('tabla-incompletas').innerHTML=`
+      <div class="tbl-wrap" style="max-height:320px;overflow-y:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th>Asesor</th>
+            <th>Tienda</th>
+            <th style="text-align:center">Estatus</th>
+            <th style="text-align:center">Aprov. %</th>
+            <th style="text-align:center">Vacantes</th>
+          </tr></thead>
+          <tbody>${rowsInc}</tbody>
+        </table>
+      </div>`;
+  }
+
+  OXXO.updateFooterTime('load-time');
+}
+
+document.addEventListener('DOMContentLoaded', initDashboard);
+</script>
+</body>
+</html>
