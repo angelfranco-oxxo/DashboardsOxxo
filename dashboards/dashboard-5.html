@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vacaciones · OXXO Plaza Oaxaca</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>.chart-container{position:relative;height:240px}
+    /* Tema claro / oscuro */
+    .topbar__meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 34px;
+      padding: 4px 11px 4px 5px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.24);
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      font: 800 11px/1 var(--font-body, Barlow, sans-serif);
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.24s ease, border-color 0.24s ease, transform 0.24s ease;
+    }
+
+    .theme-toggle:hover,
+    .theme-toggle:focus-visible {
+      background: rgba(255,255,255,0.20);
+      border-color: rgba(255,255,255,0.42);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .theme-toggle__track {
+      width: 42px;
+      height: 24px;
+      border-radius: 999px;
+      background: rgba(26,26,46,0.34);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22);
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .theme-toggle__thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #F2A52B;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.20);
+      transition: transform 0.24s ease, background 0.24s ease;
+    }
+
+    html[data-theme="dark"] .theme-toggle__thumb {
+      transform: translateX(18px);
+      background: #FFFFFF;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --color-bg: #11111B;
+      --color-surface: #191926;
+      --color-dark: #F71926;
+      --color-dark-mid: #FF4A54;
+      --color-border: #353242;
+      --color-gray: #B8B4C7;
+      --color-text: #F5F2FF;
+    }
+
+    html[data-theme="dark"] body {
+      background: #11111B !important;
+      color: #F5F2FF !important;
+    }
+
+    html[data-theme="dark"] .system-bar,
+    html[data-theme="dark"] .dashboards-section,
+    html[data-theme="dark"] .main,
+    html[data-theme="dark"] main,
+    html[data-theme="dark"] .page,
+    html[data-theme="dark"] .section,
+    html[data-theme="dark"] .global-footer {
+      background-color: #11111B !important;
+      color: #F5F2FF !important;
+    }
+
+    html[data-theme="dark"] .db-card,
+    html[data-theme="dark"] .kpi-card,
+    html[data-theme="dark"] .panel,
+    html[data-theme="dark"] .chart-card,
+    html[data-theme="dark"] .filters,
+    html[data-theme="dark"] .filter-bar,
+    html[data-theme="dark"] .table-wrap,
+    html[data-theme="dark"] .table-panel,
+    html[data-theme="dark"] .content-card,
+    html[data-theme="dark"] .card,
+    html[data-theme="dark"] .hero-card {
+      background: linear-gradient(145deg, #1B1B2A 0%, #151520 100%) !important;
+      border-color: rgba(242,165,43,0.18) !important;
+      box-shadow: 0 18px 44px rgba(0,0,0,0.28) !important;
+      color: #F5F2FF !important;
+    }
+
+    html[data-theme="dark"] .hero {
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,0.08);
+    }
+
+    html[data-theme="dark"] .db-card__title,
+    html[data-theme="dark"] .section-title,
+    html[data-theme="dark"] .kpi-value,
+    html[data-theme="dark"] .kpi-card .value,
+    html[data-theme="dark"] h1,
+    html[data-theme="dark"] h2,
+    html[data-theme="dark"] h3,
+    html[data-theme="dark"] .panel-title,
+    html[data-theme="dark"] .table-title {
+      color: #FFFFFF !important;
+    }
+
+    html[data-theme="dark"] .db-card__desc,
+    html[data-theme="dark"] .db-card__update,
+    html[data-theme="dark"] .hero__sub,
+    html[data-theme="dark"] .muted,
+    html[data-theme="dark"] .sub,
+    html[data-theme="dark"] .subtitle,
+    html[data-theme="dark"] .kpi-sub,
+    html[data-theme="dark"] .small,
+    html[data-theme="dark"] label {
+      color: #B8B4C7 !important;
+    }
+
+    html[data-theme="dark"] select,
+    html[data-theme="dark"] input,
+    html[data-theme="dark"] button:not(.theme-toggle),
+    html[data-theme="dark"] .select,
+    html[data-theme="dark"] .chip {
+      background-color: #202033 !important;
+      border-color: #39384A !important;
+      color: #F5F2FF !important;
+    }
+
+    html[data-theme="dark"] table,
+    html[data-theme="dark"] tbody,
+    html[data-theme="dark"] tr,
+    html[data-theme="dark"] td {
+      background-color: #151520 !important;
+      color: #ECE9F8 !important;
+      border-color: #333143 !important;
+    }
+
+    html[data-theme="dark"] thead,
+    html[data-theme="dark"] th {
+      background-color: #F71926 !important;
+      color: #FFFFFF !important;
+      border-color: rgba(255,255,255,0.10) !important;
+    }
+
+    html[data-theme="dark"] tbody tr:hover,
+    html[data-theme="dark"] table tr:hover {
+      background-color: #222235 !important;
+    }
+
+    html[data-theme="dark"] .section-divider,
+    html[data-theme="dark"] hr {
+      background: #333143 !important;
+      border-color: #333143 !important;
+    }
+  
+    /* Ajustes de contraste para datos en tema oscuro */
+    html[data-theme="dark"] .card-title,
+    html[data-theme="dark"] .rank-name,
+    html[data-theme="dark"] .plaza-name,
+    html[data-theme="dark"] .state-box__title,
+    html[data-theme="dark"] .kpi-card .label,
+    html[data-theme="dark"] .kpi-label,
+    html[data-theme="dark"] .metric-label,
+    html[data-theme="dark"] .panel-header,
+    html[data-theme="dark"] .panel h2,
+    html[data-theme="dark"] .panel h3,
+    html[data-theme="dark"] .card h2,
+    html[data-theme="dark"] .card h3 {
+      color: #F8F6FF !important;
+    }
+
+    html[data-theme="dark"] .kpi-card .value,
+    html[data-theme="dark"] .kpi-card .num,
+    html[data-theme="dark"] .kpi-card .kpi-value,
+    html[data-theme="dark"] .metric-value,
+    html[data-theme="dark"] .plaza-kpi-val,
+    html[data-theme="dark"] .rank-val,
+    html[data-theme="dark"] .total,
+    html[data-theme="dark"] [class*="value"],
+    html[data-theme="dark"] [class*="Value"] {
+      color: #FFFFFF !important;
+      text-shadow: 0 0 18px rgba(242,165,43,0.14);
+    }
+
+    html[data-theme="dark"] .rank-num,
+    html[data-theme="dark"] .plaza-kpi-label,
+    html[data-theme="dark"] .hero-date,
+    html[data-theme="dark"] .card-badge,
+    html[data-theme="dark"] .state-box__text,
+    html[data-theme="dark"] .kpi-card small,
+    html[data-theme="dark"] .kpi-card .desc,
+    html[data-theme="dark"] .kpi-card .sub,
+    html[data-theme="dark"] .panel small,
+    html[data-theme="dark"] [style*="color:var(--color-gray)"],
+    html[data-theme="dark"] [style*="color: var(--color-gray)"] {
+      color: #C9C5D8 !important;
+    }
+
+    html[data-theme="dark"] [style*="color:var(--color-dark)"],
+    html[data-theme="dark"] [style*="color: var(--color-dark)"],
+    html[data-theme="dark"] [style*="color:#331818"],
+    html[data-theme="dark"] [style*="color: #331818"] {
+      color: #F8F6FF !important;
+    }
+
+    html[data-theme="dark"] .kpi-card [style*="color"],
+    html[data-theme="dark"] .card-title[style*="color"],
+    html[data-theme="dark"] .rank-name[style*="color"] {
+      color: #FFFFFF !important;
+    }
+
+    html[data-theme="dark"] .rank-bar-bg,
+    html[data-theme="dark"] .plaza-bar,
+    html[data-theme="dark"] [style*="background:var(--color-border)"],
+    html[data-theme="dark"] [style*="background: var(--color-border)"] {
+      background: #39384A !important;
+    }
+
+    html[data-theme="dark"] .ec-pill,
+    html[data-theme="dark"] .tag,
+    html[data-theme="dark"] .badge,
+    html[data-theme="dark"] .pill {
+      background-color: rgba(255,255,255,0.08) !important;
+      border-color: rgba(255,255,255,0.10) !important;
+    }
+
+    html[data-theme="dark"] .ec-pill.verde,
+    html[data-theme="dark"] .verde {
+      color: #45E08A !important;
+    }
+
+    html[data-theme="dark"] .ec-pill.amarillo,
+    html[data-theme="dark"] .amarillo,
+    html[data-theme="dark"] [style*="color:#B8960C"],
+    html[data-theme="dark"] [style*="color: #B8960C"],
+    html[data-theme="dark"] [style*="color:#8a6a00"],
+    html[data-theme="dark"] [style*="color: #8a6a00"] {
+      color: #FFD166 !important;
+    }
+
+    html[data-theme="dark"] .ec-pill.rojo,
+    html[data-theme="dark"] .rojo {
+      color: #FF4A54 !important;
+    }
+
+    html[data-theme="dark"] canvas {
+      filter: saturate(1.08) brightness(1.06);
+    }
+  
+    /* Contraste extra para paneles y graficas de Bajas */
+    html[data-theme="dark"] .bajas-panel__title,
+    html[data-theme="dark"] .bar-mini-name,
+    html[data-theme="dark"] .chart-title,
+    html[data-theme="dark"] .legend,
+    html[data-theme="dark"] .legend span,
+    html[data-theme="dark"] .kpi-card__label,
+    html[data-theme="dark"] .kpi-card__delta,
+    html[data-theme="dark"] .kpi-card__value,
+    html[data-theme="dark"] .row-count,
+    html[data-theme="dark"] #row-count,
+    html[data-theme="dark"] [id*="count"],
+    html[data-theme="dark"] [class*="title"] {
+      color: #F8F6FF !important;
+    }
+
+    html[data-theme="dark"] .bajas-panel__title.left,
+    html[data-theme="dark"] #tabla-detalle-title,
+    html[data-theme="dark"] [style*="color:#06060a"],
+    html[data-theme="dark"] [style*="color: #06060a"],
+    html[data-theme="dark"] [style*="color:#222"],
+    html[data-theme="dark"] [style*="color: #222"],
+    html[data-theme="dark"] [style*="color:#333"],
+    html[data-theme="dark"] [style*="color: #333"] {
+      color: #F8F6FF !important;
+    }
+  </style>
+</head>
+<body>
+<nav class="topbar">
+  <div class="topbar__brand"><div class="topbar__logo">OXXO</div>
+    <div><div class="topbar__title">Control de Vacaciones</div>
+      <div class="topbar__subtitle">Actualización semanal · Plaza Oaxaca</div></div>
+  </div>
+  <div class="topbar__meta">
+    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar a tema oscuro" aria-pressed="false">
+      <span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__thumb"></span></span>
+      <span data-theme-label>Claro</span>
+    </button><a href="../index.html" class="topbar__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
+  </div>
+</nav>
+<div class="dashboard-page">
+
+<section class="dashboard-hero dashboard-hero--purple">
+    <div>
+      <h1>Control de Vacaciones</h1>
+      <p>Seguimiento semanal de días pendientes, periodos anteriores y empleados con mayor acumulación. Útil para planear cobertura y evitar rezagos.</p>
+    </div>
+    <span class="dashboard-hero__badge">⟳ Semanal · Plaza Oaxaca</span>
+  </section>
+
+  <div class="kpi-grid executive-kpis" id="kpi-section">
+    <div class="kpi-card"><div class="kpi-card__label">Cargando…</div><div class="kpi-card__value"><div class="spinner"></div></div></div>
+  </div>
+
+  <section class="layout-vacaciones">
+    <article class="panel panel--dark-title panel--accent-green">
+      <div class="panel__header"><div class="panel__title">Días Pendientes por Asesor</div></div>
+      <div class="chart-container tall"><canvas id="chart-barras"></canvas></div>
+    </article>
+    <div class="layout-vacantes__side">
+      <article class="panel panel--accent-red">
+        <div class="panel__header"><div class="panel__title">Empleados con más días pendientes</div></div>
+        <div id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
+      </article>
+      <article class="panel panel--accent-purple">
+        <div class="panel__header"><div class="panel__title">Calendario visual</div><span class="panel__badge badge-gris">Planeación</span></div>
+        <div class="layout-vacaciones__calendar">
+          <div class="calendar-chip">Lun</div><div class="calendar-chip active">Mar</div><div class="calendar-chip">Mié</div><div class="calendar-chip active">Jue</div><div class="calendar-chip">Vie</div><div class="calendar-chip">Sáb</div><div class="calendar-chip">Dom</div>
+          <div class="calendar-chip active">Próx.</div><div class="calendar-chip">7 días</div><div class="calendar-chip active">15 días</div><div class="calendar-chip">30 días</div><div class="calendar-chip active">Cobertura</div><div class="calendar-chip">Pend.</div><div class="calendar-chip active">OK</div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="layout-vacaciones__bottom">
+    <article class="panel panel--accent-yellow">
+      <div class="panel__header"><div class="panel__title">Por Puesto</div></div>
+      <div class="chart-container small"><canvas id="chart-dona"></canvas></div>
+    </article>
+    <article class="panel panel--accent-green">
+      <div class="panel__header"><div class="panel__title">Resumen por Asesor</div></div>
+      <div id="semaforo-table"><div class="state-box"><div class="spinner"></div></div></div>
+    </article>
+  </section>
+
+  <section class="compact-panel-grid">
+    <article class="panel col-12 panel--accent-blue layout-vacaciones__table">
+      <div class="panel__header"><div class="panel__title">Detalle por Empleado</div><span class="panel__badge badge-gris" id="row-count">— registros</span></div>
+      <div id="tabla-detalle"><div class="state-box"><div class="spinner"></div><div class="state-box__text">Cargando datos…</div></div></div>
+    </article>
+  </section>
+
+  <div class="dash-footer">
+    <div class="dash-footer__update"><div class="dash-footer__update-dot"></div>
+      Datos cargados: <span id="load-time">—</span></div>
+    <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
+  </div>
+</div>
+
+<script src="../js/core.js"></script>
+<script>
+const TAB = OXXO.SHEETS_CONFIG.TABS.s5;
+const C = {
+  plaza:       "Plaza",
+  asesor:      "Asesor",
+  tienda:      "Tienda",
+  nombre:      "Nombre_empleado",
+  puesto:      "Puesto",
+  dias_d_ant:  "Dias_derecho_ant",
+  dias_d_act:  "Dias_derecho_act",
+  dias_dis_ant:"Dias_disfrutados_ant",
+  dias_dis_act:"Dias_disfrutados_act",
+  dias_rest_ant:"Dias_restantes_ant",
+  dias_rest_act:"Dias_restantes_act",
+  total_rest:  "Total_dias_restantes",
+  vencimiento: "Fecha_vencimiento_ant",
+  fecha:       "Fecha",
+};
+
+async function initDashboard() {
+  const data = await OXXO.fetchSheetData(TAB);
+  if(data===null){['kpi-section','ranking-container','semaforo-table','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
+  if(data.length===0){['kpi-section','ranking-container','semaforo-table','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
+
+  const total      = data.length;
+  const totalRest  = data.reduce((s,r)=>s+(parseInt(r[C.total_rest])||0),0);
+  const sinPend    = data.filter(r=>(parseInt(r[C.total_rest])||0)===0).length;
+  const conPend    = total - sinPend;
+  const criticos   = data.filter(r=>(parseInt(r[C.dias_rest_ant])||0)>0).length;
+  const promRest   = totalRest / (total||1);
+
+  document.getElementById('kpi-section').innerHTML = `
+    <div class="kpi-card ${criticos>0?'rojo':'verde'}">
+      <div class="kpi-card__label">Días Pendientes Total</div>
+      <div class="kpi-card__value">${OXXO.formatNum(totalRest)}</div>
+      <div class="kpi-card__delta ${criticos>0?'neg':'pos'}">entre ${total} empleados</div>
+      <div class="kpi-card__icon">📅</div>
+    </div>
+    <div class="kpi-card rojo">
+      <div class="kpi-card__label">Con Periodo Anterior</div>
+      <div class="kpi-card__value">${criticos}</div>
+      <div class="kpi-card__delta neg">días venciendo pronto</div>
+      <div class="kpi-card__icon">⚠️</div>
+    </div>
+    <div class="kpi-card amarillo">
+      <div class="kpi-card__label">Con Días Pendientes</div>
+      <div class="kpi-card__value">${conPend}</div>
+      <div class="kpi-card__delta neu">empleados</div>
+      <div class="kpi-card__icon">📋</div>
+    </div>
+    <div class="kpi-card verde">
+      <div class="kpi-card__label">Sin Pendientes</div>
+      <div class="kpi-card__value">${sinPend}</div>
+      <div class="kpi-card__delta pos">al corriente</div>
+      <div class="kpi-card__icon">✅</div>
+    </div>
+    <div class="kpi-card azul">
+      <div class="kpi-card__label">Promedio Días</div>
+      <div class="kpi-card__value">${promRest.toFixed(1)}</div>
+      <div class="kpi-card__delta neu">días por empleado</div>
+      <div class="kpi-card__icon">📊</div>
+    </div>`;
+
+  // Barras por asesor
+  const byAsesor = {};
+  data.forEach(r=>{const a=r[C.asesor]||'Sin asignar';if(!byAsesor[a])byAsesor[a]=0;byAsesor[a]+=(parseInt(r[C.total_rest])||0);});
+  const asesores = Object.keys(byAsesor).sort((a,b)=>byAsesor[b]-byAsesor[a]);
+  OXXO.renderBarChart('chart-barras', asesores.map(a=>OXXO.truncate(a,16)), asesores.map(a=>byAsesor[a]), 'Días pendientes', '#1D9E75');
+
+  // Ranking empleados
+  const rankData = [...data].sort((a,b)=>(parseInt(b[C.total_rest])||0)-(parseInt(a[C.total_rest])||0)).filter(r=>(parseInt(r[C.total_rest])||0)>0);
+  OXXO.renderRanking('ranking-container', rankData, C.nombre, C.total_rest, ' días', '#1D9E75');
+
+  // Dona por puesto
+  const byPuesto={};
+  data.forEach(r=>{const p=r[C.puesto]||'Sin puesto';if(!byPuesto[p])byPuesto[p]=0;byPuesto[p]+=(parseInt(r[C.total_rest])||0);});
+  const puestosK=Object.keys(byPuesto);
+  OXXO.renderDonutChart('chart-dona', puestosK, puestosK.map(p=>byPuesto[p]));
+
+  // Resumen por asesor
+  const resumen = asesores.map(a=>({
+    [C.asesor]:a,
+    empleados: data.filter(r=>r[C.asesor]===a).length,
+    dias_pend: byAsesor[a],
+    criticos:  data.filter(r=>r[C.asesor]===a&&(parseInt(r[C.dias_rest_ant])||0)>0).length,
+  }));
+  OXXO.renderTable('semaforo-table', resumen, [
+    {key:C.asesor,    label:'Asesor',         format:'text', align:'left'},
+    {key:'empleados', label:'Empleados',       format:'num',  align:'center'},
+    {key:'dias_pend', label:'Días Pendientes', format:'num',  align:'center'},
+    {key:'criticos',  label:'Per. Ant.',       format:'num',  align:'center'},
+  ]);
+
+  OXXO.renderTable('tabla-detalle', data, [
+    {key:C.asesor,       label:'Asesor',        format:'text', align:'left'},
+    {key:C.nombre,       label:'Empleado',      format:'text', align:'left'},
+    {key:C.puesto,       label:'Puesto',        format:'text', align:'left'},
+    {key:C.tienda,       label:'Tienda',        format:'text', align:'left'},
+    {key:C.dias_d_ant,   label:'Derecho Ant.',  format:'num',  align:'center'},
+    {key:C.dias_rest_ant,label:'Pend. Ant.',    format:'num',  align:'center'},
+    {key:C.dias_d_act,   label:'Derecho Act.',  format:'num',  align:'center'},
+    {key:C.dias_rest_act,label:'Pend. Act.',    format:'num',  align:'center'},
+    {key:C.total_rest,   label:'Total Pend.',   format:'num',  align:'center'},
+  ]);
+
+  document.getElementById('row-count').textContent=`${data.length} empleados`;
+  OXXO.updateFooterTime('load-time');
+}
+document.addEventListener('DOMContentLoaded', initDashboard);
+</script>
+</body></html>
