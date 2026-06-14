@@ -1682,7 +1682,7 @@ function filterData(data, cols){
 }
 function chartTheme(){
   if (window.OXXO && OXXO.getChartThemeColors) return OXXO.getChartThemeColors();
-  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
   return { text: dark ? '#FFFFFF' : '#2D2D44', muted: dark ? '#E6E1F2' : '#6B6678', grid: dark ? 'rgba(255,255,255,.20)' : '#ddd8ce', tooltipBg: dark ? '#090914' : '#1A1A2E' };
 }
 function chartReady(canvas){
@@ -1699,14 +1699,17 @@ function renderChart(canvasId, type, labels, values, opts={}){
   const ctx=canvas.getContext('2d');
   const colors = opts.colors || labels.map(()=> opts.color || '#ff7924');
   const theme = chartTheme();
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
+  const tickColor = dark ? '#FFFFFF' : theme.text;
+  const tickStrokeWidth = dark ? 3 : 0;
   canvas._chartInstance = new Chart(ctx, {
     type,
     data:{ labels, datasets:[{ label:opts.label||'Bajas', data:values, backgroundColor:colors, borderColor:colors, borderWidth:0, borderRadius: opts.borderRadius ?? 5, barPercentage: opts.barPercentage ?? .55, categoryPercentage: opts.categoryPercentage ?? .7 }]},
     options:{ indexAxis: opts.horizontal ? 'y' : 'x', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:!!opts.legend, position:'top', labels:{color:theme.text, font:{family:'Barlow', size:12, weight:'700'}}}, tooltip:{backgroundColor:theme.tooltipBg,padding:10,cornerRadius:8}, datalabels:{display:false} },
       scales:{
-        x:{ grid:{display:false}, ticks:{color:theme.text, font:{family:'Barlow', size: opts.tickSize || 11, weight:'700'}, maxRotation: opts.rotate ?? 55, minRotation: opts.rotate ?? 0}, beginAtZero:true },
-        y:{ grid:{color:theme.grid}, ticks:{color:theme.text, font:{family:'Barlow', size: opts.tickSize || 11, weight:'700'}}, beginAtZero:true }
+        x:{ grid:{display:false}, ticks:{color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, maxRotation: opts.rotate ?? 55, minRotation: opts.rotate ?? 0}, beginAtZero:true },
+        y:{ grid:{color:theme.grid}, ticks:{color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}}, beginAtZero:true }
       }
     }
   });
@@ -1867,8 +1870,8 @@ function renderBajasDashboard(data, cols){
   const motivoData = topEntries(byMotivo,8);
   renderChart('chart-motivos','bar',motivoData.map(x=>OXXO.truncate(x.label,24)),motivoData.map(x=>x.total),{color:'#ff7924',tickSize:10,rotate:45});
 
-  renderChart('chart-asesores','bar',topAsesor.map(x=>OXXO.truncate(x.label,18)),topAsesor.map(x=>x.total),{color:'#ff7924',tickSize:9,rotate:90,barPercentage:.55});
-  renderChart('chart-tiendas','bar',topTienda.map(x=>OXXO.truncate(x.label,18)),topTienda.map(x=>x.total),{color:'#ff7924',tickSize:9,rotate:90,barPercentage:.55});
+  renderChart('chart-asesores','bar',topAsesor.map(x=>OXXO.truncate(x.label,18)),topAsesor.map(x=>x.total),{color:'#ff7924',tickSize:12,rotate:90,barPercentage:.55});
+  renderChart('chart-tiendas','bar',topTienda.map(x=>OXXO.truncate(x.label,18)),topTienda.map(x=>x.total),{color:'#ff7924',tickSize:12,rotate:90,barPercentage:.55});
 
   renderDetail(data, cols);
   renderPlazas(data, cols);
@@ -1955,6 +1958,9 @@ function renderPlazas(data, cols) {
   const canvas = document.getElementById('chart-plazas');
   if(canvas) {
     const theme = chartTheme();
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
+    const tickColor = dark ? '#FFFFFF' : theme.text;
+    const tickStrokeWidth = dark ? 3 : 0;
     if(!chartReady(canvas)) return;
     if(canvas._chartInstance) canvas._chartInstance.destroy();
     canvas._chartInstance = new Chart(canvas.getContext('2d'), {
@@ -1973,8 +1979,8 @@ function renderPlazas(data, cols) {
         layout: { padding: { top: 10, right: 10 } },
         plugins: { legend: { display: false }, tooltip: { backgroundColor: theme.tooltipBg, padding: 10, cornerRadius: 8 }},
         scales: {
-          x: { grid: { display: false }, ticks: { font: { family: 'Barlow', size: 12, weight: '700' }, color: theme.text, fontWeight: '600' }},
-          y: { beginAtZero: true, grid: { color: theme.grid }, ticks: { precision: 0, font: { family: 'Barlow', size: 12, weight: '700' }, color: theme.text }}
+          x: { grid: { display: false }, ticks: { font: { family: 'Barlow', size: 13, weight: '800' }, color: tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth: tickStrokeWidth }},
+          y: { beginAtZero: true, grid: { color: theme.grid }, ticks: { precision: 0, font: { family: 'Barlow', size: 13, weight: '800' }, color: tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth: tickStrokeWidth }}
         }
       }
     });

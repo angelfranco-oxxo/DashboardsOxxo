@@ -625,7 +625,7 @@ function renderDonutChart(canvasId, labels, values) {
 
 
 function getChartThemeColors() {
-  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
   return {
     text: dark ? '#FFFFFF' : '#2D2D44',
     muted: dark ? '#F4F1FF' : '#6B6678',
