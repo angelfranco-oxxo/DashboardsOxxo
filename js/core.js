@@ -628,8 +628,8 @@ function getChartThemeColors() {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
   return {
     text: dark ? '#FFFFFF' : '#2D2D44',
-    muted: dark ? '#E6E1F2' : '#6B6678',
-    grid: dark ? 'rgba(255,255,255,0.22)' : '#E0DAD0',
+    muted: dark ? '#F4F1FF' : '#6B6678',
+    grid: dark ? 'rgba(255,255,255,0.32)' : '#E0DAD0',
     tooltipBg: dark ? '#090914' : '#1A1A2E'
   };
 }
@@ -639,17 +639,29 @@ function applyChartThemeDefaults() {
   const theme = getChartThemeColors();
   Chart.defaults.color = theme.text;
   Chart.defaults.borderColor = theme.grid;
+  Chart.defaults.plugins = Chart.defaults.plugins || {};
+  Chart.defaults.plugins.legend = Chart.defaults.plugins.legend || {};
+  Chart.defaults.plugins.legend.labels = Chart.defaults.plugins.legend.labels || {};
+  Chart.defaults.plugins.legend.labels.color = theme.text;
+  Chart.defaults.scale = Chart.defaults.scale || {};
+  Chart.defaults.scale.ticks = Chart.defaults.scale.ticks || {};
+  Chart.defaults.scale.ticks.color = theme.text;
+  Chart.defaults.scale.grid = Chart.defaults.scale.grid || {};
+  Chart.defaults.scale.grid.color = theme.grid;
   Object.values(Chart.instances || {}).forEach((chart) => {
     if (!chart || !chart.options) return;
     const plugins = chart.options.plugins || {};
     if (plugins.legend && plugins.legend.labels) plugins.legend.labels.color = theme.text;
     if (plugins.title) plugins.title.color = theme.text;
+    if (plugins.datalabels) plugins.datalabels.color = theme.text;
     const scales = chart.options.scales || {};
     Object.values(scales).forEach((scale) => {
       if (!scale) return;
       scale.ticks = scale.ticks || {};
       scale.grid = scale.grid || {};
       scale.ticks.color = theme.text;
+      scale.ticks.textStrokeColor = 'rgba(0,0,0,0.18)';
+      scale.ticks.textStrokeWidth = document.documentElement.getAttribute('data-theme') === 'dark' ? 2 : 0;
       if (scale.grid.display !== false) scale.grid.color = theme.grid;
     });
     chart.update('none');

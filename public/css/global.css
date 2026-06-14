@@ -970,6 +970,18 @@ body.dark-mode .text-gray { color: #666666 !important; }
 /* Gráficas Chart.js — fondo transparente */
 body.dark-mode canvas { background: transparent !important; }
 
+html[data-theme="dark"] canvas,
+body.dark-mode canvas {
+  background: transparent !important;
+}
+
+.topbar .theme-toggle [data-theme-label],
+html[data-theme="dark"] .topbar .theme-toggle [data-theme-label],
+body.dark-mode .topbar .theme-toggle [data-theme-label] {
+  color: #E30613 !important;
+  text-shadow: none !important;
+}
+
 /* Scroll bars */
 body.dark-mode ::-webkit-scrollbar { width: 6px; height: 6px; }
 body.dark-mode ::-webkit-scrollbar-track { background: #1A1A1A; }
