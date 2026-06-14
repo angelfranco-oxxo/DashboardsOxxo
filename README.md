@@ -1,6 +1,14 @@
-# OXXO Dashboards Next
+# OXXO Dashboards
 
-Migracion conservadora del proyecto HTML original a Next.js.
+Dashboard OXXO migrado a Next.js y publicado tambien como salida estatica para GitHub Pages.
+
+GitHub Pages sirve la version estatica desde la raiz del repositorio:
+
+- `index.html`
+- `dashboards/*.html`
+- `assets/`, `css/`, `js/`
+
+La app Next conserva la misma interfaz en `legacy/` y expone rutas desde `app/`.
 
 ## Ejecutar
 
