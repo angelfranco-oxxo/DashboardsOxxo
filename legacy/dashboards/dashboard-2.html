@@ -152,7 +152,7 @@
     }
 
 
-    /* FIX: que las gráficas de Bottom 15 ocupen todo el panel */
+    /* FIX: que las gráficas de rankings ocupen todo el panel */
     .bajas-analisis-grid .bajas-row-panel,
     .bajas-page > .bajas-row-panel {
       display: flex !important;
@@ -271,13 +271,13 @@
     </article>
 
     <article class="bajas-panel bajas-row-panel" style="margin:0">
-      <div class="bajas-panel__title">Bottom 15 AT con más bajas</div>
+      <div class="bajas-panel__title">12 AT con más bajas</div>
       <div class="chart-wide"><canvas id="chart-asesores"></canvas></div>
     </article>
   </section>
 
   <section class="bajas-panel bajas-row-panel">
-    <div class="bajas-panel__title">Bottom 15 Tiendas con más bajas</div>
+    <div class="bajas-panel__title">Top 10 tiendas con más bajas</div>
     <div class="chart-wide"><canvas id="chart-tiendas"></canvas></div>
   </section>
 
@@ -625,8 +625,8 @@ function renderBajasDashboard(data, cols){
   const byTemp = countBy(data, r=>getTemporalidad(r,cols));
   const byAsesor = countBy(data, r=>val(r,cols,'asesor','Sin asesor'));
   const byTienda = countBy(data, r=>val(r,cols,'tienda','Sin tienda'));
-  const topAsesor = topEntries(byAsesor,15);
-  const topTienda = topEntries(byTienda,15);
+  const topAsesor = topEntries(byAsesor,12);
+  const topTienda = topEntries(byTienda,10);
   const topPlaza = topEntries(countBy(data,r=>val(r,cols,'plaza','Oaxaca')),1)[0]?.label || 'Oaxaca';
   const maxAsesor = topAsesor[0] || {label:'—',total:0};
   const bajaTemprana = (byTemp['0 - 45 días'] || 0);
