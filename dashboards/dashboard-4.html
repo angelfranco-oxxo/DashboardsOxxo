@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -6,10 +6,99 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
   <link rel="stylesheet" href="../css/global.css"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>.chart-container{position:relative;height:240px}</style>
+  <link rel="stylesheet" href="../css/dashboard-skin.css"/>
+<style>
+/* ── layout ── */
+.te-page{max-width:1520px;margin:0 auto;padding:14px 16px 36px}
 
+/* KPI strip */
+.te-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.te-kpi{
+  background:#fff;border-radius:14px;padding:16px 20px;
+  display:flex;align-items:center;gap:14px;
+  box-shadow:0 2px 8px rgba(0,0,0,.07);border:1px solid #ececec;
+}
+.te-kpi__icon{
+  width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+}
+.te-kpi__icon.naranja{background:#FFF3E0}
+.te-kpi__icon.amarillo{background:#FFFDE7}
+.te-kpi__body{}
+.te-kpi__label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:3px}
+.te-kpi__value{font-family:var(--font-display);font-size:28px;font-weight:900;line-height:1;color:#111}
+.te-kpi__sub{font-size:11px;color:#aaa;margin-top:3px}
 
-  <link rel="stylesheet" href="../css/dashboard-skin.css" />
+/* Row 1: ranking + donut */
+.te-row1{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+
+/* Ranking panel */
+.rank-panel{background:#fff;border-radius:14px;padding:0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07);border:1px solid #ececec}
+.rank-panel__head{background:#1a1a1a;color:#fff;padding:10px 16px;font-family:var(--font-display);font-size:14px;font-weight:900;letter-spacing:.4px;display:flex;align-items:center;gap:8px}
+.rank-list{padding:8px 0}
+.rank-row{display:grid;grid-template-columns:32px 1fr 90px 90px;align-items:center;gap:8px;padding:7px 16px;border-bottom:1px solid #f5f5f5}
+.rank-row:last-child{border-bottom:none}
+.rank-num{width:22px;height:22px;border-radius:50%;background:#FFD200;color:#1a1a1a;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rank-num.top3{background:#FF6B00;color:#fff}
+.rank-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#222}
+.rank-bar-wrap{height:8px;background:#f0f0f0;border-radius:999px;overflow:hidden}
+.rank-bar{height:100%;border-radius:999px;background:#FFD200}
+.rank-val{font-size:12px;font-weight:800;color:#FF6B00;text-align:right;white-space:nowrap}
+
+/* Donut panel */
+.donut-panel{background:#fff;border-radius:14px;padding:0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07);border:1px solid #ececec}
+.donut-panel__head{background:#1a1a1a;color:#fff;padding:10px 16px;font-family:var(--font-display);font-size:14px;font-weight:900;letter-spacing:.4px;display:flex;align-items:center;gap:8px}
+.donut-body{display:flex;align-items:center;gap:0;padding:16px}
+.donut-chart-wrap{width:200px;height:200px;flex-shrink:0;position:relative}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.donut-center__val{font-family:var(--font-display);font-size:28px;font-weight:900;color:#222;line-height:1}
+.donut-center__lbl{font-size:10px;color:#888;font-weight:700;margin-top:2px}
+.donut-legend{flex:1;padding-left:20px;display:flex;flex-direction:column;gap:14px}
+.donut-leg-item{}
+.donut-leg-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.donut-leg-label{font-size:12px;color:#555;font-weight:600}
+.donut-leg-val{font-family:var(--font-display);font-size:22px;font-weight:900;color:#222;margin-top:2px}
+.donut-leg-pct{font-size:11px;color:#888;font-weight:700;margin-left:6px}
+
+/* Row 2: two bar charts */
+.te-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.bar-panel{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07);border:1px solid #ececec}
+.bar-panel__head{background:#1a1a1a;color:#fff;padding:10px 16px;font-family:var(--font-display);font-size:14px;font-weight:900;letter-spacing:.4px;display:flex;align-items:center;gap:8px}
+.bar-panel__chart{padding:12px 16px 8px;height:220px;position:relative}
+
+/* Detail table */
+.te-detail{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07);border:1px solid #ececec;margin-bottom:12px}
+.te-detail__head{background:#1a1a1a;color:#fff;padding:10px 16px;font-family:var(--font-display);font-size:14px;font-weight:900;letter-spacing:.4px;display:flex;align-items:center;gap:8px}
+.te-table-wrap{overflow-x:auto}
+.te-table{width:100%;border-collapse:collapse;font-size:12px}
+.te-table thead tr:first-child th{
+  background:#2c2c2c;color:#FFD200;font-family:var(--font-display);font-size:12px;font-weight:900;
+  letter-spacing:.5px;text-transform:uppercase;padding:8px 10px;text-align:center;border:1px solid #3a3a3a;
+  white-space:nowrap;
+}
+.te-table thead tr:first-child th:first-child{background:#1a1a1a;text-align:left}
+.te-table thead tr:nth-child(2) th{
+  background:#f5f5f5;color:#444;font-size:10px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.04em;padding:6px 10px;text-align:center;border:1px solid #e8e8e8;
+}
+.te-table thead tr:nth-child(2) th:first-child{text-align:left}
+.te-table tbody td{
+  padding:7px 10px;border:1px solid #f0f0f0;color:#222;vertical-align:middle;
+}
+.te-table tbody td:first-child{font-weight:700;background:#fafafa}
+.te-table tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+.te-table tbody td.money{text-align:right;font-variant-numeric:tabular-nums;color:#D92B2B;font-weight:700}
+.te-table tbody tr:hover td{background:#fffbf0}
+.te-table tfoot td{
+  background:#1a1a1a;color:#FFD200;font-weight:900;font-family:var(--font-display);
+  font-size:12px;padding:8px 10px;border:1px solid #2c2c2c;
+}
+.te-table tfoot td.num{text-align:right;color:#FFD200}
+.te-table tfoot td.money{text-align:right;color:#FFD200}
+
+/* section icon */
+.icon-pill{background:#FFD200;color:#1a1a1a;border-radius:6px;padding:2px 6px;font-size:12px}
+</style>
 </head>
 <body>
 <nav class="topbar">
@@ -25,47 +114,53 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
   </div>
 </nav>
-<div class="dashboard-page">
 
-<section class="dashboard-hero dashboard-hero--blue">
-    <div>
-      <h1>Tiempo Extra</h1>
-      <p>Análisis semanal de gasto por asesor, tipo de tiempo extra y detalle de tiendas. Diseñado para detectar costos altos y oportunidades de control.</p>
-    </div>
-    <span class="dashboard-hero__badge">⟳ Semanal · Plaza Oaxaca</span>
-  </section>
+<div class="te-page">
 
-  <div class="kpi-grid executive-kpis" id="kpi-section">
-    <div class="kpi-card"><div class="kpi-card__label">Cargando…</div><div class="kpi-card__value"><div class="spinner"></div></div></div>
+  <!-- KPIs -->
+  <div class="te-kpis" id="kpi-section">
+    <div class="te-kpi"><div class="te-kpi__icon naranja">⏱️</div><div class="te-kpi__body"><div class="te-kpi__label">Total Horas TE</div><div class="te-kpi__value"><div class="spinner"></div></div></div></div>
   </div>
 
-  <section class="layout-te">
-    <article class="panel panel--dark-title panel--accent-blue">
-      <div class="panel__header"><div class="panel__title">Gasto TE por Asesor ($)</div></div>
-      <div class="chart-container tall"><canvas id="chart-barras"></canvas></div>
-    </article>
-    <div class="layout-te__right">
-      <article class="panel panel--accent-red">
-        <div class="panel__header"><div class="panel__title">Ranking Gasto TE</div></div>
-        <div id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
-      </article>
-      <article class="panel panel--accent-orange">
-        <div class="panel__header"><div class="panel__title">Distribución por Tipo</div></div>
-        <div class="chart-container small"><canvas id="chart-dona"></canvas></div>
-      </article>
+  <!-- Row 1: Ranking + Donut -->
+  <div class="te-row1">
+    <div class="rank-panel">
+      <div class="rank-panel__head"><span class="icon-pill">🏆</span> Ranking de Asesores por Gasto en Tiempo Extra</div>
+      <div class="rank-list" id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
     </div>
-  </section>
+    <div class="donut-panel">
+      <div class="donut-panel__head"><span class="icon-pill">🕐</span> Distribución de Horas por Tipo de TE</div>
+      <div class="donut-body">
+        <div class="donut-chart-wrap">
+          <canvas id="chart-dona"></canvas>
+          <div class="donut-center" id="donut-center"><div class="donut-center__val">—</div><div class="donut-center__lbl">Total horas</div></div>
+        </div>
+        <div class="donut-legend" id="donut-legend"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
 
-  <section class="layout-te__bottom">
-    <article class="panel panel--accent-yellow">
-      <div class="panel__header"><div class="panel__title">Detalle por Tipo de TE</div></div>
-      <div id="semaforo-table"><div class="state-box"><div class="spinner"></div></div></div>
-    </article>
-    <article class="panel panel--accent-blue layout-te__table">
-      <div class="panel__header"><div class="panel__title">Detalle Completo</div><span class="panel__badge badge-gris" id="row-count">— registros</span></div>
-      <div id="tabla-detalle"><div class="state-box"><div class="spinner"></div><div class="state-box__text">Cargando datos…</div></div></div>
-    </article>
-  </section>
+  <!-- Row 2: Bar charts -->
+  <div class="te-row2">
+    <div class="bar-panel">
+      <div class="bar-panel__head"><span class="icon-pill">📊</span> Top 10 Asesores con más Gasto en Tiempo Extra</div>
+      <div class="bar-panel__chart"><canvas id="chart-asesores"></canvas></div>
+    </div>
+    <div class="bar-panel">
+      <div class="bar-panel__head"><span class="icon-pill">🏪</span> Top 10 Tiendas con más Gasto en Tiempo Extra</div>
+      <div class="bar-panel__chart"><canvas id="chart-tiendas"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Detail table -->
+  <div class="te-detail">
+    <div class="te-detail__head"><span class="icon-pill">📋</span> Detalle de Gasto en Tiempo Extra por Asesor</div>
+    <div class="te-table-wrap">
+      <table class="te-table" id="tabla-detalle">
+        <tbody><tr><td><div class="state-box"><div class="spinner"></div><div class="state-box__text">Cargando datos…</div></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
 
   <div class="dash-footer">
     <div class="dash-footer__update"><div class="dash-footer__update-dot"></div>
@@ -80,6 +175,7 @@ const TAB = OXXO.SHEETS_CONFIG.TABS.s4;
 const C = {
   plaza:    "Plaza",
   asesor:   "Asesor",
+  tienda:   "Tienda",
   semana:   "Semana",
   gasto:    "Gasto_TE_total",
   horas:    "Horas_TE_total",
@@ -88,89 +184,156 @@ const C = {
   g_desc:   "Gasto_dia_descanso",
   h_doble:  "Horas_TE_doble",
   h_triple: "Horas_TE_triple",
+  h_desc:   "Horas_dia_descanso",
   fecha:    "Fecha",
 };
 
+function fmt$(n){ return '$'+OXXO.formatNum(Math.round(parseFloat(n)||0)); }
+function fmtH(n){ return OXXO.formatNum(parseFloat(n)||0); }
+function pct(part,total){ return total>0?((part/total)*100).toFixed(2)+'%':'0%'; }
+
 async function initDashboard() {
   const data = await OXXO.fetchSheetData(TAB);
-  if (data===null){['kpi-section','ranking-container','semaforo-table','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
-  if (data.length===0){['kpi-section','ranking-container','semaforo-table','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
+  const errIds = ['kpi-section','ranking-container','tabla-detalle'];
+  if(data===null){errIds.forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
+  if(data.length===0){errIds.forEach(id=>OXXO.showEmpty(id));return;}
 
-  const totalGasto  = data.reduce((s,r)=>s+(parseFloat(r[C.gasto])||0),0);
   const totalHoras  = data.reduce((s,r)=>s+(parseFloat(r[C.horas])||0),0);
-  const totalDoble  = data.reduce((s,r)=>s+(parseFloat(r[C.g_doble])||0),0);
-  const totalTriple = data.reduce((s,r)=>s+(parseFloat(r[C.g_triple])||0),0);
-  const totalDesc   = data.reduce((s,r)=>s+(parseFloat(r[C.g_desc])||0),0);
-  const semana      = data[0]?.[C.semana] || '—';
+  const totalGasto  = data.reduce((s,r)=>s+(parseFloat(r[C.gasto])||0),0);
+  const totalHDoble = data.reduce((s,r)=>s+(parseFloat(r[C.h_doble])||0),0);
+  const totalHTriple= data.reduce((s,r)=>s+(parseFloat(r[C.h_triple])||0),0);
+  const totalHDesc  = data.reduce((s,r)=>s+(parseFloat(r[C.h_desc])||0),0);
+  const totalGDoble = data.reduce((s,r)=>s+(parseFloat(r[C.g_doble])||0),0);
+  const totalGTriple= data.reduce((s,r)=>s+(parseFloat(r[C.g_triple])||0),0);
+  const totalGDesc  = data.reduce((s,r)=>s+(parseFloat(r[C.g_desc])||0),0);
+  const semana      = data[0]?.[C.semana]||'—';
 
+  // ── KPIs ──
   document.getElementById('kpi-section').innerHTML = `
-    <div class="kpi-card rojo">
-      <div class="kpi-card__label">Gasto TE Total</div>
-      <div class="kpi-card__value">$${OXXO.formatNum(Math.round(totalGasto))}</div>
-      <div class="kpi-card__delta neg">${semana}</div>
-      <div class="kpi-card__icon">💰</div>
-    </div>
-    <div class="kpi-card naranja">
-      <div class="kpi-card__label">Horas TE Total</div>
-      <div class="kpi-card__value">${OXXO.formatNum(Math.round(totalHoras))}</div>
-      <div class="kpi-card__delta neu">horas acumuladas</div>
-      <div class="kpi-card__icon">⏱️</div>
-    </div>
-    <div class="kpi-card amarillo">
-      <div class="kpi-card__label">TE Doble</div>
-      <div class="kpi-card__value">$${OXXO.formatNum(Math.round(totalDoble))}</div>
-      <div class="kpi-card__delta neg">${totalGasto>0?Math.round(totalDoble/totalGasto*100):0}% del total</div>
-      <div class="kpi-card__icon">2️⃣</div>
-    </div>
-    <div class="kpi-card rojo">
-      <div class="kpi-card__label">TE Triple</div>
-      <div class="kpi-card__value">$${OXXO.formatNum(Math.round(totalTriple))}</div>
-      <div class="kpi-card__delta neg">${totalGasto>0?Math.round(totalTriple/totalGasto*100):0}% del total</div>
-      <div class="kpi-card__icon">3️⃣</div>
-    </div>
-    <div class="kpi-card azul">
-      <div class="kpi-card__label">Día Descanso</div>
-      <div class="kpi-card__value">$${OXXO.formatNum(Math.round(totalDesc))}</div>
-      <div class="kpi-card__delta neu">${totalGasto>0?Math.round(totalDesc/totalGasto*100):0}% del total</div>
-      <div class="kpi-card__icon">📋</div>
-    </div>`;
+    <div class="te-kpi"><div class="te-kpi__icon naranja">⏱️</div>
+      <div class="te-kpi__body"><div class="te-kpi__label">Total Horas TE</div>
+        <div class="te-kpi__value">${OXXO.formatNum(totalHoras.toFixed(2))}</div>
+        <div class="te-kpi__sub">Horas</div></div></div>
+    <div class="te-kpi"><div class="te-kpi__icon naranja">💵</div>
+      <div class="te-kpi__body"><div class="te-kpi__label">Total Gasto $</div>
+        <div class="te-kpi__value">${fmt$(totalGasto)}</div>
+        <div class="te-kpi__sub">Pesos</div></div></div>
+    <div class="te-kpi"><div class="te-kpi__icon amarillo">2️⃣</div>
+      <div class="te-kpi__body"><div class="te-kpi__label">Horas Doble</div>
+        <div class="te-kpi__value">${OXXO.formatNum(totalHDoble.toFixed(2))}</div>
+        <div class="te-kpi__sub">${pct(totalHDoble,totalHoras)} del total TE</div></div></div>
+    <div class="te-kpi"><div class="te-kpi__icon amarillo">3️⃣</div>
+      <div class="te-kpi__body"><div class="te-kpi__label">Horas Triple</div>
+        <div class="te-kpi__value">${OXXO.formatNum(totalHTriple.toFixed(2))}</div>
+        <div class="te-kpi__sub">${pct(totalHTriple,totalHoras)} del total TE</div></div></div>`;
 
-  // Barras por asesor
+  // ── Ranking ──
   const sorted = [...data].sort((a,b)=>(parseFloat(b[C.gasto])||0)-(parseFloat(a[C.gasto])||0));
-  OXXO.renderBarChart('chart-barras', sorted.map(r=>OXXO.truncate(r[C.asesor]||'—',16)), sorted.map(r=>Math.round(parseFloat(r[C.gasto])||0)), 'Gasto TE $', '#0066CC');
-  OXXO.renderRanking('ranking-container', sorted, C.asesor, C.gasto, ' $', '#0066CC');
+  const maxGasto = parseFloat(sorted[0]?.[C.gasto])||1;
+  document.getElementById('ranking-container').innerHTML = sorted.slice(0,10).map((r,i)=>{
+    const g = parseFloat(r[C.gasto])||0;
+    const barPct = Math.round(g/maxGasto*100);
+    const isTop = i<3;
+    return `<div class="rank-row">
+      <div class="rank-num ${isTop?'top3':''}">${i+1}</div>
+      <div class="rank-name">${r[C.asesor]||'—'}</div>
+      <div class="rank-bar-wrap"><div class="rank-bar" style="width:${barPct}%;background:${isTop?'#FF6B00':'#FFD200'}"></div></div>
+      <div class="rank-val">${fmt$(g)}</div>
+    </div>`;
+  }).join('');
 
-  // Dona por tipo
-  OXXO.renderDonutChart('chart-dona',['TE Doble','TE Triple','Día Descanso'],[Math.round(totalDoble),Math.round(totalTriple),Math.round(totalDesc)]);
+  // ── Donut horas ──
+  const donutLabels = ['Tiempo Extra Doble','Tiempo Extra Triple','Horas día descanso'];
+  const donutVals   = [totalHDoble, totalHTriple, totalHDesc];
+  const donutColors = ['#FFD200','#FF6B00','#CCCCCC'];
+  document.getElementById('donut-center').innerHTML =
+    `<div class="donut-center__val">${OXXO.formatNum(Math.round(totalHoras))}</div><div class="donut-center__lbl">Total horas</div>`;
+  document.getElementById('donut-legend').innerHTML = donutLabels.map((lbl,i)=>`
+    <div class="donut-leg-item">
+      <span class="donut-leg-dot" style="background:${donutColors[i]}"></span>
+      <span class="donut-leg-label">${lbl}</span>
+      <div class="donut-leg-val">${OXXO.formatNum(donutVals[i].toFixed(2))} <span class="donut-leg-pct">${pct(donutVals[i],totalHoras)}</span></div>
+    </div>`).join('');
+  new Chart(document.getElementById('chart-dona').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:donutLabels,datasets:[{data:donutVals,backgroundColor:donutColors,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:true,cutout:'70%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.label+': '+OXXO.formatNum(c.raw.toFixed(2))+' h'}}}}
+  });
 
-  // Tabla tipos
-  const tiposData = [
-    {tipo:'TE Doble',    gasto:Math.round(totalDoble),  pct:(totalGasto>0?Math.round(totalDoble/totalGasto*100):0)+'%'},
-    {tipo:'TE Triple',   gasto:Math.round(totalTriple), pct:(totalGasto>0?Math.round(totalTriple/totalGasto*100):0)+'%'},
-    {tipo:'Día Descanso',gasto:Math.round(totalDesc),   pct:(totalGasto>0?Math.round(totalDesc/totalGasto*100):0)+'%'},
-  ];
-  OXXO.renderTable('semaforo-table', tiposData, [
-    {key:'tipo', label:'Tipo',    format:'text', align:'left'},
-    {key:'gasto',label:'Gasto $', format:'num',  align:'right'},
-    {key:'pct',  label:'% Total', format:'text', align:'center'},
-  ]);
+  // ── Bar Asesores ──
+  const top10a = sorted.slice(0,10);
+  new Chart(document.getElementById('chart-asesores').getContext('2d'),{
+    type:'bar',
+    data:{labels:top10a.map(r=>OXXO.truncate(r[C.asesor]||'—',14)),datasets:[{data:top10a.map(r=>Math.round(parseFloat(r[C.gasto])||0)),backgroundColor:'#FFD200',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}}},y:{ticks:{callback:v=>'$'+OXXO.formatNum(v)}}}}
+  });
 
-  OXXO.renderTable('tabla-detalle', data, [
-    {key:C.plaza,    label:'Plaza',       format:'text', align:'left'},
-    {key:C.asesor,   label:'Asesor',      format:'text', align:'left'},
-    {key:C.semana,   label:'Semana',      format:'text', align:'center'},
-    {key:C.gasto,    label:'Gasto Total', format:'num',  align:'right'},
-    {key:C.horas,    label:'Horas',       format:'num',  align:'center'},
-    {key:C.g_doble,  label:'TE Doble $',  format:'num',  align:'right'},
-    {key:C.g_triple, label:'TE Triple $', format:'num',  align:'right'},
-    {key:C.g_desc,   label:'Día Desc. $', format:'num',  align:'right'},
-    {key:C.fecha,    label:'Fecha',       format:'text', align:'center'},
-  ]);
+  // ── Bar Tiendas ──
+  const byTienda={};
+  data.forEach(r=>{const t=r[C.tienda]||r[C.plaza]||'Sin tienda';if(!byTienda[t])byTienda[t]=0;byTienda[t]+=(parseFloat(r[C.gasto])||0);});
+  const top10t = Object.entries(byTienda).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  new Chart(document.getElementById('chart-tiendas').getContext('2d'),{
+    type:'bar',
+    data:{labels:top10t.map(([k])=>OXXO.truncate(k,14)),datasets:[{data:top10t.map(([,v])=>Math.round(v)),backgroundColor:'#FF6B00',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}}},y:{ticks:{callback:v=>'$'+OXXO.formatNum(v)}}}}
+  });
 
-  document.getElementById('row-count').textContent=`${data.length} registros`;
+  // ── Grouped detail table ──
+  const totH_desc=0,totG_desc=0;
+  let sumHDesc=0,sumGDesc=0,sumHDoble=0,sumGDoble=0,sumHTriple=0,sumGTriple=0,sumHTot=0,sumGTot=0;
+  const rows = sorted.map(r=>{
+    const hDesc  = parseFloat(r[C.h_desc])||0;
+    const gDesc  = parseFloat(r[C.g_desc])||0;
+    const hDoble = parseFloat(r[C.h_doble])||0;
+    const gDoble = parseFloat(r[C.g_doble])||0;
+    const hTriple= parseFloat(r[C.h_triple])||0;
+    const gTriple= parseFloat(r[C.g_triple])||0;
+    const hTot   = parseFloat(r[C.horas])||0;
+    const gTot   = parseFloat(r[C.gasto])||0;
+    sumHDesc+=hDesc;sumGDesc+=gDesc;sumHDoble+=hDoble;sumGDoble+=gDoble;
+    sumHTriple+=hTriple;sumGTriple+=gTriple;sumHTot+=hTot;sumGTot+=gTot;
+    return `<tr>
+      <td>${r[C.asesor]||'—'}</td>
+      <td class="num">${fmtH(hDesc)}</td><td class="money">${fmt$(gDesc)}</td>
+      <td class="num">${fmtH(hDoble)}</td><td class="money">${fmt$(gDoble)}</td>
+      <td class="num">${fmtH(hTriple)}</td><td class="money">${fmt$(gTriple)}</td>
+      <td class="num">${semana}</td><td class="num">${fmtH(hTot)}</td><td class="money">${fmt$(gTot)}</td>
+      <td class="num">${fmtH(hTot)}</td><td class="money">${fmt$(gTot)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tabla-detalle').innerHTML = `
+    <thead>
+      <tr>
+        <th rowspan="2" style="min-width:160px">Asesor</th>
+        <th colspan="2">Días Descanso</th>
+        <th colspan="2">Tiempo Extra Doble</th>
+        <th colspan="2">Tiempo Extra Triple</th>
+        <th colspan="3">${semana}</th>
+        <th colspan="2">Total</th>
+      </tr>
+      <tr>
+        <th>Horas</th><th>Gasto $</th>
+        <th>Horas</th><th>Gasto $</th>
+        <th>Horas</th><th>Gasto $</th>
+        <th>Sem.</th><th>Horas</th><th>Gasto $</th>
+        <th>Horas</th><th>Gasto $</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+    <tfoot>
+      <tr>
+        <td>TOTAL GENERAL</td>
+        <td class="num">${fmtH(sumHDesc)}</td><td class="money">${fmt$(sumGDesc)}</td>
+        <td class="num">${fmtH(sumHDoble)}</td><td class="money">${fmt$(sumGDoble)}</td>
+        <td class="num">${fmtH(sumHTriple)}</td><td class="money">${fmt$(sumGTriple)}</td>
+        <td class="num">—</td><td class="num">${fmtH(sumHTot)}</td><td class="money">${fmt$(sumGTot)}</td>
+        <td class="num">${fmtH(sumHTot)}</td><td class="money">${fmt$(sumGTot)}</td>
+      </tr>
+    </tfoot>`;
+
   OXXO.updateFooterTime('load-time');
 }
 document.addEventListener('DOMContentLoaded', initDashboard);
 </script>
 </body></html>
-
