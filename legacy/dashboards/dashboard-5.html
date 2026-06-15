@@ -1,199 +1,196 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Vacaciones · OXXO Plaza Oaxaca</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
   <link rel="stylesheet" href="../css/global.css"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>.chart-container{position:relative;height:240px}</style>
+  <link rel="stylesheet" href="../css/dashboard-skin.css"/>
+  <style>
+    .vac-grid-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(340px, .75fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
 
+    .vac-grid-two,
+    .vac-grid-tables {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
 
-  <link rel="stylesheet" href="../css/dashboard-skin.css" />
+    .vac-chart {
+      position: relative;
+      height: 330px;
+      min-height: 330px;
+    }
+
+    .vac-chart--compact {
+      height: 270px;
+      min-height: 270px;
+    }
+
+    .vac-risk-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .vac-risk-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px 14px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--exec-line, rgba(42,27,25,.12));
+      border-radius: 10px;
+      background: var(--exec-surface-soft, #fbfaf7);
+    }
+
+    .vac-risk-row__label {
+      font-weight: 900;
+      color: var(--exec-ink, #181112);
+    }
+
+    .vac-risk-row__sub {
+      margin-top: 2px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--exec-muted, #6f6664);
+    }
+
+    .vac-risk-row__bar {
+      grid-column: 1 / -1;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(42, 27, 25, .08);
+    }
+
+    .vac-risk-row__bar span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .vac-heatmap td {
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .vac-heatmap td:first-child {
+      text-align: left;
+      background: transparent !important;
+      white-space: nowrap;
+    }
+
+    html[data-theme="dark"] .vac-risk-row {
+      background: rgba(255,255,255,.035);
+      border-color: rgba(255,255,255,.12);
+    }
+
+    html[data-theme="dark"] .vac-risk-row__label {
+      color: #fff;
+    }
+
+    html[data-theme="dark"] .vac-risk-row__sub {
+      color: rgba(255,255,255,.68);
+    }
+
+    @media (max-width: 1100px) {
+      .vac-grid-main,
+      .vac-grid-two,
+      .vac-grid-tables {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
 <nav class="topbar">
-  <div class="topbar__brand"><div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
-    <div><div class="topbar__title">Control de Vacaciones</div>
-      <div class="topbar__subtitle">Actualización semanal · Plaza Oaxaca</div></div>
+  <div class="topbar__brand">
+    <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+    <div>
+      <div class="topbar__title">Control de Vacaciones</div>
+      <div class="topbar__subtitle">Actualizacion semanal · Plaza Oaxaca</div>
+    </div>
   </div>
   <div class="topbar__meta">
     <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar a tema oscuro" aria-pressed="false">
       <span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__thumb"></span></span>
       <span data-theme-label>Claro</span>
-    </button><a href="../index.html" class="topbar__back">
+    </button>
+    <a href="../index.html" class="topbar__back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
   </div>
 </nav>
-<div class="dashboard-page">
 
-<section class="dashboard-hero dashboard-hero--purple">
+<div class="dashboard-page">
+  <section class="dashboard-hero dashboard-hero--purple">
     <div>
       <h1>Control de Vacaciones</h1>
-      <p>Seguimiento semanal de días pendientes, periodos anteriores y empleados con mayor acumulación. Útil para planear cobertura y evitar rezagos.</p>
+      <p>Vista ejecutiva de saldos, vencimientos y concentracion operativa para Plaza Oaxaca por tienda, asesor y puesto.</p>
     </div>
-    <span class="dashboard-hero__badge">⟳ Semanal · Plaza Oaxaca</span>
+    <span class="dashboard-hero__badge">Snapshot <span id="snapshot-date">--</span></span>
   </section>
 
   <div class="kpi-grid executive-kpis" id="kpi-section">
-    <div class="kpi-card"><div class="kpi-card__label">Cargando…</div><div class="kpi-card__value"><div class="spinner"></div></div></div>
+    <div class="kpi-card"><div class="kpi-card__label">Cargando</div><div class="kpi-card__value"><div class="spinner"></div></div></div>
   </div>
 
-  <section class="layout-vacaciones">
-    <article class="panel panel--dark-title panel--accent-green">
-      <div class="panel__header"><div class="panel__title">Días Pendientes por Asesor</div></div>
-      <div class="chart-container tall"><canvas id="chart-barras"></canvas></div>
+  <section class="vac-grid-main">
+    <article class="panel panel--dark-title panel--accent-red">
+      <div class="panel__header">
+        <div class="panel__title">Dias restantes por asesor</div>
+        <span class="panel__badge badge-gris">Top 10</span>
+      </div>
+      <div class="vac-chart"><canvas id="chart-asesores"></canvas></div>
     </article>
-    <div class="layout-vacantes__side">
-      <article class="panel panel--accent-red">
-        <div class="panel__header"><div class="panel__title">Empleados con más días pendientes</div></div>
-        <div id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
-      </article>
-      <article class="panel panel--accent-purple">
-        <div class="panel__header"><div class="panel__title">Calendario visual</div><span class="panel__badge badge-gris">Planeación</span></div>
-        <div class="layout-vacaciones__calendar">
-          <div class="calendar-chip">Lun</div><div class="calendar-chip active">Mar</div><div class="calendar-chip">Mié</div><div class="calendar-chip active">Jue</div><div class="calendar-chip">Vie</div><div class="calendar-chip">Sáb</div><div class="calendar-chip">Dom</div>
-          <div class="calendar-chip active">Próx.</div><div class="calendar-chip">7 días</div><div class="calendar-chip active">15 días</div><div class="calendar-chip">30 días</div><div class="calendar-chip active">Cobertura</div><div class="calendar-chip">Pend.</div><div class="calendar-chip active">OK</div>
-        </div>
-      </article>
-    </div>
+
+    <article class="panel panel--accent-red">
+      <div class="panel__header">
+        <div class="panel__title">Urgencia periodo anterior</div>
+        <span class="panel__badge badge-gris">Vencimiento</span>
+      </div>
+      <div id="risk-list" class="vac-risk-list"><div class="state-box"><div class="spinner"></div></div></div>
+    </article>
   </section>
 
-  <section class="layout-vacaciones__bottom">
+  <section class="vac-grid-two">
+    <article class="panel panel--accent-red">
+      <div class="panel__header"><div class="panel__title">Top tiendas con mas dias restantes</div></div>
+      <div class="vac-chart"><canvas id="chart-plazas"></canvas></div>
+    </article>
     <article class="panel panel--accent-yellow">
-      <div class="panel__header"><div class="panel__title">Por Puesto</div></div>
-      <div class="chart-container small"><canvas id="chart-dona"></canvas></div>
-    </article>
-    <article class="panel panel--accent-green">
-      <div class="panel__header"><div class="panel__title">Resumen por Asesor</div></div>
-      <div id="semaforo-table"><div class="state-box"><div class="spinner"></div></div></div>
+      <div class="panel__header"><div class="panel__title">Puestos con mayor acumulacion</div></div>
+      <div class="vac-chart"><canvas id="chart-puestos"></canvas></div>
     </article>
   </section>
 
-  <section class="compact-panel-grid">
-    <article class="panel col-12 panel--accent-blue layout-vacaciones__table">
-      <div class="panel__header"><div class="panel__title">Detalle por Empleado</div><span class="panel__badge badge-gris" id="row-count">— registros</span></div>
-      <div id="tabla-detalle"><div class="state-box"><div class="spinner"></div><div class="state-box__text">Cargando datos…</div></div></div>
+  <section class="vac-grid-two">
+    <article class="panel panel--accent-red">
+      <div class="panel__header"><div class="panel__title">Semaforo periodo anterior</div></div>
+      <div class="vac-chart vac-chart--compact"><canvas id="chart-vencimiento-ant"></canvas></div>
+    </article>
+    <article class="panel panel--accent-blue">
+      <div class="panel__header"><div class="panel__title">Distribucion de saldo por colaborador</div></div>
+      <div class="vac-chart vac-chart--compact"><canvas id="chart-distribucion"></canvas></div>
     </article>
   </section>
 
   <div class="dash-footer">
     <div class="dash-footer__update"><div class="dash-footer__update-dot"></div>
-      Datos cargados: <span id="load-time">—</span></div>
-    <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
+      Datos cargados: <span id="load-time">--</span></div>
+    <div>Solo lectura · vacacionesdb.xlsx · Dashboard 5</div>
   </div>
 </div>
 
 <script src="../js/core.js"></script>
-<script>
-const TAB = OXXO.SHEETS_CONFIG.TABS.s5;
-const C = {
-  plaza:       "Plaza",
-  asesor:      "Asesor",
-  tienda:      "Tienda",
-  nombre:      "Nombre_empleado",
-  puesto:      "Puesto",
-  dias_d_ant:  "Dias_derecho_ant",
-  dias_d_act:  "Dias_derecho_act",
-  dias_dis_ant:"Dias_disfrutados_ant",
-  dias_dis_act:"Dias_disfrutados_act",
-  dias_rest_ant:"Dias_restantes_ant",
-  dias_rest_act:"Dias_restantes_act",
-  total_rest:  "Total_dias_restantes",
-  vencimiento: "Fecha_vencimiento_ant",
-  fecha:       "Fecha",
-};
-
-async function initDashboard() {
-  const data = await OXXO.fetchSheetData(TAB);
-  if(data===null){['kpi-section','ranking-container','semaforo-table','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
-  if(data.length===0){['kpi-section','ranking-container','semaforo-table','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
-
-  const total      = data.length;
-  const totalRest  = data.reduce((s,r)=>s+(parseInt(r[C.total_rest])||0),0);
-  const sinPend    = data.filter(r=>(parseInt(r[C.total_rest])||0)===0).length;
-  const conPend    = total - sinPend;
-  const criticos   = data.filter(r=>(parseInt(r[C.dias_rest_ant])||0)>0).length;
-  const promRest   = totalRest / (total||1);
-
-  document.getElementById('kpi-section').innerHTML = `
-    <div class="kpi-card ${criticos>0?'rojo':'verde'}">
-      <div class="kpi-card__label">Días Pendientes Total</div>
-      <div class="kpi-card__value">${OXXO.formatNum(totalRest)}</div>
-      <div class="kpi-card__delta ${criticos>0?'neg':'pos'}">entre ${total} empleados</div>
-      <div class="kpi-card__icon">📅</div>
-    </div>
-    <div class="kpi-card rojo">
-      <div class="kpi-card__label">Con Periodo Anterior</div>
-      <div class="kpi-card__value">${criticos}</div>
-      <div class="kpi-card__delta neg">días venciendo pronto</div>
-      <div class="kpi-card__icon">⚠️</div>
-    </div>
-    <div class="kpi-card amarillo">
-      <div class="kpi-card__label">Con Días Pendientes</div>
-      <div class="kpi-card__value">${conPend}</div>
-      <div class="kpi-card__delta neu">empleados</div>
-      <div class="kpi-card__icon">📋</div>
-    </div>
-    <div class="kpi-card verde">
-      <div class="kpi-card__label">Sin Pendientes</div>
-      <div class="kpi-card__value">${sinPend}</div>
-      <div class="kpi-card__delta pos">al corriente</div>
-      <div class="kpi-card__icon">✅</div>
-    </div>
-    <div class="kpi-card azul">
-      <div class="kpi-card__label">Promedio Días</div>
-      <div class="kpi-card__value">${promRest.toFixed(1)}</div>
-      <div class="kpi-card__delta neu">días por empleado</div>
-      <div class="kpi-card__icon">📊</div>
-    </div>`;
-
-  // Barras por asesor
-  const byAsesor = {};
-  data.forEach(r=>{const a=r[C.asesor]||'Sin asignar';if(!byAsesor[a])byAsesor[a]=0;byAsesor[a]+=(parseInt(r[C.total_rest])||0);});
-  const asesores = Object.keys(byAsesor).sort((a,b)=>byAsesor[b]-byAsesor[a]);
-  OXXO.renderBarChart('chart-barras', asesores.map(a=>OXXO.truncate(a,16)), asesores.map(a=>byAsesor[a]), 'Días pendientes', '#1D9E75');
-
-  // Ranking empleados
-  const rankData = [...data].sort((a,b)=>(parseInt(b[C.total_rest])||0)-(parseInt(a[C.total_rest])||0)).filter(r=>(parseInt(r[C.total_rest])||0)>0);
-  OXXO.renderRanking('ranking-container', rankData, C.nombre, C.total_rest, ' días', '#1D9E75');
-
-  // Dona por puesto
-  const byPuesto={};
-  data.forEach(r=>{const p=r[C.puesto]||'Sin puesto';if(!byPuesto[p])byPuesto[p]=0;byPuesto[p]+=(parseInt(r[C.total_rest])||0);});
-  const puestosK=Object.keys(byPuesto);
-  OXXO.renderDonutChart('chart-dona', puestosK, puestosK.map(p=>byPuesto[p]));
-
-  // Resumen por asesor
-  const resumen = asesores.map(a=>({
-    [C.asesor]:a,
-    empleados: data.filter(r=>r[C.asesor]===a).length,
-    dias_pend: byAsesor[a],
-    criticos:  data.filter(r=>r[C.asesor]===a&&(parseInt(r[C.dias_rest_ant])||0)>0).length,
-  }));
-  OXXO.renderTable('semaforo-table', resumen, [
-    {key:C.asesor,    label:'Asesor',         format:'text', align:'left'},
-    {key:'empleados', label:'Empleados',       format:'num',  align:'center'},
-    {key:'dias_pend', label:'Días Pendientes', format:'num',  align:'center'},
-    {key:'criticos',  label:'Per. Ant.',       format:'num',  align:'center'},
-  ]);
-
-  OXXO.renderTable('tabla-detalle', data, [
-    {key:C.asesor,       label:'Asesor',        format:'text', align:'left'},
-    {key:C.nombre,       label:'Empleado',      format:'text', align:'left'},
-    {key:C.puesto,       label:'Puesto',        format:'text', align:'left'},
-    {key:C.tienda,       label:'Tienda',        format:'text', align:'left'},
-    {key:C.dias_d_ant,   label:'Derecho Ant.',  format:'num',  align:'center'},
-    {key:C.dias_rest_ant,label:'Pend. Ant.',    format:'num',  align:'center'},
-    {key:C.dias_d_act,   label:'Derecho Act.',  format:'num',  align:'center'},
-    {key:C.dias_rest_act,label:'Pend. Act.',    format:'num',  align:'center'},
-    {key:C.total_rest,   label:'Total Pend.',   format:'num',  align:'center'},
-  ]);
-
-  document.getElementById('row-count').textContent=`${data.length} empleados`;
-  OXXO.updateFooterTime('load-time');
-}
-document.addEventListener('DOMContentLoaded', initDashboard);
-</script>
-</body></html>
-
+<script src="../js/vacaciones-dashboard-5-data.js"></script>
+<script src="../js/dashboard-5-vacaciones.js"></script>
+</body>
+</html>
