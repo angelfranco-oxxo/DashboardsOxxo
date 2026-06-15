@@ -6,37 +6,15 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
   <link rel="stylesheet" href="../css/global.css"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="../css/dashboard-skin.css"/>
 <style>
-.te-page{max-width:1520px;margin:0 auto;padding:14px 16px 36px}
+.page{max-width:1500px;margin:0 auto;padding:18px 20px 36px}
 
-/* KPI strip */
-.te-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-.te-kpi{
-  background:#fff;border-radius:14px;padding:16px 18px;
-  display:flex;align-items:center;gap:12px;
-  box-shadow:0 2px 8px rgba(0,0,0,.07);border:2px solid transparent;
-  cursor:pointer;transition:all .18s;user-select:none;
-}
-.te-kpi:hover{box-shadow:0 4px 16px rgba(0,0,0,.13);transform:translateY(-2px)}
-.te-kpi.active{border-color:#FFD200;box-shadow:0 0 0 3px rgba(255,210,0,.18)}
-.te-kpi.active-red{border-color:#D92B2B;box-shadow:0 0 0 3px rgba(217,43,43,.15)}
-.te-kpi.active-blue{border-color:#0066CC;box-shadow:0 0 0 3px rgba(0,102,204,.15)}
-.te-kpi.active-green{border-color:#00A650;box-shadow:0 0 0 3px rgba(0,166,80,.15)}
-.te-kpi__icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.te-kpi__icon.naranja{background:#FFF3E0}
-.te-kpi__icon.amarillo{background:#FFFDE7}
-.te-kpi__icon.azul{background:#E3F2FD}
-.te-kpi__icon.verde{background:#E8F5E9}
-.te-kpi__icon.rojo{background:#FFEBEE}
-.te-kpi__icon.gris{background:#F5F5F5}
-.te-kpi__body{flex:1;min-width:0}
-.te-kpi__label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:2px}
-.te-kpi__value{font-family:var(--font-display);font-size:26px;font-weight:900;line-height:1;color:#111}
-.te-kpi__sub{font-size:11px;color:#aaa;margin-top:3px}
-.te-kpi__filter-hint{font-size:9px;color:#ccc;margin-top:4px;font-weight:600;letter-spacing:.04em}
-.te-kpi.active .te-kpi__filter-hint,.te-kpi.active-red .te-kpi__filter-hint,
-.te-kpi.active-blue .te-kpi__filter-hint,.te-kpi.active-green .te-kpi__filter-hint{color:#888}
+/* KPI grid — igual que D1 */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.card{background:var(--color-surface);border-radius:14px;padding:20px;box-shadow:var(--shadow-card)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-border)}
+.card-title{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--color-dark)}
+.card-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--color-bg);color:var(--color-gray)}
 
 /* Active filter banner */
 .filter-banner{
@@ -45,125 +23,204 @@
   align-items:center;gap:10px;
 }
 .filter-banner.visible{display:flex}
-.filter-banner__clear{margin-left:auto;cursor:pointer;background:#FFD200;color:#1a1a1a;border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:800;cursor:pointer}
+.filter-banner__clear{margin-left:auto;cursor:pointer;background:#FFD200;color:#1a1a1a;border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:800}
 
-/* Row 1 */
+/* Row 1: Ranking + Donut */
 .te-row1{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;align-items:stretch}
-.te-row1 > *{display:flex;flex-direction:column}
-.te-row1 .donut-body{flex:1;flex-direction:column;justify-content:center;align-items:center;gap:20px;padding:20px}
-.te-row1 .donut-chart-wrap{width:min(100%,300px);height:300px;flex-shrink:0}
-.te-row1 .donut-legend{display:flex;flex-direction:row;flex-wrap:wrap;gap:10px 20px;justify-content:center}
+.te-row1 > .card{display:flex;flex-direction:column}
+.te-row1 .donut-body{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:20px;padding:16px 20px}
+.te-row1 .donut-chart-wrap{width:min(100%,280px);height:280px;flex-shrink:0}
+.te-row1 .donut-legend{display:flex;flex-direction:row;flex-wrap:wrap;gap:10px 24px;justify-content:center}
 
-/* Panels */
-.te-panel{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07);border:1px solid #ececec}
-.te-panel__head{background:#1a1a1a;color:#fff;padding:10px 16px;font-family:var(--font-display);font-size:14px;font-weight:900;letter-spacing:.4px;display:flex;align-items:center;gap:8px}
-.icon-pill{background:#FFD200;color:#1a1a1a;border-radius:6px;padding:2px 7px;font-size:12px}
+/* Row 2 */
+.te-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.bar-chart-area{position:relative;height:220px}
 
 /* Ranking */
-.rank-list{padding:6px 0}
-.rank-row{display:grid;grid-template-columns:30px 1fr 90px 90px;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #f5f5f5}
+.rank-list{padding:4px 0}
+.rank-row{display:grid;grid-template-columns:28px 1fr 80px 90px;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--color-border)}
 .rank-row:last-child{border-bottom:none}
 .rank-num{width:22px;height:22px;border-radius:50%;background:#f0f0f0;color:#666;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .rank-num.top{background:#FF6B00;color:#fff}
-.rank-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#222}
+.rank-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-dark)}
 .rank-bar-wrap{height:8px;background:#f0f0f0;border-radius:999px;overflow:hidden}
 .rank-bar{height:100%;border-radius:999px}
 .rank-val{font-size:12px;font-weight:800;color:#FF6B00;text-align:right;white-space:nowrap}
 
 /* Donut */
-.donut-body{display:flex;align-items:center;padding:16px 20px;gap:20px;min-height:240px}
+.donut-body{display:flex;align-items:center;padding:16px 20px;gap:20px}
 .donut-chart-wrap{width:200px;height:200px;flex-shrink:0;position:relative}
 .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
-.donut-center__val{font-family:var(--font-display);font-size:26px;font-weight:900;color:#222;line-height:1}
+.donut-center__val{font-family:var(--font-display);font-size:26px;font-weight:900;color:var(--color-dark);line-height:1}
 .donut-center__lbl{font-size:10px;color:#888;font-weight:700;margin-top:2px}
-.donut-legend{flex:1;display:flex;flex-direction:column;gap:12px}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:10px}
 .donut-leg-item{}
 .donut-leg-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
 .donut-leg-label{font-size:12px;color:#555;font-weight:600}
-.donut-leg-val{font-family:var(--font-display);font-size:20px;font-weight:900;color:#222;margin-top:1px}
+.donut-leg-val{font-family:var(--font-display);font-size:18px;font-weight:900;color:var(--color-dark);margin-top:1px}
 .donut-leg-pct{font-size:11px;color:#888;font-weight:700;margin-left:5px}
 
-/* Bar charts row */
-.te-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-.bar-chart-area{padding:10px 14px 8px;height:210px;position:relative}
-
 /* Detail table */
-.te-detail{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07);border:1px solid #ececec;margin-bottom:12px}
+.te-detail{margin-bottom:12px}
 .te-table-wrap{overflow-x:auto;max-height:480px;overflow-y:auto}
 .te-table{width:100%;border-collapse:collapse;font-size:12px}
 .te-table thead tr:first-child th{
-  background:#2c2c2c;color:#FFD200;font-family:var(--font-display);font-size:12px;font-weight:900;
-  letter-spacing:.5px;text-transform:uppercase;padding:8px 10px;text-align:center;
-  border:1px solid #3a3a3a;white-space:nowrap;position:sticky;top:0;z-index:2;
+  background:#2D2D44;color:#fff;font-family:var(--font-display);font-size:11px;font-weight:900;
+  letter-spacing:.8px;text-transform:uppercase;padding:9px 10px;text-align:center;
+  border-right:1px solid rgba(255,255,255,.1);white-space:nowrap;position:sticky;top:0;z-index:2;
 }
-.te-table thead tr:first-child th:first-child{background:#1a1a1a;text-align:left}
+.te-table thead tr:first-child th:first-child{text-align:left}
 .te-table thead tr:nth-child(2) th{
   background:#f5f5f5;color:#444;font-size:10px;font-weight:800;text-transform:uppercase;
   letter-spacing:.04em;padding:6px 10px;text-align:center;border:1px solid #e8e8e8;
   position:sticky;top:37px;z-index:2;
 }
 .te-table thead tr:nth-child(2) th:first-child{text-align:left}
-.te-table tbody td{padding:7px 10px;border:1px solid #f0f0f0;color:#222;vertical-align:middle}
-.te-table tbody td:first-child{font-weight:700;background:#fafafa;white-space:nowrap}
+.te-table tbody td{padding:7px 10px;border:1px solid var(--color-border);color:var(--color-dark);vertical-align:middle}
+.te-table tbody td:first-child{font-weight:700;background:var(--color-bg);white-space:nowrap}
 .te-table tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
 .te-table tbody td.money{text-align:right;font-variant-numeric:tabular-nums;color:#D92B2B;font-weight:700}
-.te-table tbody tr:hover td{background:#fffbf0}
+.te-table tbody tr:hover td{background:var(--color-bg)}
 .te-table tfoot td{
-  background:#1a1a1a;color:#FFD200;font-weight:900;font-family:var(--font-display);
-  font-size:12px;padding:8px 10px;border:1px solid #2c2c2c;
+  background:#2D2D44;color:#FFD200;font-weight:900;font-family:var(--font-display);
+  font-size:12px;padding:8px 10px;border:1px solid #3a3a5c;
   position:sticky;bottom:0;z-index:2;
 }
 .te-table tfoot td.num{text-align:right}
 .te-table tfoot td.money{text-align:right}
+
+/* State */
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px 20px;color:var(--color-gray);text-align:center}
+.spinner{width:32px;height:32px;border:3px solid var(--color-border);border-top-color:var(--color-yellow);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.te-row1,.te-row2{grid-template-columns:1fr}}
+@media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+<link rel="stylesheet" href="../css/dashboard-skin.css"/>
+<style id="d4-extras">
+/* ── FILTROS DENTRO DEL HERO (igual que D1) ── */
+.hero{flex-direction:column !important;align-items:stretch !important;gap:18px}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px 16px;align-items:end}
+.vac-fbox{display:flex;flex-direction:column;gap:6px;min-width:0}
+.vac-fbox > label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.85)}
+.hero .filtro-select,.hero .filtro-btn{
+  width:100%;box-sizing:border-box;
+  background:rgba(255,255,255,0.14) !important;
+  border:1px solid rgba(255,255,255,0.32) !important;
+  color:#fff !important;font-weight:700;
+  border-radius:999px !important;padding:10px 16px !important;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  transition:background .2s,color .2s,border-color .2s;
+}
+.hero .filtro-select:focus{outline:none;border-color:#fff !important}
+.hero .filtro-select option{color:#1a1a1a;background:#fff}
+.hero .filtro-btn{cursor:pointer}
+.hero .filtro-btn:hover{background:#fff !important;color:var(--hb-red) !important;border-color:#fff !important}
+html:not([data-theme="dark"]) .hero .filtro-select,
+html:not([data-theme="dark"]) .hero .filtro-btn{
+  background:rgba(255,255,255,0.78) !important;
+  border-color:var(--exec-line-strong,rgba(42,27,25,0.2)) !important;
+  color:var(--exec-ink,#181112) !important;
+  -webkit-text-fill-color:var(--exec-ink,#181112) !important;
+}
+
+/* KPI cards clickables */
+.kpi-card{cursor:pointer;transition:all .18s;user-select:none}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover)}
+.kpi-card.kpi-active{border-top-width:4px !important;box-shadow:0 0 0 3px rgba(255,210,0,.25) !important}
+.kpi-card.kpi-active-red{border-top-color:#D92B2B !important;box-shadow:0 0 0 3px rgba(217,43,43,.15) !important}
+.kpi-card.kpi-active-blue{border-top-color:#0066CC !important;box-shadow:0 0 0 3px rgba(0,102,204,.15) !important}
+.kpi-filter-hint{font-size:9px;color:#ccc;margin-top:5px;font-weight:600;letter-spacing:.04em}
+.kpi-card.kpi-active .kpi-filter-hint,.kpi-card.kpi-active-red .kpi-filter-hint,
+.kpi-card.kpi-active-blue .kpi-filter-hint{color:#888}
 </style>
 </head>
 <body>
 <nav class="topbar">
-  <div class="topbar__brand"><div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
-    <div><div class="topbar__title">Tiempo Extra Semanal</div>
-      <div class="topbar__subtitle">Actualización semanal · Plaza Oaxaca</div></div>
+  <div class="topbar__brand">
+    <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+    <div>
+      <div class="topbar__title">Dashboards Ats</div>
+      <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
+    </div>
   </div>
   <div class="topbar__meta">
     <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar a tema oscuro" aria-pressed="false">
       <span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__thumb"></span></span>
       <span data-theme-label>Claro</span>
-    </button><a href="../index.html" class="topbar__back">
+    </button>
+    <a href="../index.html" class="topbar__back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
   </div>
 </nav>
 
-<div class="dashboard-page">
+<div class="page">
 
-<section class="dashboard-hero dashboard-hero--blue">
-  <div>
-    <h1>Tiempo Extra</h1>
-    <p>Análisis semanal de gasto por asesor, tipo de TE y tienda · Detecta costos altos y oportunidades de control</p>
+  <!-- Hero con filtros -->
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <h1>Tiempo Extra Semanal</h1>
+        <p>Análisis de gasto por asesor, tipo de TE y tienda · Plaza Oaxaca</p>
+      </div>
+      <span class="hero-badge" id="semana-badge">⟳ Semanal · Plaza Oaxaca</span>
+    </div>
+    <div class="vac-filters">
+      <div class="vac-fbox">
+        <label>Asesor</label>
+        <select class="filtro-select" id="filtro-asesor" onchange="applyDropdownFilters()">
+          <option value="">Todos los asesores</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>Tipo de TE</label>
+        <select class="filtro-select" id="filtro-tipo" onchange="applyDropdownFilters()">
+          <option value="">Todos los tipos</option>
+          <option value="doble">Tiempo Extra Doble</option>
+          <option value="triple">Tiempo Extra Triple</option>
+          <option value="descanso">Día Descanso</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>Tienda</label>
+        <select class="filtro-select" id="filtro-tienda" onchange="applyDropdownFilters()">
+          <option value="">Todas las tiendas</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>Filtros</label>
+        <button class="filtro-btn" onclick="limpiarFiltros()">✕ Limpiar</button>
+      </div>
+    </div>
   </div>
-  <span class="dashboard-hero__badge" id="semana-badge">⟳ Semanal · Plaza Oaxaca</span>
-</section>
-
-<div class="te-page" style="padding-top:0">
 
   <!-- KPIs -->
-  <div class="te-kpis" id="kpi-section">
-    <div class="te-kpi"><div class="te-kpi__icon naranja">⏱️</div>
-      <div class="te-kpi__body"><div class="te-kpi__label">Total Horas TE</div><div class="te-kpi__value"><div class="spinner"></div></div></div></div>
+  <div class="kpis kpi-grid" id="kpi-section">
+    <div class="kpi-card"><div class="kpi-card__label">Cargando…</div>
+      <div class="kpi-card__value"><div class="spinner"></div></div></div>
   </div>
 
-  <!-- Filter banner -->
+  <!-- Filter banner (KPI click filter) -->
   <div class="filter-banner" id="filter-banner">
-    <span>🔍 Filtro activo: <strong id="filter-label">—</strong></span>
-    <button class="filter-banner__clear" id="clear-filter">✕ Quitar filtro</button>
+    <span>🔍 KPI activo: <strong id="filter-label">—</strong></span>
+    <button class="filter-banner__clear" id="clear-filter">✕ Quitar</button>
   </div>
 
   <!-- Row 1: Ranking + Donut -->
   <div class="te-row1">
-    <div class="te-panel">
-      <div class="te-panel__head"><span class="icon-pill">🏆</span> Ranking de Asesores por Gasto en Tiempo Extra</div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">🏆 Ranking de Asesores por Gasto en TE</div>
+        <span class="card-badge" id="ranking-badge">Top 10</span>
+      </div>
       <div class="rank-list" id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
     </div>
-    <div class="te-panel">
-      <div class="te-panel__head"><span class="icon-pill">🕐</span> Distribución de Horas por Tipo de TE</div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">🕐 Distribución de Horas por Tipo de TE</div>
+      </div>
       <div class="donut-body">
         <div class="donut-chart-wrap">
           <canvas id="chart-dona"></canvas>
@@ -176,22 +233,29 @@
 
   <!-- Row 2: Bar charts -->
   <div class="te-row2">
-    <div class="te-panel">
-      <div class="te-panel__head"><span class="icon-pill">📊</span> Top 10 Asesores — Gasto TE</div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">📊 Top 10 Asesores — Gasto TE</div>
+      </div>
       <div class="bar-chart-area"><canvas id="chart-asesores"></canvas></div>
     </div>
-    <div class="te-panel">
-      <div class="te-panel__head"><span class="icon-pill">🏪</span> Top 10 Tiendas — Gasto TE</div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">🏪 Top 10 Tiendas — Gasto TE</div>
+      </div>
       <div class="bar-chart-area"><canvas id="chart-tiendas"></canvas></div>
     </div>
   </div>
 
   <!-- Detail table -->
-  <div class="te-detail">
-    <div class="te-panel__head" style="background:#1a1a1a"><span class="icon-pill">📋</span> Detalle de Gasto en Tiempo Extra por Asesor</div>
+  <div class="card te-detail">
+    <div class="card-head">
+      <div class="card-title">📋 Detalle de Gasto en Tiempo Extra por Asesor</div>
+      <span class="card-badge" id="table-badge">— registros</span>
+    </div>
     <div class="te-table-wrap">
       <table class="te-table" id="tabla-detalle">
-        <tbody><tr><td colspan="12"><div class="state-box"><div class="spinner"></div><div class="state-box__text">Cargando datos…</div></div></td></tr></tbody>
+        <tbody><tr><td colspan="9"><div class="state-box"><div class="spinner"></div><div style="font-size:12px;color:var(--color-gray)">Cargando datos…</div></div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -201,8 +265,7 @@
       Datos cargados: <span id="load-time">—</span></div>
     <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
   </div>
-</div><!-- /te-page -->
-</div><!-- /dashboard-page -->
+</div>
 
 <script src="../js/core.js"></script>
 <script>
@@ -231,9 +294,9 @@ function pct(part,total){ return total>0?((part/total)*100).toFixed(2)+'%':'0%';
 
 let BASE_DATA = [];
 let ACTIVE_FILTER = null; // null | 'doble' | 'triple' | 'descanso'
+let DROP_ASESOR = '', DROP_TIPO = '', DROP_TIENDA = '';
 let chartAsesores = null, chartTiendas = null, chartDona = null;
 
-// ── aggregate by asesor ──
 function aggregateByAsesor(data) {
   const map = {};
   data.forEach(r => {
@@ -251,16 +314,22 @@ function aggregateByAsesor(data) {
 }
 
 function filteredData() {
-  if (!ACTIVE_FILTER) return BASE_DATA;
-  if (ACTIVE_FILTER==='doble')    return BASE_DATA.filter(r=>r[C.tipo]===TIPO_DOBLE);
-  if (ACTIVE_FILTER==='triple')   return BASE_DATA.filter(r=>r[C.tipo]===TIPO_TRIPLE);
-  if (ACTIVE_FILTER==='descanso') return BASE_DATA.filter(r=>isDes(r[C.tipo]));
-  return BASE_DATA;
+  let data = BASE_DATA;
+  if (DROP_ASESOR) data = data.filter(r => r[C.asesor] === DROP_ASESOR);
+  if (DROP_TIENDA) data = data.filter(r => r[C.tienda] === DROP_TIENDA);
+  if (DROP_TIPO || ACTIVE_FILTER) {
+    const f = DROP_TIPO || ACTIVE_FILTER;
+    if(f==='doble')    data = data.filter(r=>r[C.tipo]===TIPO_DOBLE);
+    if(f==='triple')   data = data.filter(r=>r[C.tipo]===TIPO_TRIPLE);
+    if(f==='descanso') data = data.filter(r=>isDes(r[C.tipo]));
+  }
+  return data;
 }
 
 function renderAll() {
   const data = filteredData();
   const byAsesor = aggregateByAsesor(data);
+  const totalBase = BASE_DATA.reduce((s,r)=>s+(parseFloat(r[C.horas])||0),0);
 
   const totalHoras  = data.reduce((s,r)=>s+(parseFloat(r[C.horas])||0),0);
   const totalGasto  = data.reduce((s,r)=>s+(parseFloat(r[C.importe])||0),0);
@@ -275,79 +344,52 @@ function renderAll() {
   const costoXHora  = totalHoras > 0 ? totalGasto/totalHoras : 0;
   const semana      = BASE_DATA[0]?.[C.semana]||'—';
 
-  // ── KPIs ──
+  // ── KPIs (kpi-card skin style) ──
   document.getElementById('kpi-section').innerHTML = `
-    <div class="te-kpi" id="kpi-all" onclick="setFilter(null)" title="Ver todo">
-      <div class="te-kpi__icon naranja">⏱️</div>
-      <div class="te-kpi__body">
-        <div class="te-kpi__label">Total Horas TE</div>
-        <div class="te-kpi__value">${fmtH(totalHoras)}</div>
-        <div class="te-kpi__sub">Horas · ${semana}</div>
-        <div class="te-kpi__filter-hint">▶ Click para ver todo</div>
-      </div>
+    <div class="kpi-card" id="kpi-all" onclick="setFilter(null)" title="Ver todo" style="border-top:3px solid #FFD200">
+      <div class="kpi-card__label">Total Horas TE</div>
+      <div class="kpi-card__value">${fmtH(totalHoras)}</div>
+      <div class="kpi-card__sub">horas · Sem ${semana}</div>
+      <div class="kpi-filter-hint">▶ Ver todo</div>
     </div>
-    <div class="te-kpi" id="kpi-gasto" onclick="setFilter(null)" title="Ver todo">
-      <div class="te-kpi__icon naranja">💵</div>
-      <div class="te-kpi__body">
-        <div class="te-kpi__label">Total Gasto $</div>
-        <div class="te-kpi__value">${fmt$(totalGasto)}</div>
-        <div class="te-kpi__sub">Pesos · ${totalEmps} empleados</div>
-        <div class="te-kpi__filter-hint">▶ Costo/hora: $${costoXHora.toFixed(0)}</div>
-      </div>
+    <div class="kpi-card" id="kpi-gasto" onclick="setFilter(null)" title="Ver todo" style="border-top:3px solid #FF6B00">
+      <div class="kpi-card__label">Total Gasto $</div>
+      <div class="kpi-card__value">${fmt$(totalGasto)}</div>
+      <div class="kpi-card__sub">${totalEmps} empleados · $${costoXHora.toFixed(0)}/h</div>
+      <div class="kpi-filter-hint">▶ Ver todo</div>
     </div>
-    <div class="te-kpi" id="kpi-doble" onclick="setFilter('doble')" title="Filtrar: TE Doble">
-      <div class="te-kpi__icon amarillo">2️⃣</div>
-      <div class="te-kpi__body">
-        <div class="te-kpi__label">Horas Doble</div>
-        <div class="te-kpi__value">${fmtH(totalHDoble)}</div>
-        <div class="te-kpi__sub">${pct(totalHDoble,BASE_DATA.reduce((s,r)=>s+(parseFloat(r[C.horas])||0),0))} del total · ${fmt$(totalGDoble)}</div>
-        <div class="te-kpi__filter-hint">▶ Click para filtrar</div>
-      </div>
+    <div class="kpi-card" id="kpi-doble" onclick="setFilter('doble')" title="Filtrar: TE Doble" style="border-top:3px solid #FFD200">
+      <div class="kpi-card__label">Horas TE Doble</div>
+      <div class="kpi-card__value">${fmtH(totalHDoble)}</div>
+      <div class="kpi-card__sub">${pct(totalHDoble,totalBase)} del total · ${fmt$(totalGDoble)}</div>
+      <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
-    <div class="te-kpi" id="kpi-triple" onclick="setFilter('triple')" title="Filtrar: TE Triple">
-      <div class="te-kpi__icon rojo">3️⃣</div>
-      <div class="te-kpi__body">
-        <div class="te-kpi__label">Horas Triple</div>
-        <div class="te-kpi__value">${fmtH(totalHTriple)}</div>
-        <div class="te-kpi__sub">${pct(totalHTriple,BASE_DATA.reduce((s,r)=>s+(parseFloat(r[C.horas])||0),0))} del total · ${fmt$(totalGTriple)}</div>
-        <div class="te-kpi__filter-hint">▶ Click para filtrar</div>
-      </div>
+    <div class="kpi-card" id="kpi-triple" onclick="setFilter('triple')" title="Filtrar: TE Triple" style="border-top:3px solid #D92B2B">
+      <div class="kpi-card__label">Horas TE Triple</div>
+      <div class="kpi-card__value">${fmtH(totalHTriple)}</div>
+      <div class="kpi-card__sub">${pct(totalHTriple,totalBase)} del total · ${fmt$(totalGTriple)}</div>
+      <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
-    <div class="te-kpi" id="kpi-desc" onclick="setFilter('descanso')" title="Filtrar: Día Descanso">
-      <div class="te-kpi__icon azul">🛌</div>
-      <div class="te-kpi__body">
-        <div class="te-kpi__label">Día Descanso</div>
-        <div class="te-kpi__value">${fmtH(totalHDesc)}</div>
-        <div class="te-kpi__sub">${pct(totalHDesc,BASE_DATA.reduce((s,r)=>s+(parseFloat(r[C.horas])||0),0))} del total · ${fmt$(totalGDesc)}</div>
-        <div class="te-kpi__filter-hint">▶ Click para filtrar</div>
-      </div>
+    <div class="kpi-card" id="kpi-desc" onclick="setFilter('descanso')" title="Filtrar: Día Descanso" style="border-top:3px solid #0066CC">
+      <div class="kpi-card__label">Día Descanso</div>
+      <div class="kpi-card__value">${fmtH(totalHDesc)}</div>
+      <div class="kpi-card__sub">${pct(totalHDesc,totalBase)} del total · ${fmt$(totalGDesc)}</div>
+      <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
-    <div class="te-kpi" onclick="setFilter(null)" title="Ver todo">
-      <div class="te-kpi__icon verde">🏪</div>
-      <div class="te-kpi__body">
-        <div class="te-kpi__label">Tiendas con TE</div>
-        <div class="te-kpi__value">${totalTiendas}</div>
-        <div class="te-kpi__sub">tiendas activas</div>
-        <div class="te-kpi__filter-hint"> </div>
-      </div>
+    <div class="kpi-card" style="border-top:3px solid #00A650">
+      <div class="kpi-card__label">Tiendas con TE</div>
+      <div class="kpi-card__value">${totalTiendas}</div>
+      <div class="kpi-card__sub">tiendas activas</div>
     </div>
-    <div class="te-kpi" onclick="setFilter(null)" title="Ver todo">
-      <div class="te-kpi__icon gris">👥</div>
-      <div class="te-kpi__body">
-        <div class="te-kpi__label">Empleados con TE</div>
-        <div class="te-kpi__value">${totalEmps}</div>
-        <div class="te-kpi__sub">colaboradores</div>
-        <div class="te-kpi__filter-hint"> </div>
-      </div>
+    <div class="kpi-card" style="border-top:3px solid #9E9E9E">
+      <div class="kpi-card__label">Empleados con TE</div>
+      <div class="kpi-card__value">${totalEmps}</div>
+      <div class="kpi-card__sub">colaboradores</div>
     </div>
-    <div class="te-kpi" onclick="setFilter(null)" title="Ver todo">
-      <div class="te-kpi__icon naranja">💰</div>
-      <div class="te-kpi__body">
-        <div class="te-kpi__label">Costo / Hora</div>
-        <div class="te-kpi__value">$${costoXHora.toFixed(0)}</div>
-        <div class="te-kpi__sub">promedio por hora</div>
-        <div class="te-kpi__filter-hint"> </div>
-      </div>
+    <div class="kpi-card" style="border-top:3px solid #FF6B00">
+      <div class="kpi-card__label">Costo / Hora Prom.</div>
+      <div class="kpi-card__value">$${costoXHora.toFixed(0)}</div>
+      <div class="kpi-card__sub">promedio por hora</div>
     </div>`;
   updateKpiActive();
 
@@ -360,11 +402,12 @@ function renderAll() {
       <div class="rank-bar-wrap"><div class="rank-bar" style="width:${Math.round(r.gTot/maxG*100)}%;background:${i<3?'#FF6B00':'#FFD200'}"></div></div>
       <div class="rank-val">${fmt$(r.gTot)}</div>
     </div>`).join('');
+  document.getElementById('ranking-badge').textContent = `${byAsesor.length} asesores`;
 
   // ── Donut ──
   const donutVals   = [totalHDoble, totalHTriple, totalHDesc];
   const donutColors = ['#FFD200','#FF6B00','#AAAAAA'];
-  const donutLabels = ['Tiempo Extra Doble','Tiempo Extra Triple','Día Descanso'];
+  const donutLabels = ['TE Doble','TE Triple','Día Descanso'];
   document.getElementById('donut-center').innerHTML =
     `<div class="donut-center__val">${OXXO.formatNum(Math.round(totalHoras))}</div><div class="donut-center__lbl">Total horas</div>`;
   document.getElementById('donut-legend').innerHTML = donutLabels.map((lbl,i)=>`
@@ -407,7 +450,7 @@ function renderAll() {
       scales:{x:{ticks:{font:{size:9}}},y:{ticks:{callback:v=>'$'+OXXO.formatNum(Math.round(v))}}}}
   });
 
-  // ── Grouped table by asesor ──
+  // ── Grouped table ──
   let sHDesc=0,sGDesc=0,sHDoble=0,sGDoble=0,sHTriple=0,sGTriple=0,sHTot=0,sGTot=0;
   const tableRows = byAsesor.map(r=>{
     sHDesc+=r.hDesc;sGDesc+=r.gDesc;sHDoble+=r.hDoble;sGDoble+=r.gDoble;
@@ -445,28 +488,38 @@ function renderAll() {
       <td class="num">${fmtH(sHTriple)}</td><td class="money">${fmt$(sGTriple)}</td>
       <td class="num">${fmtH(sHTot)}</td><td class="money">${fmt$(sGTot)}</td>
     </tr></tfoot>`;
+  document.getElementById('table-badge').textContent = `${byAsesor.length} asesores`;
 }
 
 function updateKpiActive(){
   ['kpi-all','kpi-gasto','kpi-doble','kpi-triple','kpi-desc'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el){el.classList.remove('active','active-red','active-blue','active-green');}
+    if(el) el.classList.remove('kpi-active','kpi-active-red','kpi-active-blue');
   });
   const banner=document.getElementById('filter-banner');
   if(!ACTIVE_FILTER){
     banner.classList.remove('visible');
-    document.getElementById('kpi-all')?.classList.add('active');
-    document.getElementById('kpi-gasto')?.classList.add('active');
+    document.getElementById('kpi-all')?.classList.add('kpi-active');
+    document.getElementById('kpi-gasto')?.classList.add('kpi-active');
   } else {
     banner.classList.add('visible');
-    if(ACTIVE_FILTER==='doble')   {document.getElementById('kpi-doble')?.classList.add('active');document.getElementById('filter-label').textContent='Tiempo Extra Doble';}
-    if(ACTIVE_FILTER==='triple')  {document.getElementById('kpi-triple')?.classList.add('active-red');document.getElementById('filter-label').textContent='Tiempo Extra Triple';}
-    if(ACTIVE_FILTER==='descanso'){document.getElementById('kpi-desc')?.classList.add('active-blue');document.getElementById('filter-label').textContent='Día Descanso';}
+    if(ACTIVE_FILTER==='doble')   {document.getElementById('kpi-doble')?.classList.add('kpi-active');document.getElementById('filter-label').textContent='TE Doble';}
+    if(ACTIVE_FILTER==='triple')  {document.getElementById('kpi-triple')?.classList.add('kpi-active-red');document.getElementById('filter-label').textContent='TE Triple';}
+    if(ACTIVE_FILTER==='descanso'){document.getElementById('kpi-desc')?.classList.add('kpi-active-blue');document.getElementById('filter-label').textContent='Día Descanso';}
   }
 }
 
-function setFilter(f){
-  ACTIVE_FILTER = f;
+function setFilter(f){ ACTIVE_FILTER=f; DROP_TIPO=''; document.getElementById('filtro-tipo').value=''; renderAll(); }
+function applyDropdownFilters(){
+  DROP_ASESOR = document.getElementById('filtro-asesor').value;
+  DROP_TIPO   = document.getElementById('filtro-tipo').value;
+  DROP_TIENDA = document.getElementById('filtro-tienda').value;
+  if(DROP_TIPO) ACTIVE_FILTER=null;
+  renderAll();
+}
+function limpiarFiltros(){
+  ACTIVE_FILTER=null; DROP_ASESOR=''; DROP_TIPO=''; DROP_TIENDA='';
+  ['filtro-asesor','filtro-tipo','filtro-tienda'].forEach(id=>{document.getElementById(id).value='';});
   renderAll();
 }
 
@@ -477,9 +530,19 @@ async function initDashboard() {
   if(data===null){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(data.length===0){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
   BASE_DATA = data;
+
+  // Badge semana
   const sem = data[0]?.[C.semana]||'—';
-  const badgeEl = document.getElementById('semana-badge');
-  if(badgeEl) badgeEl.textContent = `⟳ ${sem} · Plaza Oaxaca`;
+  document.getElementById('semana-badge').textContent = `⟳ Sem ${sem} · Plaza Oaxaca`;
+
+  // Populate dropdowns
+  const asesores = [...new Set(data.map(r=>r[C.asesor]).filter(Boolean))].sort();
+  const tiendas  = [...new Set(data.map(r=>r[C.tienda]).filter(Boolean))].sort();
+  const selAsesor = document.getElementById('filtro-asesor');
+  asesores.forEach(a=>{ const o=document.createElement('option');o.value=a;o.textContent=a;selAsesor.appendChild(o); });
+  const selTienda = document.getElementById('filtro-tienda');
+  tiendas.forEach(t=>{ const o=document.createElement('option');o.value=t;o.textContent=t;selTienda.appendChild(o); });
+
   renderAll();
   OXXO.updateFooterTime('load-time');
 }
