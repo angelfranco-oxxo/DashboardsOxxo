@@ -1212,6 +1212,27 @@ body {
   border: 1px solid rgba(255,255,255,0.26) !important;
 }
 
+html:not([data-theme="dark"]) .hero .hero-badge,
+html:not([data-theme="dark"]) .dashboard-hero .dashboard-hero__badge,
+html:not([data-theme="dark"]) .bajas-header__badge {
+  background: rgba(227, 6, 19, 0.08) !important;
+  border-color: rgba(227, 6, 19, 0.18) !important;
+  color: var(--exec-red, #D92B2B) !important;
+  -webkit-text-fill-color: var(--exec-red, #D92B2B) !important;
+}
+
+html:not([data-theme="dark"]) .hero .filtro-select,
+html:not([data-theme="dark"]) .hero .filtro-btn,
+html:not([data-theme="dark"]) .bajas-header .filter-select,
+html:not([data-theme="dark"]) .bajas-header .reset-filters,
+html:not([data-theme="dark"]) .bajas-filters .filter-select,
+html:not([data-theme="dark"]) .bajas-filters .reset-filters {
+  background: rgba(255,255,255,0.78) !important;
+  border-color: var(--exec-line-strong, rgba(42,27,25,0.2)) !important;
+  color: var(--exec-ink, #181112) !important;
+  -webkit-text-fill-color: var(--exec-ink, #181112) !important;
+}
+
 .card,
 .kpi-card,
 .panel,
