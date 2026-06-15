@@ -120,68 +120,13 @@
     .ec-pill.verde   .ec-dot { background:var(--semaforo-verde); }
     .ec-pill.amarillo .ec-dot { background:var(--semaforo-amarillo); }
     .ec-pill.rojo    .ec-dot { background:var(--semaforo-rojo); }
-    .risk-grid {
-      display: grid;
-      grid-template-columns: minmax(360px, 0.9fr) minmax(560px, 1.6fr);
-      gap: 14px;
-      margin-bottom: 16px;
-      align-items: stretch;
-    }
-
-    .risk-card {
-      height: 550px;
-      min-height: 550px;
-      max-height: 550px;
-      padding-bottom: 16px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .risk-card .card-head {
-      margin-bottom: 12px;
-    }
-    #ranking-incompletas,
-    #tabla-incompletas {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .risk-list {
-      flex: 1 1 auto;
-      min-height: 0;
-      max-height: none;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding-right: 8px;
-    }
-
-    .risk-list > div > div:last-child {
-      border-bottom: none !important;
-    }
-
     .risk-table-wrap {
-      flex: 1 1 auto;
-      min-height: 0;
-      max-height: none;
       overflow: auto;
+      max-height: 420px;
     }
-
     .risk-table-wrap .tbl tbody td {
       padding-top: 11px;
       padding-bottom: 11px;
-    }
-
-    @media (max-width: 1180px) {
-      .risk-grid {
-        grid-template-columns: 1fr;
-      }
-      .risk-card {
-        height: 520px;
-        min-height: 520px;
-        max-height: 520px;
-      }
     }
 
     /* FILA GRÁFICAS */
@@ -374,31 +319,15 @@
     </div>
   </div>
 
-  <!-- FILA: Ranking incompletas + Lista tiendas -->
-  <div class="risk-grid">
-
-    <!-- Ranking asesores por incompletas+críticas -->
-    <div class="card risk-card">
-      <div class="card-head">
-        <div class="card-title">⚠ Ranking por Incompletas + Críticas</div>
-        <span class="card-badge" id="badge-inc">— asesores</span>
-      </div>
-      <div id="ranking-incompletas">
-        <div class="state-box"><div class="spinner"></div></div>
-      </div>
+  <!-- TABLA TIENDAS INCOMPLETAS Y CRÍTICAS (full width) -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title">🚨 Tiendas Incompletas y Críticas</div>
+      <span class="card-badge" id="badge-tiendas-inc">— tiendas</span>
     </div>
-
-    <!-- Lista de tiendas incompletas y críticas -->
-    <div class="card risk-card">
-      <div class="card-head">
-        <div class="card-title">🚨 Tiendas Incompletas y Críticas</div>
-        <span class="card-badge" id="badge-tiendas-inc">— tiendas</span>
-      </div>
-      <div id="tabla-incompletas">
-        <div class="state-box"><div class="spinner"></div></div>
-      </div>
+    <div id="tabla-incompletas">
+      <div class="state-box"><div class="spinner"></div></div>
     </div>
-
   </div>
 
   <!-- TABLA APROVECHAMIENTO POR PLAZA -->
@@ -828,48 +757,6 @@ async function initDashboard(){
       <tbody>${detRows}</tbody>
     </table></div>`;
   document.getElementById('detalle-count').textContent=`${data.length} tiendas`;
-
-  // ── RANKING ASESORES POR INCOMPLETAS + CRÍTICAS ─────────
-  const rankInc = asesoresSorted
-    .map(at=>({...at, riesgo: at.incompletas + at.criticas}))
-    .filter(at=>at.riesgo > 0)
-    .sort((a,b)=>b.riesgo - a.riesgo);
-
-  document.getElementById('badge-inc').textContent = rankInc.length + ' con pendientes';
-
-  if(rankInc.length === 0){
-    document.getElementById('ranking-incompletas').innerHTML=`
-      <div class="state-box"><div class="state-box__icon">✅</div>
-      <div class="state-box__title">Sin incompletas</div>
-      <div class="state-box__text">Todos los asesores tienen equipo completo.</div></div>`;
-  } else {
-    const maxRiesgo = Math.max(...rankInc.map(a=>a.riesgo), 1);
-    const rankHTML = rankInc.map((at,i)=>{
-      const parts=at.asesor.split(' ');
-      const shortName=parts.length>=3?parts[0]+' '+parts[1].charAt(0)+'. '+parts[parts.length-1]:at.asesor;
-      const barW = (at.riesgo/maxRiesgo*100).toFixed(0);
-      return`<div style="display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--color-border)">
-        <div style="font-family:var(--font-display);font-size:13px;font-weight:800;color:var(--color-gray);text-align:center">${i+1}</div>
-        <div>
-          <div style="font-size:12px;font-weight:600;color:var(--color-dark);margin-bottom:3px">${shortName}</div>
-          <div style="display:flex;gap:8px;font-size:11px;margin-bottom:4px">
-            <span style="color:#B8960C;font-weight:600">⚠ ${at.incompletas} inc.</span>
-            ${at.criticas>0?`<span style="color:var(--semaforo-rojo);font-weight:700">✕ ${at.criticas} crít.</span>`:''}
-          </div>
-          <div style="height:5px;background:var(--color-border);border-radius:3px;overflow:hidden">
-            <div style="height:100%;width:0%;background:${at.criticas>0?'var(--semaforo-rojo)':'var(--semaforo-amarillo)'};border-radius:3px;transition:width .8s ease" data-w="${barW}%"></div>
-          </div>
-        </div>
-        <div style="font-family:var(--font-display);font-size:1.3rem;font-weight:800;color:${at.criticas>0?'var(--semaforo-rojo)':'#B8960C'}">${at.riesgo}</div>
-      </div>`;
-    }).join('');
-    document.getElementById('ranking-incompletas').innerHTML=`<div class="risk-list"><div>${rankHTML}</div></div>`;
-    requestAnimationFrame(()=>{
-      document.querySelectorAll('#ranking-incompletas [data-w]').forEach((b,i)=>{
-        setTimeout(()=>{b.style.width=b.dataset.w;},i*80);
-      });
-    });
-  }
 
   // ── TABLA EC POR AT (desde columna del sheet) ───────────────
   const ecAtEl = document.getElementById('tabla-ec-at');
