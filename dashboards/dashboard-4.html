@@ -50,7 +50,9 @@
 /* Row 1 */
 .te-row1{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;align-items:stretch}
 .te-row1 > *{display:flex;flex-direction:column}
-.te-row1 .donut-body{flex:1;align-items:center}
+.te-row1 .donut-body{flex:1;flex-direction:column;justify-content:center;align-items:center;gap:20px;padding:20px}
+.te-row1 .donut-chart-wrap{width:min(100%,300px);height:300px;flex-shrink:0}
+.te-row1 .donut-legend{display:flex;flex-direction:row;flex-wrap:wrap;gap:10px 20px;justify-content:center}
 
 /* Panels */
 .te-panel{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07);border:1px solid #ececec}
@@ -375,7 +377,7 @@ function renderAll() {
   chartDona = new Chart(document.getElementById('chart-dona').getContext('2d'),{
     type:'doughnut',
     data:{labels:donutLabels,datasets:[{data:donutVals,backgroundColor:donutColors,borderWidth:2,borderColor:'#fff'}]},
-    options:{responsive:true,maintainAspectRatio:true,cutout:'70%',
+    options:{responsive:true,maintainAspectRatio:false,cutout:'70%',
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.label+': '+fmtH(c.raw)+' h'}}}}
   });
 
