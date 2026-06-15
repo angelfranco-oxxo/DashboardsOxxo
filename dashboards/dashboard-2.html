@@ -33,43 +33,42 @@
     .bajas-header__title { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:8px; }
     .bajas-header h1 { font-family:var(--font-display); font-size:24px; margin:0; letter-spacing:.4px; }
     .bajas-header__meta { font-size:12px; color:#d8e3e8; font-weight:700; }
-    .bajas-filters { display:grid; grid-template-columns: 1.3fr .9fr .8fr 1fr auto; gap:10px; }
-    .filter-box { min-width:0; }
-    .filter-title { font-size:11px; font-weight:800; color:#fff; letter-spacing:.6px; margin-bottom:5px; display:flex; align-items:center; gap:6px; }
-    .filter-title::after { content:'⌄ ⚱'; opacity:.7; font-size:11px; }
-    .chips { display:flex; flex-wrap:wrap; gap:5px; max-height:48px; overflow:hidden; }
-    .chip-orange { background:#ff7a22; color:#fff; border-radius:5px; padding:4px 9px; font-size:10.5px; line-height:1; min-width:42px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .chip-muted { background:#d9dee1; color:#1f2b32; }
+    .bajas-filters { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px 16px; align-items:end; }
+    .filter-box { display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .filter-title { font-size:11px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.85); margin:0; }
+    .chips { display:none; }
 
-
-    /* Filtros funcionales */
     .filter-select {
-      width: 100%;
-      min-width: 0;
-      background: #ff7a22;
+      width: 100%; box-sizing:border-box;
+      background: rgba(255,255,255,0.14);
       color: #fff;
-      border: 0;
-      border-radius: 6px;
-      padding: 6px 8px;
+      border: 1px solid rgba(255,255,255,0.32);
+      border-radius: 999px;
+      padding: 10px 16px;
       font-family: var(--font-body);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       outline: none;
       cursor: pointer;
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      transition: background .2s ease, border-color .2s ease;
     }
+    .filter-select:hover, .filter-select:focus { background: rgba(255,255,255,0.22); border-color:#fff; }
     .filter-select option { background:#fff; color:#1A1A2E; }
     .reset-filters {
-      background: transparent;
+      width:100%; box-sizing:border-box;
+      background: rgba(255,255,255,0.14);
       color: #fff;
-      border: 1px solid rgba(255,255,255,.35);
-      border-radius: 6px;
-      padding: 5px 9px;
-      font-size: 11px;
-      font-weight: 800;
+      border: 1px solid rgba(255,255,255,0.32);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 700;
       cursor: pointer;
-      margin-top: 5px;
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      transition: background .2s ease, color .2s ease;
     }
-    .reset-filters:hover { background: rgba(255,255,255,.12); }
+    .reset-filters:hover { background:#fff; color:var(--hb-red,#D92B2B); border-color:#fff; }
 
 
     .bajas-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:12px; }
@@ -189,45 +188,30 @@
     }</style>
   <link rel="stylesheet" href="../css/dashboard-skin.css" />
 <style id="d2-extras">
-  /* ── FILTROS BAJAS = mismo estilo que Vacantes (translúcido) ── */
+  /* neutralize dashboard-skin overrides on filter-select inside dark header */
   .bajas-header .filter-select,
-  .bajas-filters .filter-select{
-    width:100% !important; box-sizing:border-box !important;
+  .bajas-filters .filter-select {
     background: rgba(255,255,255,0.14) !important;
     border:1px solid rgba(255,255,255,0.32) !important;
-    color:#fff !important; font-weight:700 !important;
-    border-radius:999px !important; padding:10px 16px !important;
-    font-size:12px !important;
-    -webkit-backdrop-filter: blur(8px) !important; backdrop-filter: blur(8px) !important;
-    transition: background .2s ease, border-color .2s ease !important;
+    color:#fff !important;
+    border-radius:999px !important;
   }
   .bajas-header .filter-select:hover,
-  .bajas-header .filter-select:focus,
   .bajas-filters .filter-select:hover,
-  .bajas-filters .filter-select:focus{
+  .bajas-header .filter-select:focus,
+  .bajas-filters .filter-select:focus {
     background: rgba(255,255,255,0.22) !important; border-color:#fff !important;
     outline:none !important; box-shadow:none !important; transform:none !important;
   }
-  .bajas-header .filter-select option,
-  .bajas-filters .filter-select option{ color:#1a1a1a !important; background:#fff !important; }
-
-  /* botón Limpiar translúcido igual que los dropdowns */
-  .bajas-header .reset-filters,
-  .bajas-filters .reset-filters{
+  .bajas-filters .reset-filters {
     background: rgba(255,255,255,0.14) !important;
     border:1px solid rgba(255,255,255,0.32) !important;
-    color:#fff !important; font-weight:700 !important;
-    border-radius:999px !important; padding:10px 16px !important;
-    margin-top:0 !important;
-    -webkit-backdrop-filter: blur(8px) !important; backdrop-filter: blur(8px) !important;
+    color:#fff !important; border-radius:999px !important;
   }
-  .bajas-header .reset-filters:hover,
-  .bajas-filters .reset-filters:hover{
-    background:#fff !important; color:var(--hb-red) !important; border-color:#fff !important;
+  .bajas-filters .reset-filters:hover {
+    background:#fff !important; color:var(--hb-red,#D92B2B) !important; border-color:#fff !important;
     box-shadow:none !important; transform:none !important;
   }
-
-  /* Tablas: esquinas suaves */
   .tbl-wrap, .table-wrap{ border-radius: 14px !important; overflow: hidden; }
 </style>
 
@@ -261,10 +245,10 @@
 
       </div>
       <div class="bajas-filters" id="filter-bar">
-        <div class="filter-box"><div class="filter-title">Asesor</div><div class="chips"><span class="chip-orange">Cargando</span></div></div>
-        <div class="filter-box"><div class="filter-title">Temporalidad</div><div class="chips"><span class="chip-orange">—</span></div></div>
-        <div class="filter-box"><div class="filter-title">Rot. Temp.</div><div class="chips"><span class="chip-orange">—</span></div></div>
-        <div class="filter-box"><div class="filter-title">Puesto</div><div class="chips"><span class="chip-orange">—</span></div></div>
+        <div class="filter-box"><label class="filter-title">Asesor</label><div class="spinner" style="width:20px;height:20px;margin:8px 0"></div></div>
+        <div class="filter-box"><label class="filter-title">Temporalidad</label></div>
+        <div class="filter-box"><label class="filter-title">Rot. Temp.</label></div>
+        <div class="filter-box"><label class="filter-title">Puesto</label></div>
       </div>
     </div>
   </section>
@@ -408,10 +392,10 @@ function setFilterBar(data, cols){
     }).join('');
     return `
       <div class="filter-box">
-        <div class="filter-title">${title}</div>
+        <label class="filter-title">${title}</label>
         <select class="filter-select" data-filter="${key}">${options}</select>
       </div>`;
-  }).join('') + `<div class="filter-box"><div class="filter-title">Filtros</div><button class="reset-filters" id="reset-filters">Limpiar</button></div>`;
+  }).join('') + `<div class="filter-box"><label class="filter-title">Filtros</label><button class="reset-filters" id="reset-filters">✕ Limpiar</button></div>`;
 
   document.querySelectorAll('.filter-select').forEach(select => {
     select.addEventListener('change', () => {
