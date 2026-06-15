@@ -152,7 +152,7 @@
     }
 
 
-    /* FIX: que las gráficas de Bottom 15 ocupen todo el panel */
+    /* FIX: que las gráficas de rankings ocupen todo el panel */
     .bajas-analisis-grid .bajas-row-panel,
     .bajas-page > .bajas-row-panel {
       display: flex !important;
@@ -271,13 +271,13 @@
     </article>
 
     <article class="bajas-panel bajas-row-panel" style="margin:0">
-      <div class="bajas-panel__title">Bottom 15 AT con más bajas</div>
+      <div class="bajas-panel__title">12 AT con más bajas</div>
       <div class="chart-wide"><canvas id="chart-asesores"></canvas></div>
     </article>
   </section>
 
   <section class="bajas-panel bajas-row-panel">
-    <div class="bajas-panel__title">Bottom 15 Tiendas con más bajas</div>
+    <div class="bajas-panel__title">Top 10 tiendas con más bajas</div>
     <div class="chart-wide"><canvas id="chart-tiendas"></canvas></div>
   </section>
 
@@ -496,19 +496,24 @@ function renderChart(canvasId, type, labels, values, opts={}){
     if(!chartReady(canvas)) return;
   if(canvas._chartInstance) canvas._chartInstance.destroy();
   const ctx=canvas.getContext('2d');
-  const colors = opts.colors || labels.map(()=> opts.color || '#ff7924');
   const theme = chartTheme();
   const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
   const tickColor = dark ? '#FFFFFF' : theme.text;
   const tickStrokeWidth = dark ? 3 : 0;
+  const isRanking = !!opts.ranking;
+  const colors = opts.colors || labels.map((_, index) => {
+    if (!isRanking) return opts.color || '#ff7924';
+    return index < 3 ? '#e30613' : index < 8 ? '#ff7a22' : '#f2a52b';
+  });
   canvas._chartInstance = new Chart(ctx, {
     type,
-    data:{ labels, datasets:[{ label:opts.label||'Bajas', data:values, backgroundColor:colors, borderColor:colors, borderWidth:0, borderRadius: opts.borderRadius ?? 5, barPercentage: opts.barPercentage ?? .55, categoryPercentage: opts.categoryPercentage ?? .7 }]},
+    data:{ labels, datasets:[{ label:opts.label||'Bajas', data:values, backgroundColor:colors, borderColor:colors, borderWidth:0, borderRadius: opts.borderRadius ?? (isRanking ? 8 : 5), barPercentage: opts.barPercentage ?? (isRanking ? .72 : .55), categoryPercentage: opts.categoryPercentage ?? (isRanking ? .72 : .7) }]},
     options:{ indexAxis: opts.horizontal ? 'y' : 'x', responsive:true, maintainAspectRatio:false,
+      layout: { padding: opts.horizontal ? { top: 4, right: 18, bottom: 4, left: 2 } : { top: 0, right: 4, bottom: 0, left: 0 } },
       plugins:{ legend:{display:!!opts.legend, position:'top', labels:{color:theme.text, font:{family:'Barlow', size:12, weight:'700'}}}, tooltip:{backgroundColor:theme.tooltipBg,padding:10,cornerRadius:8}, datalabels:{display:false} },
       scales:{
-        x:{ grid:{display:false}, ticks:{color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, maxRotation: opts.rotate ?? 55, minRotation: opts.rotate ?? 0}, beginAtZero:true },
-        y:{ grid:{color:theme.grid}, ticks:{color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}}, beginAtZero:true }
+        x:{ grid:{display:!!opts.horizontal, color:theme.grid}, ticks:{precision:0, color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, maxRotation: opts.horizontal ? 0 : (opts.rotate ?? 55), minRotation: opts.horizontal ? 0 : (opts.rotate ?? 0)}, beginAtZero:true },
+        y:{ grid:{display:!opts.horizontal, color:theme.grid}, ticks:{color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, crossAlign:'far'}, beginAtZero:true }
       }
     }
   });
@@ -620,8 +625,8 @@ function renderBajasDashboard(data, cols){
   const byTemp = countBy(data, r=>getTemporalidad(r,cols));
   const byAsesor = countBy(data, r=>val(r,cols,'asesor','Sin asesor'));
   const byTienda = countBy(data, r=>val(r,cols,'tienda','Sin tienda'));
-  const topAsesor = topEntries(byAsesor,15);
-  const topTienda = topEntries(byTienda,15);
+  const topAsesor = topEntries(byAsesor,12);
+  const topTienda = topEntries(byTienda,10);
   const topPlaza = topEntries(countBy(data,r=>val(r,cols,'plaza','Oaxaca')),1)[0]?.label || 'Oaxaca';
   const maxAsesor = topAsesor[0] || {label:'—',total:0};
   const bajaTemprana = (byTemp['0 - 45 días'] || 0);
@@ -669,8 +674,8 @@ function renderBajasDashboard(data, cols){
   const motivoData = topEntries(byMotivo,8);
   renderChart('chart-motivos','bar',motivoData.map(x=>OXXO.truncate(x.label,24)),motivoData.map(x=>x.total),{color:'#ff7924',tickSize:10,rotate:45});
 
-  renderChart('chart-asesores','bar',topAsesor.map(x=>OXXO.truncate(x.label,18)),topAsesor.map(x=>x.total),{color:'#ff7924',tickSize:12,rotate:90,barPercentage:.55});
-  renderChart('chart-tiendas','bar',topTienda.map(x=>OXXO.truncate(x.label,18)),topTienda.map(x=>x.total),{color:'#ff7924',tickSize:12,rotate:90,barPercentage:.55});
+  renderChart('chart-asesores','bar',topAsesor.map(x=>OXXO.truncate(x.label,28)),topAsesor.map(x=>x.total),{horizontal:true,ranking:true,tickSize:12,label:'Bajas por AT'});
+  renderChart('chart-tiendas','bar',topTienda.map(x=>OXXO.truncate(x.label,30)),topTienda.map(x=>x.total),{horizontal:true,ranking:true,tickSize:12,label:'Bajas por tienda'});
 
   renderDetail(data, cols);
   renderPlazas(data, cols);
