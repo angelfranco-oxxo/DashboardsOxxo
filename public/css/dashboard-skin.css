@@ -1556,8 +1556,7 @@ body::before {
 }
 
 .hero,
-.dashboard-hero,
-.bajas-header {
+.dashboard-hero {
   border-radius: var(--exec-radius) !important;
   border: 1px solid var(--exec-line) !important;
   border-top: 4px solid var(--exec-red) !important;
