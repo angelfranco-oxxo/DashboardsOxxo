@@ -187,33 +187,33 @@
     }</style>
   <link rel="stylesheet" href="../css/dashboard-skin.css" />
 <style id="d2-extras">
-  /* neutralize dashboard-skin overrides on filter-select inside dark header */
+  /* Dashboard 2 filters follow the executive light header */
   .bajas-header .filter-title,
-  .bajas-filters .filter-title { color: rgba(255,255,255,0.85) !important; }
+  .bajas-filters .filter-title { color: var(--exec-muted, #6f6664) !important; }
   .bajas-header h1,
   .bajas-header__meta,
-  .bajas-header__badge { color: #fff !important; }
+  .bajas-header__badge { color: var(--exec-ink, #181112) !important; }
   .bajas-header .filter-select,
   .bajas-filters .filter-select {
-    background: rgba(255,255,255,0.14) !important;
-    border:1px solid rgba(255,255,255,0.32) !important;
-    color:#fff !important;
-    border-radius:999px !important;
+    background: rgba(255,255,255,0.78) !important;
+    border:1px solid var(--exec-line-strong, rgba(42,27,25,0.2)) !important;
+    color:var(--exec-ink, #181112) !important;
+    border-radius:8px !important;
   }
   .bajas-header .filter-select:hover,
   .bajas-filters .filter-select:hover,
   .bajas-header .filter-select:focus,
   .bajas-filters .filter-select:focus {
-    background: rgba(255,255,255,0.22) !important; border-color:#fff !important;
+    background: #fff !important; border-color:rgba(227,6,19,0.38) !important;
     outline:none !important; box-shadow:none !important; transform:none !important;
   }
   .bajas-filters .reset-filters {
-    background: rgba(255,255,255,0.14) !important;
-    border:1px solid rgba(255,255,255,0.32) !important;
-    color:#fff !important; border-radius:999px !important;
+    background: rgba(255,255,255,0.78) !important;
+    border:1px solid var(--exec-line-strong, rgba(42,27,25,0.2)) !important;
+    color:var(--exec-ink, #181112) !important; border-radius:8px !important;
   }
   .bajas-filters .reset-filters:hover {
-    background:#fff !important; color:var(--hb-red,#D92B2B) !important; border-color:#fff !important;
+    background:var(--exec-red,#D92B2B) !important; color:#fff !important; border-color:var(--exec-red,#D92B2B) !important;
     box-shadow:none !important; transform:none !important;
   }
   .tbl-wrap, .table-wrap{ border-radius: 14px !important; overflow: hidden; }
