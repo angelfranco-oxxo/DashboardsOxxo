@@ -1834,6 +1834,13 @@ html[data-theme="dark"] .small {
   color: rgba(255,255,255,0.68) !important;
 }
 
+html[data-theme="dark"] .bajas-header__badge {
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
 html[data-theme="dark"] .filtro-select,
 html[data-theme="dark"] .filter-select,
 html[data-theme="dark"] select,
