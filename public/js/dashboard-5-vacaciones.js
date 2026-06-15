@@ -3,7 +3,10 @@ const charts = {};
 const state = {
   rows: [],
   activeKpi: 'all',
+  asesor: '',
+  tienda: '',
   puesto: '',
+  rango: '',
 };
 
 const KPI_DEFS = [
@@ -16,8 +19,7 @@ const KPI_DEFS = [
 ];
 
 function n(value, decimals = 0) {
-  const num = Number(value || 0);
-  return num.toLocaleString('es-MX', {
+  return Number(value || 0).toLocaleString('es-MX', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -39,6 +41,17 @@ function sum(rows, key) {
   return rows.reduce((total, row) => total + (Number(row[key]) || 0), 0);
 }
 
+function rangeLabel(value) {
+  const days = Number(value) || 0;
+  if (days === 0) return '0';
+  if (days <= 5) return '1-5';
+  if (days <= 10) return '6-10';
+  if (days <= 15) return '11-15';
+  if (days <= 20) return '16-20';
+  if (days <= 30) return '21-30';
+  return '31+';
+}
+
 function bucketMatches(row, kpiId) {
   if (kpiId === 'ant') return row.periodo_anterior > 0;
   if (kpiId === 'act') return row.periodo_actual > 0;
@@ -48,11 +61,18 @@ function bucketMatches(row, kpiId) {
   return true;
 }
 
-function filteredRows() {
+function baseFilteredRows() {
   return state.rows.filter((row) => {
+    if (state.asesor && row.asesor !== state.asesor) return false;
+    if (state.tienda && row.tienda !== state.tienda) return false;
     if (state.puesto && row.puesto !== state.puesto) return false;
-    return bucketMatches(row, state.activeKpi);
+    if (state.rango && rangeLabel(row.dias_restantes) !== state.rango) return false;
+    return true;
   });
+}
+
+function filteredRows() {
+  return baseFilteredRows().filter((row) => bucketMatches(row, state.activeKpi));
 }
 
 function metrics(rows) {
@@ -92,10 +112,7 @@ function groupBy(rows, key) {
     item.periodo_actual += Number(row.periodo_actual) || 0;
   });
   return Array.from(map.values())
-    .map((item) => ({
-      ...item,
-      promedio: item.empleados ? item.dias_restantes / item.empleados : 0,
-    }))
+    .map((item) => ({ ...item, promedio: item.empleados ? item.dias_restantes / item.empleados : 0 }))
     .sort((a, b) => b.dias_restantes - a.dias_restantes);
 }
 
@@ -112,18 +129,9 @@ function countBy(rows, key, order) {
 }
 
 function distribution(rows) {
-  const buckets = [
-    { label: '0', test: (v) => v === 0 },
-    { label: '1-5', test: (v) => v > 0 && v <= 5 },
-    { label: '6-10', test: (v) => v > 5 && v <= 10 },
-    { label: '11-15', test: (v) => v > 10 && v <= 15 },
-    { label: '16-20', test: (v) => v > 15 && v <= 20 },
-    { label: '21-30', test: (v) => v > 20 && v <= 30 },
-    { label: '31+', test: (v) => v > 30 },
-  ];
-  return buckets.map((bucket) => ({
-    label: bucket.label,
-    empleados: rows.filter((row) => bucket.test(Number(row.dias_restantes) || 0)).length,
+  return ['0', '1-5', '6-10', '11-15', '16-20', '21-30', '31+'].map((label) => ({
+    label,
+    empleados: rows.filter((row) => rangeLabel(row.dias_restantes) === label).length,
   }));
 }
 
@@ -159,7 +167,7 @@ function renderHorizontalBar(id, rows, key, label, color) {
         x: {
           beginAtZero: true,
           grid: { color: theme.grid },
-          ticks: { color: theme.muted, callback: (v) => n(v) },
+          ticks: { color: theme.muted, callback: (value) => n(value) },
         },
         y: {
           grid: { display: false },
@@ -226,7 +234,7 @@ function renderDistribution(id, rows) {
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: theme.muted } },
-        y: { beginAtZero: true, grid: { color: theme.grid }, ticks: { color: theme.muted, callback: (v) => n(v) } },
+        y: { beginAtZero: true, grid: { color: theme.grid }, ticks: { color: theme.muted, callback: (value) => n(value) } },
       },
     },
   });
@@ -235,36 +243,12 @@ function renderDistribution(id, rows) {
 function renderKpis(rows) {
   const m = metrics(rows);
   const cards = [
-    {
-      id: 'all',
-      value: n(m.dias_restantes, 1),
-      delta: `${n(m.con_pendientes)} colaboradores con saldo`,
-    },
-    {
-      id: 'ant',
-      value: n(m.periodo_anterior, 1),
-      delta: `${n(m.con_periodo_anterior)} colaboradores`,
-    },
-    {
-      id: 'act',
-      value: n(m.periodo_actual, 1),
-      delta: `${pct(m.periodo_actual, m.dias_restantes)} del saldo`,
-    },
-    {
-      id: 'avg',
-      value: n(m.promedio, 1),
-      delta: 'dias por colaborador',
-    },
-    {
-      id: 'vencido',
-      value: n(m.ant_vencido),
-      delta: 'requieren accion inmediata',
-    },
-    {
-      id: 'prox30',
-      value: n(m.ant_0_30),
-      delta: 'periodo anterior',
-    },
+    { id: 'all', value: n(m.dias_restantes, 1), delta: `${n(m.con_pendientes)} colaboradores con saldo` },
+    { id: 'ant', value: n(m.periodo_anterior, 1), delta: `${n(m.con_periodo_anterior)} colaboradores` },
+    { id: 'act', value: n(m.periodo_actual, 1), delta: `${pct(m.periodo_actual, m.dias_restantes)} del saldo` },
+    { id: 'avg', value: n(m.promedio, 1), delta: 'dias por colaborador' },
+    { id: 'vencido', value: n(m.ant_vencido), delta: 'requieren accion inmediata' },
+    { id: 'prox30', value: n(m.ant_0_30), delta: 'periodo anterior' },
   ];
 
   document.getElementById('kpi-section').innerHTML = cards.map((card) => {
@@ -287,46 +271,102 @@ function renderKpis(rows) {
   });
 }
 
-function renderRiskList(rows) {
-  const riskRows = countBy(rows, 'vence_ant_bucket', ['Vencido', '0-30', '31-60', '61-90']).slice(0, 4);
-  const total = riskRows.reduce((acc, row) => acc + row.empleados, 0);
-  document.getElementById('risk-list').innerHTML = riskRows.map((row, index) => `
-    <div class="vac-risk-row">
-      <div>
-        <div class="vac-risk-row__label">${row.label}</div>
-        <div class="vac-risk-row__sub">${n(row.dias_restantes, 1)} dias pendientes ant.</div>
-      </div>
-      <strong>${n(row.empleados)}</strong>
-      <div class="vac-risk-row__bar"><span style="width:${pct(row.empleados, total)};background:${index === 0 ? '#E30613' : '#F2A52B'}"></span></div>
+function renderActions(rows) {
+  const riskRows = countBy(rows, 'vence_ant_bucket', ['Vencido', '0-30', '31-60', '61-90']);
+  const advisors = groupBy(rows, 'asesor');
+  const stores = groupBy(rows, 'tienda');
+  const positions = groupBy(rows, 'puesto');
+  const overdue = riskRows.find((row) => row.label === 'Vencido') || { empleados: 0, dias_restantes: 0 };
+  const next30 = riskRows.find((row) => row.label === '0-30') || { empleados: 0, dias_restantes: 0 };
+  const topAdvisor = advisors[0] || { label: 'Sin dato', dias_restantes: 0, empleados: 0, periodo_anterior: 0 };
+  const topStore = stores[0] || { label: 'Sin dato', dias_restantes: 0, empleados: 0 };
+  const topPosition = positions[0] || { label: 'Sin dato', dias_restantes: 0, empleados: 0 };
+  const heavy = rows.filter((row) => row.dias_restantes >= 21).length;
+
+  const actions = [
+    {
+      title: `Atender vencidos: ${n(overdue.empleados)} colaboradores`,
+      text: `${n(overdue.dias_restantes, 1)} dias de periodo anterior ya vencido. Prioriza contacto y programacion esta semana.`,
+    },
+    {
+      title: `Blindar 0-30 dias: ${n(next30.empleados)} colaboradores`,
+      text: `${n(next30.dias_restantes, 1)} dias de periodo anterior por vencer. Conviene cerrar calendario antes del siguiente corte.`,
+    },
+    {
+      title: `Asesor foco: ${topAdvisor.label}`,
+      text: `${n(topAdvisor.dias_restantes, 1)} dias en ${n(topAdvisor.empleados)} colaboradores; ${n(topAdvisor.periodo_anterior, 1)} son de periodo anterior.`,
+    },
+    {
+      title: `Tienda foco: ${topStore.label}`,
+      text: `${n(topStore.dias_restantes, 1)} dias acumulados. Revisar cobertura y balance de turnos antes de autorizar bloques grandes.`,
+    },
+    {
+      title: `Puesto mas cargado: ${topPosition.label}`,
+      text: `${n(topPosition.dias_restantes, 1)} dias entre ${n(topPosition.empleados)} colaboradores. Util para planear reemplazos por perfil.`,
+    },
+    {
+      title: `Saldos altos: ${n(heavy)} colaboradores con 21+ dias`,
+      text: 'Usa el filtro de rango para aislarlos y bajar primero los saldos que pueden complicar cobertura.',
+    },
+  ];
+
+  document.getElementById('actions-list').innerHTML = actions.map((action) => `
+    <div class="vac-action">
+      <div class="vac-action__title">${action.title}</div>
+      <div class="vac-action__text">${action.text}</div>
     </div>`).join('');
 }
 
 function filterLabel() {
   const kpi = KPI_DEFS.find((item) => item.id === state.activeKpi)?.label || 'Todos';
-  const puesto = state.puesto || 'Todos los puestos';
-  return `Filtro activo: ${kpi} · ${puesto}`;
+  return [
+    kpi,
+    state.asesor || 'Todos los asesores',
+    state.tienda || 'Todas las tiendas',
+    state.puesto || 'Todos los puestos',
+    state.rango || 'Todos los rangos',
+  ].join(' - ');
 }
 
-function populatePuestoFilter(rows) {
-  const select = document.getElementById('filtro-puesto');
-  const puestos = Array.from(new Set(rows.map((row) => row.puesto).filter(Boolean))).sort();
-  select.innerHTML = '<option value="">Todos los puestos</option>' + puestos.map((puesto) => (
-    `<option value="${puesto}">${puesto}</option>`
+function populateSelect(id, rows, key, defaultLabel) {
+  const select = document.getElementById(id);
+  const values = Array.from(new Set(rows.map((row) => row[key]).filter(Boolean))).sort();
+  select.innerHTML = `<option value="">${defaultLabel}</option>` + values.map((value) => (
+    `<option value="${value}">${value}</option>`
   )).join('');
-  select.addEventListener('change', () => {
-    state.puesto = select.value;
+}
+
+function populateFilters(rows) {
+  populateSelect('filtro-asesor', rows, 'asesor', 'Todos los asesores');
+  populateSelect('filtro-tienda', rows, 'tienda', 'Todas las tiendas');
+  populateSelect('filtro-puesto', rows, 'puesto', 'Todos los puestos');
+
+  document.getElementById('filtro-asesor').addEventListener('change', (event) => {
+    state.asesor = event.target.value;
+    renderAll();
+  });
+  document.getElementById('filtro-tienda').addEventListener('change', (event) => {
+    state.tienda = event.target.value;
+    renderAll();
+  });
+  document.getElementById('filtro-puesto').addEventListener('change', (event) => {
+    state.puesto = event.target.value;
+    renderAll();
+  });
+  document.getElementById('filtro-rango').addEventListener('change', (event) => {
+    state.rango = event.target.value;
     renderAll();
   });
 }
 
 function renderAll() {
-  const baseRows = state.rows.filter((row) => !state.puesto || row.puesto === state.puesto);
+  const baseRows = baseFilteredRows();
   const rows = filteredRows();
 
   renderKpis(baseRows);
-  document.getElementById('filter-status').textContent = `${filterLabel()} · ${n(rows.length)} colaboradores`;
+  document.getElementById('filter-status').textContent = `Filtro activo: ${filterLabel()} - ${n(rows.length)} colaboradores`;
 
-  renderRiskList(rows);
+  renderActions(rows);
   renderHorizontalBar('chart-asesores', groupBy(rows, 'asesor').slice(0, 10), 'dias_restantes', 'Dias restantes', '#E30613');
   renderHorizontalBar('chart-plazas', groupBy(rows, 'tienda').slice(0, 10), 'dias_restantes', 'Dias restantes', '#E30613');
   renderHorizontalBar('chart-puestos', groupBy(rows, 'puesto').slice(0, 10), 'dias_restantes', 'Dias restantes', '#F2A52B');
@@ -349,18 +389,23 @@ async function initDashboard() {
     }
   } catch (error) {
     console.error(error);
-    ['kpi-section', 'risk-list'].forEach((id) => {
+    ['kpi-section', 'actions-list'].forEach((id) => {
       OXXO.showError(id, 'No se pudo cargar el resumen de vacaciones.');
     });
     return;
   }
 
   state.rows = data.rows || [];
-  populatePuestoFilter(state.rows);
+  populateFilters(state.rows);
   document.getElementById('clear-filters').addEventListener('click', () => {
     state.activeKpi = 'all';
+    state.asesor = '';
+    state.tienda = '';
     state.puesto = '';
-    document.getElementById('filtro-puesto').value = '';
+    state.rango = '';
+    ['filtro-asesor', 'filtro-tienda', 'filtro-puesto', 'filtro-rango'].forEach((id) => {
+      document.getElementById(id).value = '';
+    });
     renderAll();
   });
   document.getElementById('snapshot-date').textContent = data.snapshot_date;

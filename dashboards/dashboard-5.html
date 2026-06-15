@@ -79,7 +79,7 @@
 
     .vac-filters {
       display: grid;
-      grid-template-columns: minmax(220px, 320px) minmax(220px, 1fr) auto;
+      grid-template-columns: repeat(4, minmax(170px, 1fr)) auto;
       gap: 12px;
       align-items: end;
       margin-bottom: 14px;
@@ -123,6 +123,36 @@
       cursor: pointer;
     }
 
+    .vac-filter-status {
+      grid-column: 1 / -1;
+    }
+
+    .vac-actions-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .vac-action {
+      padding: 13px 14px;
+      border: 1px solid var(--exec-line, rgba(42,27,25,.12));
+      border-radius: 10px;
+      background: var(--exec-surface-soft, #fbfaf7);
+    }
+
+    .vac-action__title {
+      color: var(--exec-ink, #181112);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .vac-action__text {
+      margin-top: 4px;
+      color: var(--exec-muted, #6f6664);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
     .kpi-card {
       cursor: pointer;
       user-select: none;
@@ -155,6 +185,19 @@
     }
 
     html[data-theme="dark"] .vac-risk-row__sub {
+      color: rgba(255,255,255,.68);
+    }
+
+    html[data-theme="dark"] .vac-action {
+      background: rgba(255,255,255,.035);
+      border-color: rgba(255,255,255,.12);
+    }
+
+    html[data-theme="dark"] .vac-action__title {
+      color: #fff;
+    }
+
+    html[data-theme="dark"] .vac-action__text {
       color: rgba(255,255,255,.68);
     }
 
@@ -205,13 +248,38 @@
 
   <section class="vac-filters">
     <div class="vac-filter-box">
+      <label for="filtro-asesor">Asesor</label>
+      <select id="filtro-asesor" class="filtro-select">
+        <option value="">Todos los asesores</option>
+      </select>
+    </div>
+    <div class="vac-filter-box">
+      <label for="filtro-tienda">Tienda</label>
+      <select id="filtro-tienda" class="filtro-select">
+        <option value="">Todas las tiendas</option>
+      </select>
+    </div>
+    <div class="vac-filter-box">
       <label for="filtro-puesto">Puesto</label>
       <select id="filtro-puesto" class="filtro-select">
         <option value="">Todos los puestos</option>
       </select>
     </div>
-    <div class="vac-filter-status" id="filter-status">Filtro activo: todos los colaboradores</div>
+    <div class="vac-filter-box">
+      <label for="filtro-rango">Rango de dias</label>
+      <select id="filtro-rango" class="filtro-select">
+        <option value="">Todos los rangos</option>
+        <option value="0">0 dias</option>
+        <option value="1-5">1 a 5 dias</option>
+        <option value="6-10">6 a 10 dias</option>
+        <option value="11-15">11 a 15 dias</option>
+        <option value="16-20">16 a 20 dias</option>
+        <option value="21-30">21 a 30 dias</option>
+        <option value="31+">31 dias o mas</option>
+      </select>
+    </div>
     <button class="vac-filter-clear" type="button" id="clear-filters">Limpiar filtros</button>
+    <div class="vac-filter-status" id="filter-status">Filtro activo: todos los colaboradores</div>
   </section>
 
   <section class="vac-grid-main">
@@ -225,10 +293,10 @@
 
     <article class="panel panel--accent-red">
       <div class="panel__header">
-        <div class="panel__title">Urgencia periodo anterior</div>
-        <span class="panel__badge badge-gris">Vencimiento</span>
+        <div class="panel__title">Acciones recomendadas</div>
+        <span class="panel__badge badge-gris">Prioridad</span>
       </div>
-      <div id="risk-list" class="vac-risk-list"><div class="state-box"><div class="spinner"></div></div></div>
+      <div id="actions-list" class="vac-actions-list"><div class="state-box"><div class="spinner"></div></div></div>
     </article>
   </section>
 
