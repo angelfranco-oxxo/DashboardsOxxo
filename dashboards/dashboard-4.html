@@ -48,7 +48,9 @@
 .filter-banner__clear{margin-left:auto;cursor:pointer;background:#FFD200;color:#1a1a1a;border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:800;cursor:pointer}
 
 /* Row 1 */
-.te-row1{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.te-row1{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;align-items:stretch}
+.te-row1 > *{display:flex;flex-direction:column}
+.te-row1 .donut-body{flex:1;align-items:center}
 
 /* Panels */
 .te-panel{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07);border:1px solid #ececec}
