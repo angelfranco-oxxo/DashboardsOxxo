@@ -77,6 +77,63 @@
       border-radius: inherit;
     }
 
+    .vac-filters {
+      display: grid;
+      grid-template-columns: minmax(220px, 320px) minmax(220px, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    .vac-filter-box {
+      display: grid;
+      gap: 6px;
+    }
+
+    .vac-filter-box label {
+      color: var(--exec-muted, #6f6664);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .vac-filter-status {
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border: 1px solid var(--exec-line, rgba(42,27,25,.12));
+      border-radius: 10px;
+      background: var(--exec-surface, #fff);
+      color: var(--exec-muted, #6f6664);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .vac-filter-clear {
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--exec-line-strong, rgba(42,27,25,.2));
+      border-radius: 10px;
+      background: #fff;
+      color: var(--exec-red, #e30613);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .kpi-card {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .kpi-card.is-active {
+      border-color: rgba(227,6,19,.36) !important;
+      box-shadow: 0 0 0 3px rgba(227,6,19,.11), 0 14px 34px rgba(28,17,14,.1) !important;
+      transform: translateY(-2px);
+    }
+
     .vac-heatmap td {
       font-weight: 800;
       text-align: right;
@@ -105,6 +162,10 @@
       .vac-grid-main,
       .vac-grid-two,
       .vac-grid-tables {
+        grid-template-columns: 1fr;
+      }
+
+      .vac-filters {
         grid-template-columns: 1fr;
       }
     }
@@ -141,6 +202,17 @@
   <div class="kpi-grid executive-kpis" id="kpi-section">
     <div class="kpi-card"><div class="kpi-card__label">Cargando</div><div class="kpi-card__value"><div class="spinner"></div></div></div>
   </div>
+
+  <section class="vac-filters">
+    <div class="vac-filter-box">
+      <label for="filtro-puesto">Puesto</label>
+      <select id="filtro-puesto" class="filtro-select">
+        <option value="">Todos los puestos</option>
+      </select>
+    </div>
+    <div class="vac-filter-status" id="filter-status">Filtro activo: todos los colaboradores</div>
+    <button class="vac-filter-clear" type="button" id="clear-filters">Limpiar filtros</button>
+  </section>
 
   <section class="vac-grid-main">
     <article class="panel panel--dark-title panel--accent-red">

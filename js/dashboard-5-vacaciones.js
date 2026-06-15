@@ -1,5 +1,19 @@
 const DATA_URL = '../assets/data/vacaciones-dashboard-5.json';
 const charts = {};
+const state = {
+  rows: [],
+  activeKpi: 'all',
+  puesto: '',
+};
+
+const KPI_DEFS = [
+  { id: 'all', label: 'Dias restantes', color: 'rojo' },
+  { id: 'ant', label: 'Periodo anterior', color: 'amarillo' },
+  { id: 'act', label: 'Periodo actual', color: 'azul' },
+  { id: 'avg', label: 'Promedio', color: 'verde' },
+  { id: 'vencido', label: 'Vencidos ant.', color: 'rojo' },
+  { id: 'prox30', label: 'Vencen 0-30', color: 'amarillo' },
+];
 
 function n(value, decimals = 0) {
   const num = Number(value || 0);
@@ -13,16 +27,104 @@ function pct(value, total) {
   return total ? `${((value / total) * 100).toFixed(1)}%` : '0.0%';
 }
 
-function rowsToLabels(rows) {
-  return rows.map((row) => OXXO.truncate(row.label, 18));
-}
-
 function chartTheme() {
   return OXXO.getChartThemeColors();
 }
 
 function destroyChart(id) {
   if (charts[id]) charts[id].destroy();
+}
+
+function sum(rows, key) {
+  return rows.reduce((total, row) => total + (Number(row[key]) || 0), 0);
+}
+
+function bucketMatches(row, kpiId) {
+  if (kpiId === 'ant') return row.periodo_anterior > 0;
+  if (kpiId === 'act') return row.periodo_actual > 0;
+  if (kpiId === 'avg') return row.dias_restantes > 0;
+  if (kpiId === 'vencido') return row.vence_ant_bucket === 'Vencido';
+  if (kpiId === 'prox30') return row.vence_ant_bucket === '0-30';
+  return true;
+}
+
+function filteredRows() {
+  return state.rows.filter((row) => {
+    if (state.puesto && row.puesto !== state.puesto) return false;
+    return bucketMatches(row, state.activeKpi);
+  });
+}
+
+function metrics(rows) {
+  const dias = sum(rows, 'dias_restantes');
+  const ant = sum(rows, 'periodo_anterior');
+  const act = sum(rows, 'periodo_actual');
+  return {
+    empleados: rows.length,
+    dias_restantes: dias,
+    periodo_anterior: ant,
+    periodo_actual: act,
+    promedio: rows.length ? dias / rows.length : 0,
+    con_pendientes: rows.filter((row) => row.dias_restantes > 0).length,
+    con_periodo_anterior: rows.filter((row) => row.periodo_anterior > 0).length,
+    ant_vencido: rows.filter((row) => row.vence_ant_bucket === 'Vencido').length,
+    ant_0_30: rows.filter((row) => row.vence_ant_bucket === '0-30').length,
+  };
+}
+
+function groupBy(rows, key) {
+  const map = new Map();
+  rows.forEach((row) => {
+    const label = row[key] || 'Sin dato';
+    if (!map.has(label)) {
+      map.set(label, {
+        label,
+        empleados: 0,
+        dias_restantes: 0,
+        periodo_anterior: 0,
+        periodo_actual: 0,
+      });
+    }
+    const item = map.get(label);
+    item.empleados += 1;
+    item.dias_restantes += Number(row.dias_restantes) || 0;
+    item.periodo_anterior += Number(row.periodo_anterior) || 0;
+    item.periodo_actual += Number(row.periodo_actual) || 0;
+  });
+  return Array.from(map.values())
+    .map((item) => ({
+      ...item,
+      promedio: item.empleados ? item.dias_restantes / item.empleados : 0,
+    }))
+    .sort((a, b) => b.dias_restantes - a.dias_restantes);
+}
+
+function countBy(rows, key, order) {
+  const map = new Map(order.map((label) => [label, { label, empleados: 0, dias_restantes: 0 }]));
+  rows.forEach((row) => {
+    const label = row[key] || 'Sin dato';
+    if (!map.has(label)) map.set(label, { label, empleados: 0, dias_restantes: 0 });
+    const item = map.get(label);
+    item.empleados += 1;
+    item.dias_restantes += Number(row.periodo_anterior) || 0;
+  });
+  return Array.from(map.values()).filter((row) => row.empleados > 0 || order.includes(row.label));
+}
+
+function distribution(rows) {
+  const buckets = [
+    { label: '0', test: (v) => v === 0 },
+    { label: '1-5', test: (v) => v > 0 && v <= 5 },
+    { label: '6-10', test: (v) => v > 5 && v <= 10 },
+    { label: '11-15', test: (v) => v > 10 && v <= 15 },
+    { label: '16-20', test: (v) => v > 15 && v <= 20 },
+    { label: '21-30', test: (v) => v > 20 && v <= 30 },
+    { label: '31+', test: (v) => v > 30 },
+  ];
+  return buckets.map((bucket) => ({
+    label: bucket.label,
+    empleados: rows.filter((row) => bucket.test(Number(row.dias_restantes) || 0)).length,
+  }));
 }
 
 function renderHorizontalBar(id, rows, key, label, color) {
@@ -33,7 +135,7 @@ function renderHorizontalBar(id, rows, key, label, color) {
   charts[id] = new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
-      labels: rowsToLabels(rows),
+      labels: rows.map((row) => OXXO.truncate(row.label, 18)),
       datasets: [{
         label,
         data: rows.map((row) => row[key]),
@@ -50,9 +152,7 @@ function renderHorizontalBar(id, rows, key, label, color) {
         legend: { display: false },
         tooltip: {
           backgroundColor: theme.tooltipBg,
-          callbacks: {
-            label: (ctx) => ` ${label}: ${n(ctx.raw, 1)}`,
-          },
+          callbacks: { label: (ctx) => ` ${label}: ${n(ctx.raw, 1)}` },
         },
       },
       scales: {
@@ -64,62 +164,6 @@ function renderHorizontalBar(id, rows, key, label, color) {
         y: {
           grid: { display: false },
           ticks: { color: theme.muted },
-        },
-      },
-    },
-  });
-}
-
-function renderStackedRegion(id, rows) {
-  const canvas = document.getElementById(id);
-  if (!canvas || !OXXO.ensureChartReady(canvas)) return;
-  destroyChart(id);
-  const theme = chartTheme();
-  charts[id] = new Chart(canvas.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: rows.map((row) => row.label),
-      datasets: [
-        {
-          label: 'Periodo anterior',
-          data: rows.map((row) => row.periodo_anterior),
-          backgroundColor: '#E30613',
-          borderRadius: 5,
-        },
-        {
-          label: 'Periodo actual',
-          data: rows.map((row) => row.periodo_actual),
-          backgroundColor: '#F2A52B',
-          borderRadius: 5,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { color: theme.text, boxWidth: 12, font: { family: 'Barlow', size: 12 } },
-        },
-        tooltip: {
-          backgroundColor: theme.tooltipBg,
-          callbacks: {
-            label: (ctx) => ` ${ctx.dataset.label}: ${n(ctx.raw, 1)} dias`,
-          },
-        },
-      },
-      scales: {
-        x: {
-          stacked: true,
-          grid: { display: false },
-          ticks: { color: theme.muted },
-        },
-        y: {
-          stacked: true,
-          beginAtZero: true,
-          grid: { color: theme.grid },
-          ticks: { color: theme.muted, callback: (v) => n(v) },
         },
       },
     },
@@ -131,14 +175,13 @@ function renderDoughnut(id, rows, valueKey) {
   if (!canvas || !OXXO.ensureChartReady(canvas)) return;
   destroyChart(id);
   const theme = chartTheme();
-  const colors = ['#E30613', '#F2A52B', '#FFCD56', '#198754', '#6F6664', '#2A1718'];
   charts[id] = new Chart(canvas.getContext('2d'), {
     type: 'doughnut',
     data: {
       labels: rows.map((row) => row.label),
       datasets: [{
         data: rows.map((row) => row[valueKey]),
-        backgroundColor: colors,
+        backgroundColor: ['#E30613', '#F2A52B', '#FFCD56', '#198754', '#6F6664', '#2A1718'],
         borderWidth: 0,
       }],
     },
@@ -189,45 +232,65 @@ function renderDistribution(id, rows) {
   });
 }
 
-function renderKpis(data) {
-  const k = data.kpis;
-  document.getElementById('kpi-section').innerHTML = `
-    <div class="kpi-card rojo">
-      <div class="kpi-card__label">Dias restantes</div>
-      <div class="kpi-card__value">${n(k.dias_restantes, 1)}</div>
-      <div class="kpi-card__delta neg">${n(k.con_pendientes)} colaboradores con saldo</div>
-    </div>
-    <div class="kpi-card amarillo">
-      <div class="kpi-card__label">Periodo anterior</div>
-      <div class="kpi-card__value">${n(k.periodo_anterior, 1)}</div>
-      <div class="kpi-card__delta neg">${n(k.con_periodo_anterior)} colaboradores</div>
-    </div>
-    <div class="kpi-card azul">
-      <div class="kpi-card__label">Periodo actual</div>
-      <div class="kpi-card__value">${n(k.periodo_actual, 1)}</div>
-      <div class="kpi-card__delta neu">${pct(k.periodo_actual, k.dias_restantes)} del saldo</div>
-    </div>
-    <div class="kpi-card verde">
-      <div class="kpi-card__label">Promedio</div>
-      <div class="kpi-card__value">${n(k.promedio, 1)}</div>
-      <div class="kpi-card__delta neu">dias por colaborador</div>
-    </div>
-    <div class="kpi-card rojo">
-      <div class="kpi-card__label">Vencidos ant.</div>
-      <div class="kpi-card__value">${n(k.ant_vencido)}</div>
-      <div class="kpi-card__delta neg">requieren accion inmediata</div>
-    </div>
-    <div class="kpi-card amarillo">
-      <div class="kpi-card__label">Vencen 0-30</div>
-      <div class="kpi-card__value">${n(k.ant_0_30)}</div>
-      <div class="kpi-card__delta neg">periodo anterior</div>
-    </div>`;
+function renderKpis(rows) {
+  const m = metrics(rows);
+  const cards = [
+    {
+      id: 'all',
+      value: n(m.dias_restantes, 1),
+      delta: `${n(m.con_pendientes)} colaboradores con saldo`,
+    },
+    {
+      id: 'ant',
+      value: n(m.periodo_anterior, 1),
+      delta: `${n(m.con_periodo_anterior)} colaboradores`,
+    },
+    {
+      id: 'act',
+      value: n(m.periodo_actual, 1),
+      delta: `${pct(m.periodo_actual, m.dias_restantes)} del saldo`,
+    },
+    {
+      id: 'avg',
+      value: n(m.promedio, 1),
+      delta: 'dias por colaborador',
+    },
+    {
+      id: 'vencido',
+      value: n(m.ant_vencido),
+      delta: 'requieren accion inmediata',
+    },
+    {
+      id: 'prox30',
+      value: n(m.ant_0_30),
+      delta: 'periodo anterior',
+    },
+  ];
+
+  document.getElementById('kpi-section').innerHTML = cards.map((card) => {
+    const def = KPI_DEFS.find((item) => item.id === card.id);
+    const active = state.activeKpi === card.id ? ' is-active' : '';
+    const deltaClass = ['all', 'act', 'avg'].includes(card.id) ? 'neu' : 'neg';
+    return `
+      <button class="kpi-card ${def.color}${active}" type="button" data-kpi-filter="${card.id}">
+        <div class="kpi-card__label">${def.label}</div>
+        <div class="kpi-card__value">${card.value}</div>
+        <div class="kpi-card__delta ${deltaClass}">${card.delta}</div>
+      </button>`;
+  }).join('');
+
+  document.querySelectorAll('[data-kpi-filter]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.activeKpi = button.dataset.kpiFilter;
+      renderAll();
+    });
+  });
 }
 
-function renderRiskList(data) {
-  const rows = data.vence_ant.slice(0, 4);
-  const total = rows.reduce((sum, row) => sum + row.empleados, 0);
-  document.getElementById('risk-list').innerHTML = rows.map((row, index) => `
+function renderRiskList(rows) {
+  const riskRows = countBy(rows, 'vence_ant_bucket', ['Vencido', '0-30', '31-60', '61-90']).slice(0, 4);
+  const total = riskRows.reduce((acc, row) => acc + row.empleados, 0);
+  document.getElementById('risk-list').innerHTML = riskRows.map((row, index) => `
     <div class="vac-risk-row">
       <div>
         <div class="vac-risk-row__label">${row.label}</div>
@@ -238,38 +301,42 @@ function renderRiskList(data) {
     </div>`).join('');
 }
 
-function renderDataTable(id, rows, columns) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const thead = columns.map((col) => `<th style="text-align:${col.align || 'left'}">${col.label}</th>`).join('');
-  const tbody = rows.map((row) => `
-    <tr>${columns.map((col) => {
-      const value = row[col.key];
-      const text = col.num ? n(value, col.decimals || 0) : value;
-      return `<td style="text-align:${col.align || 'left'}">${text}</td>`;
-    }).join('')}</tr>`).join('');
-  el.innerHTML = `<div class="table-wrapper"><table class="data-table"><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>`;
+function filterLabel() {
+  const kpi = KPI_DEFS.find((item) => item.id === state.activeKpi)?.label || 'Todos';
+  const puesto = state.puesto || 'Todos los puestos';
+  return `Filtro activo: ${kpi} · ${puesto}`;
 }
 
-function renderHeatmap(data) {
-  const matrix = data.matrix_region_posicion;
-  const max = Math.max(...matrix.rows.flatMap((row) => row.values), 1);
-  const header = matrix.columns.map((col) => `<th>${col}</th>`).join('');
-  const body = matrix.rows.map((row) => `
-    <tr>
-      <td>${row.region}</td>
-      ${row.values.map((value) => {
-        const alpha = Math.max(0.08, value / max * 0.9);
-        return `<td style="background:rgba(227,6,19,${alpha.toFixed(2)})">${n(value, 1)}</td>`;
-      }).join('')}
-    </tr>`).join('');
-  document.getElementById('heatmap-region-posicion').innerHTML = `
-    <div class="table-wrapper">
-      <table class="data-table vac-heatmap">
-        <thead><tr><th>Region</th>${header}</tr></thead>
-        <tbody>${body}</tbody>
-      </table>
-    </div>`;
+function populatePuestoFilter(rows) {
+  const select = document.getElementById('filtro-puesto');
+  const puestos = Array.from(new Set(rows.map((row) => row.puesto).filter(Boolean))).sort();
+  select.innerHTML = '<option value="">Todos los puestos</option>' + puestos.map((puesto) => (
+    `<option value="${puesto}">${puesto}</option>`
+  )).join('');
+  select.addEventListener('change', () => {
+    state.puesto = select.value;
+    renderAll();
+  });
+}
+
+function renderAll() {
+  const baseRows = state.rows.filter((row) => !state.puesto || row.puesto === state.puesto);
+  const rows = filteredRows();
+
+  renderKpis(baseRows);
+  document.getElementById('filter-status').textContent = `${filterLabel()} · ${n(rows.length)} colaboradores`;
+
+  renderRiskList(rows);
+  renderHorizontalBar('chart-asesores', groupBy(rows, 'asesor').slice(0, 10), 'dias_restantes', 'Dias restantes', '#E30613');
+  renderHorizontalBar('chart-plazas', groupBy(rows, 'tienda').slice(0, 10), 'dias_restantes', 'Dias restantes', '#E30613');
+  renderHorizontalBar('chart-puestos', groupBy(rows, 'puesto').slice(0, 10), 'dias_restantes', 'Dias restantes', '#F2A52B');
+  renderDoughnut(
+    'chart-vencimiento-ant',
+    countBy(rows, 'bucket_ant', ['Ya vencieron sus dias', '0 a 50 dias', '51 a 100 dias', '101 a 150 dias', 'Mas de 150 dias'])
+      .filter((row) => row.label !== 'Sin periodo anterior'),
+    'empleados',
+  );
+  renderDistribution('chart-distribucion', distribution(rows));
 }
 
 async function initDashboard() {
@@ -288,14 +355,16 @@ async function initDashboard() {
     return;
   }
 
-  renderKpis(data);
-  renderRiskList(data);
-  renderHorizontalBar('chart-asesores', data.asesor_top.slice(0, 10), 'dias_restantes', 'Dias restantes', '#E30613');
-  renderHorizontalBar('chart-plazas', data.plaza_top.slice(0, 10), 'dias_restantes', 'Dias restantes', '#E30613');
-  renderHorizontalBar('chart-puestos', data.puesto_top.slice(0, 10), 'dias_restantes', 'Dias restantes', '#F2A52B');
-  renderDoughnut('chart-vencimiento-ant', data.bucket_ant.filter((row) => row.label !== 'Sin periodo anterior'), 'empleados');
-  renderDistribution('chart-distribucion', data.distribucion_total);
+  state.rows = data.rows || [];
+  populatePuestoFilter(state.rows);
+  document.getElementById('clear-filters').addEventListener('click', () => {
+    state.activeKpi = 'all';
+    state.puesto = '';
+    document.getElementById('filtro-puesto').value = '';
+    renderAll();
+  });
   document.getElementById('snapshot-date').textContent = data.snapshot_date;
+  renderAll();
   OXXO.updateFooterTime('load-time');
 }
 
