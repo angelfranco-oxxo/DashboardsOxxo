@@ -1044,7 +1044,7 @@
   .topbar .theme-toggle:hover::after{ opacity:1; }
 
   /* Tablas: esquinas suaves */
-  .tbl-wrap, .table-wrap{ border-radius: 14px !important; overflow: hidden; }
+  .tbl-wrap, .table-wrap{ border-radius: 14px !important; overflow-x: auto; }
 
 /* Index visual system port */
 :root {
