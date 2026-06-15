@@ -9,23 +9,23 @@
 /* ── VARIABLES DE DISEÑO ─────────────────────────────────── */
 :root {
   /* Paleta OXXO */
-  --color-bg:         #F5F2EC;       /* Crema de fondo */
+  --color-bg:         #FFFFFF;       /* Fondo blanco */
   --color-surface:    #FFFFFF;       /* Tarjetas blancas */
-  --color-dark:       #1A1A2E;       /* Oscuro principal */
-  --color-dark-mid:   #2D2D44;       /* Oscuro secundario */
-  --color-border:     #E0DAD0;       /* Bordes suaves */
+  --color-dark:       #F71926;       /* Rojo OXXO principal */
+  --color-dark-mid:   #F71926;       /* Rojo OXXO secundario */
+  --color-border:     #F2E6DE;       /* Bordes suaves */
 
-  --color-yellow:     #FFD200;       /* Amarillo OXXO */
-  --color-orange:     #FF6B00;       /* Naranja OXXO */
-  --color-red:        #D92B2B;       /* Rojo alerta */
-  --color-green:      #1DB954;       /* Verde positivo */
-  --color-blue:       #0066CC;       /* Azul informativo */
-  --color-gray:       #8A8A99;       /* Gris neutro */
+  --color-yellow:     #F2A52B;       /* Dorado OXXO */
+  --color-orange:     #F2A52B;       /* Naranja OXXO */
+  --color-red:        #F71926;       /* Rojo OXXO */
+  --color-green:      #F2A52B;       /* Positivo OXXO (dorado) */
+  --color-blue:       #F71926;       /* Informativo OXXO */
+  --color-gray:       #7A4A42;       /* Gris neutro */
 
   /* Semáforo */
-  --semaforo-verde:   #1DB954;
-  --semaforo-amarillo:#FFD200;
-  --semaforo-rojo:    #D92B2B;
+  --semaforo-verde:   #F2A52B;
+  --semaforo-amarillo:#F2A52B;
+  --semaforo-rojo:    #F71926;
 
   /* Tipografía */
   --font-display:     'Barlow Condensed', sans-serif;
@@ -35,8 +35,8 @@
   --radius-sm:        6px;
   --radius-md:        12px;
   --radius-lg:        20px;
-  --shadow-card:      0 2px 16px rgba(26,26,46,0.08);
-  --shadow-hover:     0 8px 32px rgba(26,26,46,0.14);
+  --shadow-card:      0 14px 36px rgba(117,23,23,0.07);
+  --shadow-hover:     0 24px 58px rgba(117,23,23,0.16);
 
   /* Transiciones */
   --transition:       all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -783,207 +783,10 @@ body {
 
 .panel--accent-purple { border-top: 4px solid #8B4CF7; }
 
-/* ══════════════════════════════════════════════════════════
-   DARK MODE — Estilos específicos para dashboards 1-6
-   ══════════════════════════════════════════════════════════ */
-
-/* Fondo general de página */
-body.dark-mode .dashboard-page,
-body.dark-mode .page,
-body.dark-mode .container {
-  background-color: #0D0D0D !important;
-}
-
-/* Hero sections de cada dashboard */
-body.dark-mode .dashboard-hero,
-body.dark-mode .dashboard-hero--red,
-body.dark-mode .dashboard-hero--blue,
-body.dark-mode .dashboard-hero--green,
-body.dark-mode .dashboard-hero--orange,
-body.dark-mode .dashboard-hero--purple,
-body.dark-mode .hero,
-body.dark-mode .hero-bar {
-  background: #111111 !important;
-  border-color: #2A2A2A !important;
-}
-body.dark-mode .dashboard-hero h1,
-body.dark-mode .dashboard-hero p { color: #FFFFFF !important; }
-body.dark-mode .dashboard-hero__badge {
-  background: rgba(255,255,255,0.08) !important;
-  color: #FFD200 !important;
-  border-color: rgba(255,255,255,0.15) !important;
-}
-
-/* Paneles con acento de color */
-body.dark-mode .panel,
-body.dark-mode .panel--dark-title,
-body.dark-mode .panel--accent-red,
-body.dark-mode .panel--accent-blue,
-body.dark-mode .panel--accent-green,
-body.dark-mode .panel--accent-orange,
-body.dark-mode .panel--accent-yellow,
-body.dark-mode .panel--accent-purple,
-body.dark-mode .bajas-panel,
-body.dark-mode .alert-panel {
-  background: #1A1A1A !important;
-  border-color: #2A2A2A !important;
-}
-
-/* Headers de paneles */
-body.dark-mode .panel__header {
-  border-bottom-color: #2A2A2A !important;
-}
-body.dark-mode .panel__title {
-  color: #FFFFFF !important;
-}
-body.dark-mode .panel__badge {
-  background: #2A2A2A !important;
-  color: #888888 !important;
-}
-
-/* KPI cards */
-body.dark-mode .kpi-card {
-  background: #1A1A1A !important;
-  border-color: #2A2A2A !important;
-}
-body.dark-mode .kpi-card__value { color: #FFFFFF !important; }
-body.dark-mode .kpi-card__label { color: #888888 !important; }
-body.dark-mode .kpi-card__icon  { opacity: 0.15 !important; }
-
-/* Filtros y selects */
-body.dark-mode select,
-body.dark-mode .filtro-select,
-body.dark-mode .bajas-filter select,
-body.dark-mode .bajas-controls select {
-  background: #1A1A1A !important;
-  color: #E0E0E0 !important;
-  border-color: #3A3A3A !important;
-}
-
-/* Botón limpiar */
-body.dark-mode .filtro-btn {
-  background: #2A2A2A !important;
-  border-color: #3A3A3A !important;
-  color: #AAAAAA !important;
-}
-body.dark-mode .filtro-btn:hover {
-  background: #FFD200 !important;
-  color: #111111 !important;
-}
-
-/* Filtro label */
-body.dark-mode .filtro-label { color: #888888 !important; }
-body.dark-mode .filtro-count { color: #888888 !important; }
-
-/* Tablas */
-body.dark-mode .tbl,
-body.dark-mode .data-table { background: transparent !important; }
-body.dark-mode .tbl thead th,
-body.dark-mode .data-table thead th {
-  background: #111111 !important;
-  color: #FFD200 !important;
-  border-color: #2A2A2A !important;
-}
-body.dark-mode .tbl tbody tr,
-body.dark-mode .data-table tbody tr {
-  border-color: #2A2A2A !important;
-}
-body.dark-mode .tbl tbody tr:hover,
-body.dark-mode .data-table tbody tr:hover { background: #222222 !important; }
-body.dark-mode .tbl tbody td,
-body.dark-mode .data-table tbody td { color: #E0E0E0 !important; }
-body.dark-mode .tbl tbody tr.total-row { background: #222222 !important; }
-body.dark-mode .table-wrapper { background: transparent !important; }
-
-/* Ranking */
-body.dark-mode .ranking-item__name { color: #E0E0E0 !important; }
-body.dark-mode .ranking-item__value { color: #FFFFFF !important; }
-body.dark-mode .ranking-item__pos { color: #666666 !important; }
-body.dark-mode .ranking-item__bar-bg { background: #2A2A2A !important; }
-
-/* State boxes */
-body.dark-mode .state-box { color: #888888 !important; }
-body.dark-mode .state-box__title { color: #CCCCCC !important; }
-body.dark-mode .state-box__text  { color: #888888 !important; }
-
-/* Semáforos */
-body.dark-mode .semaforo.amarillo { color: #FFD200 !important; }
-body.dark-mode .semaforo.verde    { color: #00A650 !important; }
-body.dark-mode .semaforo.rojo     { color: #FF4444 !important; }
-
-/* Pills */
-body.dark-mode .pill.verde    { background: #0A2A1A !important; color: #00CC66 !important; }
-body.dark-mode .pill.amarillo { background: #2A2000 !important; color: #FFD200 !important; }
-body.dark-mode .pill.rojo     { background: #2A0A0A !important; color: #FF4444 !important; }
-
-/* Días badge */
-body.dark-mode .dias-badge.critico { background: #2A0A0A !important; color: #FF4444 !important; }
-body.dark-mode .dias-badge.medio   { background: #2A1500 !important; color: #FF8C00 !important; }
-body.dark-mode .dias-badge.normal  { background: #2A2A2A !important; color: #888888 !important; }
-
-/* Cards de asesor (dashboard-3) */
-body.dark-mode .plaza-card {
-  background: #1A1A1A !important;
-  border-color: #2A2A2A !important;
-}
-body.dark-mode .plaza-name  { color: #FFFFFF !important; }
-body.dark-mode .plaza-kpi-label { color: #888888 !important; }
-body.dark-mode .plaza-bar   { background: #2A2A2A !important; }
-
-/* Risk boxes */
-body.dark-mode .risk-box { background: #1A1A1A !important; border-color: #2A2A2A !important; }
-body.dark-mode .risk-lbl  { color: #888888 !important; }
-body.dark-mode .risk-box.alto   { background: #2A0A0A !important; border-color: #4A1515 !important; }
-body.dark-mode .risk-box.medio  { background: #2A1500 !important; border-color: #4A2800 !important; }
-body.dark-mode .risk-box.bajo   { background: #0A2A0A !important; border-color: #154A15 !important; }
-
-/* Calendar chips */
-body.dark-mode .calendar-chip {
-  background: #2A2A2A !important;
-  color: #888888 !important;
-  border-color: #3A3A3A !important;
-}
-body.dark-mode .calendar-chip.active {
-  background: #FFD200 !important;
-  color: #111111 !important;
-}
-
-/* Bajas filters */
-body.dark-mode .bajas-panel { background: #1A1A1A !important; }
-body.dark-mode .bajas-panel__title { color: #FFFFFF !important; }
-body.dark-mode .bajas-filter-bar,
-body.dark-mode .bajas-controls { background: #111111 !important; border-color: #2A2A2A !important; }
-
-/* Fila amarilla resaltada → modo oscuro */
-body.dark-mode tr[style*="background:#FFFBE6"],
-body.dark-mode tr[style*="background: #FFFBE6"],
-body.dark-mode tr[style*="background:#FFF5F5"],
-body.dark-mode tr[style*="background: #FFF5F5"] {
-  background: #1A1500 !important;
-}
-
-/* Textos generales */
-body.dark-mode p { color: #CCCCCC !important; }
-body.dark-mode strong { color: #FFFFFF !important; }
-body.dark-mode .text-gray { color: #666666 !important; }
-
-/* Gráficas Chart.js — fondo transparente */
-body.dark-mode canvas { background: transparent !important; }
-
-html[data-theme="dark"] canvas,
-body.dark-mode canvas {
-  background: transparent !important;
-}
+html[data-theme="dark"] canvas { background: transparent !important; }
 
 .topbar .theme-toggle [data-theme-label],
-html[data-theme="dark"] .topbar .theme-toggle [data-theme-label],
-body.dark-mode .topbar .theme-toggle [data-theme-label] {
+html[data-theme="dark"] .topbar .theme-toggle [data-theme-label] {
   color: #E30613 !important;
   text-shadow: none !important;
 }
-
-/* Scroll bars */
-body.dark-mode ::-webkit-scrollbar { width: 6px; height: 6px; }
-body.dark-mode ::-webkit-scrollbar-track { background: #1A1A1A; }
-body.dark-mode ::-webkit-scrollbar-thumb { background: #3A3A3A; border-radius: 3px; }
-body.dark-mode ::-webkit-scrollbar-thumb:hover { background: #FFD200; }
