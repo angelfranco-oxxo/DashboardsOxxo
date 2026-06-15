@@ -29,7 +29,7 @@ function pct(value, total) {
   return total ? `${((value / total) * 100).toFixed(1)}%` : '0.0%';
 }
 
-function chartTheme() {
+function theme() {
   return OXXO.getChartThemeColors();
 }
 
@@ -135,19 +135,98 @@ function distribution(rows) {
   }));
 }
 
-function renderHorizontalBar(id, rows, key, label, color) {
+function tooltipLines(row) {
+  return [
+    `Colaboradores: ${n(row.empleados)}`,
+    `Total dias: ${n(row.dias_restantes, 1)}`,
+    `Periodo anterior: ${n(row.periodo_anterior, 1)}`,
+    `Periodo actual: ${n(row.periodo_actual, 1)}`,
+    `Promedio: ${n(row.promedio, 1)}`,
+  ];
+}
+
+function renderStackedHorizontal(id, rows) {
   const canvas = document.getElementById(id);
   if (!canvas || !OXXO.ensureChartReady(canvas)) return;
   destroyChart(id);
-  const theme = chartTheme();
+  const t = theme();
   charts[id] = new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
-      labels: rows.map((row) => OXXO.truncate(row.label, 18)),
+      labels: rows.map((row) => OXXO.truncate(row.label, 20)),
+      datasets: [
+        {
+          label: 'Periodo anterior',
+          data: rows.map((row) => row.periodo_anterior),
+          backgroundColor: '#E30613',
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: 'Periodo actual',
+          data: rows.map((row) => row.periodo_actual),
+          backgroundColor: '#F2A52B',
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: t.text, boxWidth: 12, font: { family: 'Barlow', size: 12, weight: '700' } },
+        },
+        tooltip: {
+          backgroundColor: t.tooltipBg,
+          callbacks: {
+            afterBody: (items) => {
+              const row = rows[items[0].dataIndex];
+              return tooltipLines(row);
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          beginAtZero: true,
+          grid: { color: t.grid },
+          ticks: { color: t.muted, callback: (value) => n(value) },
+        },
+        y: {
+          stacked: true,
+          grid: { display: false },
+          ticks: { color: t.muted },
+        },
+      },
+    },
+  });
+}
+
+function renderVencimiento(id, rows) {
+  const canvas = document.getElementById(id);
+  if (!canvas || !OXXO.ensureChartReady(canvas)) return;
+  destroyChart(id);
+  const t = theme();
+  const colors = {
+    Vencido: '#E30613',
+    '0-30': '#F06A24',
+    '31-60': '#F2A52B',
+    '61-90': '#FFCD56',
+    '91-180': '#198754',
+  };
+  charts[id] = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: rows.map((row) => row.label),
       datasets: [{
-        label,
-        data: rows.map((row) => row[key]),
-        backgroundColor: color,
+        label: 'Dias periodo anterior',
+        data: rows.map((row) => row.dias_restantes),
+        backgroundColor: rows.map((row) => colors[row.label] || '#6F6664'),
         borderRadius: 6,
         borderSkipped: false,
       }],
@@ -159,50 +238,16 @@ function renderHorizontalBar(id, rows, key, label, color) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: theme.tooltipBg,
-          callbacks: { label: (ctx) => ` ${label}: ${n(ctx.raw, 1)}` },
+          backgroundColor: t.tooltipBg,
+          callbacks: {
+            label: (ctx) => ` Dias: ${n(ctx.raw, 1)}`,
+            afterLabel: (ctx) => `Colaboradores: ${n(rows[ctx.dataIndex].empleados)}`,
+          },
         },
       },
       scales: {
-        x: {
-          beginAtZero: true,
-          grid: { color: theme.grid },
-          ticks: { color: theme.muted, callback: (value) => n(value) },
-        },
-        y: {
-          grid: { display: false },
-          ticks: { color: theme.muted },
-        },
-      },
-    },
-  });
-}
-
-function renderDoughnut(id, rows, valueKey) {
-  const canvas = document.getElementById(id);
-  if (!canvas || !OXXO.ensureChartReady(canvas)) return;
-  destroyChart(id);
-  const theme = chartTheme();
-  charts[id] = new Chart(canvas.getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: rows.map((row) => row.label),
-      datasets: [{
-        data: rows.map((row) => row[valueKey]),
-        backgroundColor: ['#E30613', '#F2A52B', '#FFCD56', '#198754', '#6F6664', '#2A1718'],
-        borderWidth: 0,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '64%',
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { color: theme.text, boxWidth: 12, padding: 12, font: { family: 'Barlow', size: 11 } },
-        },
-        tooltip: { backgroundColor: theme.tooltipBg },
+        x: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted, callback: (value) => n(value) } },
+        y: { grid: { display: false }, ticks: { color: t.muted } },
       },
     },
   });
@@ -212,7 +257,13 @@ function renderDistribution(id, rows) {
   const canvas = document.getElementById(id);
   if (!canvas || !OXXO.ensureChartReady(canvas)) return;
   destroyChart(id);
-  const theme = chartTheme();
+  const t = theme();
+  const colors = rows.map((row) => {
+    if (row.label === '0') return '#198754';
+    if (row.label === '1-5' || row.label === '6-10') return '#6F6664';
+    if (row.label === '11-15' || row.label === '16-20') return '#F2A52B';
+    return '#E30613';
+  });
   charts[id] = new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
@@ -220,7 +271,7 @@ function renderDistribution(id, rows) {
       datasets: [{
         label: 'Colaboradores',
         data: rows.map((row) => row.empleados),
-        backgroundColor: '#2A1718',
+        backgroundColor: colors,
         borderRadius: 6,
         borderSkipped: false,
       }],
@@ -230,11 +281,11 @@ function renderDistribution(id, rows) {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { backgroundColor: theme.tooltipBg },
+        tooltip: { backgroundColor: t.tooltipBg },
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: theme.muted } },
-        y: { beginAtZero: true, grid: { color: theme.grid }, ticks: { color: theme.muted, callback: (value) => n(value) } },
+        x: { grid: { display: false }, ticks: { color: t.muted } },
+        y: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted, callback: (value) => n(value) } },
       },
     },
   });
@@ -367,15 +418,10 @@ function renderAll() {
   document.getElementById('filter-status').textContent = `Filtro activo: ${filterLabel()} - ${n(rows.length)} colaboradores`;
 
   renderActions(rows);
-  renderHorizontalBar('chart-asesores', groupBy(rows, 'asesor').slice(0, 10), 'dias_restantes', 'Dias restantes', '#E30613');
-  renderHorizontalBar('chart-plazas', groupBy(rows, 'tienda').slice(0, 10), 'dias_restantes', 'Dias restantes', '#E30613');
-  renderHorizontalBar('chart-puestos', groupBy(rows, 'puesto').slice(0, 10), 'dias_restantes', 'Dias restantes', '#F2A52B');
-  renderDoughnut(
-    'chart-vencimiento-ant',
-    countBy(rows, 'bucket_ant', ['Ya vencieron sus dias', '0 a 50 dias', '51 a 100 dias', '101 a 150 dias', 'Mas de 150 dias'])
-      .filter((row) => row.label !== 'Sin periodo anterior'),
-    'empleados',
-  );
+  renderStackedHorizontal('chart-asesores', groupBy(rows, 'asesor').slice(0, 10));
+  renderStackedHorizontal('chart-plazas', groupBy(rows, 'tienda').slice(0, 10));
+  renderStackedHorizontal('chart-puestos', groupBy(rows, 'puesto').slice(0, 10));
+  renderVencimiento('chart-vencimiento-ant', countBy(rows, 'vence_ant_bucket', ['Vencido', '0-30', '31-60', '61-90', '91-180']));
   renderDistribution('chart-distribucion', distribution(rows));
 }
 
