@@ -1856,6 +1856,18 @@ html[data-theme="dark"] tbody td {
   border-color: rgba(255,255,255,0.1) !important;
 }
 
+.compromiso-title,
+html[data-theme="dark"] .compromiso-title {
+  background: linear-gradient(135deg, var(--exec-red), var(--exec-red-dark)) !important;
+  color: #fff !important;
+}
+
+.compromiso-table tfoot td,
+html[data-theme="dark"] .compromiso-table tfoot td {
+  background: linear-gradient(135deg, var(--exec-red), var(--exec-red-dark)) !important;
+  color: #fff !important;
+}
+
 @media (max-width: 760px) {
   .topbar,
   .page,
