@@ -67,8 +67,8 @@
 .rank-val{font-size:12px;font-weight:800;color:#FF6B00;text-align:right;white-space:nowrap}
 
 /* Donut */
-.donut-body{display:flex;align-items:center;padding:14px 16px;gap:16px}
-.donut-chart-wrap{width:180px;height:180px;flex-shrink:0;position:relative}
+.donut-body{display:flex;align-items:center;padding:16px 20px;gap:20px;min-height:240px}
+.donut-chart-wrap{width:200px;height:200px;flex-shrink:0;position:relative}
 .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
 .donut-center__val{font-family:var(--font-display);font-size:26px;font-weight:900;color:#222;line-height:1}
 .donut-center__lbl{font-size:10px;color:#888;font-weight:700;margin-top:2px}
@@ -128,7 +128,17 @@
   </div>
 </nav>
 
-<div class="te-page">
+<div class="dashboard-page">
+
+<section class="dashboard-hero dashboard-hero--blue">
+  <div>
+    <h1>Tiempo Extra</h1>
+    <p>Análisis semanal de gasto por asesor, tipo de TE y tienda · Detecta costos altos y oportunidades de control</p>
+  </div>
+  <span class="dashboard-hero__badge" id="semana-badge">⟳ Semanal · Plaza Oaxaca</span>
+</section>
+
+<div class="te-page" style="padding-top:0">
 
   <!-- KPIs -->
   <div class="te-kpis" id="kpi-section">
@@ -187,7 +197,8 @@
       Datos cargados: <span id="load-time">—</span></div>
     <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
   </div>
-</div>
+</div><!-- /te-page -->
+</div><!-- /dashboard-page -->
 
 <script src="../js/core.js"></script>
 <script>
@@ -462,6 +473,9 @@ async function initDashboard() {
   if(data===null){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(data.length===0){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
   BASE_DATA = data;
+  const sem = data[0]?.[C.semana]||'—';
+  const badgeEl = document.getElementById('semana-badge');
+  if(badgeEl) badgeEl.textContent = `⟳ ${sem} · Plaza Oaxaca`;
   renderAll();
   OXXO.updateFooterTime('load-time');
 }
