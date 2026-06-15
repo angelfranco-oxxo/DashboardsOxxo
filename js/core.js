@@ -18,12 +18,12 @@ const SHEETS_CONFIG = {
 
   // Nombres exactos de cada pestaña en Google Sheets
   TABS: {
-    d1: "Dashboard_1_Diario",
-    d2: "Dashboard_2_Diario",
-    d3: "Dashboard_3_Diario",
-    s4: "Dashboard_4_Semanal",
-    s5: "Dashboard_5_Semanal",
-    s6: "Dashboard_6_Semanal",
+    d1: "Dashboard_1_Diario",   // Vacantes: Plaza,Asesor,Unidad org/,Descripción de Posición,Status ocupación,Fecha,Dias Vacantes
+    d2: "Dashboard_2_Diario",   // Bajas: Asesor,Plaza,Temporalidad,Puesto,Mes,Semana,Rot_Temp,Comprometido,Real,Fecha
+    d3: "Dashboard_3_Diario",   // Estructura: Plaza,Asesor,Estructuras_Asignadas,Estructuras_Activas,Pct_Aprovechamiento,Semana
+    s4: "Dashboard_4_Semanal",  // Tiempo Extra: Plaza,Asesor,Semana,Gasto_TE_total,Horas_TE_total,Gasto_TE_doble,Gasto_TE_triple,Gasto_dia_descanso,Fecha
+    s5: "Dashboard_5_Semanal",  // Vacaciones: Asesor,Plaza,Empleado,Puesto,Fecha_Inicio,Fecha_Fin,Dias,Semana
+    s6: "Dashboard_6_Semanal",  // Ausentismos: Asesor,Plaza,Empleado,Puesto,Tipo_Ausentismo,Fecha,Semana,Dias
   }
 };
 
@@ -456,11 +456,11 @@ function ensureChartReady(canvas) {
   if (parent && !parent.querySelector('.chart-unavailable')) {
     const notice = document.createElement('div');
     notice.className = 'chart-unavailable';
-    notice.textContent = 'Grafica no disponible: Chart.js no cargo.';
+    notice.textContent = 'Gráfica no disponible: Chart.js no cargó.';
     notice.style.cssText = 'min-height:180px;display:grid;place-items:center;color:var(--text-muted);font-family:Barlow,sans-serif;font-weight:700;text-align:center;border:1px dashed var(--line);border-radius:12px;background:rgba(255,255,255,.04);';
     parent.appendChild(notice);
   }
-  console.warn('Chart.js no esta disponible. Revisa la conexion al CDN o usa una copia local.');
+  console.warn('Chart.js no está disponible. Revisa la conexión al CDN o usa una copia local.');
   return false;
 }
 function renderBarChart(canvasId, labels, values, label, color = '#FFD200') {
