@@ -1913,3 +1913,115 @@ html[data-theme="dark"] .compromiso-table tfoot td {
     min-height: 118px !important;
   }
 }
+
+/* ── MÓVIL (<= 600px) ── */
+@media (max-width: 600px) {
+  .page, .bajas-page, .dashboard-page {
+    padding: 10px 12px 28px !important;
+  }
+
+  /* Heroes: columna única, fuente menor */
+  .hero,
+  .dashboard-hero,
+  .bajas-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 16px !important;
+  }
+  .hero h1,
+  .dashboard-hero h1,
+  .bajas-header h1 {
+    font-size: 1.55rem !important;
+    line-height: 1.1 !important;
+  }
+  .hero p,
+  .dashboard-hero p,
+  .bajas-header__meta {
+    font-size: 11px !important;
+  }
+  .hero-badge,
+  .dashboard-hero__badge,
+  .bajas-header__badge {
+    font-size: 10px !important;
+    padding: 5px 12px !important;
+  }
+
+  /* Filtros en el hero: 2 columnas */
+  .vac-filters {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .bajas-filters {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* KPIs: 2 columnas */
+  .kpis,
+  .kpi-grid,
+  .bajas-kpis,
+  .executive-kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .kpi-card {
+    min-height: 100px !important;
+    padding: 14px 12px !important;
+  }
+  .kpi-card__value {
+    font-size: 1.9rem !important;
+  }
+  .kpi-card__label {
+    font-size: 10px !important;
+  }
+
+  /* Grids de paneles: 1 columna */
+  .main-grid,
+  .row2, .row3,
+  .te-row1, .te-row2,
+  .bajas-top-grid,
+  .bajas-analisis-grid,
+  .charts-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tablas: scroll horizontal */
+  .tbl-wrap,
+  .table-wrap,
+  .te-table-wrap,
+  .risk-table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tbl,
+  .te-table {
+    min-width: 480px;
+  }
+
+  /* Cards: padding menor */
+  .card {
+    padding: 14px 12px !important;
+    border-radius: 10px !important;
+  }
+  .card-title {
+    font-size: 0.9rem !important;
+  }
+}
+
+/* ── MÓVIL MUY PEQUEÑO (<= 400px) ── */
+@media (max-width: 400px) {
+  .kpis,
+  .kpi-grid,
+  .bajas-kpis,
+  .executive-kpis {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .vac-filters,
+  .bajas-filters {
+    grid-template-columns: 1fr !important;
+  }
+  .hero h1,
+  .dashboard-hero h1,
+  .bajas-header h1 {
+    font-size: 1.35rem !important;
+  }
+}

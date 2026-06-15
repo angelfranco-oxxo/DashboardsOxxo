@@ -95,7 +95,13 @@
 @keyframes spin{to{transform:rotate(360deg)}}
 
 @media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.te-row1,.te-row2{grid-template-columns:1fr}}
-@media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}.te-row1,.te-row2{grid-template-columns:1fr}}
+@media(max-width:600px){
+  .kpis{grid-template-columns:1fr 1fr !important}
+  .te-row1,.te-row2{grid-template-columns:1fr !important}
+  .te-row1 .donut-chart-wrap{height:220px}
+  .bar-chart-area{height:180px}
+}
 </style>
 <link rel="stylesheet" href="../css/dashboard-skin.css"/>
 <style id="d4-extras">
