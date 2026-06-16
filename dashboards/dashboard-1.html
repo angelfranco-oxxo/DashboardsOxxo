@@ -366,6 +366,7 @@ function limpiarFiltros(){
   document.getElementById('filtro-orden').value='desc';
   activePuesto = '';
   document.querySelectorAll('.kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
+  renderOverview(viewData());
   renderTabla();
 }
 
@@ -430,6 +431,7 @@ function poblarFiltros(){
     document.getElementById(id).addEventListener('change', () => {
       activePuesto = '';
       document.querySelectorAll('.kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
+      if(id==='filtro-asesor') renderOverview(viewData());
       renderTabla();
     });
   });
@@ -462,6 +464,21 @@ async function initDashboard(){
     tipo:   tipoPuesto(gv(r,colMap,'puesto','')),
   })).filter(r=>r.tienda&&r.tienda!=='Sin tienda');
 
+  poblarFiltros();
+  renderOverview(viewData());
+  renderTabla();
+  OXXO.updateFooterTime('load-time');
+}
+
+// Subconjunto para KPIs y gráficas: respeta el filtro de Asesor
+function viewData(){
+  const a=document.getElementById('filtro-asesor').value;
+  return a ? allData.filter(r=>r.asesor===a) : allData;
+}
+
+// Renderiza KPIs + ranking + gráficas. El parámetro se llama allData a
+// propósito para que sombree al global y todo el cuerpo use el subconjunto.
+function renderOverview(allData){
   const total=allData.length;
   const lideres=allData.filter(r=>r.tipo==='Lider').length;
   const encargados=allData.filter(r=>r.tipo==='Encargado').length;
@@ -536,10 +553,6 @@ async function initDashboard(){
     });
   });
 
-  // Poblar filtros y renderizar tabla
-  poblarFiltros();
-  renderTabla();
-
   // Ranking Top 5 tiendas
   const byTienda={};
   allData.forEach(r=>{byTienda[r.tienda]=(byTienda[r.tienda]||0)+1;});
@@ -588,8 +601,6 @@ async function initDashboard(){
     <div style="overflow:auto;max-height:280px">
       <table class="tbl"><thead><tr><th>Asesor</th><th style="text-align:center">Vacantes</th><th style="text-align:center">Estado</th></tr></thead>
       <tbody>${semHTML}</tbody></table></div>`;
-
-  OXXO.updateFooterTime('load-time');
 }
 
 document.addEventListener('DOMContentLoaded', initDashboard);
