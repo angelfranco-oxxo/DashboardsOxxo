@@ -30,7 +30,6 @@
       background:var(--color-bg); color:var(--color-gray); }
 
     /* FILTROS */
-    .filtros { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; align-items:center; }
     .filtro-select {
       appearance:none; background:var(--color-surface); border:1.5px solid var(--color-border);
       border-radius:10px; padding:8px 32px 8px 12px; font-size:12px; font-family:var(--font-body);
@@ -43,20 +42,13 @@
       border-radius:10px; padding:8px 14px; font-size:12px; font-weight:600;
       color:var(--color-gray); cursor:pointer; transition:all .2s; }
     .filtro-btn:hover { background:var(--color-yellow); border-color:var(--color-yellow); color:var(--color-dark); }
-    .filtro-label { font-size:11px; font-weight:700; color:var(--color-gray);
-      text-transform:uppercase; letter-spacing:.8px; }
-    .filtro-count { font-size:12px; color:var(--color-gray); margin-left:auto; }
-
     /* TABLA */
     .tbl-wrap { overflow-x:auto; max-height:500px; overflow-y:auto; }
     .tbl { width:100%; border-collapse:collapse; font-size:12px; }
     .tbl thead th { position:sticky; top:0; z-index:2; background:#2D2D44; color:#fff;
       padding:10px 12px; text-align:left; font-size:10px; font-weight:700;
       letter-spacing:1.1px; text-transform:uppercase; white-space:nowrap;
-      border-right:1px solid rgba(255,255,255,.1); cursor:pointer; user-select:none; }
-    .tbl thead th:hover { background:#3D3D5C; }
-    .tbl thead th.sort-asc::after  { content:' ↑'; color:var(--color-yellow); }
-    .tbl thead th.sort-desc::after { content:' ↓'; color:var(--color-yellow); }
+      border-right:1px solid rgba(255,255,255,.1); }
     .tbl tbody tr { border-bottom:1px solid var(--color-border); transition:background .15s; }
     .tbl tbody tr:hover { background:var(--color-bg); }
     .tbl tbody td { padding:9px 12px; color:var(--color-dark); vertical-align:middle; }
@@ -348,7 +340,7 @@ function diasBadge(d){
 function pillHTML(t,c){return`<span class="pill ${c}"><span class="pill-dot"></span>${t}</span>`;}
 
 // Estado global
-let allData=[], colMap={}, sortCol='dias', sortDir='desc', activePuesto='';
+let allData=[], colMap={}, activePuesto='';
 
 // Obtener filtros actuales
 function getFiltros(){
@@ -544,9 +536,7 @@ function renderOverview(allData){
         }
         renderTabla();
       } else {
-        // Toggle off → limpiar
         activePuesto = '';
-        document.getElementById('filtro-puesto').value = '';
         document.getElementById('filtro-dias').value = '';
         renderTabla();
       }
