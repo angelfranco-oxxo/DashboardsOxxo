@@ -250,6 +250,32 @@
 
 
   <link rel="stylesheet" href="../css/dashboard-skin.css" />
+  <style id="d3-extras">
+  .hero{flex-direction:column !important;align-items:stretch !important;gap:18px}
+  .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px 16px;align-items:end}
+  .vac-fbox{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .vac-fbox > label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.85)}
+  .hero .filtro-select,.hero .filtro-btn{
+    width:100%;box-sizing:border-box;
+    background:rgba(255,255,255,0.14) !important;
+    border:1px solid rgba(255,255,255,0.32) !important;
+    color:#fff !important;font-weight:700;
+    border-radius:999px !important;padding:10px 16px !important;
+    transition:background .2s,color .2s,border-color .2s;
+  }
+  .hero .filtro-select:focus{outline:none;border-color:#fff !important}
+  .hero .filtro-select option{color:#1a1a1a;background:#fff}
+  .hero .filtro-btn:hover{background:#fff !important;color:var(--hb-red) !important;border-color:#fff !important}
+  html:not([data-theme="dark"]) .hero .filtro-select,
+  html:not([data-theme="dark"]) .hero .filtro-btn{
+    background:rgba(255,255,255,0.78) !important;
+    border-color:var(--exec-line-strong,rgba(42,27,25,0.2)) !important;
+    color:var(--exec-ink,#181112) !important;
+    -webkit-text-fill-color:var(--exec-ink,#181112) !important;
+  }
+  .hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
+  </style>
 </head>
 <body>
 
@@ -275,15 +301,44 @@
 
 <div class="page">
 
-  <!-- HERO -->
+  <!-- HERO con filtros -->
   <div class="hero">
-    <div>
-      <h1>Aprovechamiento de Estructura</h1>
-      <p>Equipo Completo · Equipo Incompleto · Tienda Crítica · Aprovechamiento por AT y Plaza</p>
+    <div class="hero-top">
+      <div>
+        <h1>Aprovechamiento de Estructura</h1>
+        <p>Equipo Completo · Equipo Incompleto · Tienda Crítica · Aprovechamiento por AT y Plaza</p>
+      </div>
+      <div class="hero-right">
+        <span class="hero-badge">⟳ Diario · Plaza Oaxaca</span>
+        <span class="hero-date" id="hero-date" style="display:none"></span>
+      </div>
     </div>
-    <div class="hero-right">
-      <span class="hero-badge">⟳ Diario · Plaza Oaxaca</span>
-      <span class="hero-date" id="hero-date" style="display:none"></span>
+    <div class="vac-filters">
+      <div class="vac-fbox">
+        <label>Asesor</label>
+        <select class="filtro-select" id="filtro-asesor" onchange="applyFilters()">
+          <option value="">Todos los asesores</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>Esquema</label>
+        <select class="filtro-select" id="filtro-esquema" onchange="applyFilters()">
+          <option value="">Todos los esquemas</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>Estatus</label>
+        <select class="filtro-select" id="filtro-estatus" onchange="applyFilters()">
+          <option value="">Todos los estatus</option>
+          <option value="completo">Equipo Completo</option>
+          <option value="incompleto">Equipo Incompleto</option>
+          <option value="critica">Tienda Crítica</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>Filtros</label>
+        <button class="filtro-btn" onclick="limpiarFiltros()">✕ Limpiar</button>
+      </div>
     </div>
   </div>
 
@@ -510,6 +565,13 @@ async function initDashboard(){
     aprov_plaza: String(gv(r,map,'aprov_plaza','')).trim(),
   }));
 
+  ALL_DATA = data;
+  populateFilters(data);
+  render(data);
+  OXXO.updateFooterTime('load-time');
+}
+
+function render(data){
   const total      = data.length;
   const completas  = data.filter(r=>isCompleta(r.estatus)).length;
   const incompletas= data.filter(r=>isIncompleta(r.estatus)).length;
@@ -851,7 +913,41 @@ async function initDashboard(){
       </div>`;
   }
 
-  OXXO.updateFooterTime('load-time');
+}
+
+// ── FILTROS ───────────────────────────────────────────────
+let ALL_DATA = [];
+let filtersReady = false;
+function uniqueSorted(data, key){
+  return [...new Set(data.map(r=>String(r[key]||'').trim()).filter(Boolean))].sort();
+}
+function fillSelect(id, values){
+  const sel = document.getElementById(id); if(!sel) return;
+  const first = sel.querySelector('option');
+  sel.innerHTML = ''; sel.appendChild(first);
+  values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+}
+function populateFilters(data){
+  if(filtersReady) return;
+  fillSelect('filtro-asesor', uniqueSorted(data,'asesor'));
+  fillSelect('filtro-esquema', uniqueSorted(data,'esquema'));
+  filtersReady = true;
+}
+function applyFilters(){
+  const a = document.getElementById('filtro-asesor').value;
+  const e = document.getElementById('filtro-esquema').value;
+  const s = document.getElementById('filtro-estatus').value;
+  let d = ALL_DATA;
+  if(a) d = d.filter(r=>r.asesor===a);
+  if(e) d = d.filter(r=>r.esquema===e);
+  if(s==='completo')   d = d.filter(r=>isCompleta(r.estatus));
+  if(s==='incompleto') d = d.filter(r=>isIncompleta(r.estatus));
+  if(s==='critica')    d = d.filter(r=>isCritica(r.estatus));
+  render(d);
+}
+function limpiarFiltros(){
+  ['filtro-asesor','filtro-esquema','filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  render(ALL_DATA);
 }
 
 document.addEventListener('DOMContentLoaded', initDashboard);
