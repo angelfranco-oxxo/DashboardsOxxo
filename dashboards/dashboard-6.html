@@ -251,11 +251,15 @@ function tipoPill(tipo) {
 }
 function tipoColor(tipo) {
   const t = (tipo||'').toLowerCase();
-  if(t.includes('falta'))     return '#D92B2B';
-  if(t.includes('accidente')) return '#8B4CF7';
-  if(t.includes('inc.') || t.includes('incap') || t.includes('enf')) return '#FF6B00';
-  if(t.includes('vacac'))     return '#1DB954';
-  if(t.includes('matern') || t.includes('patern') || t.includes('permiso')) return '#0066CC';
+  // Maternidad/Paternidad antes que 'inc'/'permiso' para no colisionar de color
+  if(t.includes('matern'))                       return '#E91E8C'; // rosa
+  if(t.includes('patern'))                       return '#0066CC'; // azul
+  if(t.includes('falta'))                        return '#D92B2B'; // rojo
+  if(t.includes('trayecto'))                     return '#00BCD4'; // cyan
+  if(t.includes('accidente'))                    return '#8B4CF7'; // morado (trabajo)
+  if(t.includes('inc.') || t.includes('incap') || t.includes('enf')) return '#FF6B00'; // naranja
+  if(t.includes('vacac'))                        return '#1DB954'; // verde
+  if(t.includes('permiso'))                      return '#3F51B5'; // índigo
   return '#9E9E9E';
 }
 
