@@ -751,7 +751,7 @@ body {
 .calendar-chip.active { background: #E8F8F0; color: var(--color-green); border-color: rgba(29,185,84,.35); }
 .layout-ausentismos {
   display: grid;
-  grid-template-columns: .9fr 1.1fr;
+  grid-template-columns: 1.35fr .85fr;
   gap: 16px;
   margin-bottom: 18px;
 }
