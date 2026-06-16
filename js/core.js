@@ -1,0 +1,738 @@
+/* ==========================================================
+   OXXO DASHBOARDS — MÓDULO CORE
+   Conexión a Google Sheets · Utilidades compartidas
+   ========================================================== */
+
+// ─────────────────────────────────────────────────────────────
+// CONFIGURACIÓN CENTRAL DEL SISTEMA
+// ► EDITAR AQUÍ: Reemplaza SPREADSHEET_ID con el ID de tu
+//   Google Sheets (parte de la URL entre /d/ y /edit)
+// ─────────────────────────────────────────────────────────────
+const SHEETS_CONFIG = {
+  // ID de tu Google Sheets
+  // Ejemplo: https://docs.google.com/spreadsheets/d/ESTE_ES_EL_ID/edit
+  SPREADSHEET_ID: "1MORN0KOO54i_-f2TS31g1u69BZ_7OaMx",
+
+  // Nombre de la pestaña de Configuración global
+  CONFIG_SHEET: "Configuracion",
+
+  // Nombres exactos de cada pestaña en Google Sheets
+  TABS: {
+    d1: "Dashboard_1_Diario",   // Vacantes: Plaza,Asesor,Unidad org/,Descripción de Posición,Status ocupación,Fecha,Dias Vacantes
+    d2: "Dashboard_2_Diario",   // Bajas: Asesor,Plaza,Temporalidad,Puesto,Mes,Semana,Rot_Temp,Comprometido,Real,Fecha
+    d3: "Dashboard_3_Diario",   // Estructura: Plaza,Asesor,Estructuras_Asignadas,Estructuras_Activas,Pct_Aprovechamiento,Semana
+    s4: "Dashboard_4_Semanal",  // Tiempo Extra: Plaza,Asesor,Semana,Gasto_TE_total,Horas_TE_total,Gasto_TE_doble,Gasto_TE_triple,Gasto_dia_descanso,Fecha
+    s5: "Dashboard_5_Semanal",  // Vacaciones: Asesor,Plaza,Empleado,Puesto,Fecha_Inicio,Fecha_Fin,Dias,Semana
+    s6: "Dashboard_6_Semanal",  // Ausentismos: Asesor,Plaza,Empleado,Puesto,Tipo_Ausentismo,Fecha,Semana,Dias
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN BASE: Construir URL de descarga CSV
+// Google Sheets publica cada pestaña como CSV accesible
+// ─────────────────────────────────────────────────────────────
+function buildSheetURL(tabName) {
+  return `https://docs.google.com/spreadsheets/d/${SHEETS_CONFIG.SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Obtener y parsear datos de una pestaña de Sheets
+// Retorna un array de objetos con las columnas como claves
+// ─────────────────────────────────────────────────────────────
+async function fetchSheetData(tabName) {
+  const url = buildSheetURL(tabName);
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const csv = await response.text();
+    return parseCSV(csv);
+  } catch (error) {
+    console.error(`Error cargando pestaña "${tabName}":`, error);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Parser CSV robusto
+// Maneja comas dentro de comillas y caracteres especiales
+// ─────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split("\n");
+  if (lines.length < 2) return [];
+
+  // Buscar la fila de encabezados: es la primera fila que tenga
+  // al menos 3 columnas con contenido (salta títulos e instrucciones)
+  let headerIndex = 0;
+  for (let i = 0; i < Math.min(lines.length, 10); i++) {
+    const cols = splitCSVRow(lines[i]).map(c => c.trim().replace(/^"|"$/g, ''));
+    const nonEmpty = cols.filter(c => c.length > 0 && c.length < 60);
+    if (nonEmpty.length >= 3) {
+      headerIndex = i;
+      break;
+    }
+  }
+
+  const headers = splitCSVRow(lines[headerIndex]).map(h => h.trim().replace(/^"|"$/g, ''));
+
+  const rows = [];
+  for (let i = headerIndex + 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue; // saltar filas vacías
+    const values = splitCSVRow(lines[i]);
+    const row = {};
+    headers.forEach((h, idx) => {
+      let val = (values[idx] || "").trim().replace(/^"|"$/g, '');
+      row[h] = val;
+    });
+    rows.push(row);
+  }
+  return rows;
+}
+
+// Divide una fila CSV respetando comillas
+function splitCSVRow(row) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < row.length; i++) {
+    const ch = row[i];
+    if (ch === '"' && row[i + 1] === '"') { current += '"'; i++; }
+    else if (ch === '"') { inQuotes = !inQuotes; }
+    else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
+    else { current += ch; }
+  }
+  result.push(current);
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Cargar configuración desde pestaña "Configuracion"
+// Estructura esperada de la pestaña:
+//   Columna A: dashboard_id (d1, d2, d3, s4, s5, s6)
+//   Columna B: nombre
+//   Columna C: frecuencia
+//   Columna D: ultima_actualizacion
+//   Columna E: responsable
+//   Columna F: activo (SI/NO)
+// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Normalizar cualquier formato de fecha a texto legible
+// ─────────────────────────────────────────────────────────────
+function normalizarFecha(val) {
+  if (!val || !val.trim()) return val;
+  const v = val.trim();
+
+  // Serial numérico de Excel/Sheets (ej. 46179)
+  if (/^\d{4,5}$/.test(v)) {
+    const date = new Date(Date.UTC(1899, 11, 30) + parseInt(v) * 86400000);
+    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  // Ya tiene mes abreviado (ej. "10/jun/2026") → devolver tal cual
+  if (/\d{1,2}\/[a-záéíóú]{3}\/\d{4}/i.test(v)) return v;
+
+  // DD/MM/YYYY o D/M/YYYY
+  const dmy = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (dmy) {
+    const date = new Date(Date.UTC(+dmy[3], +dmy[2] - 1, +dmy[1]));
+    if (!isNaN(date)) return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  // ISO YYYY-MM-DD
+  const iso = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const date = new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3]));
+    if (!isNaN(date)) return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  return v;
+}
+
+async function loadSystemConfig() {
+  const url = buildSheetURL(SHEETS_CONFIG.CONFIG_SHEET);
+  let csv;
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return {};
+    csv = await res.text();
+  } catch { return {}; }
+
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+  // Partir en líneas y buscar la que tenga "dashboard_id" como celda individual
+  const lines = csv.replace(/\r/g, '').split('\n').filter(l => l.trim());
+
+  // Función que parsea una línea CSV y devuelve las celdas limpias
+  const parseLine = line => splitCSVRow(line).map(c => c.trim().replace(/^"|"$/g, ''));
+
+  // Buscar la línea donde dashboard_id sea una celda propia (no parte de texto más largo)
+  let headerLineIdx = -1;
+  let headers = [];
+  for (let i = 0; i < lines.length; i++) {
+    const cells = parseLine(lines[i]);
+    // Buscar celda que sea EXACTAMENTE "dashboard_id" (puede estar en cualquier posición)
+    const hasId = cells.some(c => norm(c) === 'dashboard_id');
+    if (hasId) { headerLineIdx = i; headers = cells; break; }
+  }
+
+  // Si no encontró celda exacta, puede que la primera celda sea el título largo que TERMINA en dashboard_id
+  // En ese caso, el header real empieza dentro de esa celda — lo extraemos manualmente
+  if (headerLineIdx === -1) {
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].toLowerCase().includes('dashboard_id')) {
+        // Cortar el texto desde "dashboard_id" en adelante y re-parsear
+        const raw = lines[i];
+        const cutIdx = raw.toLowerCase().indexOf('dashboard_id');
+        const fixedLine = raw.slice(cutIdx); // "dashboard_id","nombre",...
+        headers = parseLine('"' + fixedLine); // agregar " inicial que falta
+        // Si aún no funciona, intentar sin comilla
+        if (!headers.some(c => norm(c) === 'dashboard_id')) {
+          headers = parseLine(fixedLine);
+        }
+        headerLineIdx = i;
+        break;
+      }
+    }
+  }
+
+  if (headerLineIdx === -1 || !headers.some(c => norm(c) === 'dashboard_id')) {
+    console.warn('[OXXO] No se encontró header dashboard_id. Headers detectados:', headers);
+    return {};
+  }
+
+  const idxId    = headers.findIndex(h => norm(h) === 'dashboard_id');
+  const idxFecha = headers.findIndex(h => norm(h) === 'ultima_actualizacion');
+
+  const config = {};
+  for (let i = headerLineIdx + 1; i < lines.length; i++) {
+    const vals = parseLine(lines[i]);
+    const id = (vals[idxId] || '').trim().toLowerCase();
+    if (!id || norm(id) === 'instrucciones de uso') continue;
+    // Solo aceptar IDs válidos (d1-d9, s1-s9)
+    if (!/^[ds]\d$/.test(id)) continue;
+
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
+
+    if (idxFecha !== -1) {
+      const fechaNorm = normalizarFecha(vals[idxFecha] || '');
+      row[headers[idxFecha]] = fechaNorm;
+      row['ultima_actualizacion'] = fechaNorm;
+    }
+    config[id] = row;
+  }
+
+  console.log('[OXXO] Config cargada:', Object.keys(config));
+  return config;
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Mostrar estado de carga dentro de un contenedor
+// ─────────────────────────────────────────────────────────────
+function showLoading(containerId, message = "Cargando datos...") {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `
+    <div class="state-box">
+      <div class="spinner"></div>
+      <div class="state-box__title">${message}</div>
+      <div class="state-box__text">Conectando con Google Sheets…</div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Mostrar estado de error
+// ─────────────────────────────────────────────────────────────
+function showError(containerId, mensaje) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `
+    <div class="state-box">
+      <div class="state-box__icon">⚠️</div>
+      <div class="state-box__title">Error al cargar datos</div>
+      <div class="state-box__text">${mensaje}</div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Mostrar estado vacío
+// ─────────────────────────────────────────────────────────────
+function showEmpty(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `
+    <div class="state-box">
+      <div class="state-box__icon">📭</div>
+      <div class="state-box__title">Sin datos disponibles</div>
+      <div class="state-box__text">La hoja está vacía o no tiene el formato esperado.</div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Formatear número (separador de miles)
+// ─────────────────────────────────────────────────────────────
+function formatNum(n, decimals = 0) {
+  const num = parseFloat(n);
+  if (isNaN(num)) return n;
+  return num.toLocaleString('es-MX', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Formatear porcentaje
+// ─────────────────────────────────────────────────────────────
+function formatPct(n, decimals = 1) {
+  const num = parseFloat(n);
+  if (isNaN(num)) return n;
+  return num.toLocaleString('es-MX', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }) + '%';
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Determinar clase de semáforo
+// umbralVerde: valor >= umbralVerde → verde
+// umbralRojo:  valor <= umbralRojo  → rojo
+// intermedio:  amarillo
+// invertido: true cuando valor BAJO es bueno (ej. vacantes)
+// ─────────────────────────────────────────────────────────────
+function getSemaforo(valor, umbralVerde, umbralRojo, invertido = false) {
+  const v = parseFloat(valor);
+  if (isNaN(v)) return 'gris';
+  if (!invertido) {
+    if (v >= umbralVerde) return 'verde';
+    if (v <= umbralRojo)  return 'rojo';
+    return 'amarillo';
+  } else {
+    if (v <= umbralVerde) return 'verde';
+    if (v >= umbralRojo)  return 'rojo';
+    return 'amarillo';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Crear HTML de semáforo
+// ─────────────────────────────────────────────────────────────
+function semaforoHTML(texto, color) {
+  return `<span class="semaforo ${color}">
+    <span class="semaforo__dot"></span>${texto}
+  </span>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Calcular máximo de un array de valores
+// ─────────────────────────────────────────────────────────────
+function maxVal(arr, key) {
+  return Math.max(...arr.map(r => parseFloat(r[key]) || 0));
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Actualizar timestamp en el footer
+// ─────────────────────────────────────────────────────────────
+function updateFooterTime(elementId) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const now = new Date();
+  el.textContent = now.toLocaleString('es-MX', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Truncar texto largo
+// ─────────────────────────────────────────────────────────────
+function truncate(str, maxLen = 25) {
+  if (!str) return '';
+  return str.length > maxLen ? str.substring(0, maxLen) + '…' : str;
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Renderizar tabla genérica
+// columnas: [{key, label, format, align, semaforo}]
+// ─────────────────────────────────────────────────────────────
+function renderTable(containerId, data, columnas) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!data || data.length === 0) { showEmpty(containerId); return; }
+
+  const thead = columnas.map(c =>
+    `<th style="text-align:${c.align || 'left'}">${c.label}</th>`
+  ).join('');
+
+  const tbody = data.map((row, i) => {
+    const cells = columnas.map(col => {
+      let val = row[col.key] ?? '';
+      if (col.format === 'num') val = formatNum(val);
+      if (col.format === 'pct') val = formatPct(val);
+      if (col.semaforo) {
+        const color = getSemaforo(row[col.key], col.semaforo.verde, col.semaforo.rojo, col.semaforo.invertido);
+        val = semaforoHTML(val, color);
+      }
+      return `<td style="text-align:${col.align || 'left'}">${val}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead><tr>${thead}</tr></thead>
+        <tbody>${tbody}</tbody>
+      </table>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Renderizar ranking con barras
+// ─────────────────────────────────────────────────────────────
+function renderRanking(containerId, data, keyNombre, keyValor, sufijo = '', colorBar = 'var(--color-yellow)') {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!data || data.length === 0) { showEmpty(containerId); return; }
+
+  const max = maxVal(data, keyValor) || 1;
+
+  const items = data.slice(0, 10).map((row, i) => {
+    const val = parseFloat(row[keyValor]) || 0;
+    const pct = (val / max * 100).toFixed(1);
+    return `
+      <div class="ranking-item">
+        <div class="ranking-item__pos">${i + 1}</div>
+        <div class="ranking-item__bar-wrap">
+          <div class="ranking-item__name">${truncate(row[keyNombre], 30)}</div>
+          <div class="ranking-item__bar-bg">
+            <div class="ranking-item__bar-fill" style="width:${pct}%;background:${colorBar}"></div>
+          </div>
+        </div>
+        <div class="ranking-item__value">${formatNum(val)}${sufijo}</div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="ranking-list">${items}</div>`;
+
+  // Animación de entrada con delay
+  requestAnimationFrame(() => {
+    el.querySelectorAll('.ranking-item__bar-fill').forEach((bar, idx) => {
+      const target = bar.style.width;
+      bar.style.width = '0';
+      setTimeout(() => { bar.style.width = target; }, idx * 80);
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Renderizar tarjeta KPI
+// ─────────────────────────────────────────────────────────────
+function renderKPI(id, valor, delta = null, deltaPos = null) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  const valueEl = el.querySelector('.kpi-card__value');
+  const deltaEl = el.querySelector('.kpi-card__delta');
+
+  if (valueEl) valueEl.textContent = valor;
+  if (deltaEl && delta !== null) {
+    deltaEl.textContent = delta;
+    deltaEl.className = 'kpi-card__delta ' + (deltaPos === true ? 'pos' : deltaPos === false ? 'neg' : 'neu');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Renderizar gráfica de barras con Chart.js
+// ─────────────────────────────────────────────────────────────
+function ensureChartReady(canvas) {
+  if (window.Chart) {
+    canvas.style.display = '';
+    const notice = canvas.parentElement?.querySelector('.chart-unavailable');
+    if (notice) notice.remove();
+    return true;
+  }
+
+  canvas.style.display = 'none';
+  const parent = canvas.parentElement;
+  if (parent && !parent.querySelector('.chart-unavailable')) {
+    const notice = document.createElement('div');
+    notice.className = 'chart-unavailable';
+    notice.textContent = 'Gráfica no disponible: Chart.js no cargó.';
+    notice.style.cssText = 'min-height:180px;display:grid;place-items:center;color:var(--text-muted);font-family:Barlow,sans-serif;font-weight:700;text-align:center;border:1px dashed var(--line);border-radius:12px;background:rgba(255,255,255,.04);';
+    parent.appendChild(notice);
+  }
+  console.warn('Chart.js no está disponible. Revisa la conexión al CDN o usa una copia local.');
+  return false;
+}
+function renderBarChart(canvasId, labels, values, label, color = '#FFD200') {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (!ensureChartReady(canvas)) return;
+  const theme = getChartThemeColors();
+
+  if (canvas._chartInstance) canvas._chartInstance.destroy();
+
+  const ctx = canvas.getContext('2d');
+  canvas._chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label,
+        data: values,
+        backgroundColor: color,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: theme.tooltipBg,
+          titleFont: { family: 'Barlow Condensed', weight: '700' },
+          bodyFont: { family: 'Barlow', size: 13 },
+          padding: 10,
+          cornerRadius: 8,
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { family: 'Barlow', size: 11 },
+            color: theme.muted,
+            maxRotation: 35,
+          }
+        },
+        y: {
+          grid: { color: theme.grid },
+          ticks: {
+            font: { family: 'Barlow', size: 11 },
+            color: theme.muted,
+          },
+          beginAtZero: true,
+        }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Renderizar gráfica de línea con Chart.js
+// ─────────────────────────────────────────────────────────────
+function renderLineChart(canvasId, labels, datasets) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (!ensureChartReady(canvas)) return;
+  const theme = getChartThemeColors();
+  if (canvas._chartInstance) canvas._chartInstance.destroy();
+
+  const COLORS = ['#FFD200', '#FF6B00', '#1DB954', '#D92B2B', '#0066CC'];
+
+  const ctx = canvas.getContext('2d');
+  canvas._chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: datasets.map((ds, i) => ({
+        label: ds.label,
+        data: ds.values,
+        borderColor: COLORS[i % COLORS.length],
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        pointBackgroundColor: COLORS[i % COLORS.length],
+        pointRadius: 4,
+        tension: 0.35,
+      }))
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: datasets.length > 1,
+          position: 'top',
+          labels: { font: { family: 'Barlow', size: 12 }, color: theme.text }
+        },
+        tooltip: {
+          backgroundColor: theme.tooltipBg,
+          titleFont: { family: 'Barlow Condensed', weight: '700' },
+          bodyFont: { family: 'Barlow', size: 13 },
+          padding: 10,
+          cornerRadius: 8,
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'Barlow', size: 11 }, color: theme.muted }
+        },
+        y: {
+          grid: { color: theme.grid },
+          ticks: { font: { family: 'Barlow', size: 11 }, color: theme.muted },
+          beginAtZero: false,
+        }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Renderizar gráfica de dona con Chart.js
+// ─────────────────────────────────────────────────────────────
+function renderDonutChart(canvasId, labels, values) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (!ensureChartReady(canvas)) return;
+  const theme = getChartThemeColors();
+  if (canvas._chartInstance) canvas._chartInstance.destroy();
+
+  const ctx = canvas.getContext('2d');
+  canvas._chartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: ['#FFD200', '#FF6B00', '#1DB954', '#D92B2B', '#0066CC', '#8A8A99'],
+        borderWidth: 0,
+        hoverOffset: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { font: { family: 'Barlow', size: 12 }, color: theme.text, padding: 14 }
+        },
+        tooltip: {
+          backgroundColor: theme.tooltipBg,
+          titleFont: { family: 'Barlow Condensed', weight: '700' },
+          bodyFont: { family: 'Barlow', size: 13 },
+          padding: 10,
+          cornerRadius: 8,
+        }
+      }
+    }
+  });
+}
+
+
+
+function getChartThemeColors() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
+  return {
+    text: dark ? '#FFFFFF' : '#2D2D44',
+    muted: dark ? '#F4F1FF' : '#6B6678',
+    grid: dark ? 'rgba(255,255,255,0.32)' : '#E0DAD0',
+    tooltipBg: dark ? '#090914' : '#1A1A2E'
+  };
+}
+
+function applyChartThemeDefaults() {
+  if (!window.Chart) return;
+  const theme = getChartThemeColors();
+  Chart.defaults.color = theme.text;
+  Chart.defaults.borderColor = theme.grid;
+  Chart.defaults.plugins = Chart.defaults.plugins || {};
+  Chart.defaults.plugins.legend = Chart.defaults.plugins.legend || {};
+  Chart.defaults.plugins.legend.labels = Chart.defaults.plugins.legend.labels || {};
+  Chart.defaults.plugins.legend.labels.color = theme.text;
+  Chart.defaults.scale = Chart.defaults.scale || {};
+  Chart.defaults.scale.ticks = Chart.defaults.scale.ticks || {};
+  Chart.defaults.scale.ticks.color = theme.text;
+  Chart.defaults.scale.grid = Chart.defaults.scale.grid || {};
+  Chart.defaults.scale.grid.color = theme.grid;
+  Object.values(Chart.instances || {}).forEach((chart) => {
+    if (!chart || !chart.options) return;
+    const plugins = chart.options.plugins || {};
+    if (plugins.legend && plugins.legend.labels) plugins.legend.labels.color = theme.text;
+    if (plugins.title) plugins.title.color = theme.text;
+    if (plugins.datalabels) plugins.datalabels.color = theme.text;
+    const scales = chart.options.scales || {};
+    Object.values(scales).forEach((scale) => {
+      if (!scale) return;
+      scale.ticks = scale.ticks || {};
+      scale.grid = scale.grid || {};
+      scale.ticks.color = theme.text;
+      scale.ticks.textStrokeColor = 'rgba(0,0,0,0.18)';
+      scale.ticks.textStrokeWidth = document.documentElement.getAttribute('data-theme') === 'dark' ? 2 : 0;
+      if (scale.grid.display !== false) scale.grid.color = theme.grid;
+    });
+    chart.update('none');
+  });
+}
+// Tema claro/oscuro compartido
+function initThemeToggle() {
+  const STORAGE_KEY = 'oxxo-theme';
+  const root = document.documentElement;
+  const buttons = Array.from(document.querySelectorAll('[data-theme-toggle]'));
+
+  function getPreferredTheme() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === 'dark' || saved === 'light') return saved;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme) {
+    root.dataset.theme = theme;
+    applyChartThemeDefaults();
+    window.dispatchEvent(new CustomEvent('oxxo-theme-change', { detail: { theme } }));
+    buttons.forEach((button) => {
+      const isDark = theme === 'dark';
+      button.setAttribute('aria-pressed', String(isDark));
+      button.setAttribute('aria-label', isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
+      const label = button.querySelector('[data-theme-label]');
+      if (label) label.textContent = isDark ? 'Oscuro' : 'Claro';
+    });
+  }
+
+  applyTheme(getPreferredTheme());
+
+  buttons.forEach((button) => {
+    if (button.dataset.themeReady === 'true') return;
+    button.dataset.themeReady = 'true';
+    button.addEventListener('click', () => {
+      const nextTheme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem(STORAGE_KEY, nextTheme);
+      applyTheme(nextTheme);
+    });
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initThemeToggle, { once: true });
+} else {
+  initThemeToggle();
+}
+// Exportar para uso global (disponible en todos los dashboards)
+window.OXXO = {
+  SHEETS_CONFIG,
+  fetchSheetData,
+  loadSystemConfig,
+  showLoading,
+  showError,
+  showEmpty,
+  formatNum,
+  formatPct,
+  getSemaforo,
+  semaforoHTML,
+  renderTable,
+  renderRanking,
+  renderKPI,
+  renderBarChart,
+  renderLineChart,
+  renderDonutChart,
+  getChartThemeColors,
+  applyChartThemeDefaults,
+  ensureChartReady,
+  updateFooterTime,
+  initThemeToggle,
+  truncate,
+  maxVal,
+};
