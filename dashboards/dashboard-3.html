@@ -871,48 +871,79 @@ function render(data){
     }
   }
 
-  // ── TABLA TIENDAS INCOMPLETAS Y CRÍTICAS ─────────────────
-  const tiendasRiesgo = data
-    .filter(r=>isIncompleta(r.estatus)||isCritica(r.estatus))
-    .sort((a,b)=>a.aprov-b.aprov); // ordenar de menor a mayor aprovechamiento
+  renderTiendasRiesgo(data);
+}
 
-  document.getElementById('badge-tiendas-inc').textContent = tiendasRiesgo.length + ' tiendas';
+// ── TABLA TIENDAS INCOMPLETAS Y CRÍTICAS (con ordenamiento) ──
+let RIESGO_DATA = [];
+let RIESGO_SORT = { col: 'aprov', dir: 'asc' };
 
-  if(tiendasRiesgo.length === 0){
+function renderTiendasRiesgo(data){
+  if(data !== undefined) RIESGO_DATA = data.filter(r=>isIncompleta(r.estatus)||isCritica(r.estatus));
+
+  const sorted = [...RIESGO_DATA].sort((a,b)=>{
+    let va, vb;
+    if(RIESGO_SORT.col==='asesor') { va=a.asesor; vb=b.asesor; return RIESGO_SORT.dir==='asc'?va.localeCompare(vb):vb.localeCompare(va); }
+    if(RIESGO_SORT.col==='tienda') { va=a.tienda; vb=b.tienda; return RIESGO_SORT.dir==='asc'?va.localeCompare(vb):vb.localeCompare(va); }
+    if(RIESGO_SORT.col==='estatus'){ va=isCritica(a.estatus)?0:1; vb=isCritica(b.estatus)?0:1; return RIESGO_SORT.dir==='asc'?va-vb:vb-va; }
+    if(RIESGO_SORT.col==='vacante'){ va=a.vacante||0; vb=b.vacante||0; return RIESGO_SORT.dir==='asc'?va-vb:vb-va; }
+    // default: aprov
+    va=a.aprov||0; vb=b.aprov||0; return RIESGO_SORT.dir==='asc'?va-vb:vb-va;
+  });
+
+  document.getElementById('badge-tiendas-inc').textContent = sorted.length + ' tiendas';
+
+  if(sorted.length === 0){
     document.getElementById('tabla-incompletas').innerHTML=`
       <div class="state-box"><div class="state-box__icon">✅</div>
       <div class="state-box__title">Sin tiendas en riesgo</div></div>`;
-  } else {
-    const rowsInc = tiendasRiesgo.map(r=>{
-      const isCrit = isCritica(r.estatus);
-      const aprovPct = r.aprov > 0 ? (r.aprov > 1 ? r.aprov.toFixed(2) : (r.aprov*100).toFixed(2)) : '—';
-      return`<tr style="${isCrit?'background:#FFF0F0':''}">
-        <td>${OXXO.truncate(r.asesor,22)}</td>
-        <td>${OXXO.truncate(r.tienda,28)}</td>
-        <td class="text-center">
-          <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;background:${isCrit?'#FDEAEA':'#FFF9E0'};color:${isCrit?'var(--semaforo-rojo)':'#8a6a00'}">
-            ${isCrit?'🔴 Crítica':'🟡 Incompleta'}
-          </span>
-        </td>
-        <td class="text-center" style="font-family:var(--font-display);font-weight:700;color:${isCrit?'var(--semaforo-rojo)':'#B8960C'}">${aprovPct}%</td>
-        <td class="text-center" style="font-size:11px;color:var(--color-gray)">${r.vacante||0} vac.</td>
-      </tr>`;
-    }).join('');
-    document.getElementById('tabla-incompletas').innerHTML=`
-      <div class="tbl-wrap risk-table-wrap">
-        <table class="tbl">
-          <thead><tr>
-            <th>Asesor</th>
-            <th>Tienda</th>
-            <th style="text-align:center">Estatus</th>
-            <th style="text-align:center">Aprov. %</th>
-            <th style="text-align:center">Vacantes</th>
-          </tr></thead>
-          <tbody>${rowsInc}</tbody>
-        </table>
-      </div>`;
+    return;
   }
 
+  const arrow = col => {
+    if(RIESGO_SORT.col !== col) return '<span style="opacity:.3;margin-left:4px">⇅</span>';
+    return RIESGO_SORT.dir==='asc' ? '<span style="margin-left:4px">↑</span>' : '<span style="margin-left:4px">↓</span>';
+  };
+  const thStyle = 'cursor:pointer;user-select:none;white-space:nowrap';
+
+  const rowsInc = sorted.map(r=>{
+    const isCrit = isCritica(r.estatus);
+    const aprovPct = r.aprov > 0 ? (r.aprov > 1 ? r.aprov.toFixed(2) : (r.aprov*100).toFixed(2)) : '—';
+    return`<tr style="${isCrit?'background:#FFF0F0':''}">
+      <td>${OXXO.truncate(r.asesor,22)}</td>
+      <td>${OXXO.truncate(r.tienda,28)}</td>
+      <td class="text-center">
+        <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;background:${isCrit?'#FDEAEA':'#FFF9E0'};color:${isCrit?'var(--semaforo-rojo)':'#8a6a00'}">
+          ${isCrit?'🔴 Crítica':'🟡 Incompleta'}
+        </span>
+      </td>
+      <td class="text-center" style="font-family:var(--font-display);font-weight:700;color:${isCrit?'var(--semaforo-rojo)':'#B8960C'}">${aprovPct}%</td>
+      <td class="text-center" style="font-size:11px;color:var(--color-gray)">${r.vacante||0} vac.</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tabla-incompletas').innerHTML=`
+    <div class="tbl-wrap risk-table-wrap">
+      <table class="tbl" id="tbl-incompletas">
+        <thead><tr>
+          <th style="${thStyle}" data-sort="asesor">Asesor${arrow('asesor')}</th>
+          <th style="${thStyle}" data-sort="tienda">Tienda${arrow('tienda')}</th>
+          <th style="${thStyle};text-align:center" data-sort="estatus">Estatus${arrow('estatus')}</th>
+          <th style="${thStyle};text-align:center" data-sort="aprov">Aprov. %${arrow('aprov')}</th>
+          <th style="${thStyle};text-align:center" data-sort="vacante">Vacantes${arrow('vacante')}</th>
+        </tr></thead>
+        <tbody>${rowsInc}</tbody>
+      </table>
+    </div>`;
+
+  document.querySelectorAll('#tbl-incompletas thead th[data-sort]').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const col = th.dataset.sort;
+      if(RIESGO_SORT.col === col) RIESGO_SORT.dir = RIESGO_SORT.dir==='asc'?'desc':'asc';
+      else { RIESGO_SORT.col = col; RIESGO_SORT.dir = 'asc'; }
+      renderTiendasRiesgo();
+    });
+  });
 }
 
 // ── FILTROS ───────────────────────────────────────────────
