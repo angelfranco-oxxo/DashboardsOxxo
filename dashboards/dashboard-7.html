@@ -47,8 +47,14 @@
   .card-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--color-bg);color:var(--color-gray)}
 
   /* Layout grids */
-  .row-main{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px;align-items:start}
+  .row-main{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px;align-items:stretch}
   .row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+  .detail-card{display:flex;flex-direction:column;min-height:0}
+  .detail-card .tbl-wrap{flex:1}
+  .side-panel{display:grid;grid-template-rows:1fr 1fr;gap:14px;min-height:0}
+  .side-panel .card{display:flex;flex-direction:column;min-height:0}
+  .side-panel .donut-wrap{flex:1;justify-content:center}
+  .side-panel .stat-grid{flex:1;align-items:center}
 
   /* Tabla */
   .tbl-wrap{overflow-x:auto;overflow-y:auto;max-height:480px;scrollbar-width:thin;scrollbar-color:#F71926 rgba(0,0,0,.06)}
@@ -126,7 +132,7 @@
   .legend-label{display:flex;align-items:center;color:var(--color-dark)}
   .legend-count{font-weight:700;color:var(--color-dark)}
 
-  @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.row-main{grid-template-columns:1fr}.row2{grid-template-columns:1fr 1fr}}
+  @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.row-main{grid-template-columns:1fr}.row2{grid-template-columns:1fr 1fr}.side-panel{grid-template-rows:auto auto}}
   @media(max-width:600px){.kpis{grid-template-columns:1fr 1fr !important}.row-main,.row2{grid-template-columns:1fr !important}}
   </style>
   <link rel="stylesheet" href="../css/dashboard-skin.css"/>
@@ -206,7 +212,7 @@
   <div class="row-main">
 
     <!-- Tabla detalle -->
-    <div class="card">
+    <div class="card detail-card">
       <div class="card-head">
         <div class="card-title">📋 Detalle por Tienda</div>
         <span class="card-badge" id="tbl-count">— tiendas</span>
@@ -237,7 +243,7 @@
     </div>
 
     <!-- Panel lateral -->
-    <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="side-panel">
 
       <!-- Donut alineación global -->
       <div class="card">
