@@ -24,6 +24,7 @@ const SHEETS_CONFIG = {
     s4: "Dashboard_4_Semanal",  // Tiempo Extra: Plaza,Asesor,Semana,Gasto_TE_total,Horas_TE_total,Gasto_TE_doble,Gasto_TE_triple,Gasto_dia_descanso,Fecha
     s5: "Dashboard_5_Semanal",  // Vacaciones: Asesor,Plaza,Empleado,Puesto,Fecha_Inicio,Fecha_Fin,Dias,Semana
     s6: "Dashboard_6_Semanal",  // Ausentismos: Asesor,Plaza,Empleado,Puesto,Tipo_Ausentismo,Fecha,Semana,Dias
+    s7: "Dashboard_7_Semanal",  // Liberacion Estructuras P2: Plaza,CR,Tienda,Asesor,Est SAP,Est Final P2,Empleados,Vacantes,Dif,Movimiento
   }
 };
 
@@ -57,7 +58,7 @@ async function fetchSheetData(tabName) {
 // Maneja comas dentro de comillas y caracteres especiales
 // ─────────────────────────────────────────────────────────────
 function parseCSV(text) {
-  const lines = text.trim().split("\n");
+  const lines = parseCSVRecords(text.trim());
   if (lines.length < 2) return [];
 
   // Buscar la fila de encabezados: es la primera fila que tenga
@@ -72,7 +73,7 @@ function parseCSV(text) {
     }
   }
 
-  const headers = splitCSVRow(lines[headerIndex]).map(h => h.trim().replace(/^"|"$/g, ''));
+  const headers = makeUniqueHeaders(splitCSVRow(lines[headerIndex]).map(h => h.trim().replace(/^"|"$/g, '')));
 
   const rows = [];
   for (let i = headerIndex + 1; i < lines.length; i++) {
@@ -86,6 +87,43 @@ function parseCSV(text) {
     rows.push(row);
   }
   return rows;
+}
+
+function makeUniqueHeaders(headers) {
+  const seen = {};
+  return headers.map((header, idx) => {
+    const base = header || `col_${idx + 1}`;
+    seen[base] = (seen[base] || 0) + 1;
+    return seen[base] === 1 ? base : `${base}_${seen[base]}`;
+  });
+}
+
+function parseCSVRecords(text) {
+  const records = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (ch === '"' && next === '"') {
+      current += '""';
+      i++;
+    } else if (ch === '"') {
+      inQuotes = !inQuotes;
+      current += ch;
+    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      if (ch === '\r' && next === '\n') i++;
+      if (current.trim()) records.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+
+  if (current.trim()) records.push(current);
+  return records;
 }
 
 // Divide una fila CSV respetando comillas
