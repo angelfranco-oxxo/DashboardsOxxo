@@ -100,7 +100,7 @@
 
     /* TABLA RESUMEN AT */
     .tbl { width:100%; border-collapse:collapse; font-size:12px; }
-    .tbl thead th { position:sticky; top:0; z-index:2; background:#1A1A2E; color:#FFD200;
+    .tbl thead th { position:sticky; top:0; z-index:2; background:#2D2D44; color:#fff;
       padding:10px 14px; text-align:left; font-size:10px; font-weight:700;
       letter-spacing:1.1px; text-transform:uppercase; border-right:1px solid rgba(255,255,255,.1); }
     .tbl thead th:last-child { border-right:none; }
@@ -144,7 +144,7 @@
     .state-box { display:flex; flex-direction:column; align-items:center; justify-content:center;
       gap:10px; padding:40px 20px; color:var(--color-gray); text-align:center; }
     .spinner { width:32px; height:32px; border:3px solid var(--color-border);
-      border-top-color:#FFD200; border-radius:50%; animation:spin .7s linear infinite; }
+      border-top-color:var(--color-yellow); border-radius:50%; animation:spin .7s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
 
     /* RESPONSIVE */
@@ -205,46 +205,6 @@
 
 
     }
-
-    /* ── MOBILE FULL (<=480px) ── */
-    @media (max-width:480px) {
-      .page { padding:10px 10px 32px; }
-
-      .hero { padding:20px 18px; margin-bottom:14px; flex-direction:column; align-items:flex-start; gap:10px; }
-      .hero h1 { font-size:1.7rem !important; line-height:1.1; }
-      .hero p, .hero-date { font-size:12px; }
-      .hero-right { align-items:flex-start; flex-direction:row; flex-wrap:wrap; gap:8px; }
-
-      .kpis { grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
-      .kpi-card { min-height:110px; padding:14px 12px; }
-      .kpi-card__value { font-size:2rem; }
-      .kpi-card__label { font-size:10px; }
-
-      .plazas-row { grid-template-columns:repeat(2,1fr); gap:10px; }
-      .plaza-card { padding:12px 10px; }
-      .plaza-name { font-size:.82rem; margin-bottom:6px; }
-      .plaza-kpi-val { font-size:1.2rem; }
-
-      .main-grid { grid-template-columns:1fr; gap:12px; }
-
-      .card { padding:14px 12px; border-radius:14px; }
-      .card-title { font-size:.95rem; }
-
-      .tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-      .tbl { font-size:11px; min-width:340px; }
-      .tbl thead th { padding:8px 9px; font-size:9px; letter-spacing:.5px; }
-      .tbl tbody td { padding:7px 9px; }
-
-      .rank-item { gap:7px; padding:6px 0; }
-      .rank-name { font-size:11px; }
-      .rank-val { font-size:13px; }
-
-      .charts-row { grid-template-columns:1fr; gap:12px; }
-      .chart-wrap { height:260px; }
-
-      .foot { flex-direction:column; align-items:flex-start; gap:6px; font-size:10px; }
-      .ec-pill { font-size:11px; padding:3px 8px; }
-
 
     }</style>
 
