@@ -353,6 +353,58 @@ function pickField(row, keys){
   return '';
 }
 
+const TREO_HEADERS = [
+  'Zona',
+  'Región',
+  'Plaza',
+  'Tienda',
+  'ID Tienda',
+  'AT/RO',
+  'Racional de la estructura',
+  'Accionable sugerido TREO',
+  'Estructura Propuesta TREO P2 Jun - Ago',
+  'Estructura SAP',
+  'Empleados Activos',
+  'Vacantes',
+  'Dif SAP vs Est Optima Final',
+  'Movimiento Inicial',
+  'Promedio Trimestre MO/Venta',
+  'Turnos',
+  'Antiguedad',
+  'KREA',
+  'Siniestralidad alta',
+  'Concepto Tienda',
+  'Racional Estructura',
+  'Promedio Transacciones Mensuales',
+  'Carga total de trabajo (hrs)',
+  'Estructura optima sin posiciones x conceptos de tienda y mundial',
+  'x'
+];
+
+function hasTreoHeaderValues(row){
+  const values = Object.values(row || {}).map(v => normKey(v));
+  const hits = ['zona','plaza','tienda','id_tienda','at_ro','estructura_sap','movimiento_inicial']
+    .filter(h => values.includes(h)).length;
+  return hits >= 4;
+}
+
+function coerceTreoRows(rows){
+  if(!Array.isArray(rows) || !rows.length) return [];
+  if(!hasTreoHeaderValues(rows[0])) return rows;
+
+  const sourceKeys = Object.keys(rows[0]);
+  const headers = sourceKeys.map((key, idx) => {
+    const value = String(rows[0][key] || '').trim();
+    return value || TREO_HEADERS[idx] || `col_${idx + 1}`;
+  });
+
+  return rows.slice(1).map(raw => {
+    const out = {};
+    sourceKeys.forEach((key, idx) => { out[headers[idx]] = raw[key]; });
+    return out;
+  });
+}
+
 function normalizeMovement(value){
   const v = String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   if(v.includes('subir') || v === 'alta' || v === 'incrementar') return 'Subir';
@@ -367,7 +419,9 @@ function normalizeRow(row){
   const difCalc = difRaw || String((Number(estFinal)||0) - (Number(estSap)||0));
   return {
     plaza: pickField(row, ['plaza','dashboard 7 liberacion de estructuras plaza oaxaca plaza']) || '10VHT Oaxaca',
-    cr: pickField(row, ['cr']),
+    zona: pickField(row, ['zona']),
+    region: pickField(row, ['region','región']),
+    cr: pickField(row, ['cr','id tienda','id_tienda']),
     tienda: pickField(row, ['tienda','nombre tienda','unidad','unidad org','unidad organizativa']),
     asesor: pickField(row, ['asesor','at','at/ro','asesor at','asesor/at']),
     est_p2: pickField(row, ['est_p2','est p2','estructura p2']),
@@ -380,9 +434,13 @@ function normalizeRow(row){
     turnos: pickField(row, ['turnos','turno']),
     antiguedad: pickField(row, ['antiguedad','antigüedad']) || 'Madura',
     krea: pickField(row, ['krea']),
-    siniestralidad: pickField(row, ['siniestralidad']),
-    mundialista: pickField(row, ['mundialista']),
+    siniestralidad: pickField(row, ['siniestralidad alta','siniestralidad']),
+    concepto: pickField(row, ['concepto tienda','concepto']),
+    racional: pickField(row, ['racional estructura','racional de la estructura']),
     prom_mo_venta: pickField(row, ['prom_mo_venta','prom mo venta','promedio trimestre mo venta','mo venta','mo/vta']),
+    transacciones: pickField(row, ['promedio transacciones mensuales','transacciones mensuales','transacciones']),
+    carga_hrs: pickField(row, ['carga total de trabajo hrs','carga total de trabajo (hrs)','carga de trabajo','carga hrs']),
+    est_optima_base: pickField(row, ['estructura optima sin posiciones x conceptos de tienda y mundial']),
     accionable: pickField(row, ['accionable','accionable sugerido treo','accion','acción','prioridad']),
   };
 }
@@ -663,7 +721,7 @@ async function init(){
     return;
   }
 
-  ALL = rows.map(normalizeRow).filter(r => r.tienda || r.asesor);
+  ALL = coerceTreoRows(rows).map(normalizeRow).filter(r => r.tienda || r.asesor);
 
   // Poblar selector de asesor
   const asesores = [...new Set(ALL.map(r=>r.asesor).filter(Boolean))].sort();
