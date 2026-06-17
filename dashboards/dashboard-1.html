@@ -206,10 +206,14 @@
         <label>Antigüedad</label>
         <select class="filtro-select" id="filtro-dias">
           <option value="">Todas las antigüedades</option>
+          <option value="60">Más de 60 días</option>
+          <option value="45">Más de 45 días</option>
           <option value="30">Más de 30 días</option>
+          <option value="21">Más de 21 días</option>
           <option value="15">Más de 15 días</option>
           <option value="7">Más de 7 días</option>
           <option value="3">Más de 3 días</option>
+          <option value="1">Más de 1 día</option>
         </select>
       </div>
       <div class="vac-fbox">
@@ -357,9 +361,7 @@ function limpiarFiltros(){
   document.getElementById('filtro-dias').value='';
   document.getElementById('filtro-orden').value='desc';
   activePuesto = '';
-  document.querySelectorAll('.kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
-  renderOverview(viewData());
-  renderTabla();
+  refreshDashboard();
 }
 
 // Filtrar y ordenar datos
@@ -374,8 +376,7 @@ function filtrarDatos(){
   return filtered;
 }
 
-function renderTabla(){
-  const filtered=filtrarDatos();
+function renderTabla(filtered=filtrarDatos()){
   const el=document.getElementById('tabla-detalle');
   const _fc = document.getElementById('filtro-count'); if(_fc) _fc.textContent=`${filtered.length} vacantes`;
   document.getElementById('row-count').textContent=`${filtered.length} vacantes`;
@@ -412,6 +413,12 @@ function renderTabla(){
   </table></div>`;
 }
 
+function refreshDashboard(){
+  const filtered = filtrarDatos();
+  renderOverview(filtered);
+  renderTabla(filtered);
+}
+
 // Poblar selectores de filtro
 function poblarFiltros(){
   const asesores=[...new Set(allData.map(r=>r.asesor).filter(Boolean))].sort();
@@ -422,9 +429,7 @@ function poblarFiltros(){
   ['filtro-asesor','filtro-dias','filtro-orden'].forEach(id=>{
     document.getElementById(id).addEventListener('change', () => {
       activePuesto = '';
-      document.querySelectorAll('.kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
-      if(id==='filtro-asesor') renderOverview(viewData());
-      renderTabla();
+      refreshDashboard();
     });
   });
 }
@@ -457,15 +462,13 @@ async function initDashboard(){
   })).filter(r=>r.tienda&&r.tienda!=='Sin tienda');
 
   poblarFiltros();
-  renderOverview(viewData());
-  renderTabla();
+  refreshDashboard();
   OXXO.updateFooterTime('load-time');
 }
 
-// Subconjunto para KPIs y gráficas: respeta el filtro de Asesor
+// Subconjunto para KPIs y gráficas: respeta todos los filtros activos
 function viewData(){
-  const a=document.getElementById('filtro-asesor').value;
-  return a ? allData.filter(r=>r.asesor===a) : allData;
+  return filtrarDatos();
 }
 
 // Renderiza KPIs + ranking + gráficas. El parámetro se llama allData a
@@ -478,34 +481,36 @@ function renderOverview(allData){
   const maxDias=Math.max(...allData.map(r=>r.dias),0);
   const tiendaAntigua=allData.find(r=>r.dias===maxDias)?.tienda||'—';
   const asesoresUnicos=[...new Set(allData.map(r=>r.asesor))].length;
+  const filtroAsesor = document.getElementById('filtro-asesor')?.value || '';
+  const filtroDias = document.getElementById('filtro-dias')?.value || '';
 
   // KPIs
   document.getElementById('kpi-section').innerHTML=`
-    <div class="kpi-card rojo" data-kpi="todos" title="Ver todas las vacantes">
+    <div class="kpi-card rojo ${!activePuesto && !filtroAsesor && !filtroDias ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
       <div class="kpi-card__label">Total Vacantes</div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neg">${asesoresUnicos} asesores afectados</div>
       <div class="kpi-card__icon">🔍</div>
     </div>
-    <div class="kpi-card rojo" data-kpi="Lider" title="Filtrar por Lider">
+    <div class="kpi-card rojo ${activePuesto==='Lider' ? 'active' : ''}" data-kpi="Lider" title="Filtrar por Lider">
       <div class="kpi-card__label">Lider</div>
       <div class="kpi-card__value">${lideres}</div>
       <div class="kpi-card__delta neg">Alta prioridad · clic para filtrar</div>
       <div class="kpi-card__icon">👔</div>
     </div>
-    <div class="kpi-card naranja" data-kpi="Encargado" title="Filtrar por Encargado">
+    <div class="kpi-card naranja ${activePuesto==='Encargado' ? 'active' : ''}" data-kpi="Encargado" title="Filtrar por Encargado">
       <div class="kpi-card__label">Encargado</div>
       <div class="kpi-card__value">${encargados}</div>
       <div class="kpi-card__delta neu">Media prioridad · clic para filtrar</div>
       <div class="kpi-card__icon">🏪</div>
     </div>
-    <div class="kpi-card amarillo" data-kpi="Ayudante" title="Filtrar por Ayudante">
+    <div class="kpi-card amarillo ${activePuesto==='Ayudante' ? 'active' : ''}" data-kpi="Ayudante" title="Filtrar por Ayudante">
       <div class="kpi-card__label">Ayudante</div>
       <div class="kpi-card__value">${ayudantes}</div>
       <div class="kpi-card__delta neu">Seguimiento · clic para filtrar</div>
       <div class="kpi-card__icon">👤</div>
     </div>
-    <div class="kpi-card ${maxDias>=15?'rojo':maxDias>=7?'naranja':'verde'}" data-kpi="antiguos" title="Filtrar vacantes con más de 7 días">
+    <div class="kpi-card ${maxDias>=15?'rojo':maxDias>=7?'naranja':'verde'} ${!activePuesto && filtroDias==='7' ? 'active' : ''}" data-kpi="antiguos" title="Filtrar vacantes con más de 7 días">
       <div class="kpi-card__label">Vacante más antigua</div>
       <div class="kpi-card__value">${maxDias||'—'}</div>
       <div class="kpi-card__delta ${maxDias>=15?'neg':'neu'}">${maxDias?'días · '+OXXO.truncate(tiendaAntigua,18):'Sin fecha'}</div>
@@ -534,11 +539,11 @@ function renderOverview(allData){
           activePuesto = kpi;
           document.getElementById('filtro-dias').value = '';
         }
-        renderTabla();
+        refreshDashboard();
       } else {
         activePuesto = '';
         document.getElementById('filtro-dias').value = '';
-        renderTabla();
+        refreshDashboard();
       }
     });
   });
