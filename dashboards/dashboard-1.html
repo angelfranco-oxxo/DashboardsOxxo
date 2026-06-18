@@ -1715,6 +1715,39 @@
     font-size:14px !important;
     font-weight:850 !important;
   }
+
+  /* KPI strip final: que use todo el ancho igual que el resto del dashboard */
+  .kpis.kpi-grid,
+  #kpi-section{
+    display:grid !important;
+    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+    gap:18px !important;
+    width:100% !important;
+    margin-bottom:20px !important;
+  }
+  .kpis.kpi-grid .kpi-card,
+  #kpi-section .kpi-card{
+    min-height:156px !important;
+    padding:24px 26px !important;
+  }
+  .kpis.kpi-grid .kpi-card__value,
+  #kpi-section .kpi-card__value{
+    font-size:clamp(2.45rem,2.7vw,3.2rem) !important;
+  }
+  .kpis.kpi-grid .kpi-card__delta,
+  #kpi-section .kpi-card__delta{
+    max-width:92% !important;
+    font-size:12.5px !important;
+    line-height:1.25 !important;
+  }
+  @media (max-width:1180px){
+    .kpis.kpi-grid,
+    #kpi-section{grid-template-columns:repeat(3,minmax(0,1fr)) !important}
+  }
+  @media (max-width:720px){
+    .kpis.kpi-grid,
+    #kpi-section{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+  }
 </style>
 
 </head>
