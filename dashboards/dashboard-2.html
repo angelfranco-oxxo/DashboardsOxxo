@@ -289,8 +289,8 @@
   </section>
 
   <!-- TABLA RANKING PLAZAS -->
-  <section class="bajas-panel" style="margin-bottom:14px;padding:20px">
-    <div style="display:grid;grid-template-columns:1fr 1.8fr;gap:20px;align-items:start">
+  <section class="bajas-panel plazas-panel" style="margin-bottom:14px;padding:20px">
+    <div class="plazas-panel__grid">
       <!-- Ranking plazas -->
       <div>
         <div class="bajas-panel__title" style="margin-bottom:14px">🏆 Ranking de Plazas · Bajas acumuladas</div>
@@ -301,7 +301,7 @@
       <!-- Gráfica plazas -->
       <div>
         <div class="bajas-panel__title" style="margin-bottom:14px">Comparativo por Plaza</div>
-        <div style="position:relative;height:280px"><canvas id="chart-plazas"></canvas></div>
+        <div class="plazas-chart"><canvas id="chart-plazas"></canvas></div>
       </div>
     </div>
   </section>
@@ -753,35 +753,27 @@ function renderPlazas(data, cols) {
     const pct = Math.round(p.bajas / totalBajas * 100);
     const barW = Math.round(p.bajas / maxBajas * 100);
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
-    return `<tr>
-      <td style="font-size:13px;text-align:center;padding:10px 8px">${medal}</td>
-      <td style="font-weight:600;font-size:13px;padding:10px 8px">${p.plaza}</td>
-      <td style="padding:10px 8px">
-        <div style="height:6px;background:var(--color-border);border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:${barW}%;background:${i===0?'#D92B2B':i===1?'#FF6B00':'#FFD200'};border-radius:3px;transition:width .8s ease"></div>
+    const tone = i === 0 ? 'red' : i === 1 ? 'orange' : i === 2 ? 'gold' : 'neutral';
+    return `<div class="plaza-rank-row ${tone}">
+      <div class="plaza-rank-medal">${medal}</div>
+      <div class="plaza-rank-main">
+        <div class="plaza-rank-top">
+          <strong>${p.plaza}</strong>
+          <span>${pct}% del total</span>
         </div>
-      </td>
-      <td style="font-family:var(--font-display);font-size:1.3rem;font-weight:800;color:${i===0?'#D92B2B':i===1?'#FF6B00':'var(--color-dark)'};text-align:right;padding:10px 8px">${p.bajas}</td>
-      <td style="font-size:11px;color:var(--color-gray);text-align:right;padding:10px 8px">${pct}%</td>
-    </tr>`;
+        <div class="plaza-rank-track"><div class="plaza-rank-fill" style="width:${barW}%"></div></div>
+      </div>
+      <div class="plaza-rank-value">${p.bajas}</div>
+    </div>`;
   }).join('');
 
   document.getElementById('tabla-plazas').innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="background:var(--color-bg)">
-        <th style="padding:8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">#</th>
-        <th style="padding:8px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Plaza</th>
-        <th style="padding:8px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Tendencia</th>
-        <th style="padding:8px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Bajas</th>
-        <th style="padding:8px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">% Total</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr style="background:var(--color-bg);border-top:2px solid var(--color-border)">
-        <td colspan="3" style="padding:10px 8px;font-weight:700;font-size:12px">Total</td>
-        <td style="padding:10px 8px;font-family:var(--font-display);font-size:1.2rem;font-weight:800;text-align:right">${totalBajas}</td>
-        <td style="padding:10px 8px;text-align:right;color:var(--color-gray);font-size:11px">100%</td>
-      </tr></tfoot>
-    </table>`;
+    <div class="plaza-rank-list">${rows}</div>
+    <div class="plaza-rank-total">
+      <span>Total acumulado</span>
+      <strong>${totalBajas}</strong>
+      <em>100%</em>
+    </div>`;
 
   // Gráfica de plazas
   const canvas = document.getElementById('chart-plazas');
@@ -799,17 +791,18 @@ function renderPlazas(data, cols) {
         datasets: [{
           label: 'Bajas', data: plazasData.map(p => p.bajas),
           backgroundColor: plazasData.map((p,i) => ['#D92B2B','#FF6B00','#FFD200','#00A650','#0066CC'][i] || '#8A8A99'),
-          borderRadius: 8, borderSkipped: false,
-          barPercentage: 0.62, categoryPercentage: 0.6, maxBarThickness: 70
+          borderRadius: 999, borderSkipped: false,
+          barPercentage: 0.54, categoryPercentage: 0.82, maxBarThickness: 28
         }]
       },
       options: {
+        indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 10, right: 10 } },
+        layout: { padding: { top: 6, right: 50, bottom: 4, left: 4 } },
         plugins: { legend: { display: false }, tooltip: { backgroundColor: theme.tooltipBg, padding: 10, cornerRadius: 8 }},
         scales: {
-          x: { grid: { display: false }, ticks: { font: { family: 'Barlow', size: 13, weight: '800' }, color: tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth: tickStrokeWidth }},
-          y: { beginAtZero: true, grid: { color: theme.grid }, ticks: { precision: 0, font: { family: 'Barlow', size: 13, weight: '800' }, color: tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth: tickStrokeWidth }}
+          x: { beginAtZero: true, grid: { color: theme.grid }, ticks: { precision: 0, font: { family: 'Barlow', size: 12, weight: '800' }, color: tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth: tickStrokeWidth }},
+          y: { grid: { display: false }, ticks: { font: { family: 'Barlow', size: 13, weight: '900' }, color: tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth: tickStrokeWidth }}
         }
       }
     });

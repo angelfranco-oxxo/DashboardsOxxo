@@ -3048,6 +3048,189 @@ body .bajas-header .bajas-header__badge {
   font-weight: 850 !important;
 }
 
+/* D1 Vacantes: KPI strip should use the full executive width */
+body:has(#chart-barras) .kpis.kpi-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  margin-bottom: 18px !important;
+}
+
+body:has(#chart-barras) .kpis.kpi-grid .kpi-card {
+  min-height: 150px !important;
+  padding: 22px 24px !important;
+}
+
+body:has(#chart-barras) .kpis.kpi-grid .kpi-card__label {
+  font-size: 11px !important;
+}
+
+body:has(#chart-barras) .kpis.kpi-grid .kpi-card__value {
+  font-size: clamp(2.35rem, 2.65vw, 3.15rem) !important;
+}
+
+body:has(#chart-barras) .kpis.kpi-grid .kpi-card__delta {
+  max-width: 90%;
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+}
+
+@media (max-width: 1180px) {
+  body:has(#chart-barras) .kpis.kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  body:has(#chart-barras) .kpis.kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* D2 Plazas: premium ranking + compact comparison chart */
+.plazas-panel {
+  padding: 24px !important;
+}
+
+.plazas-panel__grid {
+  display: grid;
+  grid-template-columns: minmax(420px, .88fr) minmax(0, 1.35fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.plaza-rank-list {
+  display: grid;
+  gap: 10px;
+}
+
+.plaza-rank-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 72px;
+  gap: 12px;
+  align-items: center;
+  min-height: 58px;
+  padding: 10px 12px;
+  border-radius: 17px;
+  border: 1px solid rgba(255,255,255,.68);
+  background:
+    radial-gradient(circle at 8% 18%, rgba(246,183,60,.11), transparent 36%),
+    linear-gradient(135deg, rgba(255,255,255,.72), rgba(255,247,239,.46));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.76), 0 10px 24px rgba(80,34,20,.055);
+}
+
+.plaza-rank-medal {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #3B1918, #1E1010);
+  color: #FFF8EE;
+  font-weight: 950;
+}
+
+.plaza-rank-row.red .plaza-rank-medal {
+  background: linear-gradient(145deg, #F6B73C, #D91F2D);
+}
+
+.plaza-rank-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.plaza-rank-top strong {
+  color: #211514;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.plaza-rank-top span {
+  color: #8B6A5F;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.plaza-rank-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(128,63,38,.08);
+}
+
+.plaza-rank-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #D91F2D, #F05A3E, #F6B73C);
+  box-shadow: 0 0 14px rgba(217,31,45,.20);
+}
+
+.plaza-rank-row.orange .plaza-rank-fill {
+  background: linear-gradient(90deg, #F05A3E, #F07B22, #F6B73C);
+}
+
+.plaza-rank-row.gold .plaza-rank-fill,
+.plaza-rank-row.neutral .plaza-rank-fill {
+  background: linear-gradient(90deg, #F6B73C, #FFD36A);
+}
+
+.plaza-rank-value {
+  justify-self: end;
+  min-width: 58px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  color: #D91F2D;
+  background: rgba(217,31,45,.07);
+  border: 1px solid rgba(217,31,45,.13);
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 950;
+  text-align: center;
+}
+
+.plaza-rank-total {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid rgba(128,63,38,.13);
+  color: #5A4037;
+  font-weight: 900;
+}
+
+.plaza-rank-total strong {
+  color: #211514;
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+}
+
+.plaza-rank-total em {
+  color: #D91F2D;
+  font-style: normal;
+  font-size: 12px;
+}
+
+.plazas-chart {
+  position: relative;
+  height: 330px;
+  border-radius: 22px;
+  padding: 12px 16px 10px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(246,183,60,.10), transparent 35%),
+    linear-gradient(135deg, rgba(255,255,255,.56), rgba(255,247,239,.34));
+  border: 1px solid rgba(255,255,255,.64);
+}
+
+@media (max-width: 1050px) {
+  .plazas-panel__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .te-row1 {
   align-items: start !important;
 }
