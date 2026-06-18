@@ -3074,13 +3074,7 @@ body:has(#chart-barras) .kpis.kpi-grid .kpi-card__delta {
   line-height: 1.25 !important;
 }
 
-@media (max-width: 1180px) {
-  body:has(#chart-barras) .kpis.kpi-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
-}
-
-@media (max-width: 720px) {
+@media (max-width: 620px) {
   body:has(#chart-barras) .kpis.kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
