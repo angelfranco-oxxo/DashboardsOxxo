@@ -3028,6 +3028,26 @@ body .bajas-header .bajas-header__badge {
   }
 }
 
+/* Hero title typography: match D1 across all dashboards */
+.hero h1,
+.dashboard-hero h1,
+.bajas-header h1 {
+  font-family: var(--font-display) !important;
+  font-size: clamp(2rem, 3.1vw, 3.35rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  line-height: .96 !important;
+}
+
+.hero p,
+.dashboard-hero p,
+.bajas-header__meta,
+.bajas-header p {
+  font-family: var(--font-body) !important;
+  font-size: 14px !important;
+  font-weight: 850 !important;
+}
+
 .te-row1 {
   align-items: start !important;
 }
