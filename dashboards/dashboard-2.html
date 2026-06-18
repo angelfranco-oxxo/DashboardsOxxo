@@ -239,11 +239,7 @@
       <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
     </div>
   </div>
-  <div class="topbar__meta">
-    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar a tema oscuro" aria-pressed="false">
-      <span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__thumb"></span></span>
-      <span data-theme-label>Claro</span>
-    </button><a href="../index.html" class="topbar__back">
+  <div class="topbar__meta"><a href="../index.html" class="topbar__back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Inicio
     </a>
@@ -491,8 +487,7 @@ function filterData(data, cols){
 }
 function chartTheme(){
   if (window.OXXO && OXXO.getChartThemeColors) return OXXO.getChartThemeColors();
-  const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
-  return { text: dark ? '#FFFFFF' : '#2D2D44', muted: dark ? '#E6E1F2' : '#6B6678', grid: dark ? 'rgba(255,255,255,.20)' : '#ddd8ce', tooltipBg: dark ? '#090914' : '#1A1A2E' };
+  return { text: '#2D2D44', muted: '#6B6678', grid: 'rgba(128,63,38,.10)', tooltipBg: '#251313' };
 }
 function chartReady(canvas){
   if (window.Chart) return true;
@@ -507,23 +502,22 @@ function renderChart(canvasId, type, labels, values, opts={}){
   if(canvas._chartInstance) canvas._chartInstance.destroy();
   const ctx=canvas.getContext('2d');
   const theme = chartTheme();
-  const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
-  const tickColor = dark ? '#FFFFFF' : theme.text;
-  const tickStrokeWidth = dark ? 3 : 0;
+  const tickColor = theme.text;
+  const tickStrokeWidth = 0;
   const isRanking = !!opts.ranking;
   const colors = opts.colors || labels.map((_, index) => {
-    if (!isRanking) return opts.color || '#ff7924';
-    return index < 3 ? '#e30613' : index < 8 ? '#ff7a22' : '#f2a52b';
+    if (!isRanking) return opts.color || '#F07B22';
+    return index < 3 ? '#D91F2D' : index < 8 ? '#F07B22' : '#F6B73C';
   });
   canvas._chartInstance = new Chart(ctx, {
     type,
-    data:{ labels, datasets:[{ label:opts.label||'Bajas', data:values, backgroundColor:colors, borderColor:colors, borderWidth:0, borderRadius: opts.borderRadius ?? (isRanking ? 8 : 5), barPercentage: opts.barPercentage ?? (isRanking ? .72 : .55), categoryPercentage: opts.categoryPercentage ?? (isRanking ? .72 : .7) }]},
+    data:{ labels, datasets:[{ label:opts.label||'Bajas', data:values, backgroundColor:colors, borderColor:'rgba(255,255,255,.68)', borderWidth:1, borderRadius: opts.borderRadius ?? 999, borderSkipped:false, barPercentage: opts.barPercentage ?? (isRanking ? .78 : .62), categoryPercentage: opts.categoryPercentage ?? (isRanking ? .72 : .7) }]},
     options:{ indexAxis: opts.horizontal ? 'y' : 'x', responsive:true, maintainAspectRatio:false,
-      layout: { padding: opts.horizontal ? { top: 4, right: 18, bottom: 4, left: 2 } : { top: 0, right: 4, bottom: 0, left: 0 } },
-      plugins:{ legend:{display:!!opts.legend, position:'top', labels:{color:theme.text, font:{family:'Barlow', size:12, weight:'700'}}}, tooltip:{backgroundColor:theme.tooltipBg,padding:10,cornerRadius:8}, datalabels:{display:false} },
+      layout: { padding: opts.horizontal ? { top: 10, right: 28, bottom: 8, left: 4 } : { top: 6, right: 8, bottom: 4, left: 4 } },
+      plugins:{ legend:{display:!!opts.legend, position:'top', labels:{color:'#5A4037', usePointStyle:true, pointStyle:'circle', font:{family:'Barlow', size:12, weight:'800'}}}, tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false}, datalabels:{display:false} },
       scales:{
-        x:{ grid:{display:!!opts.horizontal, color:theme.grid}, ticks:{precision:0, color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, maxRotation: opts.horizontal ? 0 : (opts.rotate ?? 55), minRotation: opts.horizontal ? 0 : (opts.rotate ?? 0)}, beginAtZero:true },
-        y:{ grid:{display:!opts.horizontal, color:theme.grid}, ticks:{color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, crossAlign:'far'}, beginAtZero:true }
+        x:{ border:{display:false}, grid:{display:!!opts.horizontal, color:'rgba(128,63,38,.075)', drawTicks:false}, ticks:{precision:0, color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, maxRotation: opts.horizontal ? 0 : (opts.rotate ?? 55), minRotation: opts.horizontal ? 0 : (opts.rotate ?? 0)}, beginAtZero:true },
+        y:{ border:{display:false}, grid:{display:!opts.horizontal, color:'rgba(128,63,38,.075)', drawTicks:false}, ticks:{color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, crossAlign:'far'}, beginAtZero:true }
       }
     }
   });

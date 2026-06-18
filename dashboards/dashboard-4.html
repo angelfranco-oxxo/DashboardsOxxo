@@ -158,10 +158,6 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
     </div>
   </div>
   <div class="topbar__meta">
-    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar a tema oscuro" aria-pressed="false">
-      <span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__thumb"></span></span>
-      <span data-theme-label>Claro</span>
-    </button>
     <a href="../index.html" class="topbar__back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
   </div>
@@ -430,9 +426,9 @@ function renderAll() {
   if(chartDona) chartDona.destroy();
   chartDona = new Chart(document.getElementById('chart-dona').getContext('2d'),{
     type:'doughnut',
-    data:{labels:donutLabels,datasets:[{data:donutVals,backgroundColor:donutColors,borderWidth:2,borderColor:'#fff'}]},
+    data:{labels:donutLabels,datasets:[{data:donutVals,backgroundColor:donutColors,borderWidth:4,borderColor:'#FFF8EE',borderRadius:10,spacing:3,hoverOffset:6}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'70%',
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.label+': '+fmtH(c.raw)+' h'}}}}
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>' '+c.label+': '+fmtH(c.raw)+' h'}}}}
   });
 
   // ── Bar Asesores ──
@@ -441,10 +437,10 @@ function renderAll() {
   chartAsesores = new Chart(document.getElementById('chart-asesores').getContext('2d'),{
     type:'bar',
     data:{labels:top10a.map(r=>OXXO.truncate(r.asesor,14)),
-      datasets:[{data:top10a.map(r=>r.gTot),backgroundColor:'#FFD200',borderRadius:4}]},
+      datasets:[{data:top10a.map(r=>r.gTot),backgroundColor:'#F6B73C',borderColor:'rgba(255,255,255,.68)',borderWidth:1,borderRadius:999,borderSkipped:false,barPercentage:.72,categoryPercentage:.72}]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt$(c.raw)}}},
-      scales:{x:{ticks:{font:{size:9}}},y:{ticks:{callback:v=>'$'+OXXO.formatNum(Math.round(v))}}}}
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>fmt$(c.raw)}}},
+      scales:{x:{border:{display:false},grid:{display:false},ticks:{font:{family:'Barlow',size:10,weight:'800'},color:'#5A4037'}},y:{border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'},callback:v=>'$'+OXXO.formatNum(Math.round(v))}}}}
   });
 
   // ── Bar Tiendas ──
@@ -455,10 +451,10 @@ function renderAll() {
   chartTiendas = new Chart(document.getElementById('chart-tiendas').getContext('2d'),{
     type:'bar',
     data:{labels:top10t.map(([k])=>OXXO.truncate(k,14)),
-      datasets:[{data:top10t.map(([,v])=>v),backgroundColor:'#FF6B00',borderRadius:4}]},
+      datasets:[{data:top10t.map(([,v])=>v),backgroundColor:'#F07B22',borderColor:'rgba(255,255,255,.68)',borderWidth:1,borderRadius:999,borderSkipped:false,barPercentage:.72,categoryPercentage:.72}]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt$(c.raw)}}},
-      scales:{x:{ticks:{font:{size:9}}},y:{ticks:{callback:v=>'$'+OXXO.formatNum(Math.round(v))}}}}
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>fmt$(c.raw)}}},
+      scales:{x:{border:{display:false},grid:{display:false},ticks:{font:{family:'Barlow',size:10,weight:'800'},color:'#5A4037'}},y:{border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'},callback:v=>'$'+OXXO.formatNum(Math.round(v))}}}}
   });
 
   // ── Grouped table ──

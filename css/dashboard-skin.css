@@ -2005,3 +2005,278 @@ html[data-theme="dark"] .compromiso-table tfoot td {
     font-size: 1.35rem !important;
   }
 }
+
+/* Spatial UI claro global: estilo ejecutivo unificado */
+html,
+html[data-theme="light"],
+body {
+  color-scheme: light !important;
+}
+
+html[data-theme="dark"] {
+  color-scheme: light !important;
+}
+
+.theme-toggle,
+[data-theme-toggle] {
+  display: none !important;
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(246,183,60,.13), transparent 30%),
+    radial-gradient(circle at 88% 0%, rgba(217,31,45,.08), transparent 34%),
+    linear-gradient(180deg, #FBF3EA 0%, #F6EEE7 48%, #F9F4EE 100%) !important;
+  color: #211514 !important;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 8%, rgba(255,255,255,.52), transparent 24%),
+    radial-gradient(circle at 72% 0%, rgba(246,183,60,.10), transparent 28%);
+}
+
+.topbar {
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,.72) !important;
+  background: linear-gradient(135deg, rgba(255,255,255,.86), rgba(255,249,243,.58)) !important;
+  box-shadow: 0 18px 42px rgba(80,34,20,.10), inset 0 1px 0 rgba(255,255,255,.78) !important;
+  backdrop-filter: blur(18px);
+}
+
+.topbar::before {
+  background: linear-gradient(180deg, #F71926, #F6B73C) !important;
+}
+
+.topbar__title,
+.topbar__subtitle,
+.topbar__meta {
+  color: #211514 !important;
+}
+
+.hero,
+.dashboard-hero,
+.bajas-header {
+  border-radius: 28px !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,.30), transparent 24%),
+    radial-gradient(circle at 88% 22%, rgba(246,183,60,.28), transparent 18%),
+    linear-gradient(126deg, #FA3844 0%, #F71926 38%, #B91422 72%, #7E0D17 100%) !important;
+  box-shadow: 0 24px 56px rgba(89,7,13,.16), inset 0 1px 0 rgba(255,255,255,.22) !important;
+  overflow: hidden;
+}
+
+.hero h1,
+.dashboard-hero h1,
+.bajas-header h1 {
+  color: #fff !important;
+  filter: drop-shadow(0 12px 22px rgba(55,4,10,.18));
+}
+
+.hero p,
+.dashboard-hero p,
+.bajas-header__meta,
+.bajas-header p {
+  color: rgba(255,255,255,.84) !important;
+}
+
+.hero-badge,
+.dashboard-hero__badge,
+.bajas-header__badge {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  font-weight: 900 !important;
+  background: rgba(255,255,255,.16) !important;
+  border-color: rgba(255,255,255,.34) !important;
+}
+
+.card,
+.kpi-card,
+.chart-card,
+.panel,
+.bajas-panel,
+.table-panel,
+.bajas-detail-panel,
+.metric-card,
+.state-box,
+.te-panel {
+  border-radius: 24px !important;
+  border: 1px solid rgba(255,255,255,.76) !important;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(255,255,255,.86), transparent 36%),
+    linear-gradient(145deg, rgba(255,255,255,.86), rgba(255,247,239,.70)) !important;
+  box-shadow:
+    0 20px 48px rgba(80,34,20,.10),
+    0 1px 0 rgba(255,255,255,.86) inset,
+    0 0 0 1px rgba(217,31,45,.045) !important;
+  backdrop-filter: blur(14px);
+}
+
+.card:hover,
+.chart-card:hover,
+.panel:hover,
+.bajas-panel:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 26px 58px rgba(80,34,20,.13),
+    0 1px 0 rgba(255,255,255,.90) inset,
+    0 0 0 1px rgba(217,31,45,.055) !important;
+}
+
+.card-head,
+.panel-header,
+.chart-card__head,
+.bajas-panel__head {
+  border-bottom-color: rgba(128,63,38,.11) !important;
+}
+
+.card-title,
+.chart-title,
+.panel-title,
+.table-title,
+.bajas-panel__title,
+.section-title {
+  color: #211514 !important;
+  font-weight: 900 !important;
+}
+
+.card-title::before,
+.chart-title::before,
+.panel-title::before,
+.bajas-panel__title::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 9px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #F71926, #F6B73C);
+  box-shadow: 0 0 0 5px rgba(247,25,38,.10);
+  vertical-align: middle;
+}
+
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::after {
+  content: "";
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  top: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #F71926, #E97822, #F6B73C);
+  box-shadow: 0 0 16px rgba(246,183,60,.20);
+}
+
+.kpi-card__label,
+.kpi-label,
+.metric-label,
+label {
+  color: #8B6A5F !important;
+  font-weight: 900 !important;
+}
+
+.kpi-card__value,
+.kpi-value,
+.metric-value,
+[class*="value"],
+[class*="Value"] {
+  color: #211514 !important;
+}
+
+.chart-container,
+.chart-wrap,
+.chart-wide,
+.chart-lg,
+.chart-md,
+.chart-sm,
+.vac-chart,
+.bar-chart-area,
+.donut-chart-wrap {
+  position: relative;
+  border-radius: 22px;
+}
+
+.chart-container::before,
+.chart-wrap::before,
+.chart-wide::before,
+.chart-lg::before,
+.chart-md::before,
+.chart-sm::before,
+.vac-chart::before,
+.bar-chart-area::before,
+.donut-chart-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(246,183,60,.14), transparent 30%),
+    linear-gradient(135deg, rgba(255,255,255,.44), rgba(255,246,237,.26));
+  border: 1px solid rgba(255,255,255,.62);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+}
+
+.chart-container canvas,
+.chart-wrap canvas,
+.chart-wide canvas,
+.chart-lg canvas,
+.chart-md canvas,
+.chart-sm canvas,
+.vac-chart canvas,
+.bar-chart-area canvas,
+.donut-chart-wrap canvas {
+  position: relative;
+  z-index: 1;
+  padding: 8px;
+}
+
+.tbl-wrap,
+.table-wrap,
+.te-table-wrap,
+.risk-table-wrap {
+  border-radius: 22px !important;
+  border-color: rgba(255,255,255,.72) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.82), 0 10px 26px rgba(80,34,20,.045) !important;
+}
+
+th,
+.tbl thead th,
+.data-table thead th,
+.te-table thead th {
+  background: linear-gradient(180deg, #361617 0%, #241111 100%) !important;
+  color: #FFF8EE !important;
+}
+
+td,
+.tbl tbody td,
+.data-table tbody td,
+.te-table tbody td {
+  color: #372420 !important;
+}
+
+select,
+input,
+.filtro-select,
+.filter-select,
+.reset-filters,
+.filtro-btn,
+button:not(.theme-toggle) {
+  border-radius: 999px !important;
+  border-color: rgba(255,255,255,.68) !important;
+  background: linear-gradient(135deg, rgba(255,255,255,.88), rgba(255,236,236,.74)) !important;
+  color: #211514 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.78), 0 12px 28px rgba(83,6,12,.08) !important;
+}
