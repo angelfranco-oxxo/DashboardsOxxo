@@ -366,9 +366,12 @@
   <div class="charts-row">
 
     <!-- Dona distribución estatus -->
-    <div class="card">
+    <div class="card estatus-card">
       <div class="card-head"><div class="card-title">Distribución Estatus</div></div>
-      <div class="chart-wrap"><canvas id="chart-dona"></canvas></div>
+      <div class="estatus-distribution">
+        <div class="chart-wrap estatus-chart-wrap"><canvas id="chart-dona"></canvas></div>
+        <div class="estatus-summary" id="estatus-summary"></div>
+      </div>
     </div>
 
   </div>
@@ -462,6 +465,81 @@ function isIncompleta(e){const s=statusText(e);return s.includes('incompleto');}
 function isCompleta(e){const s=statusText(e);return s.includes('completo') && !s.includes('incompleto') && !s.includes('crit');}
 function estatusColor(e){if(isCritica(e))return'rojo';if(isIncompleta(e))return'amarillo';if(isCompleta(e))return'verde';return'gris';}
 function ecPill(pct,label){const c=ecColor(pct);return`<span class="ec-pill ${c}"><span class="ec-dot"></span>${label}</span>`;}
+
+function renderEstatusDistribution(completas, incompletas, criticas, total){
+  const canvas = document.getElementById('chart-dona');
+  if(!canvas || !window.Chart) return;
+  if(canvas._chartInstance) canvas._chartInstance.destroy();
+  const labels = ['Equipo Completo','Equipo Incompleto','Tienda Crítica'];
+  const values = [completas, incompletas, criticas];
+  const colors = ['#159447', '#F07B22', '#D91F2D'];
+  const pct = v => total > 0 ? Math.round((v / total) * 100) : 0;
+  const centerPlugin = {
+    id: 'estatusCenter',
+    afterDraw(chart) {
+      const meta = chart.getDatasetMeta(0);
+      if(!meta?.data?.[0]) return;
+      const { x, y } = meta.data[0];
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#159447';
+      ctx.font = '900 34px "Barlow Condensed", sans-serif';
+      ctx.fillText(`${pct(completas)}%`, x, y - 8);
+      ctx.fillStyle = '#8B6A5F';
+      ctx.font = '800 11px "Barlow", sans-serif';
+      ctx.fillText('completo', x, y + 18);
+      ctx.restore();
+    }
+  };
+  canvas._chartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderColor: '#FFF8EE',
+        borderWidth: 5,
+        borderRadius: 14,
+        spacing: 4,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '66%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#251313',
+          titleColor: '#FFF8EE',
+          bodyColor: '#FFF8EE',
+          padding: 12,
+          cornerRadius: 14,
+          displayColors: false
+        }
+      }
+    },
+    plugins: [centerPlugin]
+  });
+
+  const summary = document.getElementById('estatus-summary');
+  if(summary) {
+    summary.innerHTML = labels.map((label, i) => `
+      <div class="estatus-summary__item">
+        <div>
+          <span class="estatus-dot" style="background:${colors[i]}"></span>
+          <span class="estatus-label">${label}</span>
+        </div>
+        <strong>${OXXO.formatNum(values[i])}</strong>
+        <span>${pct(values[i])}%</span>
+      </div>
+    `).join('');
+  }
+}
 
 // Plazas foco (hardcoded para las tarjetas superiores)
 const PLAZAS_FOCO = ['OAXACA','TUXTLA','ISTMO','VILLAHERMOSA','CHONTALPA'];
@@ -745,7 +823,7 @@ function render(data){
 
 
   // ── GRÁFICA DONA ESTATUS ─────────────────────────────────
-  OXXO.renderDonutChart('chart-dona',['Equipo Completo','Equipo Incompleto','Tienda Crítica'],[completas,incompletas,criticas]);
+  renderEstatusDistribution(completas, incompletas, criticas, total);
 
 
 
