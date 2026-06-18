@@ -1930,6 +1930,31 @@ function pillHTML(t,c){return`<span class="pill ${c}"><span class="pill-dot"></s
 // Estado global
 let allData=[], colMap={}, activePuesto='';
 
+function forceKpiLayout(){
+  const section = document.getElementById('kpi-section');
+  if(!section) return;
+  const hero = document.querySelector('.hero');
+  const heroWidth = hero ? Math.round(hero.getBoundingClientRect().width) : 0;
+  section.style.display = 'grid';
+  section.style.boxSizing = 'border-box';
+  section.style.width = heroWidth > 0 ? `${heroWidth}px` : '100%';
+  section.style.maxWidth = 'none';
+  section.style.marginLeft = '0';
+  section.style.marginRight = '0';
+  section.style.justifyContent = 'stretch';
+  section.style.justifyItems = 'stretch';
+  section.style.alignItems = 'stretch';
+  section.style.gridTemplateColumns = window.innerWidth <= 620
+    ? 'repeat(2, minmax(0, 1fr))'
+    : 'repeat(5, minmax(0, 1fr))';
+  section.querySelectorAll('.kpi-card').forEach(card => {
+    card.style.width = '100%';
+    card.style.maxWidth = 'none';
+    card.style.minWidth = '0';
+    card.style.justifySelf = 'stretch';
+  });
+}
+
 // Obtener filtros actuales
 function getFiltros(){
   return{
@@ -2224,6 +2249,7 @@ function renderOverview(allData){
       <div class="kpi-card__delta ${maxDias>=15?'neg':'neu'}">${maxDias?'días · '+OXXO.truncate(tiendaAntigua,18):'Sin fecha'}</div>
       <div class="kpi-card__icon">⏱️</div>
     </div>`;
+  forceKpiLayout();
 
   // Eventos click en KPIs
   document.querySelectorAll('.kpi-card[data-kpi]').forEach(card => {
@@ -2379,6 +2405,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try { localStorage.setItem('oxxo-theme', 'light'); } catch (_) {}
   initDashboard();
 });
+window.addEventListener('resize', forceKpiLayout);
 </script>
 </body>
 </html>
