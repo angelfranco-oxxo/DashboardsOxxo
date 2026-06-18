@@ -2941,8 +2941,8 @@ body .bajas-header .bajas-header__badge {
 }
 
 .te-row1 > .card:first-child {
-  height: 600px !important;
-  max-height: 600px !important;
+  height: 482px !important;
+  max-height: 482px !important;
 }
 
 .te-row1 > .card:nth-child(2) {
@@ -2953,7 +2953,7 @@ body .bajas-header .bajas-header__badge {
 
 .te-row1 .rank-list {
   flex: 1 1 auto;
-  max-height: 500px;
+  max-height: 382px;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 10px 6px 8px 0;
