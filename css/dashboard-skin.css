@@ -2898,3 +2898,156 @@ body .bajas-header .bajas-header__badge {
   background: rgba(255,255,255,.15) !important;
   border-color: rgba(255,255,255,.36) !important;
 }
+
+/* Targeted layout fixes after visual QA */
+
+/* D4 Tiempo Extra: keep row 1 compact and scroll the ranking inside the card */
+.te-row1 {
+  align-items: stretch !important;
+}
+
+.te-row1 > .card {
+  min-height: 0;
+  max-height: 690px;
+  display: flex;
+  flex-direction: column;
+}
+
+.te-row1 .rank-list {
+  flex: 1 1 auto;
+  max-height: 570px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(217,31,45,.48) rgba(128,63,38,.08);
+}
+
+.te-row1 .rank-list::-webkit-scrollbar {
+  width: 7px;
+}
+
+.te-row1 .rank-list::-webkit-scrollbar-thumb {
+  background: rgba(217,31,45,.48);
+  border-radius: 999px;
+}
+
+.te-row1 .rank-row {
+  grid-template-columns: 42px minmax(0,1fr) minmax(250px,.45fr) auto !important;
+  min-height: 54px;
+}
+
+.te-row1 .rank-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.te-row1 .donut-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 18px 22px 22px !important;
+}
+
+.te-row1 .donut-chart-wrap {
+  width: min(100%, 300px) !important;
+  height: 300px !important;
+}
+
+.te-row1 .donut-legend {
+  width: min(100%, 560px) !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(120px, 1fr)) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+
+.te-row1 .donut-leg-item {
+  min-height: 78px !important;
+  padding: 14px 16px !important;
+  align-self: stretch;
+}
+
+/* D6 Ausentismos: keep KPI strip in one executive row on wide screens */
+@media (min-width: 1320px) {
+  body:has(#ranking-asesores) .kpis.kpi-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  body:has(#ranking-asesores) .kpis.kpi-grid .kpi-card {
+    min-height: 126px !important;
+    padding: 18px 16px !important;
+  }
+
+  body:has(#ranking-asesores) .kpis.kpi-grid .kpi-card__label {
+    font-size: 11px !important;
+    letter-spacing: .10em !important;
+  }
+
+  body:has(#ranking-asesores) .kpis.kpi-grid .kpi-card__value {
+    font-size: clamp(2rem, 2.2vw, 2.55rem) !important;
+  }
+}
+
+/* D7 TREO: table should fit the card cleanly, side panels keep their space */
+body:has(#main-tbl) .row-main {
+  grid-template-columns: minmax(0, 2.05fr) minmax(360px, .95fr) !important;
+  align-items: stretch !important;
+}
+
+body:has(#main-tbl) .detail-card {
+  min-height: 600px !important;
+  overflow: hidden;
+}
+
+body:has(#main-tbl) .detail-card .tbl-wrap {
+  max-height: 435px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  border-radius: 18px !important;
+}
+
+body:has(#main-tbl) .tbl {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed !important;
+  font-size: 12px !important;
+}
+
+body:has(#main-tbl) .tbl th,
+body:has(#main-tbl) .tbl td {
+  padding: 9px 10px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+body:has(#main-tbl) .tbl th:nth-child(1),
+body:has(#main-tbl) .tbl td:nth-child(1) { width: 17%; }
+body:has(#main-tbl) .tbl th:nth-child(2),
+body:has(#main-tbl) .tbl td:nth-child(2) { width: 16%; }
+body:has(#main-tbl) .tbl th:nth-child(3),
+body:has(#main-tbl) .tbl td:nth-child(3) { width: 14%; }
+body:has(#main-tbl) .tbl th:nth-child(4),
+body:has(#main-tbl) .tbl td:nth-child(4),
+body:has(#main-tbl) .tbl th:nth-child(5),
+body:has(#main-tbl) .tbl td:nth-child(5),
+body:has(#main-tbl) .tbl th:nth-child(6),
+body:has(#main-tbl) .tbl td:nth-child(6),
+body:has(#main-tbl) .tbl th:nth-child(7),
+body:has(#main-tbl) .tbl td:nth-child(7),
+body:has(#main-tbl) .tbl th:nth-child(8),
+body:has(#main-tbl) .tbl td:nth-child(8) { width: 8%; }
+body:has(#main-tbl) .tbl th:nth-child(9),
+body:has(#main-tbl) .tbl td:nth-child(9) { width: 13%; }
+
+body:has(#main-tbl) .pag {
+  padding-top: 12px !important;
+}
+
+@media (max-width: 1319px) {
+  body:has(#ranking-asesores) .kpis.kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
