@@ -241,100 +241,179 @@
   <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final" />
   <style id="d3-layout-fine-tune">
     .d3-top-grid{
-      grid-template-columns:minmax(0,1.28fr) minmax(390px,.88fr) !important;
+      grid-template-columns:minmax(560px,1.34fr) minmax(390px,.86fr) !important;
       align-items:stretch !important;
-      gap:16px !important;
+      gap:18px !important;
+      margin-bottom:18px !important;
     }
     .d3-metrics-grid{
       display:grid !important;
-      grid-template-columns:minmax(330px,.8fr) minmax(0,1.6fr) !important;
-      gap:16px !important;
-      margin-bottom:16px !important;
-      align-items:start !important;
+      grid-template-columns:minmax(330px,.62fr) minmax(650px,1.38fr) !important;
+      gap:18px !important;
+      margin-bottom:18px !important;
+      align-items:stretch !important;
     }
     .d3-top-grid > .card,
     .d3-metrics-grid > .card{
-      align-self:start !important;
+      align-self:stretch !important;
       min-height:0 !important;
-      height:fit-content !important;
+      display:flex !important;
+      flex-direction:column !important;
+      overflow:hidden !important;
+      padding:18px 20px !important;
     }
     .d3-top-grid > .card{
-      align-self:stretch !important;
-      height:auto !important;
+      height:410px !important;
     }
-    #ranking-at{
-      max-height:355px !important;
+    .d3-metrics-grid > .card{
+      height:395px !important;
+    }
+    #tabla-ec-at,
+    #ranking-at,
+    #tabla-plazas,
+    #tabla-at{
+      flex:1 1 auto !important;
+      min-height:0 !important;
+    }
+    #ranking-at,
+    #tabla-at .tbl-wrap{
+      max-height:none !important;
       overflow-y:auto !important;
       overflow-x:hidden !important;
       padding-right:8px !important;
     }
     #ranking-at .rank-item,
     #ranking-at .ranking-item{
+      grid-template-columns:34px minmax(0,1fr) 42px !important;
       min-height:0 !important;
-      padding-top:6px !important;
-      padding-bottom:6px !important;
-      gap:8px !important;
+      padding:9px 10px !important;
+      gap:10px !important;
+      margin-bottom:8px !important;
+      border:1px solid rgba(255,255,255,.58) !important;
+      border-radius:15px !important;
+      background:rgba(255,255,255,.45) !important;
+      box-shadow:0 10px 24px rgba(67,38,18,.08) !important;
+      border-bottom-color:rgba(255,255,255,.58) !important;
+    }
+    #ranking-at .rank-num{
+      width:28px !important;
+      height:28px !important;
+      display:grid !important;
+      place-items:center !important;
+      border-radius:10px !important;
+      background:linear-gradient(145deg,#3B1918,#1F1010) !important;
+      color:#fff !important;
+      font-size:12px !important;
+      box-shadow:0 8px 18px rgba(54,22,16,.16) !important;
+    }
+    #ranking-at .rank-item:nth-child(-n+3) .rank-num{
+      background:linear-gradient(145deg,#F6B73C,#E43130) !important;
     }
     #ranking-at .rank-name,
     #ranking-at .ranking-name{
-      font-size:11px !important;
-      line-height:1.12 !important;
+      font-size:12px !important;
+      line-height:1.15 !important;
+      white-space:nowrap !important;
+      overflow:hidden !important;
+      text-overflow:ellipsis !important;
     }
     #ranking-at .rank-name + div{
-      font-size:9px !important;
-      line-height:1.05 !important;
-      margin-bottom:3px !important;
+      font-size:10px !important;
+      line-height:1.1 !important;
+      margin-bottom:5px !important;
+      white-space:nowrap !important;
+      overflow:hidden !important;
+      text-overflow:ellipsis !important;
     }
     #ranking-at .rank-sub,
     #ranking-at .ranking-sub{
-      font-size:9px !important;
-      line-height:1.05 !important;
+      font-size:10px !important;
+      line-height:1.1 !important;
     }
     #ranking-at .rank-val,
     #ranking-at .ranking-value{
+      width:34px !important;
+      height:34px !important;
+      display:grid !important;
+      place-items:center !important;
+      border-radius:999px !important;
+      background:rgba(247,25,38,.08) !important;
+      border:1px solid rgba(247,25,38,.14) !important;
       font-size:13px !important;
     }
     #ranking-at .rank-bar-bg{
-      height:4px !important;
+      height:6px !important;
     }
     #tabla-ec-at table,
     #tabla-at .tbl{
       table-layout:fixed !important;
     }
     #tabla-ec-at table{
-      font-size:11px !important;
+      font-size:12px !important;
+      height:100% !important;
     }
     #tabla-ec-at th,
     #tabla-ec-at td{
       white-space:nowrap;
+      padding:6px 10px !important;
     }
-    #tabla-ec-at th:nth-child(1){width:52px}
-    #tabla-ec-at th:nth-child(3){width:30%}
-    #tabla-ec-at th:nth-child(4){width:86px}
-    #tabla-at .tbl-wrap{
-      max-height:none !important;
-      overflow-y:visible !important;
+    #tabla-ec-at th:nth-child(1){width:52px !important}
+    #tabla-ec-at th:nth-child(2){width:37% !important}
+    #tabla-ec-at th:nth-child(3){width:34% !important}
+    #tabla-ec-at th:nth-child(4){width:92px !important}
+    #tabla-ec-at td:nth-child(2){
+      font-size:12px !important;
+      line-height:1.15 !important;
+    }
+    #tabla-ec-at td:last-child{
+      font-size:15px !important;
+    }
+    #tabla-ec-at tbody tr:nth-child(even){
+      background:rgba(255,246,241,.52) !important;
     }
     #tabla-at .tbl thead th,
     #tabla-at .tbl tbody td{
-      padding-top:8px !important;
-      padding-bottom:8px !important;
+      padding-top:10px !important;
+      padding-bottom:10px !important;
+      font-size:12px !important;
+      line-height:1.18 !important;
+    }
+    #tabla-at .tbl th:first-child,
+    #tabla-at .tbl td:first-child{
+      width:34% !important;
+    }
+    #tabla-at .tbl .total-row td{
+      padding-top:12px !important;
+      padding-bottom:12px !important;
     }
     #tabla-plazas table{
       table-layout:fixed !important;
+      width:100% !important;
+      height:100% !important;
     }
     #tabla-plazas td,
     #tabla-plazas th{
-      padding-top:8px !important;
-      padding-bottom:8px !important;
+      padding:12px 12px !important;
     }
     #tabla-plazas td:first-child{
-      font-size:12px !important;
+      font-size:12.5px !important;
+      line-height:1.15 !important;
+    }
+    #tabla-plazas td:last-child{
+      font-size:15px !important;
     }
     @media(max-width:1200px){
       .d3-top-grid,
       .d3-metrics-grid{
         grid-template-columns:1fr !important;
+      }
+      .d3-top-grid > .card,
+      .d3-metrics-grid > .card{
+        height:auto !important;
+      }
+      #ranking-at,
+      #tabla-at .tbl-wrap{
+        max-height:360px !important;
       }
     }
   </style>
