@@ -239,6 +239,105 @@
   .hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
   </style>
   <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final" />
+  <style id="d3-layout-fine-tune">
+    .d3-top-grid{
+      grid-template-columns:minmax(0,1.28fr) minmax(390px,.88fr) !important;
+      align-items:stretch !important;
+      gap:16px !important;
+    }
+    .d3-metrics-grid{
+      display:grid !important;
+      grid-template-columns:minmax(330px,.8fr) minmax(0,1.6fr) !important;
+      gap:16px !important;
+      margin-bottom:16px !important;
+      align-items:start !important;
+    }
+    .d3-top-grid > .card,
+    .d3-metrics-grid > .card{
+      align-self:start !important;
+      min-height:0 !important;
+      height:fit-content !important;
+    }
+    .d3-top-grid > .card{
+      align-self:stretch !important;
+      height:auto !important;
+    }
+    #ranking-at{
+      max-height:355px !important;
+      overflow-y:auto !important;
+      overflow-x:hidden !important;
+      padding-right:8px !important;
+    }
+    #ranking-at .rank-item,
+    #ranking-at .ranking-item{
+      min-height:0 !important;
+      padding-top:6px !important;
+      padding-bottom:6px !important;
+      gap:8px !important;
+    }
+    #ranking-at .rank-name,
+    #ranking-at .ranking-name{
+      font-size:11px !important;
+      line-height:1.12 !important;
+    }
+    #ranking-at .rank-name + div{
+      font-size:9px !important;
+      line-height:1.05 !important;
+      margin-bottom:3px !important;
+    }
+    #ranking-at .rank-sub,
+    #ranking-at .ranking-sub{
+      font-size:9px !important;
+      line-height:1.05 !important;
+    }
+    #ranking-at .rank-val,
+    #ranking-at .ranking-value{
+      font-size:13px !important;
+    }
+    #ranking-at .rank-bar-bg{
+      height:4px !important;
+    }
+    #tabla-ec-at table,
+    #tabla-at .tbl{
+      table-layout:fixed !important;
+    }
+    #tabla-ec-at table{
+      font-size:11px !important;
+    }
+    #tabla-ec-at th,
+    #tabla-ec-at td{
+      white-space:nowrap;
+    }
+    #tabla-ec-at th:nth-child(1){width:52px}
+    #tabla-ec-at th:nth-child(3){width:30%}
+    #tabla-ec-at th:nth-child(4){width:86px}
+    #tabla-at .tbl-wrap{
+      max-height:none !important;
+      overflow-y:visible !important;
+    }
+    #tabla-at .tbl thead th,
+    #tabla-at .tbl tbody td{
+      padding-top:8px !important;
+      padding-bottom:8px !important;
+    }
+    #tabla-plazas table{
+      table-layout:fixed !important;
+    }
+    #tabla-plazas td,
+    #tabla-plazas th{
+      padding-top:8px !important;
+      padding-bottom:8px !important;
+    }
+    #tabla-plazas td:first-child{
+      font-size:12px !important;
+    }
+    @media(max-width:1200px){
+      .d3-top-grid,
+      .d3-metrics-grid{
+        grid-template-columns:1fr !important;
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -310,7 +409,7 @@
 
 
   <!-- GRID PRINCIPAL: EC % por AT + Ranking -->
-  <div class="main-grid">
+  <div class="main-grid d3-top-grid">
     <!-- EC % por AT -->
     <div class="card">
       <div class="card-head">
@@ -333,7 +432,7 @@
   </div>
 
   <!-- TABLA APROVECHAMIENTO POR PLAZA + RESUMEN POR AT -->
-  <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:16px">
+  <div class="d3-metrics-grid">
     <div class="card">
       <div class="card-head">
         <div class="card-title">Aprovechamiento por Plaza</div>
