@@ -340,6 +340,7 @@ const ALIASES = {
   aplica: ['Aplica en %','Aplica en % de rotación','Aplica en % de rotacion','Aplica','Aplica porcentaje','Aplica rotación','Aplica rotacion'],
   rotTemp: ['Rot. Temp.','Rot Temp','Rotación temporal','Rotacion temporal','Rot. Temprana','Rot Temprana','Temporal'],
   fecha: ['Fecha','Fecha baja','Fecha de baja','Fecha_validez','Fecha validez','F. Validez','Corte'],
+  personal: ['No. Personal','No Personal','N° Personal','Nº Personal','Num. Personal','Num Personal','Núm. Personal','Numero Personal','Número Personal','Numero de Personal','Número de Personal','ID Personal','Id Personal','Personal','No. empleado','No empleado','Numero empleado','Número empleado'],
   antiguedad: ['Antiguedad_dias','Antigüedad_dias','Antiguedad dias','Antigüedad días','Dias','Días','Días Activo','Dias Activo'],
   empleado: ['Nombre_empleado','Nombre empleado','Empleado','Colaborador','Nombre colaborador','Nombre del empleado'],
   genero: ['Genero','Género','Sexo'],
@@ -622,7 +623,7 @@ function renderCompromiso(data, cols){
 
 function renderDetail(data, cols){
   const columns = [
-    ['semana','Semana'], ['plaza','Plaza'], ['asesor','Asesor'], ['tienda','Tienda'], ['empleado','Colaborador'], ['puesto','Puesto'], ['motivo','Motivo'], ['detalle','Detalle baja'], ['temporalidad','Temporalidad'], ['rotTemp','Rot. Temp.'], ['genero','Género'], ['fecha','Fecha']
+    ['semana','Semana'], ['plaza','Plaza'], ['asesor','Asesor'], ['tienda','Tienda'], ['empleado','Colaborador'], ['puesto','Puesto'], ['motivo','Motivo'], ['detalle','Detalle baja'], ['temporalidad','Temporalidad'], ['rotTemp','Rot. Temp.'], ['genero','Género'], ['personal','No. personal']
   ].filter(([k]) => cols[k] || k==='temporalidad');
   const rows = data.map(r => '<tr>' + columns.map(([k]) => {
     let v = k==='puesto' ? normalizePuesto(val(r,cols,k)) : k==='motivo' ? normalizeMotivo(val(r,cols,k)) : k==='temporalidad' ? getTemporalidad(r,cols) : val(r,cols,k,'—');
