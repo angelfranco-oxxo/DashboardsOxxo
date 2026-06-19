@@ -223,9 +223,9 @@
               <th data-col="tienda">Tienda</th>
               <th data-col="asesor">Asesor</th>
               <th data-col="mov" style="text-align:center">Movimiento</th>
-              <th data-col="est_sap" style="text-align:center">Est. SAP</th>
-              <th data-col="est_final" style="text-align:center">Est. TREO</th>
-              <th data-col="empleados" style="text-align:center">Empleados</th>
+              <th data-col="est_sap" style="text-align:center">TREO</th>
+              <th data-col="est_final" style="text-align:center">SAP</th>
+              <th data-col="empleados" style="text-align:center">Activos</th>
               <th data-col="vacantes" style="text-align:center">Vacantes</th>
               <th data-col="dif" style="text-align:center">Dif.</th>
               <th data-col="antiguedad">Antigüedad</th>
@@ -328,6 +328,7 @@ let ALL = [];
 let VIEW = [];        // datos filtrados
 let SORT = { col: 'mov', dir: 'asc' };
 let PAGE = 1;
+let ACTIVE_KPI = '';
 const PER_PAGE = 25;
 
 // ─────────────────────────────────────────────────────────
@@ -486,6 +487,7 @@ function filtrar(){
     if(f.asesor && r.asesor !== f.asesor) return false;
     if(f.mov    && r.mov    !== f.mov)    return false;
     if(f.ant    && r.antiguedad !== f.ant) return false;
+    if(ACTIVE_KPI === 'vacantes' && (Number(r.vacantes)||0) <= 0) return false;
     return true;
   });
 
@@ -503,15 +505,28 @@ function filtrar(){
 }
 
 function applyFilters(){
+  const movSelect = document.getElementById('filtro-mov');
+  if(movSelect && movSelect.value) ACTIVE_KPI = movSelect.value;
+  else if(ACTIVE_KPI !== 'vacantes') ACTIVE_KPI = '';
   filtrar();
   renderAll();
 }
 
 function limpiarFiltros(){
+  ACTIVE_KPI = '';
   ['filtro-buscar','filtro-asesor','filtro-mov','filtro-ant'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
+  applyFilters();
+}
+
+function setKpiFilter(kpi){
+  const movSelect = document.getElementById('filtro-mov');
+  ACTIVE_KPI = kpi || '';
+  if(movSelect){
+    movSelect.value = ['Alineada','Subir','Bajar'].includes(ACTIVE_KPI) ? ACTIVE_KPI : '';
+  }
   applyFilters();
 }
 
@@ -526,31 +541,31 @@ function renderKPIs(data){
   const pct = total > 0 ? Math.round(alineadas/total*100) : 0;
 
   document.getElementById('kpi-section').innerHTML = `
-    <div class="kpi-card azul">
+    <div class="kpi-card azul ${!ACTIVE_KPI ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('')}">
       <div class="kpi-card__label">Total Tiendas</div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neu">Plaza Oaxaca</div>
       <div class="kpi-card__icon">🏪</div>
     </div>
-    <div class="kpi-card verde">
+    <div class="kpi-card verde ${ACTIVE_KPI==='Alineada' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('Alineada')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('Alineada')}">
       <div class="kpi-card__label">Alineadas ✔</div>
       <div class="kpi-card__value">${alineadas}</div>
       <div class="kpi-card__delta pos">${pct}% del total</div>
       <div class="kpi-card__icon">✅</div>
     </div>
-    <div class="kpi-card naranja">
+    <div class="kpi-card naranja ${ACTIVE_KPI==='Subir' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('Subir')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('Subir')}">
       <div class="kpi-card__label">Por Subir ▲</div>
       <div class="kpi-card__value">${subir}</div>
       <div class="kpi-card__delta neu">Posiciones a agregar</div>
       <div class="kpi-card__icon">📈</div>
     </div>
-    <div class="kpi-card rojo">
+    <div class="kpi-card rojo ${ACTIVE_KPI==='Bajar' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('Bajar')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('Bajar')}">
       <div class="kpi-card__label">Por Bajar ▼</div>
       <div class="kpi-card__value">${bajar}</div>
       <div class="kpi-card__delta neg">Posiciones a liberar</div>
       <div class="kpi-card__icon">📉</div>
     </div>
-    <div class="kpi-card amarillo">
+    <div class="kpi-card amarillo ${ACTIVE_KPI==='vacantes' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('vacantes')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('vacantes')}">
       <div class="kpi-card__label">Vacantes Totales</div>
       <div class="kpi-card__value">${vacantes}</div>
       <div class="kpi-card__delta neu">En tiendas filtradas</div>
