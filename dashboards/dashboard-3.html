@@ -635,25 +635,25 @@ function render(data){
       <div class="kpi-card__delta ${aprovProm>=0.95?'pos':aprovProm>=0.80?'neu':'neg'}">Plaza Oaxaca</div>
       <div class="kpi-card__icon">📊</div>
     </div>
-    <div class="kpi-card azul">
+    <div class="kpi-card azul ${document.getElementById('filtro-estatus')?.value===''?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('')}">
       <div class="kpi-card__label">Tiendas Totales</div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neu">${completas} completas · ${incompletas} inc. · ${criticas} crít.</div>
       <div class="kpi-card__icon">🏪</div>
     </div>
-    <div class="kpi-card verde">
+    <div class="kpi-card verde ${document.getElementById('filtro-estatus')?.value==='completo'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('completo')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('completo')}">
       <div class="kpi-card__label">Equipo Completo</div>
       <div class="kpi-card__value">${completas}</div>
       <div class="kpi-card__delta pos">${total>0?Math.round(completas/total*100):0}% del total</div>
       <div class="kpi-card__icon">✅</div>
     </div>
-    <div class="kpi-card amarillo">
+    <div class="kpi-card amarillo ${document.getElementById('filtro-estatus')?.value==='incompleto'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('incompleto')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('incompleto')}">
       <div class="kpi-card__label">Equipo Incompleto</div>
       <div class="kpi-card__value">${incompletas}</div>
       <div class="kpi-card__delta neu">Requieren atención</div>
       <div class="kpi-card__icon">⚠️</div>
     </div>
-    <div class="kpi-card rojo">
+    <div class="kpi-card rojo ${document.getElementById('filtro-estatus')?.value==='critica'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('critica')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('critica')}">
       <div class="kpi-card__label">Tienda Crítica</div>
       <div class="kpi-card__value">${criticas}</div>
       <div class="kpi-card__delta neg">Acción inmediata</div>
@@ -1013,9 +1013,14 @@ function applyFilters(){
   if(s==='critica')    d = d.filter(r=>isCritica(r.estatus));
   render(d);
 }
+function setKpiEstatus(value){
+  const sel = document.getElementById('filtro-estatus');
+  if(sel) sel.value = value;
+  applyFilters();
+}
 function limpiarFiltros(){
   ['filtro-asesor','filtro-esquema','filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
-  render(ALL_DATA);
+  applyFilters();
 }
 
 document.addEventListener('DOMContentLoaded', initDashboard);
