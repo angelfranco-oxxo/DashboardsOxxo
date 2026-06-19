@@ -1723,12 +1723,21 @@
     grid-template-columns:repeat(5,minmax(0,1fr)) !important;
     gap:18px !important;
     width:100% !important;
+    min-width:100% !important;
+    max-width:none !important;
     margin-bottom:20px !important;
+    justify-content:stretch !important;
+    justify-items:stretch !important;
+    align-items:stretch !important;
   }
   .kpis.kpi-grid .kpi-card,
   #kpi-section .kpi-card{
     min-height:156px !important;
     padding:24px 26px !important;
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+    justify-self:stretch !important;
   }
   .kpis.kpi-grid .kpi-card__value,
   #kpi-section .kpi-card__value{
@@ -1744,10 +1753,30 @@
     .kpis.kpi-grid,
     #kpi-section{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
   }
+
+  /* D1 debe ganar sobre reglas globales de otros dashboards que detectan dona + ranking */
+  body.dashboard-1-page:has(#ranking-container):has(#chart-dona):has(#chart-barras) #kpi-section.kpis.kpi-grid{
+    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+    gap:18px !important;
+    width:100% !important;
+    min-width:100% !important;
+    max-width:none !important;
+  }
+  body.dashboard-1-page:has(#ranking-container):has(#chart-dona):has(#chart-barras) #kpi-section.kpis.kpi-grid .kpi-card{
+    min-height:156px !important;
+    padding:24px 26px !important;
+    width:100% !important;
+    max-width:none !important;
+  }
+  @media (max-width:620px){
+    body.dashboard-1-page:has(#ranking-container):has(#chart-dona):has(#chart-barras) #kpi-section.kpis.kpi-grid{
+      grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    }
+  }
 </style>
 
 </head>
-<body>
+<body class="dashboard-1-page">
 
 <nav class="topbar">
   <div class="topbar__brand">
@@ -1934,11 +1963,20 @@ function forceKpiLayout(){
   const section = document.getElementById('kpi-section');
   if(!section) return;
   const hero = document.querySelector('.hero');
+  const page = document.querySelector('.page');
+  const parent = section.parentElement;
   const heroWidth = hero ? Math.round(hero.getBoundingClientRect().width) : 0;
+  const pageWidth = page ? Math.round(page.getBoundingClientRect().width) : 0;
+  const parentWidth = parent ? Math.round(parent.getBoundingClientRect().width) : 0;
+  const availableWidth = page ? Math.round(window.innerWidth - (page.getBoundingClientRect().left * 2)) : 0;
+  const targetWidth = Math.max(heroWidth, pageWidth, parentWidth, availableWidth);
   section.style.display = 'grid';
   section.style.boxSizing = 'border-box';
-  section.style.width = heroWidth > 0 ? `${heroWidth}px` : '100%';
-  section.style.maxWidth = 'none';
+  section.style.width = targetWidth > 0 ? `${targetWidth}px` : '100%';
+  section.style.minWidth = targetWidth > 0 ? `${targetWidth}px` : '100%';
+  section.style.maxWidth = targetWidth > 0 ? `${targetWidth}px` : 'none';
+  section.style.gridColumn = '1 / -1';
+  section.style.justifySelf = 'stretch';
   section.style.marginLeft = '0';
   section.style.marginRight = '0';
   section.style.justifyContent = 'stretch';
