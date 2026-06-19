@@ -881,18 +881,18 @@ function render(data){
         const barW = (d.ec / maxEc * 100).toFixed(1);
         const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
         return `<tr>
-          <td style="padding:9px 12px;text-align:center;font-size:13px">${medal}</td>
-          <td style="padding:9px 12px;font-weight:600;font-size:12px">${OXXO.truncate(d.at, 30)}</td>
-          <td style="padding:9px 12px">
+          <td style="padding:7px 10px;text-align:center;font-size:12px">${medal}</td>
+          <td style="padding:7px 10px;font-weight:600;font-size:11.5px">${OXXO.truncate(d.at, 34)}</td>
+          <td style="padding:7px 10px">
             <div style="height:5px;background:var(--color-border);border-radius:3px;overflow:hidden">
               <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:3px;transition:width .8s ease"></div>
             </div>
           </td>
-          <td style="padding:9px 12px;text-align:right;font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)'}">${d.ec.toFixed(2)}%</td>
+          <td style="padding:7px 10px;text-align:right;font-family:var(--font-display);font-size:1.05rem;font-weight:800;color:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)'}">${d.ec.toFixed(2)}%</td>
         </tr>`;
       }).join('');
       ecAtEl.innerHTML = `
-        <div style="overflow:auto;max-height:280px">
+        <div style="overflow:visible;max-height:none">
           <table style="width:100%;border-collapse:collapse">
             <thead><tr style="background:var(--color-bg)">
               <th style="padding:8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">#</th>
