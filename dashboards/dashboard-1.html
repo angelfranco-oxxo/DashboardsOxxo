@@ -249,6 +249,17 @@
   }
   .hero .filtro-select:focus{ outline:none; border-color:#fff !important; }
   .hero .filtro-select option{ color:#1a1a1a; background:#fff; }
+  .hero .filtro-select[multiple]{
+    min-height:48px;
+    max-height:104px;
+    overflow:auto;
+    border-radius:20px !important;
+    background-image:none !important;
+  }
+  .hero .filtro-select[multiple] option{
+    padding:7px 10px;
+    border-radius:10px;
+  }
   .hero .filtro-btn{ cursor:pointer; }
   .hero .filtro-btn:hover{ background:#fff !important; color:var(--hb-red) !important; border-color:#fff !important; transform:translateY(-1px); box-shadow:0 16px 30px rgba(84,8,12,.16); }
   .hero .filtro-count{ color:rgba(255,255,255,0.85); font-size:12px; align-self:center; }
@@ -1816,11 +1827,8 @@
       </div>
       <div class="vac-fbox">
         <label>Puesto</label>
-        <select class="filtro-select" id="filtro-puesto">
+        <select class="filtro-select" id="filtro-puesto" multiple size="4">
           <option value="">Todos los puestos</option>
-          <option value="Lider">Lider</option>
-          <option value="Encargado">Encargado</option>
-          <option value="Ayudante">Ayudante</option>
         </select>
       </div>
       <div class="vac-fbox">
@@ -2059,6 +2067,22 @@ function pillHTML(t,c){return`<span class="pill ${c}"><span class="pill-dot"></s
 // Estado global
 let allData=[], colMap={}, activePuesto='';
 
+function selectedPuestos(){
+  const sel=document.getElementById('filtro-puesto');
+  return sel ? [...sel.selectedOptions].map(o=>o.value).filter(Boolean) : [];
+}
+
+function setSelectedPuestos(values=[]){
+  const wanted=new Set(values);
+  const sel=document.getElementById('filtro-puesto');
+  if(!sel) return;
+  [...sel.options].forEach(opt=>{ opt.selected = opt.value ? wanted.has(opt.value) : !wanted.size; });
+}
+
+function puestosByTipo(tipo){
+  return [...new Set(allData.filter(r=>r.tipo===tipo).map(r=>r.puesto).filter(Boolean))].sort();
+}
+
 function forceKpiLayout(){
   const section = document.getElementById('kpi-section');
   if(!section) return;
@@ -2097,7 +2121,8 @@ function forceKpiLayout(){
 function getFiltros(){
   return{
     asesor: document.getElementById('filtro-asesor').value,
-    puesto: document.getElementById('filtro-puesto')?.value || activePuesto,
+    puestos: selectedPuestos(),
+    puesto: activePuesto,
     dias:   parseInt(document.getElementById('filtro-dias').value)||0,
     mes:    document.getElementById('filtro-mes')?.value || '',
     orden:  document.getElementById('filtro-orden').value,
@@ -2106,7 +2131,7 @@ function getFiltros(){
 
 function limpiarFiltros(){
   document.getElementById('filtro-asesor').value='';
-  document.getElementById('filtro-puesto').value='';
+  setSelectedPuestos();
   document.getElementById('filtro-dias').value='';
   document.getElementById('filtro-mes').value='';
   document.getElementById('filtro-orden').value='desc';
@@ -2119,7 +2144,8 @@ function filtrarDatos(){
   const f=getFiltros();
   let filtered=[...allData];
   if(f.asesor) filtered=filtered.filter(r=>r.asesor===f.asesor);
-  if(f.puesto) filtered=filtered.filter(r=>r.tipo===f.puesto);
+  if(f.puestos.length) filtered=filtered.filter(r=>f.puestos.includes(r.puesto));
+  else if(f.puesto) filtered=filtered.filter(r=>r.tipo===f.puesto);
   if(f.dias)   filtered=filtered.filter(r=>r.dias>=f.dias);
   if(f.mes)    filtered=filtered.filter(r=>r.mesKey===f.mes);
   // Ordenar por días
@@ -2173,8 +2199,12 @@ function refreshDashboard(){
 // Poblar selectores de filtro
 function poblarFiltros(){
   const asesores=[...new Set(allData.map(r=>r.asesor).filter(Boolean))].sort();
+  const puestos=[...new Set(allData.map(r=>r.puesto).filter(Boolean))].sort();
   const selA=document.getElementById('filtro-asesor');
   asesores.forEach(a=>selA.add(new Option(a,a)));
+  const selP=document.getElementById('filtro-puesto');
+  puestos.forEach(p=>selP.add(new Option(p,p)));
+  setSelectedPuestos();
   const selMes=document.getElementById('filtro-mes');
   const meses=[...new Map(allData.filter(r=>r.mesKey).map(r=>[r.mesKey,r.mesLabel||mesLabel(r.mesKey)])).entries()]
     .sort((a,b)=>a[0].localeCompare(b[0]));
@@ -2182,7 +2212,16 @@ function poblarFiltros(){
   // Eventos
   ['filtro-asesor','filtro-puesto','filtro-dias','filtro-mes','filtro-orden'].forEach(id=>{
     document.getElementById(id).addEventListener('change', () => {
-      activePuesto = document.getElementById('filtro-puesto')?.value || '';
+      if(id==='filtro-puesto'){
+        const sel=document.getElementById('filtro-puesto');
+        const selected=[...sel.selectedOptions].map(o=>o.value);
+        if(selected.includes('') && selected.length>1){
+          [...sel.options].forEach(opt=>{ if(!opt.value) opt.selected=false; });
+        } else if(selected.includes('')){
+          setSelectedPuestos();
+        }
+        activePuesto = '';
+      }
       refreshDashboard();
     });
   });
@@ -2371,13 +2410,14 @@ function renderOverview(allData){
   const tiendaAntigua=allData.find(r=>r.dias===maxDias)?.tienda||'—';
   const asesoresUnicos=[...new Set(allData.map(r=>r.asesor))].length;
   const filtroAsesor = document.getElementById('filtro-asesor')?.value || '';
-  const filtroPuesto = document.getElementById('filtro-puesto')?.value || activePuesto || '';
+  const filtroPuestos = selectedPuestos();
+  const filtroPuesto = activePuesto || '';
   const filtroDias = document.getElementById('filtro-dias')?.value || '';
   const filtroMes = document.getElementById('filtro-mes')?.value || '';
 
   // KPIs
   document.getElementById('kpi-section').innerHTML=`
-    <div class="kpi-card rojo ${!filtroPuesto && !filtroAsesor && !filtroDias && !filtroMes ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
+    <div class="kpi-card rojo ${!filtroPuestos.length && !filtroPuesto && !filtroAsesor && !filtroDias && !filtroMes ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
       <div class="kpi-card__label">Total Vacantes</div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neg">${asesoresUnicos} asesores afectados</div>
@@ -2401,7 +2441,7 @@ function renderOverview(allData){
       <div class="kpi-card__delta neu">Seguimiento · clic para filtrar</div>
       <div class="kpi-card__icon">👤</div>
     </div>
-    <div class="kpi-card ${maxDias>=15?'rojo':maxDias>=7?'naranja':'verde'} ${!filtroPuesto && filtroDias==='7' ? 'active' : ''}" data-kpi="antiguos" title="Filtrar vacantes con más de 7 días">
+    <div class="kpi-card ${maxDias>=15?'rojo':maxDias>=7?'naranja':'verde'} ${!filtroPuestos.length && !filtroPuesto && filtroDias==='7' ? 'active' : ''}" data-kpi="antiguos" title="Filtrar vacantes con más de 7 días">
       <div class="kpi-card__label">Vacante más antigua</div>
       <div class="kpi-card__value">${maxDias||'—'}</div>
       <div class="kpi-card__delta ${maxDias>=15?'neg':'neu'}">${maxDias?'días · '+OXXO.truncate(tiendaAntigua,18):'Sin fecha'}</div>
@@ -2422,23 +2462,23 @@ function renderOverview(allData){
         card.classList.add('active');
         if(kpi === 'todos') {
           activePuesto = '';
-          document.getElementById('filtro-puesto').value = '';
+          setSelectedPuestos();
           document.getElementById('filtro-dias').value = '';
           document.getElementById('filtro-mes').value = '';
         } else if(kpi === 'antiguos') {
           activePuesto = '';
-          document.getElementById('filtro-puesto').value = '';
+          setSelectedPuestos();
           document.getElementById('filtro-dias').value = '7';
         } else {
           // Lider, Encargado, Ayudante
           activePuesto = kpi;
-          document.getElementById('filtro-puesto').value = kpi;
+          setSelectedPuestos(puestosByTipo(kpi));
           document.getElementById('filtro-dias').value = '';
         }
         refreshDashboard();
       } else {
         activePuesto = '';
-        document.getElementById('filtro-puesto').value = '';
+        setSelectedPuestos();
         document.getElementById('filtro-dias').value = '';
         refreshDashboard();
       }
