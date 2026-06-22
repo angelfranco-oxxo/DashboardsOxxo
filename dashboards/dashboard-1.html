@@ -2347,29 +2347,6 @@ function poblarFiltros(){
   document.getElementById('tienda-button').addEventListener('click', () => {
     const box=document.getElementById('tienda-filter');
     const willOpen=!box.classList.contains('open');
-    closeSmartFilters(willOpen ? 'puesto-filter' : '');
-    box.classList.toggle('open', willOpen);
-  });
-
-  document.getElementById('puesto-options').addEventListener('click', e => {
-    const btn=e.target.closest('[data-puesto]');
-    if(!btn) return;
-    const value=btn.dataset.puesto;
-    if(!value){
-      activePuesto='';
-      setSelectedPuestos();
-    } else {
-      activePuesto='';
-      const set=new Set(selectedPuestoValues);
-      set.has(value) ? set.delete(value) : set.add(value);
-      setSelectedPuestos([...set]);
-    }
-    refreshDashboard();
-  });
-
-  document.getElementById('tienda-button').addEventListener('click', () => {
-    const box=document.getElementById('tienda-filter');
-    const willOpen=!box.classList.contains('open');
     closeSmartFilters(willOpen ? 'tienda-filter' : '');
     box.classList.toggle('open', willOpen);
     if(willOpen) setTimeout(()=>document.getElementById('tienda-search').focus(),0);
