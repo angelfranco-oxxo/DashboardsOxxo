@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bajas Diarias · Dashboards Ats</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <link rel="icon" type="image/png" href="../assets/favicon.png" />
+  <link rel="apple-touch-icon" href="../assets/favicon.png" />
   <link rel="stylesheet" href="../css/global.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    /* Layout inspirado en el dashboard de bajas tipo Power BI */
-    body { background:#f3f0ea; }
     .bajas-page { max-width: 1520px; margin: 0 auto; padding: 14px 16px 28px; }
 
     .bajas-header {
@@ -76,7 +76,7 @@
     .bajas-kpis .kpi-card.rojo.active    { background:#FFF0F0; }
     .bajas-kpis .kpi-card.naranja.active { background:#FFF4EC; }
     .bajas-kpis .kpi-card.amarillo.active{ background:#FFFBE6; }
-    .bajas-kpis .kpi-card__value { font-size:2.3rem; }
+    .bajas-kpis .kpi-card__value { font-size:2.9rem; }
 
     .bajas-top-grid { display:grid; grid-template-columns: 1.05fr .9fr 2.1fr 2.5fr; gap:12px; margin-bottom:14px; align-items:stretch; }
     .bajas-panel {
@@ -84,8 +84,7 @@
     }
     .bajas-panel.compact { border-radius:22px; padding:13px 16px; }
     .bajas-panel.wide { border-radius:30px; }
-    .bajas-panel__title { font-family:var(--font-display); font-size:18px; font-weight:900; text-align:center; color:#06060a; margin-bottom:8px; }
-    .bajas-panel__title.left { text-align:left; }
+    .bajas-panel__title { font-family:var(--font-display); font-size:1rem; font-weight:700; color:#06060a; margin-bottom:8px; }
     .chart-sm { position:relative; height:155px; }
     .chart-md { position:relative; height:188px; }
     .chart-lg { position:relative; height:215px; }
@@ -231,6 +230,7 @@
   }
   .tbl-wrap, .table-wrap{ border-radius: 14px !important; overflow: hidden; }
 </style>
+  <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final" />
 
 </head>
 <body>
@@ -242,11 +242,7 @@
       <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
     </div>
   </div>
-  <div class="topbar__meta">
-    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar a tema oscuro" aria-pressed="false">
-      <span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__thumb"></span></span>
-      <span data-theme-label>Claro</span>
-    </button><a href="../index.html" class="topbar__back">
+  <div class="topbar__meta"><a href="../index.html" class="topbar__back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Inicio
     </a>
@@ -289,14 +285,9 @@
     </article>
   </section>
 
-  <section class="bajas-panel bajas-row-panel">
-    <div class="bajas-panel__title">Top 10 tiendas con más bajas</div>
-    <div class="chart-wide"><canvas id="chart-tiendas"></canvas></div>
-  </section>
-
   <!-- TABLA RANKING PLAZAS -->
-  <section class="bajas-panel" style="margin-bottom:14px;padding:20px">
-    <div style="display:grid;grid-template-columns:1fr 1.8fr;gap:20px;align-items:start">
+  <section class="bajas-panel plazas-panel" style="margin-bottom:14px;padding:20px">
+    <div class="plazas-panel__grid">
       <!-- Ranking plazas -->
       <div>
         <div class="bajas-panel__title" style="margin-bottom:14px">🏆 Ranking de Plazas · Bajas acumuladas</div>
@@ -307,9 +298,14 @@
       <!-- Gráfica plazas -->
       <div>
         <div class="bajas-panel__title" style="margin-bottom:14px">Comparativo por Plaza</div>
-        <div style="position:relative;height:280px"><canvas id="chart-plazas"></canvas></div>
+        <div class="plazas-chart"><canvas id="chart-plazas"></canvas></div>
       </div>
     </div>
+  </section>
+
+  <section class="bajas-panel bajas-row-panel">
+    <div class="bajas-panel__title">Top 10 tiendas con más bajas</div>
+    <div class="chart-wide"><canvas id="chart-tiendas"></canvas></div>
   </section>
 
   <section class="panel bajas-detail-panel panel--accent-red">
@@ -344,6 +340,7 @@ const ALIASES = {
   aplica: ['Aplica en %','Aplica en % de rotación','Aplica en % de rotacion','Aplica','Aplica porcentaje','Aplica rotación','Aplica rotacion'],
   rotTemp: ['Rot. Temp.','Rot Temp','Rotación temporal','Rotacion temporal','Rot. Temprana','Rot Temprana','Temporal'],
   fecha: ['Fecha','Fecha baja','Fecha de baja','Fecha_validez','Fecha validez','F. Validez','Corte'],
+  personal: ['No. Personal','No Personal','N° Personal','Nº Personal','Num. Personal','Num Personal','Núm. Personal','Numero Personal','Número Personal','Numero de Personal','Número de Personal','ID Personal','Id Personal','Personal','No. empleado','No empleado','Numero empleado','Número empleado'],
   antiguedad: ['Antiguedad_dias','Antigüedad_dias','Antiguedad dias','Antigüedad días','Dias','Días','Días Activo','Dias Activo'],
   empleado: ['Nombre_empleado','Nombre empleado','Empleado','Colaborador','Nombre colaborador','Nombre del empleado'],
   genero: ['Genero','Género','Sexo'],
@@ -494,8 +491,7 @@ function filterData(data, cols){
 }
 function chartTheme(){
   if (window.OXXO && OXXO.getChartThemeColors) return OXXO.getChartThemeColors();
-  const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
-  return { text: dark ? '#FFFFFF' : '#2D2D44', muted: dark ? '#E6E1F2' : '#6B6678', grid: dark ? 'rgba(255,255,255,.20)' : '#ddd8ce', tooltipBg: dark ? '#090914' : '#1A1A2E' };
+  return { text: '#2D2D44', muted: '#6B6678', grid: 'rgba(128,63,38,.10)', tooltipBg: '#251313' };
 }
 function chartReady(canvas){
   if (window.Chart) return true;
@@ -510,25 +506,43 @@ function renderChart(canvasId, type, labels, values, opts={}){
   if(canvas._chartInstance) canvas._chartInstance.destroy();
   const ctx=canvas.getContext('2d');
   const theme = chartTheme();
-  const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
-  const tickColor = dark ? '#FFFFFF' : theme.text;
-  const tickStrokeWidth = dark ? 3 : 0;
+  const tickColor = theme.text;
+  const tickStrokeWidth = 0;
   const isRanking = !!opts.ranking;
   const colors = opts.colors || labels.map((_, index) => {
-    if (!isRanking) return opts.color || '#ff7924';
-    return index < 3 ? '#e30613' : index < 8 ? '#ff7a22' : '#f2a52b';
+    if (!isRanking) return opts.color || '#F07B22';
+    return index < 3 ? '#D91F2D' : index < 8 ? '#F07B22' : '#F6B73C';
   });
+  const rankingValuePlugin = {
+    id: `rankingValueLabels-${canvasId}`,
+    afterDatasetsDraw(chart) {
+      if(!isRanking) return;
+      const { ctx } = chart;
+      const meta = chart.getDatasetMeta(0);
+      ctx.save();
+      ctx.font = '900 12px Barlow, sans-serif';
+      ctx.fillStyle = '#D91F2D';
+      ctx.textBaseline = 'middle';
+      meta.data.forEach((bar, index) => {
+        const value = values[index];
+        ctx.textAlign = 'left';
+        ctx.fillText(`${value} ${value === 1 ? 'baja' : 'bajas'}`, bar.x + 10, bar.y);
+      });
+      ctx.restore();
+    }
+  };
   canvas._chartInstance = new Chart(ctx, {
     type,
-    data:{ labels, datasets:[{ label:opts.label||'Bajas', data:values, backgroundColor:colors, borderColor:colors, borderWidth:0, borderRadius: opts.borderRadius ?? (isRanking ? 8 : 5), barPercentage: opts.barPercentage ?? (isRanking ? .72 : .55), categoryPercentage: opts.categoryPercentage ?? (isRanking ? .72 : .7) }]},
+    data:{ labels, datasets:[{ label:opts.label||'Bajas', data:values, backgroundColor:colors, borderColor:'rgba(255,255,255,.68)', borderWidth:1, borderRadius: opts.borderRadius ?? 999, borderSkipped:false, barPercentage: opts.barPercentage ?? (isRanking ? .62 : .62), categoryPercentage: opts.categoryPercentage ?? (isRanking ? .82 : .7) }]},
     options:{ indexAxis: opts.horizontal ? 'y' : 'x', responsive:true, maintainAspectRatio:false,
-      layout: { padding: opts.horizontal ? { top: 4, right: 18, bottom: 4, left: 2 } : { top: 0, right: 4, bottom: 0, left: 0 } },
-      plugins:{ legend:{display:!!opts.legend, position:'top', labels:{color:theme.text, font:{family:'Barlow', size:12, weight:'700'}}}, tooltip:{backgroundColor:theme.tooltipBg,padding:10,cornerRadius:8}, datalabels:{display:false} },
+      layout: { padding: opts.horizontal ? { top: 10, right: 74, bottom: 8, left: 4 } : { top: 6, right: 8, bottom: 4, left: 4 } },
+      plugins:{ legend:{display:!!opts.legend, position:'top', labels:{color:'#5A4037', usePointStyle:true, pointStyle:'circle', font:{family:'Barlow', size:12, weight:'800'}}}, tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false}, datalabels:{display:false} },
       scales:{
-        x:{ grid:{display:!!opts.horizontal, color:theme.grid}, ticks:{precision:0, color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, maxRotation: opts.horizontal ? 0 : (opts.rotate ?? 55), minRotation: opts.horizontal ? 0 : (opts.rotate ?? 0)}, beginAtZero:true },
-        y:{ grid:{display:!opts.horizontal, color:theme.grid}, ticks:{color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, crossAlign:'far'}, beginAtZero:true }
+        x:{ border:{display:false}, grid:{display:!!opts.horizontal, color:'rgba(128,63,38,.075)', drawTicks:false}, ticks:{precision:0, color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, maxRotation: opts.horizontal ? 0 : (opts.rotate ?? 55), minRotation: opts.horizontal ? 0 : (opts.rotate ?? 0)}, beginAtZero:true, suggestedMax: opts.suggestedMax },
+        y:{ border:{display:false}, grid:{display:!opts.horizontal, color:'rgba(128,63,38,.075)', drawTicks:false}, ticks:{color:tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth:tickStrokeWidth, font:{family:'Barlow', size: opts.tickSize || 12, weight:'800'}, crossAlign:'far'}, beginAtZero:true }
       }
-    }
+    },
+    plugins: isRanking ? [rankingValuePlugin] : []
   });
 }
 function renderTotalChart(labels, values){
@@ -609,7 +623,7 @@ function renderCompromiso(data, cols){
 
 function renderDetail(data, cols){
   const columns = [
-    ['semana','Semana'], ['plaza','Plaza'], ['asesor','Asesor'], ['tienda','Tienda'], ['empleado','Colaborador'], ['puesto','Puesto'], ['motivo','Motivo'], ['detalle','Detalle baja'], ['temporalidad','Temporalidad'], ['rotTemp','Rot. Temp.'], ['genero','Género'], ['fecha','Fecha']
+    ['semana','Semana'], ['plaza','Plaza'], ['asesor','Asesor'], ['tienda','Tienda'], ['empleado','Colaborador'], ['puesto','Puesto'], ['motivo','Motivo'], ['detalle','Detalle baja'], ['temporalidad','Temporalidad'], ['rotTemp','Rot. Temp.'], ['genero','Género'], ['personal','No. personal']
   ].filter(([k]) => cols[k] || k==='temporalidad');
   const rows = data.map(r => '<tr>' + columns.map(([k]) => {
     let v = k==='puesto' ? normalizePuesto(val(r,cols,k)) : k==='motivo' ? normalizeMotivo(val(r,cols,k)) : k==='temporalidad' ? getTemporalidad(r,cols) : val(r,cols,k,'—');
@@ -688,7 +702,8 @@ function renderBajasDashboard(data, cols){
   renderChart('chart-motivos','bar',motivoData.map(x=>OXXO.truncate(x.label,24)),motivoData.map(x=>x.total),{color:'#ff7924',tickSize:10,rotate:45});
 
   renderChart('chart-asesores','bar',topAsesor.map(x=>OXXO.truncate(x.label,28)),topAsesor.map(x=>x.total),{horizontal:true,ranking:true,tickSize:12,label:'Bajas por AT'});
-  renderChart('chart-tiendas','bar',topTienda.map(x=>OXXO.truncate(x.label,30)),topTienda.map(x=>x.total),{horizontal:true,ranking:true,tickSize:12,label:'Bajas por tienda'});
+  const maxTienda = Math.max(...topTienda.map(x=>x.total), 1);
+  renderChart('chart-tiendas','bar',topTienda.map(x=>OXXO.truncate(x.label,30)),topTienda.map(x=>x.total),{horizontal:true,ranking:true,tickSize:12,label:'Bajas por tienda',suggestedMax:maxTienda + 1,barPercentage:.52,categoryPercentage:.86});
 
   renderDetail(data, cols);
   renderPlazas(data, cols);
@@ -741,35 +756,27 @@ function renderPlazas(data, cols) {
     const pct = Math.round(p.bajas / totalBajas * 100);
     const barW = Math.round(p.bajas / maxBajas * 100);
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
-    return `<tr>
-      <td style="font-size:13px;text-align:center;padding:10px 8px">${medal}</td>
-      <td style="font-weight:600;font-size:13px;padding:10px 8px">${p.plaza}</td>
-      <td style="padding:10px 8px">
-        <div style="height:6px;background:var(--color-border);border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:${barW}%;background:${i===0?'#D92B2B':i===1?'#FF6B00':'#FFD200'};border-radius:3px;transition:width .8s ease"></div>
+    const tone = i === 0 ? 'red' : i === 1 ? 'orange' : i === 2 ? 'gold' : 'neutral';
+    return `<div class="plaza-rank-row ${tone}">
+      <div class="plaza-rank-medal">${medal}</div>
+      <div class="plaza-rank-main">
+        <div class="plaza-rank-top">
+          <strong>${p.plaza}</strong>
+          <span>${pct}% del total</span>
         </div>
-      </td>
-      <td style="font-family:var(--font-display);font-size:1.3rem;font-weight:800;color:${i===0?'#D92B2B':i===1?'#FF6B00':'var(--color-dark)'};text-align:right;padding:10px 8px">${p.bajas}</td>
-      <td style="font-size:11px;color:var(--color-gray);text-align:right;padding:10px 8px">${pct}%</td>
-    </tr>`;
+        <div class="plaza-rank-track"><div class="plaza-rank-fill" style="width:${barW}%"></div></div>
+      </div>
+      <div class="plaza-rank-value">${p.bajas}</div>
+    </div>`;
   }).join('');
 
   document.getElementById('tabla-plazas').innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="background:var(--color-bg)">
-        <th style="padding:8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">#</th>
-        <th style="padding:8px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Plaza</th>
-        <th style="padding:8px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Tendencia</th>
-        <th style="padding:8px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Bajas</th>
-        <th style="padding:8px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">% Total</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr style="background:var(--color-bg);border-top:2px solid var(--color-border)">
-        <td colspan="3" style="padding:10px 8px;font-weight:700;font-size:12px">Total</td>
-        <td style="padding:10px 8px;font-family:var(--font-display);font-size:1.2rem;font-weight:800;text-align:right">${totalBajas}</td>
-        <td style="padding:10px 8px;text-align:right;color:var(--color-gray);font-size:11px">100%</td>
-      </tr></tfoot>
-    </table>`;
+    <div class="plaza-rank-list">${rows}</div>
+    <div class="plaza-rank-total">
+      <span>Total acumulado</span>
+      <strong>${totalBajas}</strong>
+      <em>100%</em>
+    </div>`;
 
   // Gráfica de plazas
   const canvas = document.getElementById('chart-plazas');
@@ -787,17 +794,18 @@ function renderPlazas(data, cols) {
         datasets: [{
           label: 'Bajas', data: plazasData.map(p => p.bajas),
           backgroundColor: plazasData.map((p,i) => ['#D92B2B','#FF6B00','#FFD200','#00A650','#0066CC'][i] || '#8A8A99'),
-          borderRadius: 8, borderSkipped: false,
-          barPercentage: 0.62, categoryPercentage: 0.6, maxBarThickness: 70
+          borderRadius: 999, borderSkipped: false,
+          barPercentage: 0.54, categoryPercentage: 0.82, maxBarThickness: 28
         }]
       },
       options: {
+        indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 10, right: 10 } },
+        layout: { padding: { top: 6, right: 50, bottom: 4, left: 4 } },
         plugins: { legend: { display: false }, tooltip: { backgroundColor: theme.tooltipBg, padding: 10, cornerRadius: 8 }},
         scales: {
-          x: { grid: { display: false }, ticks: { font: { family: 'Barlow', size: 13, weight: '800' }, color: tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth: tickStrokeWidth }},
-          y: { beginAtZero: true, grid: { color: theme.grid }, ticks: { precision: 0, font: { family: 'Barlow', size: 13, weight: '800' }, color: tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth: tickStrokeWidth }}
+          x: { beginAtZero: true, grid: { color: theme.grid }, ticks: { precision: 0, font: { family: 'Barlow', size: 12, weight: '800' }, color: tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth: tickStrokeWidth }},
+          y: { grid: { display: false }, ticks: { font: { family: 'Barlow', size: 13, weight: '900' }, color: tickColor, textStrokeColor:'rgba(0,0,0,0.55)', textStrokeWidth: tickStrokeWidth }}
         }
       }
     });

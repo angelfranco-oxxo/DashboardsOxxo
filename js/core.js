@@ -24,6 +24,7 @@ const SHEETS_CONFIG = {
     s4: "Dashboard_4_Semanal",  // Tiempo Extra: Plaza,Asesor,Semana,Gasto_TE_total,Horas_TE_total,Gasto_TE_doble,Gasto_TE_triple,Gasto_dia_descanso,Fecha
     s5: "Dashboard_5_Semanal",  // Vacaciones: Asesor,Plaza,Empleado,Puesto,Fecha_Inicio,Fecha_Fin,Dias,Semana
     s6: "Dashboard_6_Semanal",  // Ausentismos: Asesor,Plaza,Empleado,Puesto,Tipo_Ausentismo,Fecha,Semana,Dias
+    s7: "Dashboard_7_Semanal",  // Liberacion Estructuras P2: Plaza,CR,Tienda,Asesor,Est SAP,Est Final P2,Empleados,Vacantes,Dif,Movimiento
   }
 };
 
@@ -57,7 +58,7 @@ async function fetchSheetData(tabName) {
 // Maneja comas dentro de comillas y caracteres especiales
 // ─────────────────────────────────────────────────────────────
 function parseCSV(text) {
-  const lines = text.trim().split("\n");
+  const lines = parseCSVRecords(text.trim());
   if (lines.length < 2) return [];
 
   // Buscar la fila de encabezados: es la primera fila que tenga
@@ -72,7 +73,7 @@ function parseCSV(text) {
     }
   }
 
-  const headers = splitCSVRow(lines[headerIndex]).map(h => h.trim().replace(/^"|"$/g, ''));
+  const headers = makeUniqueHeaders(splitCSVRow(lines[headerIndex]).map(h => h.trim().replace(/^"|"$/g, '')));
 
   const rows = [];
   for (let i = headerIndex + 1; i < lines.length; i++) {
@@ -86,6 +87,43 @@ function parseCSV(text) {
     rows.push(row);
   }
   return rows;
+}
+
+function makeUniqueHeaders(headers) {
+  const seen = {};
+  return headers.map((header, idx) => {
+    const base = header || `col_${idx + 1}`;
+    seen[base] = (seen[base] || 0) + 1;
+    return seen[base] === 1 ? base : `${base}_${seen[base]}`;
+  });
+}
+
+function parseCSVRecords(text) {
+  const records = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (ch === '"' && next === '"') {
+      current += '""';
+      i++;
+    } else if (ch === '"') {
+      inQuotes = !inQuotes;
+      current += ch;
+    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      if (ch === '\r' && next === '\n') i++;
+      if (current.trim()) records.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+
+  if (current.trim()) records.push(current);
+  return records;
 }
 
 // Divide una fila CSV respetando comillas
@@ -472,6 +510,15 @@ function renderBarChart(canvasId, labels, values, label, color = '#FFD200') {
   if (canvas._chartInstance) canvas._chartInstance.destroy();
 
   const ctx = canvas.getContext('2d');
+  const makeGradient = (chart) => {
+    const area = chart.chartArea;
+    if (!area) return color;
+    const g = ctx.createLinearGradient(area.left, 0, area.right, 0);
+    g.addColorStop(0, '#F6B73C');
+    g.addColorStop(.52, '#F07B22');
+    g.addColorStop(1, color === '#FFD200' ? '#D91F2D' : color);
+    return g;
+  };
   canvas._chartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -479,9 +526,13 @@ function renderBarChart(canvasId, labels, values, label, color = '#FFD200') {
       datasets: [{
         label,
         data: values,
-        backgroundColor: color,
-        borderRadius: 6,
+        backgroundColor: (context) => makeGradient(context.chart),
+        borderColor: 'rgba(255,255,255,.68)',
+        borderWidth: 1,
+        borderRadius: 999,
         borderSkipped: false,
+        barPercentage: .76,
+        categoryPercentage: .72,
       }]
     },
     options: {
@@ -490,11 +541,14 @@ function renderBarChart(canvasId, labels, values, label, color = '#FFD200') {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: theme.tooltipBg,
-          titleFont: { family: 'Barlow Condensed', weight: '700' },
-          bodyFont: { family: 'Barlow', size: 13 },
-          padding: 10,
-          cornerRadius: 8,
+          backgroundColor: '#251313',
+          titleColor: '#FFF8EE',
+          bodyColor: '#FFF8EE',
+          titleFont: { family: 'Barlow Condensed', weight: '800', size: 14 },
+          bodyFont: { family: 'Barlow', size: 13, weight: '600' },
+          padding: 12,
+          cornerRadius: 14,
+          displayColors: false,
         }
       },
       scales: {
@@ -507,10 +561,11 @@ function renderBarChart(canvasId, labels, values, label, color = '#FFD200') {
           }
         },
         y: {
-          grid: { color: theme.grid },
+          border: { display: false },
+          grid: { color: 'rgba(128,63,38,.075)', drawTicks: false },
           ticks: {
-            font: { family: 'Barlow', size: 11 },
-            color: theme.muted,
+            font: { family: 'Barlow', size: 11, weight: '800' },
+            color: '#6A5148',
           },
           beginAtZero: true,
         }
@@ -529,7 +584,7 @@ function renderLineChart(canvasId, labels, datasets) {
   const theme = getChartThemeColors();
   if (canvas._chartInstance) canvas._chartInstance.destroy();
 
-  const COLORS = ['#FFD200', '#FF6B00', '#1DB954', '#D92B2B', '#0066CC'];
+  const COLORS = ['#D91F2D', '#F07B22', '#F6B73C', '#B5121C', '#7B5709'];
 
   const ctx = canvas.getContext('2d');
   canvas._chartInstance = new Chart(ctx, {
@@ -541,9 +596,13 @@ function renderLineChart(canvasId, labels, datasets) {
         data: ds.values,
         borderColor: COLORS[i % COLORS.length],
         backgroundColor: 'transparent',
-        borderWidth: 2.5,
+        borderWidth: 3,
         pointBackgroundColor: COLORS[i % COLORS.length],
-        pointRadius: 4,
+        pointBorderColor: '#FFF8EE',
+        pointBorderWidth: 2,
+        pointRadius: 4.5,
+        pointHoverRadius: 6,
+        fill: false,
         tension: 0.35,
       }))
     },
@@ -557,11 +616,14 @@ function renderLineChart(canvasId, labels, datasets) {
           labels: { font: { family: 'Barlow', size: 12 }, color: theme.text }
         },
         tooltip: {
-          backgroundColor: theme.tooltipBg,
-          titleFont: { family: 'Barlow Condensed', weight: '700' },
-          bodyFont: { family: 'Barlow', size: 13 },
-          padding: 10,
-          cornerRadius: 8,
+          backgroundColor: '#251313',
+          titleColor: '#FFF8EE',
+          bodyColor: '#FFF8EE',
+          titleFont: { family: 'Barlow Condensed', weight: '800', size: 14 },
+          bodyFont: { family: 'Barlow', size: 13, weight: '600' },
+          padding: 12,
+          cornerRadius: 14,
+          displayColors: false,
         }
       },
       scales: {
@@ -570,7 +632,8 @@ function renderLineChart(canvasId, labels, datasets) {
           ticks: { font: { family: 'Barlow', size: 11 }, color: theme.muted }
         },
         y: {
-          grid: { color: theme.grid },
+          border: { display: false },
+          grid: { color: 'rgba(128,63,38,.08)', drawTicks: false },
           ticks: { font: { family: 'Barlow', size: 11 }, color: theme.muted },
           beginAtZero: false,
         }
@@ -596,26 +659,32 @@ function renderDonutChart(canvasId, labels, values) {
       labels,
       datasets: [{
         data: values,
-        backgroundColor: ['#FFD200', '#FF6B00', '#1DB954', '#D92B2B', '#0066CC', '#8A8A99'],
-        borderWidth: 0,
-        hoverOffset: 4,
+        backgroundColor: ['#D91F2D', '#F07B22', '#F6B73C', '#B5121C', '#7B5709', '#8B6A5F'],
+        borderColor: '#FFF8EE',
+        borderWidth: 4,
+        borderRadius: 10,
+        spacing: 3,
+        hoverOffset: 6,
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '65%',
+      cutout: '68%',
       plugins: {
         legend: {
           position: 'bottom',
-          labels: { font: { family: 'Barlow', size: 12 }, color: theme.text, padding: 14 }
+          labels: { usePointStyle: true, pointStyle: 'circle', font: { family: 'Barlow', size: 12, weight: '800' }, color: '#5A4037', padding: 14 }
         },
         tooltip: {
-          backgroundColor: theme.tooltipBg,
-          titleFont: { family: 'Barlow Condensed', weight: '700' },
-          bodyFont: { family: 'Barlow', size: 13 },
-          padding: 10,
-          cornerRadius: 8,
+          backgroundColor: '#251313',
+          titleColor: '#FFF8EE',
+          bodyColor: '#FFF8EE',
+          titleFont: { family: 'Barlow Condensed', weight: '800', size: 14 },
+          bodyFont: { family: 'Barlow', size: 13, weight: '600' },
+          padding: 12,
+          cornerRadius: 14,
+          displayColors: false,
         }
       }
     }
@@ -625,12 +694,11 @@ function renderDonutChart(canvasId, labels, values) {
 
 
 function getChartThemeColors() {
-  const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
   return {
-    text: dark ? '#FFFFFF' : '#2D2D44',
-    muted: dark ? '#F4F1FF' : '#6B6678',
-    grid: dark ? 'rgba(255,255,255,0.32)' : '#E0DAD0',
-    tooltipBg: dark ? '#090914' : '#1A1A2E'
+    text: '#2D2D44',
+    muted: '#6B6678',
+    grid: 'rgba(128,63,38,.10)',
+    tooltipBg: '#251313'
   };
 }
 
@@ -661,48 +729,26 @@ function applyChartThemeDefaults() {
       scale.grid = scale.grid || {};
       scale.ticks.color = theme.text;
       scale.ticks.textStrokeColor = 'rgba(0,0,0,0.18)';
-      scale.ticks.textStrokeWidth = document.documentElement.getAttribute('data-theme') === 'dark' ? 2 : 0;
+      scale.ticks.textStrokeWidth = 0;
       if (scale.grid.display !== false) scale.grid.color = theme.grid;
     });
     chart.update('none');
   });
 }
-// Tema claro/oscuro compartido
+// Tema fijo claro compartido
 function initThemeToggle() {
   const STORAGE_KEY = 'oxxo-theme';
   const root = document.documentElement;
-  const buttons = Array.from(document.querySelectorAll('[data-theme-toggle]'));
-
-  function getPreferredTheme() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'dark' || saved === 'light') return saved;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
 
   function applyTheme(theme) {
     root.dataset.theme = theme;
+    document.body.classList.remove('dark-mode');
+    try { localStorage.setItem(STORAGE_KEY, 'light'); } catch (_) {}
     applyChartThemeDefaults();
     window.dispatchEvent(new CustomEvent('oxxo-theme-change', { detail: { theme } }));
-    buttons.forEach((button) => {
-      const isDark = theme === 'dark';
-      button.setAttribute('aria-pressed', String(isDark));
-      button.setAttribute('aria-label', isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
-      const label = button.querySelector('[data-theme-label]');
-      if (label) label.textContent = isDark ? 'Oscuro' : 'Claro';
-    });
   }
 
-  applyTheme(getPreferredTheme());
-
-  buttons.forEach((button) => {
-    if (button.dataset.themeReady === 'true') return;
-    button.dataset.themeReady = 'true';
-    button.addEventListener('click', () => {
-      const nextTheme = root.dataset.theme === 'dark' ? 'light' : 'dark';
-      localStorage.setItem(STORAGE_KEY, nextTheme);
-      applyTheme(nextTheme);
-    });
-  });
+  applyTheme('light');
 }
 
 if (document.readyState === 'loading') {

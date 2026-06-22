@@ -150,7 +150,16 @@ function renderStackedHorizontal(id, rows) {
   if (!canvas || !OXXO.ensureChartReady(canvas)) return;
   destroyChart(id);
   const t = theme();
-  charts[id] = new Chart(canvas.getContext('2d'), {
+  const ctx = canvas.getContext('2d');
+  const gradient = (from, to) => (context) => {
+    const area = context.chart.chartArea;
+    if (!area) return to;
+    const g = ctx.createLinearGradient(area.left, 0, area.right, 0);
+    g.addColorStop(0, from);
+    g.addColorStop(1, to);
+    return g;
+  };
+  charts[id] = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: rows.map((row) => OXXO.truncate(row.label, 20)),
@@ -158,15 +167,19 @@ function renderStackedHorizontal(id, rows) {
         {
           label: 'Periodo anterior',
           data: rows.map((row) => row.periodo_anterior),
-          backgroundColor: '#E30613',
-          borderRadius: 6,
+          backgroundColor: gradient('#FF6A55', '#D91F2D'),
+          borderColor: 'rgba(255,255,255,.68)',
+          borderWidth: 1,
+          borderRadius: 999,
           borderSkipped: false,
         },
         {
           label: 'Periodo actual',
           data: rows.map((row) => row.periodo_actual),
-          backgroundColor: '#F2A52B',
-          borderRadius: 6,
+          backgroundColor: gradient('#F6B73C', '#F07B22'),
+          borderColor: 'rgba(255,255,255,.68)',
+          borderWidth: 1,
+          borderRadius: 999,
           borderSkipped: false,
         },
       ],
@@ -178,10 +191,14 @@ function renderStackedHorizontal(id, rows) {
       plugins: {
         legend: {
           position: 'bottom',
-          labels: { color: t.text, boxWidth: 12, font: { family: 'Barlow', size: 12, weight: '700' } },
+          labels: { color: '#5A4037', usePointStyle: true, pointStyle: 'circle', boxWidth: 8, font: { family: 'Barlow', size: 12, weight: '800' } },
         },
         tooltip: {
-          backgroundColor: t.tooltipBg,
+          backgroundColor: '#251313',
+          titleColor: '#FFF8EE',
+          bodyColor: '#FFF8EE',
+          padding: 12,
+          cornerRadius: 14,
           callbacks: {
             afterBody: (items) => {
               const row = rows[items[0].dataIndex];
@@ -194,13 +211,15 @@ function renderStackedHorizontal(id, rows) {
         x: {
           stacked: true,
           beginAtZero: true,
-          grid: { color: t.grid },
-          ticks: { color: t.muted, callback: (value) => n(value) },
+          border: { display: false },
+          grid: { color: 'rgba(128,63,38,.08)', drawTicks: false },
+          ticks: { color: '#6A5148', callback: (value) => n(value), font: { family: 'Barlow', weight: '800' } },
         },
         y: {
           stacked: true,
+          border: { display: false },
           grid: { display: false },
-          ticks: { color: t.muted },
+          ticks: { color: '#5A4037', font: { family: 'Barlow', weight: '900' } },
         },
       },
     },
@@ -219,7 +238,8 @@ function renderVencimiento(id, rows) {
     '61-90': '#FFCD56',
     '91-180': '#198754',
   };
-  charts[id] = new Chart(canvas.getContext('2d'), {
+  const ctx = canvas.getContext('2d');
+  charts[id] = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: rows.map((row) => row.label),
@@ -227,7 +247,9 @@ function renderVencimiento(id, rows) {
         label: 'Dias periodo anterior',
         data: rows.map((row) => row.dias_restantes),
         backgroundColor: rows.map((row) => colors[row.label] || '#6F6664'),
-        borderRadius: 6,
+        borderColor: 'rgba(255,255,255,.68)',
+        borderWidth: 1,
+        borderRadius: 999,
         borderSkipped: false,
       }],
     },
@@ -238,7 +260,11 @@ function renderVencimiento(id, rows) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: t.tooltipBg,
+          backgroundColor: '#251313',
+          titleColor: '#FFF8EE',
+          bodyColor: '#FFF8EE',
+          padding: 12,
+          cornerRadius: 14,
           callbacks: {
             label: (ctx) => ` Dias: ${n(ctx.raw, 1)}`,
             afterLabel: (ctx) => `Colaboradores: ${n(rows[ctx.dataIndex].empleados)}`,
@@ -246,8 +272,8 @@ function renderVencimiento(id, rows) {
         },
       },
       scales: {
-        x: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted, callback: (value) => n(value) } },
-        y: { grid: { display: false }, ticks: { color: t.muted } },
+        x: { beginAtZero: true, border: { display: false }, grid: { color: 'rgba(128,63,38,.08)', drawTicks: false }, ticks: { color: '#6A5148', callback: (value) => n(value), font: { family: 'Barlow', weight: '800' } } },
+        y: { border: { display: false }, grid: { display: false }, ticks: { color: '#5A4037', font: { family: 'Barlow', weight: '900' } } },
       },
     },
   });
@@ -272,7 +298,9 @@ function renderDistribution(id, rows) {
         label: 'Colaboradores',
         data: rows.map((row) => row.empleados),
         backgroundColor: colors,
-        borderRadius: 6,
+        borderColor: 'rgba(255,255,255,.68)',
+        borderWidth: 1,
+        borderRadius: 999,
         borderSkipped: false,
       }],
     },
@@ -281,11 +309,11 @@ function renderDistribution(id, rows) {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { backgroundColor: t.tooltipBg },
+        tooltip: { backgroundColor: '#251313', titleColor: '#FFF8EE', bodyColor: '#FFF8EE', padding: 12, cornerRadius: 14 },
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: t.muted } },
-        y: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.muted, callback: (value) => n(value) } },
+        x: { border: { display: false }, grid: { display: false }, ticks: { color: '#6A5148', font: { family: 'Barlow', weight: '800' } } },
+        y: { beginAtZero: true, border: { display: false }, grid: { color: 'rgba(128,63,38,.08)', drawTicks: false }, ticks: { color: '#6A5148', callback: (value) => n(value), font: { family: 'Barlow', weight: '800' } } },
       },
     },
   });

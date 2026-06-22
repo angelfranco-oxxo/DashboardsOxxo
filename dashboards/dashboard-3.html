@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Aprovechamiento de Estructura · Dashboards Ats</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <link rel="icon" type="image/png" href="../assets/favicon.png"/>
+  <link rel="apple-touch-icon" href="../assets/favicon.png"/>
   <link rel="stylesheet" href="../css/global.css"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -100,7 +102,7 @@
 
     /* TABLA RESUMEN AT */
     .tbl { width:100%; border-collapse:collapse; font-size:12px; }
-    .tbl thead th { position:sticky; top:0; z-index:2; background:#1A1A2E; color:#FFD200;
+    .tbl thead th { position:sticky; top:0; z-index:2; background:#2D2D44; color:#fff;
       padding:10px 14px; text-align:left; font-size:10px; font-weight:700;
       letter-spacing:1.1px; text-transform:uppercase; border-right:1px solid rgba(255,255,255,.1); }
     .tbl thead th:last-child { border-right:none; }
@@ -113,11 +115,11 @@
     /* EC % PILL */
     .ec-pill { display:inline-flex; align-items:center; gap:5px; font-size:12px;
       font-weight:700; padding:4px 12px; border-radius:20px; }
-    .ec-pill.verde   { background:#e8f8f0; color:#138c3e; }
+    .ec-pill.verde   { background:#fff9e0; color:#8a6a00; }
     .ec-pill.amarillo{ background:#fff9e0; color:#8a6a00; }
     .ec-pill.rojo    { background:#fdeaea; color:var(--semaforo-rojo); }
     .ec-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-    .ec-pill.verde   .ec-dot { background:var(--semaforo-verde); }
+    .ec-pill.verde   .ec-dot { background:var(--semaforo-amarillo); }
     .ec-pill.amarillo .ec-dot { background:var(--semaforo-amarillo); }
     .ec-pill.rojo    .ec-dot { background:var(--semaforo-rojo); }
     .risk-table-wrap {
@@ -144,7 +146,7 @@
     .state-box { display:flex; flex-direction:column; align-items:center; justify-content:center;
       gap:10px; padding:40px 20px; color:var(--color-gray); text-align:center; }
     .spinner { width:32px; height:32px; border:3px solid var(--color-border);
-      border-top-color:#FFD200; border-radius:50%; animation:spin .7s linear infinite; }
+      border-top-color:var(--color-yellow); border-radius:50%; animation:spin .7s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
 
     /* RESPONSIVE */
@@ -206,46 +208,6 @@
 
     }
 
-    /* ── MOBILE FULL (<=480px) ── */
-    @media (max-width:480px) {
-      .page { padding:10px 10px 32px; }
-
-      .hero { padding:20px 18px; margin-bottom:14px; flex-direction:column; align-items:flex-start; gap:10px; }
-      .hero h1 { font-size:1.7rem !important; line-height:1.1; }
-      .hero p, .hero-date { font-size:12px; }
-      .hero-right { align-items:flex-start; flex-direction:row; flex-wrap:wrap; gap:8px; }
-
-      .kpis { grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
-      .kpi-card { min-height:110px; padding:14px 12px; }
-      .kpi-card__value { font-size:2rem; }
-      .kpi-card__label { font-size:10px; }
-
-      .plazas-row { grid-template-columns:repeat(2,1fr); gap:10px; }
-      .plaza-card { padding:12px 10px; }
-      .plaza-name { font-size:.82rem; margin-bottom:6px; }
-      .plaza-kpi-val { font-size:1.2rem; }
-
-      .main-grid { grid-template-columns:1fr; gap:12px; }
-
-      .card { padding:14px 12px; border-radius:14px; }
-      .card-title { font-size:.95rem; }
-
-      .tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-      .tbl { font-size:11px; min-width:340px; }
-      .tbl thead th { padding:8px 9px; font-size:9px; letter-spacing:.5px; }
-      .tbl tbody td { padding:7px 9px; }
-
-      .rank-item { gap:7px; padding:6px 0; }
-      .rank-name { font-size:11px; }
-      .rank-val { font-size:13px; }
-
-      .charts-row { grid-template-columns:1fr; gap:12px; }
-      .chart-wrap { height:260px; }
-
-      .foot { flex-direction:column; align-items:flex-start; gap:6px; font-size:10px; }
-      .ec-pill { font-size:11px; padding:3px 8px; }
-
-
     }</style>
 
 
@@ -276,6 +238,185 @@
   }
   .hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
   </style>
+  <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final" />
+  <style id="d3-layout-fine-tune">
+    .d3-top-grid{
+      grid-template-columns:minmax(560px,1.34fr) minmax(390px,.86fr) !important;
+      align-items:stretch !important;
+      gap:18px !important;
+      margin-bottom:18px !important;
+    }
+    .d3-metrics-grid{
+      display:grid !important;
+      grid-template-columns:minmax(330px,.62fr) minmax(650px,1.38fr) !important;
+      gap:18px !important;
+      margin-bottom:18px !important;
+      align-items:stretch !important;
+    }
+    .d3-top-grid > .card,
+    .d3-metrics-grid > .card{
+      align-self:stretch !important;
+      min-height:0 !important;
+      display:flex !important;
+      flex-direction:column !important;
+      overflow:hidden !important;
+      padding:18px 20px !important;
+    }
+    .d3-top-grid > .card{
+      height:455px !important;
+    }
+    .d3-metrics-grid > .card{
+      height:395px !important;
+    }
+    #tabla-ec-at,
+    #ranking-at,
+    #tabla-plazas,
+    #tabla-at{
+      flex:1 1 auto !important;
+      min-height:0 !important;
+    }
+    #ranking-at,
+    #tabla-at .tbl-wrap{
+      max-height:none !important;
+      overflow-y:auto !important;
+      overflow-x:hidden !important;
+      padding-right:8px !important;
+    }
+    #ranking-at .rank-item,
+    #ranking-at .ranking-item{
+      grid-template-columns:34px minmax(0,1fr) 42px !important;
+      min-height:0 !important;
+      padding:9px 10px !important;
+      gap:10px !important;
+      margin-bottom:8px !important;
+      border:1px solid rgba(255,255,255,.58) !important;
+      border-radius:15px !important;
+      background:rgba(255,255,255,.45) !important;
+      box-shadow:0 10px 24px rgba(67,38,18,.08) !important;
+      border-bottom-color:rgba(255,255,255,.58) !important;
+    }
+    #ranking-at .rank-num{
+      width:28px !important;
+      height:28px !important;
+      display:grid !important;
+      place-items:center !important;
+      border-radius:10px !important;
+      background:linear-gradient(145deg,#3B1918,#1F1010) !important;
+      color:#fff !important;
+      font-size:12px !important;
+      box-shadow:0 8px 18px rgba(54,22,16,.16) !important;
+    }
+    #ranking-at .rank-item:nth-child(-n+3) .rank-num{
+      background:linear-gradient(145deg,#F6B73C,#E43130) !important;
+    }
+    #ranking-at .rank-name,
+    #ranking-at .ranking-name{
+      font-size:12px !important;
+      line-height:1.15 !important;
+      white-space:nowrap !important;
+      overflow:hidden !important;
+      text-overflow:ellipsis !important;
+    }
+    #ranking-at .rank-name + div{
+      font-size:10px !important;
+      line-height:1.1 !important;
+      margin-bottom:5px !important;
+      white-space:nowrap !important;
+      overflow:hidden !important;
+      text-overflow:ellipsis !important;
+    }
+    #ranking-at .rank-sub,
+    #ranking-at .ranking-sub{
+      font-size:10px !important;
+      line-height:1.1 !important;
+    }
+    #ranking-at .rank-val,
+    #ranking-at .ranking-value{
+      width:34px !important;
+      height:34px !important;
+      display:grid !important;
+      place-items:center !important;
+      border-radius:999px !important;
+      background:rgba(247,25,38,.08) !important;
+      border:1px solid rgba(247,25,38,.14) !important;
+      font-size:13px !important;
+    }
+    #ranking-at .rank-bar-bg{
+      height:6px !important;
+    }
+    #tabla-ec-at table,
+    #tabla-at .tbl{
+      table-layout:fixed !important;
+    }
+    #tabla-ec-at table{
+      font-size:11.5px !important;
+      height:100% !important;
+    }
+    #tabla-ec-at th,
+    #tabla-ec-at td{
+      white-space:nowrap;
+      padding:4px 10px !important;
+    }
+    #tabla-ec-at th:nth-child(1){width:52px !important}
+    #tabla-ec-at th:nth-child(2){width:37% !important}
+    #tabla-ec-at th:nth-child(3){width:34% !important}
+    #tabla-ec-at th:nth-child(4){width:92px !important}
+    #tabla-ec-at td:nth-child(2){
+      font-size:11.5px !important;
+      line-height:1.15 !important;
+    }
+    #tabla-ec-at td:last-child{
+      font-size:14.5px !important;
+    }
+    #tabla-ec-at tbody tr:nth-child(even){
+      background:rgba(255,246,241,.52) !important;
+    }
+    #tabla-at .tbl thead th,
+    #tabla-at .tbl tbody td{
+      padding-top:10px !important;
+      padding-bottom:10px !important;
+      font-size:12px !important;
+      line-height:1.18 !important;
+    }
+    #tabla-at .tbl th:first-child,
+    #tabla-at .tbl td:first-child{
+      width:34% !important;
+    }
+    #tabla-at .tbl .total-row td{
+      padding-top:12px !important;
+      padding-bottom:12px !important;
+    }
+    #tabla-plazas table{
+      table-layout:fixed !important;
+      width:100% !important;
+      height:100% !important;
+    }
+    #tabla-plazas td,
+    #tabla-plazas th{
+      padding:12px 12px !important;
+    }
+    #tabla-plazas td:first-child{
+      font-size:12.5px !important;
+      line-height:1.15 !important;
+    }
+    #tabla-plazas td:last-child{
+      font-size:15px !important;
+    }
+    @media(max-width:1200px){
+      .d3-top-grid,
+      .d3-metrics-grid{
+        grid-template-columns:1fr !important;
+      }
+      .d3-top-grid > .card,
+      .d3-metrics-grid > .card{
+        height:auto !important;
+      }
+      #ranking-at,
+      #tabla-at .tbl-wrap{
+        max-height:360px !important;
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -287,11 +428,7 @@
       <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
     </div>
   </div>
-  <div class="topbar__meta">
-    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar a tema oscuro" aria-pressed="false">
-      <span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__thumb"></span></span>
-      <span data-theme-label>Claro</span>
-    </button><a href="../index.html" class="topbar__back">
+  <div class="topbar__meta"><a href="../index.html" class="topbar__back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
            stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Inicio
@@ -350,15 +487,14 @@
 
 
 
-  <!-- GRID PRINCIPAL: Tabla resumen AT + Ranking -->
-  <div class="main-grid">
-    <!-- Tabla resumen por AT -->
+  <!-- GRID PRINCIPAL: EC % por AT + Ranking -->
+  <div class="main-grid d3-top-grid">
+    <!-- EC % por AT -->
     <div class="card">
       <div class="card-head">
-        <div class="card-title">Resumen por AT</div>
-        <span class="card-badge" id="row-count">— registros</span>
+        <div class="card-title">EC % por AT (desde Sheet)</div>
       </div>
-      <div id="tabla-at">
+      <div id="tabla-ec-at">
         <div class="state-box"><div class="spinner"></div></div>
       </div>
     </div>
@@ -369,6 +505,27 @@
         <div class="card-title">🏥 Ranking Ausentismos por Tienda</div>
       </div>
       <div id="ranking-at">
+        <div class="state-box"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLA APROVECHAMIENTO POR PLAZA + RESUMEN POR AT -->
+  <div class="d3-metrics-grid">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Aprovechamiento por Plaza</div>
+      </div>
+      <div id="tabla-plazas">
+        <div class="state-box"><div class="spinner"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Resumen por AT</div>
+        <span class="card-badge" id="row-count">— registros</span>
+      </div>
+      <div id="tabla-at">
         <div class="state-box"><div class="spinner"></div></div>
       </div>
     </div>
@@ -385,33 +542,16 @@
     </div>
   </div>
 
-  <!-- TABLA APROVECHAMIENTO POR PLAZA -->
-  <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:16px">
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">Aprovechamiento por Plaza</div>
-      </div>
-      <div id="tabla-plazas">
-        <div class="state-box"><div class="spinner"></div></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">EC % por AT (desde Sheet)</div>
-      </div>
-      <div id="tabla-ec-at">
-        <div class="state-box"><div class="spinner"></div></div>
-      </div>
-    </div>
-  </div>
-
   <!-- GRÁFICAS -->
   <div class="charts-row">
 
     <!-- Dona distribución estatus -->
-    <div class="card">
+    <div class="card estatus-card">
       <div class="card-head"><div class="card-title">Distribución Estatus</div></div>
-      <div class="chart-wrap"><canvas id="chart-dona"></canvas></div>
+      <div class="estatus-distribution">
+        <div class="chart-wrap estatus-chart-wrap"><canvas id="chart-dona"></canvas></div>
+        <div class="estatus-summary" id="estatus-summary"></div>
+      </div>
     </div>
 
   </div>
@@ -506,6 +646,81 @@ function isCompleta(e){const s=statusText(e);return s.includes('completo') && !s
 function estatusColor(e){if(isCritica(e))return'rojo';if(isIncompleta(e))return'amarillo';if(isCompleta(e))return'verde';return'gris';}
 function ecPill(pct,label){const c=ecColor(pct);return`<span class="ec-pill ${c}"><span class="ec-dot"></span>${label}</span>`;}
 
+function renderEstatusDistribution(completas, incompletas, criticas, total){
+  const canvas = document.getElementById('chart-dona');
+  if(!canvas || !window.Chart) return;
+  if(canvas._chartInstance) canvas._chartInstance.destroy();
+  const labels = ['Equipo Completo','Equipo Incompleto','Tienda Crítica'];
+  const values = [completas, incompletas, criticas];
+  const colors = ['#159447', '#F07B22', '#D91F2D'];
+  const pct = v => total > 0 ? Math.round((v / total) * 100) : 0;
+  const centerPlugin = {
+    id: 'estatusCenter',
+    afterDraw(chart) {
+      const meta = chart.getDatasetMeta(0);
+      if(!meta?.data?.[0]) return;
+      const { x, y } = meta.data[0];
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#159447';
+      ctx.font = '900 34px "Barlow Condensed", sans-serif';
+      ctx.fillText(`${pct(completas)}%`, x, y - 8);
+      ctx.fillStyle = '#8B6A5F';
+      ctx.font = '800 11px "Barlow", sans-serif';
+      ctx.fillText('completo', x, y + 18);
+      ctx.restore();
+    }
+  };
+  canvas._chartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderColor: '#FFF8EE',
+        borderWidth: 5,
+        borderRadius: 14,
+        spacing: 4,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '66%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#251313',
+          titleColor: '#FFF8EE',
+          bodyColor: '#FFF8EE',
+          padding: 12,
+          cornerRadius: 14,
+          displayColors: false
+        }
+      }
+    },
+    plugins: [centerPlugin]
+  });
+
+  const summary = document.getElementById('estatus-summary');
+  if(summary) {
+    summary.innerHTML = labels.map((label, i) => `
+      <div class="estatus-summary__item">
+        <div>
+          <span class="estatus-dot" style="background:${colors[i]}"></span>
+          <span class="estatus-label">${label}</span>
+        </div>
+        <strong>${OXXO.formatNum(values[i])}</strong>
+        <span>${pct(values[i])}%</span>
+      </div>
+    `).join('');
+  }
+}
+
 // Plazas foco (hardcoded para las tarjetas superiores)
 const PLAZAS_FOCO = ['OAXACA','TUXTLA','ISTMO','VILLAHERMOSA','CHONTALPA'];
 
@@ -598,25 +813,25 @@ function render(data){
       <div class="kpi-card__delta ${aprovProm>=0.95?'pos':aprovProm>=0.80?'neu':'neg'}">Plaza Oaxaca</div>
       <div class="kpi-card__icon">📊</div>
     </div>
-    <div class="kpi-card azul">
+    <div class="kpi-card azul ${document.getElementById('filtro-estatus')?.value===''?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('')}">
       <div class="kpi-card__label">Tiendas Totales</div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neu">${completas} completas · ${incompletas} inc. · ${criticas} crít.</div>
       <div class="kpi-card__icon">🏪</div>
     </div>
-    <div class="kpi-card verde">
+    <div class="kpi-card verde ${document.getElementById('filtro-estatus')?.value==='completo'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('completo')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('completo')}">
       <div class="kpi-card__label">Equipo Completo</div>
       <div class="kpi-card__value">${completas}</div>
       <div class="kpi-card__delta pos">${total>0?Math.round(completas/total*100):0}% del total</div>
       <div class="kpi-card__icon">✅</div>
     </div>
-    <div class="kpi-card amarillo">
+    <div class="kpi-card amarillo ${document.getElementById('filtro-estatus')?.value==='incompleto'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('incompleto')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('incompleto')}">
       <div class="kpi-card__label">Equipo Incompleto</div>
       <div class="kpi-card__value">${incompletas}</div>
       <div class="kpi-card__delta neu">Requieren atención</div>
       <div class="kpi-card__icon">⚠️</div>
     </div>
-    <div class="kpi-card rojo">
+    <div class="kpi-card rojo ${document.getElementById('filtro-estatus')?.value==='critica'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('critica')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('critica')}">
       <div class="kpi-card__label">Tienda Crítica</div>
       <div class="kpi-card__value">${criticas}</div>
       <div class="kpi-card__delta neg">Acción inmediata</div>
@@ -788,7 +1003,7 @@ function render(data){
 
 
   // ── GRÁFICA DONA ESTATUS ─────────────────────────────────
-  OXXO.renderDonutChart('chart-dona',['Equipo Completo','Equipo Incompleto','Tienda Crítica'],[completas,incompletas,criticas]);
+  renderEstatusDistribution(completas, incompletas, criticas, total);
 
 
 
@@ -844,18 +1059,18 @@ function render(data){
         const barW = (d.ec / maxEc * 100).toFixed(1);
         const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
         return `<tr>
-          <td style="padding:9px 12px;text-align:center;font-size:13px">${medal}</td>
-          <td style="padding:9px 12px;font-weight:600;font-size:12px">${OXXO.truncate(d.at, 30)}</td>
-          <td style="padding:9px 12px">
+          <td style="padding:7px 10px;text-align:center;font-size:12px">${medal}</td>
+          <td style="padding:7px 10px;font-weight:600;font-size:11.5px">${OXXO.truncate(d.at, 34)}</td>
+          <td style="padding:7px 10px">
             <div style="height:5px;background:var(--color-border);border-radius:3px;overflow:hidden">
               <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:3px;transition:width .8s ease"></div>
             </div>
           </td>
-          <td style="padding:9px 12px;text-align:right;font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)'}">${d.ec.toFixed(2)}%</td>
+          <td style="padding:7px 10px;text-align:right;font-family:var(--font-display);font-size:1.05rem;font-weight:800;color:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)'}">${d.ec.toFixed(2)}%</td>
         </tr>`;
       }).join('');
       ecAtEl.innerHTML = `
-        <div style="overflow:auto;max-height:280px">
+        <div style="overflow:visible;max-height:none">
           <table style="width:100%;border-collapse:collapse">
             <thead><tr style="background:var(--color-bg)">
               <th style="padding:8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">#</th>
@@ -976,9 +1191,14 @@ function applyFilters(){
   if(s==='critica')    d = d.filter(r=>isCritica(r.estatus));
   render(d);
 }
+function setKpiEstatus(value){
+  const sel = document.getElementById('filtro-estatus');
+  if(sel) sel.value = value;
+  applyFilters();
+}
 function limpiarFiltros(){
   ['filtro-asesor','filtro-esquema','filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
-  render(ALL_DATA);
+  applyFilters();
 }
 
 document.addEventListener('DOMContentLoaded', initDashboard);
