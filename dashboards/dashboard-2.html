@@ -91,6 +91,26 @@
     .chart-wide { position:relative; height:205px; }
 
     .bajas-row-panel { margin-bottom:14px; }
+    .heatmap-panel { margin-bottom:14px; }
+    .heatmap-wrap { display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; }
+    .heatmap-table { border-collapse:collapse; font-size:11px; }
+    .heatmap-table th, .heatmap-table td { text-align:center; padding:0; }
+    .heatmap-table thead th { font-size:10px; font-weight:700; color:#06060a; padding:4px 6px 8px; white-space:nowrap; }
+    .heatmap-table thead th.heatmap-axis-x { font-size:10.5px; }
+    .heatmap-table tbody th { font-size:10.5px; font-weight:700; color:#06060a; text-align:right; padding:0 10px 0 4px; white-space:nowrap; }
+    .heatmap-cell { width:64px; height:36px; border-radius:8px; font-weight:700; font-size:12px; color:#06060a; cursor:default; transition:transform .12s; }
+    .heatmap-cell:hover { transform:scale(1.06); outline:2px solid #c0181f; outline-offset:-2px; }
+    .heatmap-cell.is-empty { color:#9a9488; font-weight:500; font-size:11px; }
+    .heatmap-axes-label { font-size:10px; font-weight:700; color:#6b6358; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+    .heatmap-legend { display:flex; flex-direction:column; gap:8px; min-width:120px; padding-top:18px; }
+    .heatmap-legend__title { font-size:10px; font-weight:700; color:#06060a; margin-bottom:2px; }
+    .heatmap-legend__item { display:flex; align-items:center; gap:8px; font-size:11px; color:#3a352c; }
+    .heatmap-legend__swatch { width:16px; height:16px; border-radius:4px; flex:0 0 auto; }
+    .heatmap-empty-msg { font-size:12px; color:#6b6358; padding:20px 4px; }
+    @media (max-width:760px){
+      .heatmap-cell{ width:46px; height:30px; font-size:10.5px; }
+      .heatmap-table thead th, .heatmap-table tbody th{ font-size:9px; }
+    }
     .bajas-detail-panel { border-radius:18px; padding:18px; }
     .bajas-detail-panel .table-wrapper { max-height:420px; overflow:auto; }
     .bajas-detail-panel .data-table { font-size:12px; }
@@ -308,6 +328,11 @@
     <div class="chart-wide"><canvas id="chart-tiendas"></canvas></div>
   </section>
 
+  <section class="bajas-panel heatmap-panel">
+    <div class="bajas-panel__title">Mapa de calor de bajas</div>
+    <div id="heatmap-bajas"></div>
+  </section>
+
   <section class="panel bajas-detail-panel panel--accent-red">
     <div class="panel__header">
       <div class="panel__title">Detalle completo de bajas</div>
@@ -351,6 +376,7 @@ const ALIASES = {
   totalBajas: ['Total de bajas','Total bajas','Bajas','TOTAL BAJAS'],
   colPlazas:   ['Plazas','PLAZAS','Plaza ranking','Nombre Plaza'],
   colBajas:    ['Bajas Plaza','Bajas_Plaza','BAJAS PLAZA','Bajas plazas'],
+  edad: ['Edad','EDAD','Edad años','Edad (años)','Edad Años','Edad_anios','Edad_años'],
 };
 
 function cleanKey(str){return String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
@@ -631,6 +657,90 @@ function renderDetail(data, cols){
   }).join('') + '</tr>').join('');
   document.getElementById('tabla-detalle').innerHTML = `<div class="table-wrapper"><table class="data-table"><thead><tr>${columns.map(([,label])=>`<th>${label}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
+const AGE_GROUPS = [
+  {label:'18-25', min:18, max:25},
+  {label:'26-35', min:26, max:35},
+  {label:'36-45', min:36, max:45},
+  {label:'46-55', min:46, max:55},
+  {label:'56+',   min:56, max:Infinity},
+];
+const TENURE_GROUPS = [
+  {label:'0-30 días',    min:0,   max:30},
+  {label:'31-90 días',   min:31,  max:90},
+  {label:'91-180 días',  min:91,  max:180},
+  {label:'181-365 días', min:181, max:365},
+  {label:'+365 días',    min:366, max:Infinity},
+];
+function ageGroup(edad){
+  const n = Number(edad);
+  if(!Number.isFinite(n) || n <= 0) return null;
+  return AGE_GROUPS.find(g => n >= g.min && n <= g.max) || null;
+}
+function tenureGroupHeatmap(dias){
+  const n = Number(dias);
+  if(!Number.isFinite(n) || n < 0) return null;
+  return TENURE_GROUPS.find(g => n >= g.min && n <= g.max) || null;
+}
+function heatColor(ratio){
+  const r0=[255,242,224], r1=[192,24,31];
+  const t = Math.max(0, Math.min(1, ratio));
+  const r = Math.round(r0[0] + (r1[0]-r0[0])*t);
+  const g = Math.round(r0[1] + (r1[1]-r0[1])*t);
+  const b = Math.round(r0[2] + (r1[2]-r0[2])*t);
+  return `rgb(${r},${g},${b})`;
+}
+function renderHeatmapBajas(data, cols){
+  const container = document.getElementById('heatmap-bajas');
+  if(!container) return;
+  const matrix = {};
+  AGE_GROUPS.forEach(a => { matrix[a.label] = {}; TENURE_GROUPS.forEach(t => matrix[a.label][t.label] = 0); });
+  let any = false;
+  data.forEach(row => {
+    const edadRaw = val(row, cols, 'edad', '');
+    const antRaw = val(row, cols, 'antiguedad', '');
+    if(edadRaw === '' || antRaw === '') return;
+    const ag = ageGroup(num(edadRaw));
+    const tg = tenureGroupHeatmap(num(antRaw));
+    if(!ag || !tg) return;
+    matrix[ag.label][tg.label]++;
+    any = true;
+  });
+  if(!any){
+    container.innerHTML = `<div class="heatmap-empty-msg">No hay suficientes datos de edad/antigüedad para construir el mapa de calor.</div>`;
+    return;
+  }
+  let maxVal = 0;
+  AGE_GROUPS.forEach(a => TENURE_GROUPS.forEach(t => { maxVal = Math.max(maxVal, matrix[a.label][t.label]); }));
+  const headerCells = TENURE_GROUPS.map(t => `<th class="heatmap-axis-x">${t.label}</th>`).join('');
+  const bodyRows = AGE_GROUPS.map(a => {
+    const cells = TENURE_GROUPS.map(t => {
+      const v = matrix[a.label][t.label];
+      if(v === 0){
+        return `<td><div class="heatmap-cell is-empty" title="Edad: ${a.label} · Antigüedad: ${t.label} · Bajas: 0">—</div></td>`;
+      }
+      const ratio = maxVal > 0 ? v / maxVal : 0;
+      const bg = heatColor(ratio);
+      return `<td><div class="heatmap-cell" style="background:${bg}" title="Edad: ${a.label} · Antigüedad: ${t.label} · Bajas: ${v}">${v}</div></td>`;
+    }).join('');
+    return `<tr><th>${a.label}</th>${cells}</tr>`;
+  }).join('');
+  container.innerHTML = `
+    <div class="heatmap-wrap">
+      <div>
+        <div class="heatmap-axes-label">Antigüedad antes de la baja →  /  Edad ↓</div>
+        <table class="heatmap-table">
+          <thead><tr><th></th>${headerCells}</tr></thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      </div>
+      <div class="heatmap-legend">
+        <div class="heatmap-legend__title">Intensidad</div>
+        <div class="heatmap-legend__item"><span class="heatmap-legend__swatch" style="background:${heatColor(0.12)}"></span>Bajo</div>
+        <div class="heatmap-legend__item"><span class="heatmap-legend__swatch" style="background:${heatColor(0.55)}"></span>Medio</div>
+        <div class="heatmap-legend__item"><span class="heatmap-legend__swatch" style="background:${heatColor(1)}"></span>Alto</div>
+      </div>
+    </div>`;
+}
 function renderBajasDashboard(data, cols){
   if(!data.length){
     document.getElementById('kpi-section').innerHTML = `
@@ -641,6 +751,8 @@ function renderBajasDashboard(data, cols){
       const c = document.getElementById(id);
       if(c && c._chartInstance) c._chartInstance.destroy();
     });
+    const heatmapEl = document.getElementById('heatmap-bajas');
+    if(heatmapEl) heatmapEl.innerHTML = `<div class="heatmap-empty-msg">Sin datos suficientes para el mapa de calor con los filtros activos.</div>`;
     return;
   }
 
@@ -707,6 +819,7 @@ function renderBajasDashboard(data, cols){
 
   renderDetail(data, cols);
   renderPlazas(data, cols);
+  renderHeatmapBajas(data, cols);
   document.getElementById('row-count').textContent = `${data.length} bajas`;
   OXXO.updateFooterTime('load-time');
 }
