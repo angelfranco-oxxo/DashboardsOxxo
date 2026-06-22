@@ -1854,9 +1854,17 @@
     <div class="vac-filters">
       <div class="vac-fbox">
         <label>Asesor</label>
-        <select class="filtro-select" id="filtro-asesor">
-          <option value="">Todos los asesores</option>
-        </select>
+        <div class="smart-filter" id="asesor-filter">
+          <button class="smart-filter__button" type="button" id="asesor-button">
+            <span class="smart-filter__label" id="asesor-label">Todos los asesores</span>
+            <span class="smart-filter__chev">▾</span>
+          </button>
+          <div class="smart-filter__menu" id="asesor-menu">
+            <input class="smart-filter__search" id="asesor-search" type="search" placeholder="Buscar asesor..." autocomplete="off">
+            <div class="smart-filter__list" id="asesor-options"></div>
+          </div>
+          <input type="hidden" id="filtro-asesor" value="">
+        </div>
       </div>
       <div class="vac-fbox">
         <label>Puesto</label>
@@ -2112,6 +2120,64 @@ function pillHTML(t,c){return`<span class="pill ${c}"><span class="pill-dot"></s
 
 // Estado global
 let allData=[], colMap={}, activePuesto='', selectedPuestoValues=[], selectedTiendaValues=[], tiendaOptionsData=[];
+let selectedAsesorValues=null, asesorOptionsData=[];
+
+const SIN_ASESOR='SIN ASESOR ASIGNADO';
+function asesorCanon(name){
+  const t=String(name||'').trim();
+  if(!t) return SIN_ASESOR;
+  const c=t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+  if(c.includes('SIN ASESOR') || c.includes('NO ASIGNADO') || c==='SIN ASESOR') return SIN_ASESOR;
+  return t;
+}
+function buildAsesorOptions(){
+  const set=new Set(allData.map(r=>asesorCanon(r.asesor)));
+  const arr=[...set].filter(v=>v!==SIN_ASESOR).sort((a,b)=>a.localeCompare(b,'es'));
+  if(set.has(SIN_ASESOR)) arr.push(SIN_ASESOR);
+  asesorOptionsData=arr;
+  return arr;
+}
+function defaultAsesorSelection(){
+  return asesorOptionsData.filter(v=>v!==SIN_ASESOR);
+}
+function selectedAsesores(){
+  return selectedAsesorValues ? [...selectedAsesorValues] : [];
+}
+function setSelectedAsesores(values=null){
+  selectedAsesorValues = values===null ? null : [...new Set(values.filter(Boolean))];
+  const input=document.getElementById('filtro-asesor');
+  if(input) input.value=(selectedAsesorValues||[]).join('|');
+  updateAsesorLabel();
+  renderAsesorOptions(document.getElementById('asesor-search')?.value || '');
+}
+function updateAsesorLabel(){
+  const label=document.getElementById('asesor-label');
+  if(!label) return;
+  const total=asesorOptionsData.length;
+  const n=selectedAsesorValues ? selectedAsesorValues.length : total;
+  if(!selectedAsesorValues || n===total) label.textContent='Todos los asesores';
+  else if(n===0) label.textContent='Ningún asesor';
+  else if(n===1) label.textContent=selectedAsesorValues[0];
+  else label.textContent=`${n} asesores seleccionados`;
+}
+function renderAsesorOptions(query=''){
+  const wrap=document.getElementById('asesor-options');
+  if(!wrap) return;
+  const q=normalizeSearchText(query);
+  const all=asesorOptionsData;
+  const filtered=all.filter(v=>!q||normalizeSearchText(v).includes(q));
+  const allSelected=selectedAsesorValues && selectedAsesorValues.length===all.length;
+  const rows=[{value:'',label:'Todos los asesores',isAll:true}]
+    .concat(filtered.map(v=>({value:v,label:v,isAll:false})))
+    .map(opt=>{
+      const active=opt.isAll ? allSelected : (selectedAsesorValues ? selectedAsesorValues.includes(opt.value) : true);
+      return `<button type="button" class="smart-filter__option ${active?'is-active':''}" data-asesor="${esc(opt.value)}">
+        <span class="smart-filter__check"></span>
+        <span>${esc(opt.label)}</span>
+      </button>`;
+    }).join('');
+  wrap.innerHTML=rows || '<div class="smart-filter__empty">Sin resultados</div>';
+}
 
 function selectedPuestos(){
   return [...selectedPuestoValues];
@@ -2235,7 +2301,8 @@ function forceKpiLayout(){
 // Obtener filtros actuales
 function getFiltros(){
   return{
-    asesor: document.getElementById('filtro-asesor').value,
+    asesores: selectedAsesores(),
+    asesoresAll: !selectedAsesorValues || selectedAsesorValues.length===asesorOptionsData.length,
     puestos: selectedPuestos(),
     puesto: activePuesto,
     tiendas: selectedTiendas(),
@@ -2245,7 +2312,7 @@ function getFiltros(){
 }
 
 function limpiarFiltros(){
-  document.getElementById('filtro-asesor').value='';
+  setSelectedAsesores(defaultAsesorSelection());
   setSelectedPuestos();
   setSelectedTiendas();
   document.getElementById('tienda-search').value='';
@@ -2260,7 +2327,7 @@ function limpiarFiltros(){
 function filtrarDatos(){
   const f=getFiltros();
   let filtered=[...allData];
-  if(f.asesor) filtered=filtered.filter(r=>r.asesor===f.asesor);
+  if(f.asesores && !f.asesoresAll) filtered=filtered.filter(r=>f.asesores.includes(asesorCanon(r.asesor)));
   if(f.tiendas && f.tiendas.length) filtered=filtered.filter(r=>f.tiendas.includes(r.tienda));
   if(f.puestos.length) filtered=filtered.filter(r=>f.puestos.includes(r.puesto));
   else if(f.puesto) filtered=filtered.filter(r=>r.tipo===f.puesto);
@@ -2316,10 +2383,10 @@ function refreshDashboard(){
 
 // Poblar selectores de filtro
 function poblarFiltros(){
-  const asesores=[...new Set(allData.map(r=>r.asesor).filter(Boolean))].sort();
+  buildAsesorOptions();
   tiendaOptionsData=[...new Set(allData.map(r=>r.tienda).filter(Boolean))].sort();
-  const selA=document.getElementById('filtro-asesor');
-  asesores.forEach(a=>selA.add(new Option(a,a)));
+  setSelectedAsesores(defaultAsesorSelection());
+  renderAsesorOptions();
   setSelectedPuestos();
   setSelectedTiendas();
   renderTiendaOptions();
@@ -2330,7 +2397,7 @@ function poblarFiltros(){
   if(meses.length){
     selMes.value=meses[meses.length-1][0];
   }
-  ['filtro-asesor','filtro-dias','filtro-mes'].forEach(id=>{
+  ['filtro-dias','filtro-mes'].forEach(id=>{
     document.getElementById(id).addEventListener('change', () => {
       refreshDashboard();
     });
@@ -2356,6 +2423,35 @@ function poblarFiltros(){
       const set=new Set(selectedPuestoValues);
       set.has(value) ? set.delete(value) : set.add(value);
       setSelectedPuestos([...set]);
+    }
+    refreshDashboard();
+  });
+
+  document.getElementById('asesor-button').addEventListener('click', () => {
+    const box=document.getElementById('asesor-filter');
+    const willOpen=!box.classList.contains('open');
+    closeSmartFilters(willOpen ? 'asesor-filter' : '');
+    box.classList.toggle('open', willOpen);
+    if(willOpen) setTimeout(()=>document.getElementById('asesor-search').focus(),0);
+  });
+
+  document.getElementById('asesor-search').addEventListener('input', e => {
+    renderAsesorOptions(e.target.value);
+  });
+
+  document.getElementById('asesor-options').addEventListener('click', e => {
+    const btn=e.target.closest('[data-asesor]');
+    if(!btn) return;
+    e.stopPropagation();
+    const value=btn.dataset.asesor || '';
+    const all=asesorOptionsData;
+    if(!value){
+      const allSelected=selectedAsesorValues && selectedAsesorValues.length===all.length;
+      setSelectedAsesores(allSelected ? [] : [...all]);
+    } else {
+      const set=new Set(selectedAsesorValues || all);
+      set.has(value) ? set.delete(value) : set.add(value);
+      setSelectedAsesores([...set]);
     }
     refreshDashboard();
   });
@@ -2574,7 +2670,7 @@ function renderOverview(allData){
   const maxDias=Math.max(...allData.map(r=>r.dias),0);
   const tiendaAntigua=allData.find(r=>r.dias===maxDias)?.tienda||'—';
   const asesoresUnicos=[...new Set(allData.map(r=>r.asesor))].length;
-  const filtroAsesor = document.getElementById('filtro-asesor')?.value || '';
+  const filtroAsesor = (selectedAsesorValues && selectedAsesorValues.length!==asesorOptionsData.length) ? '1' : '';
   const filtroPuestos = selectedPuestos();
   const filtroPuesto = activePuesto || '';
   const filtroTienda = document.getElementById('filtro-tienda')?.value || '';
