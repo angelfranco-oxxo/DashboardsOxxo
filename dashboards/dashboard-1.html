@@ -1852,10 +1852,9 @@
         </select>
       </div>
       <div class="vac-fbox">
-        <label>Orden</label>
-        <select class="filtro-select" id="filtro-orden">
-          <option value="desc">Más antigua primero</option>
-          <option value="asc">Más reciente primero</option>
+        <label>Tienda</label>
+        <select class="filtro-select" id="filtro-tienda">
+          <option value="">Todas las tiendas</option>
         </select>
       </div>
       <div class="vac-fbox">
@@ -2123,18 +2122,18 @@ function getFiltros(){
     asesor: document.getElementById('filtro-asesor').value,
     puestos: selectedPuestos(),
     puesto: activePuesto,
+    tienda: document.getElementById('filtro-tienda')?.value || '',
     dias:   parseInt(document.getElementById('filtro-dias').value)||0,
     mes:    document.getElementById('filtro-mes')?.value || '',
-    orden:  document.getElementById('filtro-orden').value,
   };
 }
 
 function limpiarFiltros(){
   document.getElementById('filtro-asesor').value='';
   setSelectedPuestos();
+  document.getElementById('filtro-tienda').value='';
   document.getElementById('filtro-dias').value='';
   document.getElementById('filtro-mes').value='';
-  document.getElementById('filtro-orden').value='desc';
   activePuesto = '';
   refreshDashboard();
 }
@@ -2144,12 +2143,13 @@ function filtrarDatos(){
   const f=getFiltros();
   let filtered=[...allData];
   if(f.asesor) filtered=filtered.filter(r=>r.asesor===f.asesor);
+  if(f.tienda) filtered=filtered.filter(r=>r.tienda===f.tienda);
   if(f.puestos.length) filtered=filtered.filter(r=>f.puestos.includes(r.puesto));
   else if(f.puesto) filtered=filtered.filter(r=>r.tipo===f.puesto);
   if(f.dias)   filtered=filtered.filter(r=>r.dias>=f.dias);
   if(f.mes)    filtered=filtered.filter(r=>r.mesKey===f.mes);
   // Ordenar por días
-  filtered.sort((a,b)=>f.orden==='desc'?b.dias-a.dias:a.dias-b.dias);
+  filtered.sort((a,b)=>b.dias-a.dias);
   return filtered;
 }
 
@@ -2200,17 +2200,20 @@ function refreshDashboard(){
 function poblarFiltros(){
   const asesores=[...new Set(allData.map(r=>r.asesor).filter(Boolean))].sort();
   const puestos=[...new Set(allData.map(r=>r.puesto).filter(Boolean))].sort();
+  const tiendas=[...new Set(allData.map(r=>r.tienda).filter(Boolean))].sort();
   const selA=document.getElementById('filtro-asesor');
   asesores.forEach(a=>selA.add(new Option(a,a)));
   const selP=document.getElementById('filtro-puesto');
   puestos.forEach(p=>selP.add(new Option(p,p)));
   setSelectedPuestos();
+  const selT=document.getElementById('filtro-tienda');
+  tiendas.forEach(t=>selT.add(new Option(t,t)));
   const selMes=document.getElementById('filtro-mes');
   const meses=[...new Map(allData.filter(r=>r.mesKey).map(r=>[r.mesKey,r.mesLabel||mesLabel(r.mesKey)])).entries()]
     .sort((a,b)=>a[0].localeCompare(b[0]));
   meses.forEach(([value,label])=>selMes.add(new Option(label,value)));
   // Eventos
-  ['filtro-asesor','filtro-puesto','filtro-dias','filtro-mes','filtro-orden'].forEach(id=>{
+  ['filtro-asesor','filtro-puesto','filtro-tienda','filtro-dias','filtro-mes'].forEach(id=>{
     document.getElementById(id).addEventListener('change', () => {
       if(id==='filtro-puesto'){
         const sel=document.getElementById('filtro-puesto');
@@ -2412,12 +2415,13 @@ function renderOverview(allData){
   const filtroAsesor = document.getElementById('filtro-asesor')?.value || '';
   const filtroPuestos = selectedPuestos();
   const filtroPuesto = activePuesto || '';
+  const filtroTienda = document.getElementById('filtro-tienda')?.value || '';
   const filtroDias = document.getElementById('filtro-dias')?.value || '';
   const filtroMes = document.getElementById('filtro-mes')?.value || '';
 
   // KPIs
   document.getElementById('kpi-section').innerHTML=`
-    <div class="kpi-card rojo ${!filtroPuestos.length && !filtroPuesto && !filtroAsesor && !filtroDias && !filtroMes ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
+    <div class="kpi-card rojo ${!filtroPuestos.length && !filtroPuesto && !filtroAsesor && !filtroTienda && !filtroDias && !filtroMes ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
       <div class="kpi-card__label">Total Vacantes</div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neg">${asesoresUnicos} asesores afectados</div>
@@ -2441,7 +2445,7 @@ function renderOverview(allData){
       <div class="kpi-card__delta neu">Seguimiento · clic para filtrar</div>
       <div class="kpi-card__icon">👤</div>
     </div>
-    <div class="kpi-card ${maxDias>=15?'rojo':maxDias>=7?'naranja':'verde'} ${!filtroPuestos.length && !filtroPuesto && filtroDias==='7' ? 'active' : ''}" data-kpi="antiguos" title="Filtrar vacantes con más de 7 días">
+    <div class="kpi-card ${maxDias>=15?'rojo':maxDias>=7?'naranja':'verde'} ${!filtroPuestos.length && !filtroPuesto && !filtroTienda && filtroDias==='7' ? 'active' : ''}" data-kpi="antiguos" title="Filtrar vacantes con más de 7 días">
       <div class="kpi-card__label">Vacante más antigua</div>
       <div class="kpi-card__value">${maxDias||'—'}</div>
       <div class="kpi-card__delta ${maxDias>=15?'neg':'neu'}">${maxDias?'días · '+OXXO.truncate(tiendaAntigua,18):'Sin fecha'}</div>
@@ -2463,11 +2467,13 @@ function renderOverview(allData){
         if(kpi === 'todos') {
           activePuesto = '';
           setSelectedPuestos();
+          document.getElementById('filtro-tienda').value = '';
           document.getElementById('filtro-dias').value = '';
           document.getElementById('filtro-mes').value = '';
         } else if(kpi === 'antiguos') {
           activePuesto = '';
           setSelectedPuestos();
+          document.getElementById('filtro-tienda').value = '';
           document.getElementById('filtro-dias').value = '7';
         } else {
           // Lider, Encargado, Ayudante
@@ -2479,6 +2485,7 @@ function renderOverview(allData){
       } else {
         activePuesto = '';
         setSelectedPuestos();
+        document.getElementById('filtro-tienda').value = '';
         document.getElementById('filtro-dias').value = '';
         refreshDashboard();
       }
