@@ -249,20 +249,53 @@
   }
   .hero .filtro-select:focus{ outline:none; border-color:#fff !important; }
   .hero .filtro-select option{ color:#1a1a1a; background:#fff; }
-  .hero .filtro-select[multiple]{
-    min-height:48px;
-    max-height:104px;
-    overflow:auto;
-    border-radius:20px !important;
-    background-image:none !important;
-  }
-  .hero .filtro-select[multiple] option{
-    padding:7px 10px;
-    border-radius:10px;
-  }
   .hero .filtro-btn{ cursor:pointer; }
   .hero .filtro-btn:hover{ background:#fff !important; color:var(--hb-red) !important; border-color:#fff !important; transform:translateY(-1px); box-shadow:0 16px 30px rgba(84,8,12,.16); }
   .hero .filtro-count{ color:rgba(255,255,255,0.85); font-size:12px; align-self:center; }
+  .hero{ overflow:visible !important; }
+  .smart-filter{ position:relative; width:100%; }
+  .smart-filter__button{
+    width:100%; min-height:46px; box-sizing:border-box;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    border-radius:999px; border:1px solid rgba(255,255,255,.68);
+    padding:12px 16px; cursor:pointer; text-align:left;
+    background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(255,236,236,.74));
+    color:var(--exec-ink,#181112); font-family:var(--font-body); font-size:12px; font-weight:800;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.78),0 12px 28px rgba(83,6,12,.14);
+  }
+  .smart-filter__label{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .smart-filter__chev{ color:#8f3737; flex:0 0 auto; font-size:12px; }
+  .smart-filter__menu{
+    position:absolute; left:0; right:0; top:calc(100% + 8px); z-index:50;
+    display:none; max-height:320px; overflow:hidden;
+    border-radius:18px; border:1px solid rgba(255,255,255,.76);
+    background:rgba(255,250,246,.96); color:#241413;
+    box-shadow:0 24px 54px rgba(61,13,18,.22), inset 0 1px 0 rgba(255,255,255,.82);
+    -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+  }
+  .smart-filter.open .smart-filter__menu{ display:block; }
+  .smart-filter__search{
+    width:calc(100% - 20px); margin:10px; box-sizing:border-box;
+    border-radius:12px; border:1px solid rgba(181,18,28,.18);
+    padding:10px 12px; outline:none; font-family:var(--font-body); font-size:12px; font-weight:700;
+    background:rgba(255,255,255,.78); color:#241413;
+  }
+  .smart-filter__list{ max-height:234px; overflow:auto; padding:6px 8px 10px; scrollbar-width:thin; }
+  .smart-filter__option{
+    display:flex; align-items:center; gap:10px; width:100%;
+    padding:9px 10px; border:0; border-radius:12px; background:transparent;
+    color:#241413; cursor:pointer; font-family:var(--font-body); font-size:12px; font-weight:800; text-align:left;
+  }
+  .smart-filter__option:hover{ background:rgba(246,183,60,.16); }
+  .smart-filter__option.is-active{ background:rgba(217,31,45,.10); color:#b5121c; }
+  .smart-filter__check{
+    width:16px; height:16px; border-radius:5px; flex:0 0 auto;
+    display:grid; place-items:center; border:1px solid rgba(181,18,28,.25); background:#fff;
+    color:#fff; font-size:11px;
+  }
+  .smart-filter__option.is-active .smart-filter__check{ background:#d91f2d; border-color:#d91f2d; }
+  .smart-filter__option.is-active .smart-filter__check::before{ content:"✓"; }
+  .smart-filter__empty{ padding:16px; color:#8b6a5f; font-size:12px; font-weight:800; text-align:center; }
   html:not([data-theme="dark"]) .hero .hero-badge{
     background:rgba(255,255,255,0.16) !important;
     border-color:rgba(255,255,255,0.34) !important;
@@ -1827,9 +1860,15 @@
       </div>
       <div class="vac-fbox">
         <label>Puesto</label>
-        <select class="filtro-select" id="filtro-puesto" multiple size="4">
-          <option value="">Todos los puestos</option>
-        </select>
+        <div class="smart-filter" id="puesto-filter">
+          <button class="smart-filter__button" type="button" id="puesto-button">
+            <span class="smart-filter__label" id="puesto-label">Todos los puestos</span>
+            <span class="smart-filter__chev">▾</span>
+          </button>
+          <div class="smart-filter__menu" id="puesto-menu">
+            <div class="smart-filter__list" id="puesto-options"></div>
+          </div>
+        </div>
       </div>
       <div class="vac-fbox">
         <label>Antigüedad</label>
@@ -1853,9 +1892,17 @@
       </div>
       <div class="vac-fbox">
         <label>Tienda</label>
-        <select class="filtro-select" id="filtro-tienda">
-          <option value="">Todas las tiendas</option>
-        </select>
+        <div class="smart-filter" id="tienda-filter">
+          <button class="smart-filter__button" type="button" id="tienda-button">
+            <span class="smart-filter__label" id="tienda-label">Todas las tiendas</span>
+            <span class="smart-filter__chev">▾</span>
+          </button>
+          <div class="smart-filter__menu" id="tienda-menu">
+            <input class="smart-filter__search" id="tienda-search" type="search" placeholder="Buscar tienda..." autocomplete="off">
+            <div class="smart-filter__list" id="tienda-options"></div>
+          </div>
+          <input type="hidden" id="filtro-tienda" value="">
+        </div>
       </div>
       <div class="vac-fbox">
         <label>Filtros</label>
@@ -2064,22 +2111,79 @@ function diasBadge(d){
 function pillHTML(t,c){return`<span class="pill ${c}"><span class="pill-dot"></span>${t}</span>`;}
 
 // Estado global
-let allData=[], colMap={}, activePuesto='';
+let allData=[], colMap={}, activePuesto='', selectedPuestoValues=[], tiendaOptionsData=[];
 
 function selectedPuestos(){
-  const sel=document.getElementById('filtro-puesto');
-  return sel ? [...sel.selectedOptions].map(o=>o.value).filter(Boolean) : [];
+  return [...selectedPuestoValues];
 }
 
 function setSelectedPuestos(values=[]){
-  const wanted=new Set(values);
-  const sel=document.getElementById('filtro-puesto');
-  if(!sel) return;
-  [...sel.options].forEach(opt=>{ opt.selected = opt.value ? wanted.has(opt.value) : !wanted.size; });
+  selectedPuestoValues=[...new Set(values.filter(Boolean))];
+  renderPuestoOptions();
+  updatePuestoLabel();
 }
 
 function puestosByTipo(tipo){
   return [...new Set(allData.filter(r=>r.tipo===tipo).map(r=>r.puesto).filter(Boolean))].sort();
+}
+
+function esc(value){
+  return String(value??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function updatePuestoLabel(){
+  const label=document.getElementById('puesto-label');
+  if(!label) return;
+  if(!selectedPuestoValues.length) label.textContent='Todos los puestos';
+  else if(selectedPuestoValues.length===1) label.textContent=selectedPuestoValues[0];
+  else label.textContent=`${selectedPuestoValues.length} puestos seleccionados`;
+}
+
+function renderPuestoOptions(){
+  const wrap=document.getElementById('puesto-options');
+  if(!wrap) return;
+  const puestos=[...new Set(allData.map(r=>r.puesto).filter(Boolean))].sort();
+  const items=['',...puestos].map(value=>{
+    const isAll=value==='';
+    const active=isAll?!selectedPuestoValues.length:selectedPuestoValues.includes(value);
+    return `<button type="button" class="smart-filter__option ${active?'is-active':''}" data-puesto="${esc(value)}">
+      <span class="smart-filter__check"></span>
+      <span>${isAll?'Todos los puestos':esc(value)}</span>
+    </button>`;
+  }).join('');
+  wrap.innerHTML=items||'<div class="smart-filter__empty">Sin puestos</div>';
+}
+
+function setSelectedTienda(value=''){
+  const input=document.getElementById('filtro-tienda');
+  if(input) input.value=value;
+  const label=document.getElementById('tienda-label');
+  if(label) label.textContent=value||'Todas las tiendas';
+}
+
+function normalizeSearchText(value){
+  return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+
+function renderTiendaOptions(query=''){
+  const wrap=document.getElementById('tienda-options');
+  if(!wrap) return;
+  const selected=document.getElementById('filtro-tienda')?.value||'';
+  const q=normalizeSearchText(query);
+  const filtered=tiendaOptionsData.filter(t=>!q||normalizeSearchText(t).includes(q));
+  const rows=['',...filtered.slice(0,80)].map(value=>{
+    const isAll=value==='';
+    const active=isAll?!selected:selected===value;
+    return `<button type="button" class="smart-filter__option ${active?'is-active':''}" data-tienda="${esc(value)}">
+      <span class="smart-filter__check"></span>
+      <span>${isAll?'Todas las tiendas':esc(value)}</span>
+    </button>`;
+  }).join('');
+  wrap.innerHTML=rows || '<div class="smart-filter__empty">Sin resultados</div>';
+}
+
+function closeSmartFilters(exceptId=''){
+  document.querySelectorAll('.smart-filter.open').forEach(el=>{ if(el.id!==exceptId) el.classList.remove('open'); });
 }
 
 function forceKpiLayout(){
@@ -2131,7 +2235,9 @@ function getFiltros(){
 function limpiarFiltros(){
   document.getElementById('filtro-asesor').value='';
   setSelectedPuestos();
-  document.getElementById('filtro-tienda').value='';
+  setSelectedTienda('');
+  document.getElementById('tienda-search').value='';
+  renderTiendaOptions();
   document.getElementById('filtro-dias').value='';
   document.getElementById('filtro-mes').value='';
   activePuesto = '';
@@ -2199,34 +2305,69 @@ function refreshDashboard(){
 // Poblar selectores de filtro
 function poblarFiltros(){
   const asesores=[...new Set(allData.map(r=>r.asesor).filter(Boolean))].sort();
-  const puestos=[...new Set(allData.map(r=>r.puesto).filter(Boolean))].sort();
-  const tiendas=[...new Set(allData.map(r=>r.tienda).filter(Boolean))].sort();
+  tiendaOptionsData=[...new Set(allData.map(r=>r.tienda).filter(Boolean))].sort();
   const selA=document.getElementById('filtro-asesor');
   asesores.forEach(a=>selA.add(new Option(a,a)));
-  const selP=document.getElementById('filtro-puesto');
-  puestos.forEach(p=>selP.add(new Option(p,p)));
   setSelectedPuestos();
-  const selT=document.getElementById('filtro-tienda');
-  tiendas.forEach(t=>selT.add(new Option(t,t)));
+  setSelectedTienda('');
+  renderTiendaOptions();
   const selMes=document.getElementById('filtro-mes');
   const meses=[...new Map(allData.filter(r=>r.mesKey).map(r=>[r.mesKey,r.mesLabel||mesLabel(r.mesKey)])).entries()]
     .sort((a,b)=>a[0].localeCompare(b[0]));
   meses.forEach(([value,label])=>selMes.add(new Option(label,value)));
-  // Eventos
-  ['filtro-asesor','filtro-puesto','filtro-tienda','filtro-dias','filtro-mes'].forEach(id=>{
+  ['filtro-asesor','filtro-dias','filtro-mes'].forEach(id=>{
     document.getElementById(id).addEventListener('change', () => {
-      if(id==='filtro-puesto'){
-        const sel=document.getElementById('filtro-puesto');
-        const selected=[...sel.selectedOptions].map(o=>o.value);
-        if(selected.includes('') && selected.length>1){
-          [...sel.options].forEach(opt=>{ if(!opt.value) opt.selected=false; });
-        } else if(selected.includes('')){
-          setSelectedPuestos();
-        }
-        activePuesto = '';
-      }
       refreshDashboard();
     });
+  });
+
+  document.getElementById('puesto-button').addEventListener('click', () => {
+    const box=document.getElementById('puesto-filter');
+    const willOpen=!box.classList.contains('open');
+    closeSmartFilters(willOpen ? 'puesto-filter' : '');
+    box.classList.toggle('open', willOpen);
+  });
+
+  document.getElementById('puesto-options').addEventListener('click', e => {
+    const btn=e.target.closest('[data-puesto]');
+    if(!btn) return;
+    const value=btn.dataset.puesto;
+    if(!value){
+      activePuesto='';
+      setSelectedPuestos();
+    } else {
+      activePuesto='';
+      const set=new Set(selectedPuestoValues);
+      set.has(value) ? set.delete(value) : set.add(value);
+      setSelectedPuestos([...set]);
+    }
+    refreshDashboard();
+  });
+
+  document.getElementById('tienda-button').addEventListener('click', () => {
+    const box=document.getElementById('tienda-filter');
+    const willOpen=!box.classList.contains('open');
+    closeSmartFilters(willOpen ? 'tienda-filter' : '');
+    box.classList.toggle('open', willOpen);
+    if(willOpen) setTimeout(()=>document.getElementById('tienda-search').focus(),0);
+  });
+
+  document.getElementById('tienda-search').addEventListener('input', e => {
+    renderTiendaOptions(e.target.value);
+  });
+
+  document.getElementById('tienda-options').addEventListener('click', e => {
+    const btn=e.target.closest('[data-tienda]');
+    if(!btn) return;
+    setSelectedTienda(btn.dataset.tienda || '');
+    document.getElementById('tienda-search').value='';
+    renderTiendaOptions();
+    closeSmartFilters();
+    refreshDashboard();
+  });
+
+  document.addEventListener('click', e => {
+    if(!e.target.closest('.smart-filter')) closeSmartFilters();
   });
 }
 
@@ -2467,13 +2608,13 @@ function renderOverview(allData){
         if(kpi === 'todos') {
           activePuesto = '';
           setSelectedPuestos();
-          document.getElementById('filtro-tienda').value = '';
+          setSelectedTienda('');
           document.getElementById('filtro-dias').value = '';
           document.getElementById('filtro-mes').value = '';
         } else if(kpi === 'antiguos') {
           activePuesto = '';
           setSelectedPuestos();
-          document.getElementById('filtro-tienda').value = '';
+          setSelectedTienda('');
           document.getElementById('filtro-dias').value = '7';
         } else {
           // Lider, Encargado, Ayudante
@@ -2485,7 +2626,7 @@ function renderOverview(allData){
       } else {
         activePuesto = '';
         setSelectedPuestos();
-        document.getElementById('filtro-tienda').value = '';
+        setSelectedTienda('');
         document.getElementById('filtro-dias').value = '';
         refreshDashboard();
       }
