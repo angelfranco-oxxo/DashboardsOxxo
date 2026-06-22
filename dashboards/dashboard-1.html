@@ -2331,6 +2331,7 @@ function poblarFiltros(){
   document.getElementById('puesto-options').addEventListener('click', e => {
     const btn=e.target.closest('[data-puesto]');
     if(!btn) return;
+    e.stopPropagation();
     const value=btn.dataset.puesto;
     if(!value){
       activePuesto='';
