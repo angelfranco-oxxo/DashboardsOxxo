@@ -2315,6 +2315,9 @@ function poblarFiltros(){
   const meses=[...new Map(allData.filter(r=>r.mesKey).map(r=>[r.mesKey,r.mesLabel||mesLabel(r.mesKey)])).entries()]
     .sort((a,b)=>a[0].localeCompare(b[0]));
   meses.forEach(([value,label])=>selMes.add(new Option(label,value)));
+  if(meses.length){
+    selMes.value=meses[meses.length-1][0];
+  }
   ['filtro-asesor','filtro-dias','filtro-mes'].forEach(id=>{
     document.getElementById(id).addEventListener('change', () => {
       refreshDashboard();
