@@ -2111,7 +2111,7 @@ function diasBadge(d){
 function pillHTML(t,c){return`<span class="pill ${c}"><span class="pill-dot"></span>${t}</span>`;}
 
 // Estado global
-let allData=[], colMap={}, activePuesto='', selectedPuestoValues=[], tiendaOptionsData=[];
+let allData=[], colMap={}, activePuesto='', selectedPuestoValues=[], selectedTiendaValues=[], tiendaOptionsData=[];
 
 function selectedPuestos(){
   return [...selectedPuestoValues];
@@ -2154,11 +2154,24 @@ function renderPuestoOptions(){
   wrap.innerHTML=items||'<div class="smart-filter__empty">Sin puestos</div>';
 }
 
-function setSelectedTienda(value=''){
+function selectedTiendas(){
+  return [...selectedTiendaValues];
+}
+
+function setSelectedTiendas(values=[]){
+  selectedTiendaValues=[...new Set(values.filter(Boolean))];
   const input=document.getElementById('filtro-tienda');
-  if(input) input.value=value;
+  if(input) input.value=selectedTiendaValues.join('|');
+  updateTiendaLabel();
+  renderTiendaOptions(document.getElementById('tienda-search')?.value || '');
+}
+
+function updateTiendaLabel(){
   const label=document.getElementById('tienda-label');
-  if(label) label.textContent=value||'Todas las tiendas';
+  if(!label) return;
+  if(!selectedTiendaValues.length) label.textContent='Todas las tiendas';
+  else if(selectedTiendaValues.length===1) label.textContent=selectedTiendaValues[0];
+  else label.textContent=`${selectedTiendaValues.length} tiendas seleccionadas`;
 }
 
 function normalizeSearchText(value){
@@ -2168,12 +2181,11 @@ function normalizeSearchText(value){
 function renderTiendaOptions(query=''){
   const wrap=document.getElementById('tienda-options');
   if(!wrap) return;
-  const selected=document.getElementById('filtro-tienda')?.value||'';
   const q=normalizeSearchText(query);
   const filtered=tiendaOptionsData.filter(t=>!q||normalizeSearchText(t).includes(q));
   const rows=['',...filtered.slice(0,80)].map(value=>{
     const isAll=value==='';
-    const active=isAll?!selected:selected===value;
+    const active=isAll?!selectedTiendaValues.length:selectedTiendaValues.includes(value);
     return `<button type="button" class="smart-filter__option ${active?'is-active':''}" data-tienda="${esc(value)}">
       <span class="smart-filter__check"></span>
       <span>${isAll?'Todas las tiendas':esc(value)}</span>
@@ -2226,7 +2238,7 @@ function getFiltros(){
     asesor: document.getElementById('filtro-asesor').value,
     puestos: selectedPuestos(),
     puesto: activePuesto,
-    tienda: document.getElementById('filtro-tienda')?.value || '',
+    tiendas: selectedTiendas(),
     dias:   parseInt(document.getElementById('filtro-dias').value)||0,
     mes:    document.getElementById('filtro-mes')?.value || '',
   };
@@ -2235,7 +2247,7 @@ function getFiltros(){
 function limpiarFiltros(){
   document.getElementById('filtro-asesor').value='';
   setSelectedPuestos();
-  setSelectedTienda('');
+  setSelectedTiendas();
   document.getElementById('tienda-search').value='';
   renderTiendaOptions();
   document.getElementById('filtro-dias').value='';
@@ -2249,7 +2261,7 @@ function filtrarDatos(){
   const f=getFiltros();
   let filtered=[...allData];
   if(f.asesor) filtered=filtered.filter(r=>r.asesor===f.asesor);
-  if(f.tienda) filtered=filtered.filter(r=>r.tienda===f.tienda);
+  if(f.tiendas && f.tiendas.length) filtered=filtered.filter(r=>f.tiendas.includes(r.tienda));
   if(f.puestos.length) filtered=filtered.filter(r=>f.puestos.includes(r.puesto));
   else if(f.puesto) filtered=filtered.filter(r=>r.tipo===f.puesto);
   if(f.dias)   filtered=filtered.filter(r=>r.dias>=f.dias);
@@ -2309,7 +2321,7 @@ function poblarFiltros(){
   const selA=document.getElementById('filtro-asesor');
   asesores.forEach(a=>selA.add(new Option(a,a)));
   setSelectedPuestos();
-  setSelectedTienda('');
+  setSelectedTiendas();
   renderTiendaOptions();
   const selMes=document.getElementById('filtro-mes');
   const meses=[...new Map(allData.filter(r=>r.mesKey).map(r=>[r.mesKey,r.mesLabel||mesLabel(r.mesKey)])).entries()]
@@ -2363,10 +2375,15 @@ function poblarFiltros(){
   document.getElementById('tienda-options').addEventListener('click', e => {
     const btn=e.target.closest('[data-tienda]');
     if(!btn) return;
-    setSelectedTienda(btn.dataset.tienda || '');
-    document.getElementById('tienda-search').value='';
-    renderTiendaOptions();
-    closeSmartFilters();
+    e.stopPropagation();
+    const value=btn.dataset.tienda || '';
+    if(!value){
+      setSelectedTiendas([]);
+    } else {
+      const set=new Set(selectedTiendaValues);
+      set.has(value) ? set.delete(value) : set.add(value);
+      setSelectedTiendas([...set]);
+    }
     refreshDashboard();
   });
 
@@ -2612,13 +2629,13 @@ function renderOverview(allData){
         if(kpi === 'todos') {
           activePuesto = '';
           setSelectedPuestos();
-          setSelectedTienda('');
+          setSelectedTiendas();
           document.getElementById('filtro-dias').value = '';
           document.getElementById('filtro-mes').value = '';
         } else if(kpi === 'antiguos') {
           activePuesto = '';
           setSelectedPuestos();
-          setSelectedTienda('');
+          setSelectedTiendas();
           document.getElementById('filtro-dias').value = '7';
         } else {
           // Lider, Encargado, Ayudante
@@ -2630,7 +2647,7 @@ function renderOverview(allData){
       } else {
         activePuesto = '';
         setSelectedPuestos();
-        setSelectedTienda('');
+        setSelectedTiendas();
         document.getElementById('filtro-dias').value = '';
         refreshDashboard();
       }
