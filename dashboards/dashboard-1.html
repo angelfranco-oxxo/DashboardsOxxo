@@ -1928,6 +1928,7 @@ const ALIASES = {
   puesto:   ['Descripción de Posición','Descripcion de Posicion','Descripción Posición','Descripcion Posicion','Puesto','PUESTO'],
   status:   ['Status ocupación','Status ocupacion','Estatus ocupación','Estatus ocupacion','Status','Estatus'],
   fecha:    ['Fecha','FECHA'],
+  mes:      ['Mes','MES'],
   dias:     ['Dias Vacantes','Días Vacantes','Dias vacantes','Días vacantes','DIAS VACANTES','Dias','Días'],
 };
 
@@ -1987,6 +1988,45 @@ function mesLabel(key){
   const [year, month] = String(key).split('-').map(Number);
   if(!year || !month) return key;
   return `${MESES[month-1]} ${year}`;
+}
+
+const MES_ABBR = {
+  ene:1, enero:1,
+  feb:2, febrero:2,
+  mar:3, marzo:3,
+  abr:4, abril:4,
+  may:5, mayo:5,
+  jun:6, junio:6,
+  jul:7, julio:7,
+  ago:8, agosto:8,
+  sep:9, sept:9, septiembre:9, set:9, setiembre:9,
+  oct:10, octubre:10,
+  nov:11, noviembre:11,
+  dic:12, diciembre:12
+};
+
+function normalizeMesColumn(value){
+  const raw = String(value ?? '').trim();
+  if(!raw) return { key:'', label:'' };
+  const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[._/]+/g,'-');
+  const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
+  let month = 0;
+  let year = 0;
+  if(parts.length >= 2){
+    month = MES_ABBR[parts[0]] || Number(parts[0]);
+    year = Number(parts[1]);
+  } else {
+    const match = clean.match(/^([a-z]+)\s*(\d{2,4})$/);
+    if(match){
+      month = MES_ABBR[match[1]] || 0;
+      year = Number(match[2]);
+    }
+  }
+  if(year > 0 && year < 100) year += 2000;
+  if(month >= 1 && month <= 12 && year >= 2000){
+    return { key:`${year}-${String(month).padStart(2,'0')}`, label:raw };
+  }
+  return { key:raw, label:raw };
 }
 
 // Clasificar puesto
@@ -2127,8 +2167,9 @@ function poblarFiltros(){
   const selA=document.getElementById('filtro-asesor');
   asesores.forEach(a=>selA.add(new Option(a,a)));
   const selMes=document.getElementById('filtro-mes');
-  const meses=[...new Set(allData.map(r=>r.mesKey).filter(Boolean))].sort();
-  meses.forEach(m=>selMes.add(new Option(mesLabel(m),m)));
+  const meses=[...new Map(allData.filter(r=>r.mesKey).map(r=>[r.mesKey,r.mesLabel||mesLabel(r.mesKey)])).entries()]
+    .sort((a,b)=>a[0].localeCompare(b[0]));
+  meses.forEach(([value,label])=>selMes.add(new Option(label,value)));
   // Eventos
   ['filtro-asesor','filtro-dias','filtro-mes','filtro-orden'].forEach(id=>{
     document.getElementById(id).addEventListener('change', () => {
@@ -2281,6 +2322,7 @@ async function initDashboard(){
   allData=rawData.map(r=>{
     const fechaRaw = gv(r,colMap,'fecha','');
     const fechaObj = parseFechaVacante(fechaRaw);
+    const mesInfo = normalizeMesColumn(gv(r,colMap,'mes',''));
     const plaza = String(gv(r,colMap,'plaza','')).trim();
     const puesto = String(gv(r,colMap,'puesto','')).trim();
     return {
@@ -2292,7 +2334,8 @@ async function initDashboard(){
       status: String(gv(r,colMap,'status','')).trim(),
       fecha:  String(fechaRaw || '').trim(),
       fechaObj,
-      mesKey: mesKeyFromDate(fechaObj),
+      mesKey: mesInfo.key || mesKeyFromDate(fechaObj),
+      mesLabel: mesInfo.label || mesLabel(mesKeyFromDate(fechaObj)),
       dias:   gn(r,colMap,'dias'),
       tipo:   tipoPuesto(puesto),
     };
