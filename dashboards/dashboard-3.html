@@ -275,8 +275,7 @@
       flex:1 1 auto !important;
       min-height:0 !important;
     }
-    #ranking-at,
-    #tabla-at .tbl-wrap{
+    #ranking-at{
       max-height:none !important;
       overflow-y:auto !important;
       overflow-x:hidden !important;
@@ -371,20 +370,37 @@
     #tabla-ec-at tbody tr:nth-child(even){
       background:rgba(255,246,241,.52) !important;
     }
-    #tabla-at .tbl thead th,
+    #tabla-at .tbl-wrap{
+      height:100% !important;
+      overflow:hidden !important;
+    }
+    #tabla-at .tbl{
+      table-layout:fixed !important;
+      height:100% !important;
+    }
+    #tabla-at .tbl thead th{
+      padding-top:5px !important;
+      padding-bottom:5px !important;
+      font-size:9.5px !important;
+      line-height:1.05 !important;
+    }
     #tabla-at .tbl tbody td{
-      padding-top:10px !important;
-      padding-bottom:10px !important;
-      font-size:12px !important;
-      line-height:1.18 !important;
+      padding-top:2.5px !important;
+      padding-bottom:2.5px !important;
+      font-size:10px !important;
+      line-height:1.05 !important;
     }
     #tabla-at .tbl th:first-child,
     #tabla-at .tbl td:first-child{
       width:34% !important;
     }
     #tabla-at .tbl .total-row td{
-      padding-top:12px !important;
-      padding-bottom:12px !important;
+      padding-top:4px !important;
+      padding-bottom:4px !important;
+    }
+    #tabla-at .tbl .ec-pill{
+      font-size:10px !important;
+      padding:2px 8px !important;
     }
     #tabla-plazas table{
       table-layout:fixed !important;
