@@ -22,6 +22,9 @@
       gap: 18px;
       box-shadow: 0 4px 24px rgba(180,0,0,.18);
       margin-bottom: 14px;
+      position: relative;
+      z-index: 30;
+      overflow: visible;
     }
     .bajas-logo {
       width:78px;height:42px;border-radius:6px;background:#e42929;color:#fff;
@@ -69,6 +72,52 @@
     }
     .reset-filters:hover { background:#fff; color:var(--hb-red,#D92B2B); border-color:#fff; }
 
+    /* ── Smart filter (Asesor) — mismo comportamiento que el filtro de Tienda ── */
+    .smart-filter{ position:relative; width:100%; }
+    .smart-filter__button{
+      width:100%; box-sizing:border-box;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      background:rgba(255,255,255,0.14); color:#fff;
+      border:1px solid rgba(255,255,255,0.32); border-radius:999px;
+      padding:10px 16px; cursor:pointer; text-align:left;
+      font-family:var(--font-body); font-size:12px; font-weight:700;
+      -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+      transition:background .2s ease, border-color .2s ease;
+    }
+    .smart-filter__button:hover{ background:rgba(255,255,255,0.22); border-color:#fff; }
+    .smart-filter__label{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .smart-filter__chev{ color:#fff; flex:0 0 auto; font-size:12px; }
+    .smart-filter__menu{
+      position:absolute; left:0; right:0; top:calc(100% + 8px); z-index:60;
+      display:none; max-height:330px; overflow:hidden;
+      border-radius:16px; border:1px solid rgba(255,255,255,.76);
+      background:rgba(255,250,246,.98); color:#241413;
+      box-shadow:0 24px 54px rgba(61,13,18,.28), inset 0 1px 0 rgba(255,255,255,.82);
+      -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+    }
+    .smart-filter.open .smart-filter__menu{ display:block; }
+    .smart-filter__search{
+      width:calc(100% - 20px); margin:10px; box-sizing:border-box;
+      border-radius:12px; border:1px solid rgba(181,18,28,.18);
+      padding:10px 12px; outline:none; font-family:var(--font-body); font-size:12px; font-weight:700;
+      background:rgba(255,255,255,.9); color:#241413;
+    }
+    .smart-filter__list{ max-height:244px; overflow:auto; padding:6px 8px 10px; scrollbar-width:thin; }
+    .smart-filter__option{
+      display:flex; align-items:center; gap:10px; width:100%;
+      padding:9px 10px; border:0; border-radius:12px; background:transparent;
+      color:#241413; cursor:pointer; font-family:var(--font-body); font-size:12px; font-weight:700; text-align:left;
+    }
+    .smart-filter__option:hover{ background:rgba(246,183,60,.16); }
+    .smart-filter__option.is-active{ background:rgba(217,31,45,.10); color:#b5121c; }
+    .smart-filter__check{
+      width:16px; height:16px; border-radius:5px; flex:0 0 auto;
+      display:grid; place-items:center; border:1px solid rgba(181,18,28,.25); background:#fff;
+      color:#fff; font-size:11px;
+    }
+    .smart-filter__option.is-active .smart-filter__check{ background:#d91f2d; border-color:#d91f2d; }
+    .smart-filter__option.is-active .smart-filter__check::before{ content:"✓"; }
+    .smart-filter__empty{ padding:16px; color:#8b6a5f; font-size:12px; font-weight:700; text-align:center; }
 
     .bajas-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:12px; }
     .bajas-kpis .kpi-card { border-top-width:3px; border-radius:14px; min-height:104px; padding:16px 18px; cursor:pointer; }
@@ -259,6 +308,14 @@
   .tbl-wrap, .table-wrap{ border-radius: 14px !important; overflow: hidden; }
 </style>
   <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final" />
+  <style id="d2-asesor-overrides">
+    /* permitir que el desplegable del filtro Asesor sobresalga del header */
+    .bajas-header{ overflow: visible !important; position: relative; z-index: 40; }
+    .bajas-filters{ overflow: visible !important; }
+    .bajas-header .smart-filter__menu{ color:#241413; }
+    .bajas-header .smart-filter__option{ color:#241413; }
+    .bajas-header .smart-filter__option.is-active{ color:#b5121c; }
+  </style>
 
 </head>
 <body>
@@ -410,6 +467,29 @@ function chipHTML(values){ return values.length ? values.map(v=>`<span class="ch
 let BASE_BAJAS_DATA = [];
 let BAJAS_COLS = {};
 let FILTER_STATE = {};
+let SELECTED_ASESORES = null; // array de asesores seleccionados (multi-select)
+
+const SIN_ASESOR = 'SIN ASESOR ASIGNADO';
+function getAsesorValue(row, cols){
+  const raw = String(val(row, cols, 'asesor', '') || '').trim();
+  if(!raw) return SIN_ASESOR;
+  const c = cleanText(raw);
+  if(c.includes('SIN ASESOR') || c.includes('NO ASIGNADO')) return SIN_ASESOR;
+  return raw;
+}
+function asesorOptionsList(data, cols){
+  const set = new Set(data.map(r => getAsesorValue(r, cols)));
+  const arr = [...set].filter(v => v !== SIN_ASESOR).sort((a,b)=>a.localeCompare(b,'es'));
+  if(set.has(SIN_ASESOR)) arr.push(SIN_ASESOR);
+  return arr;
+}
+function defaultAsesorSelection(data, cols){
+  return asesorOptionsList(data, cols).filter(v => v !== SIN_ASESOR);
+}
+function passesAsesorFilter(row, cols){
+  if(!SELECTED_ASESORES) return true;
+  return SELECTED_ASESORES.includes(getAsesorValue(row, cols));
+}
 
 function getFilterValue(row, cols, key) {
   if (key === 'temporalidad') return getTemporalidad(row, cols);
@@ -425,15 +505,62 @@ function uniqueFilterOptions(data, cols, key) {
     .sort((a,b) => String(a).localeCompare(String(b), 'es'));
 }
 
+function updateAsesorLabel(data, cols){
+  const label = document.getElementById('asesor-label');
+  if(!label) return;
+  const total = asesorOptionsList(data, cols).length;
+  const n = SELECTED_ASESORES ? SELECTED_ASESORES.length : total;
+  if(!SELECTED_ASESORES || n === total) label.textContent = 'Todos los asesores';
+  else if(n === 0) label.textContent = 'Ningún asesor';
+  else if(n === 1) label.textContent = OXXO.truncate(SELECTED_ASESORES[0], 24);
+  else label.textContent = `${n} asesores seleccionados`;
+}
+function renderAsesorOptions(data, cols, query=''){
+  const wrap = document.getElementById('asesor-options');
+  if(!wrap) return;
+  const q = String(query||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const all = asesorOptionsList(data, cols);
+  const filtered = all.filter(v => !q || v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q));
+  const allSelected = SELECTED_ASESORES && SELECTED_ASESORES.length === all.length;
+  const rows = [{value:'', label:'Todos los asesores', isAll:true}]
+    .concat(filtered.map(v => ({value:v, label:v, isAll:false})))
+    .map(opt => {
+      const active = opt.isAll ? allSelected : (SELECTED_ASESORES ? SELECTED_ASESORES.includes(opt.value) : true);
+      return `<button type="button" class="smart-filter__option ${active?'is-active':''}" data-asesor="${esc2(opt.value)}">
+        <span class="smart-filter__check"></span>
+        <span>${esc2(opt.label)}</span>
+      </button>`;
+    }).join('');
+  wrap.innerHTML = rows || '<div class="smart-filter__empty">Sin resultados</div>';
+}
+function esc2(value){
+  return String(value??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+let _asesorDocClickBound = false;
 function setFilterBar(data, cols){
   const filterDefs = [
-    ['asesor', 'Asesor'],
     ['temporalidad', 'Temporalidad'],
     ['rotTemp', 'Rot. Temp.'],
     ['puesto', 'Puesto'],
   ];
 
-  document.getElementById('filter-bar').innerHTML = filterDefs.map(([key,title]) => {
+  const asesorBox = `
+    <div class="filter-box">
+      <label class="filter-title">Asesor</label>
+      <div class="smart-filter" id="asesor-filter">
+        <button class="smart-filter__button" type="button" id="asesor-button">
+          <span class="smart-filter__label" id="asesor-label">Todos los asesores</span>
+          <span class="smart-filter__chev">▾</span>
+        </button>
+        <div class="smart-filter__menu" id="asesor-menu">
+          <input class="smart-filter__search" id="asesor-search" type="search" placeholder="Buscar asesor..." autocomplete="off">
+          <div class="smart-filter__list" id="asesor-options"></div>
+        </div>
+      </div>
+    </div>`;
+
+  const selects = filterDefs.map(([key,title]) => {
     const values = uniqueFilterOptions(data, cols, key);
     const selected = FILTER_STATE[key] || '';
     const options = [''].concat(values).map(v => {
@@ -445,7 +572,10 @@ function setFilterBar(data, cols){
         <label class="filter-title">${title}</label>
         <select class="filter-select" data-filter="${key}">${options}</select>
       </div>`;
-  }).join('') + `<div class="filter-box"><label class="filter-title">Filtros</label><button class="reset-filters" id="reset-filters">✕ Limpiar</button></div>`;
+  }).join('');
+
+  document.getElementById('filter-bar').innerHTML = asesorBox + selects +
+    `<div class="filter-box"><label class="filter-title">Filtros</label><button class="reset-filters" id="reset-filters">✕ Limpiar</button></div>`;
 
   document.querySelectorAll('.filter-select').forEach(select => {
     select.addEventListener('change', () => {
@@ -457,19 +587,63 @@ function setFilterBar(data, cols){
     });
   });
 
+  // Smart-filter Asesor
+  updateAsesorLabel(data, cols);
+  renderAsesorOptions(data, cols);
+  document.getElementById('asesor-button').addEventListener('click', e => {
+    e.stopPropagation();
+    const box = document.getElementById('asesor-filter');
+    const willOpen = !box.classList.contains('open');
+    box.classList.toggle('open', willOpen);
+    if(willOpen) setTimeout(()=>document.getElementById('asesor-search').focus(),0);
+  });
+  document.getElementById('asesor-search').addEventListener('input', e => {
+    renderAsesorOptions(BASE_BAJAS_DATA, BAJAS_COLS, e.target.value);
+  });
+  document.getElementById('asesor-options').addEventListener('click', e => {
+    const btn = e.target.closest('[data-asesor]');
+    if(!btn) return;
+    e.stopPropagation();
+    const value = btn.dataset.asesor || '';
+    const all = asesorOptionsList(BASE_BAJAS_DATA, BAJAS_COLS);
+    if(!value){
+      const allSelected = SELECTED_ASESORES && SELECTED_ASESORES.length === all.length;
+      SELECTED_ASESORES = allSelected ? [] : [...all];
+    } else {
+      const set = new Set(SELECTED_ASESORES || all);
+      set.has(value) ? set.delete(value) : set.add(value);
+      SELECTED_ASESORES = [...set];
+    }
+    updateAsesorLabel(BASE_BAJAS_DATA, BAJAS_COLS);
+    renderAsesorOptions(BASE_BAJAS_DATA, BAJAS_COLS, document.getElementById('asesor-search').value);
+    document.querySelectorAll('.bajas-kpis .kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
+    renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
+  });
+  if(!_asesorDocClickBound){
+    document.addEventListener('click', e => {
+      if(!e.target.closest('#asesor-filter')){
+        const box = document.getElementById('asesor-filter');
+        if(box) box.classList.remove('open');
+      }
+    });
+    _asesorDocClickBound = true;
+  }
+
   const resetBtn = document.getElementById('reset-filters');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
       FILTER_STATE = {};
+      SELECTED_ASESORES = defaultAsesorSelection(BASE_BAJAS_DATA, BAJAS_COLS);
       document.querySelectorAll('.bajas-kpis .kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
       setFilterBar(BASE_BAJAS_DATA, BAJAS_COLS);
-      renderBajasDashboard(BASE_BAJAS_DATA, BAJAS_COLS);
+      renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
     });
   }
 }
 
 function applyUserFilters(data, cols) {
   return data.filter(row => {
+    if(!passesAsesorFilter(row, cols)) return false;
     return Object.entries(FILTER_STATE).every(([key, selected]) => {
       if (!selected) return true;
       return String(getFilterValue(row, cols, key)) === String(selected);
@@ -706,6 +880,7 @@ function renderHeatmapBajas(data, cols){
   const container = document.getElementById('heatmap-bajas');
   if(!container) return;
   const heatmapData = BASE_BAJAS_DATA.filter(row => {
+    if(!passesAsesorFilter(row, cols)) return false;
     return Object.entries(FILTER_STATE).every(([key, selected]) => {
       if (!selected) return true;
       if (key === 'edadRange' || key === 'antiguedadRange') return true;
@@ -976,8 +1151,9 @@ async function initDashboard(){
   BASE_BAJAS_DATA = data;
   BAJAS_COLS = cols;
   FILTER_STATE = {};
+  SELECTED_ASESORES = defaultAsesorSelection(BASE_BAJAS_DATA, BAJAS_COLS);
   setFilterBar(BASE_BAJAS_DATA, BAJAS_COLS);
-  renderBajasDashboard(BASE_BAJAS_DATA, BAJAS_COLS);
+  renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
 }
 window.addEventListener('oxxo-theme-change', () => {
   if (BASE_BAJAS_DATA.length && BAJAS_COLS) renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
