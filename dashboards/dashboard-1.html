@@ -1927,7 +1927,7 @@ const ALIASES = {
   idPos:    ['ID posiciones','ID Posiciones','ID posicion','ID posición','Id posiciones','ID POSICIONES'],
   puesto:   ['Descripción de Posición','Descripcion de Posicion','Descripción Posición','Descripcion Posicion','Puesto','PUESTO'],
   status:   ['Status ocupación','Status ocupacion','Estatus ocupación','Estatus ocupacion','Status','Estatus'],
-  fecha:    ['Fecha','FECHA'],
+  fecha:    ['Fecha','FECHA','F'],
   mes:      ['Mes','MES'],
   dias:     ['Dias Vacantes','Días Vacantes','Dias vacantes','Días vacantes','DIAS VACANTES','Dias','Días'],
 };
@@ -2339,10 +2339,7 @@ async function initDashboard(){
       dias:   gn(r,colMap,'dias'),
       tipo:   tipoPuesto(puesto),
     };
-  }).filter(r=>{
-    const plazaOk = !r.plaza || r.plaza.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes('OAXACA');
-    return plazaOk && r.tienda && r.tienda !== 'Sin tienda';
-  });
+  }).filter(r=>r.tienda && r.tienda !== 'Sin tienda');
 
   poblarFiltros();
   refreshDashboard();
