@@ -102,7 +102,8 @@
     .heatmap-table tbody th { font-size:13px; font-weight:700; color:#06060a; text-align:right; padding:0 14px 0 4px; white-space:nowrap; width:78px; }
     .heatmap-cell { width:100%; height:60px; border-radius:10px; font-weight:700; font-size:16px; color:#06060a; cursor:default; transition:transform .12s; display:flex; align-items:center; justify-content:center; }
     .heatmap-cell:hover { transform:scale(1.04); outline:2px solid #c0181f; outline-offset:-2px; }
-    .heatmap-cell.is-empty { color:#b2ab9e; font-weight:500; font-size:14px; }
+    .heatmap-cell.is-active { outline:3px solid #06060a; outline-offset:-3px; box-shadow:0 0 0 2px #fff inset; transform:scale(1.02); }
+    .heatmap-cell.is-empty { color:#b2ab9e; font-weight:500; font-size:14px; background:#f7f3ec; }
     .heatmap-axes-label { font-size:11px; font-weight:700; color:#6b6358; text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px; }
     .heatmap-legend { display:flex; flex-direction:column; gap:10px; min-width:130px; padding-top:32px; flex:0 0 auto; }
     .heatmap-legend__title { font-size:11px; font-weight:700; color:#06060a; margin-bottom:2px; text-transform:uppercase; letter-spacing:.04em; }
@@ -414,6 +415,8 @@ function getFilterValue(row, cols, key) {
   if (key === 'temporalidad') return getTemporalidad(row, cols);
   if (key === 'puesto') return normalizePuesto(val(row, cols, 'puesto'));
   if (key === 'motivo') return normalizeMotivo(val(row, cols, 'motivo'));
+  if (key === 'edadRange') { const g = ageGroup(num(val(row, cols, 'edad', ''))); return g ? g.label : ''; }
+  if (key === 'antiguedadRange') { const g = tenureGroupHeatmap(num(val(row, cols, 'antiguedad', ''))); return g ? g.label : ''; }
   return String(val(row, cols, key, '') || '').trim();
 }
 
@@ -633,8 +636,11 @@ function renderCompromiso(data, cols){
   });
   let totalBajas = 0;
   let totalComp = 0;
-  const rows = COMPROMISOS_AT.map(item => {
-    const bajas = counts[item.id] || 0;
+  const sorted = COMPROMISOS_AT
+    .map(item => ({...item, bajas: counts[item.id] || 0}))
+    .sort((a,b) => b.bajas - a.bajas || a.nombre.localeCompare(b.nombre, 'es'));
+  const rows = sorted.map(item => {
+    const bajas = item.bajas;
     const desfase = bajas - item.comp;
     totalBajas += bajas;
     totalComp += item.comp;
@@ -699,10 +705,17 @@ function heatColor(ratio){
 function renderHeatmapBajas(data, cols){
   const container = document.getElementById('heatmap-bajas');
   if(!container) return;
+  const heatmapData = BASE_BAJAS_DATA.filter(row => {
+    return Object.entries(FILTER_STATE).every(([key, selected]) => {
+      if (!selected) return true;
+      if (key === 'edadRange' || key === 'antiguedadRange') return true;
+      return String(getFilterValue(row, cols, key)) === String(selected);
+    });
+  });
   const matrix = {};
   AGE_GROUPS.forEach(a => { matrix[a.label] = {}; TENURE_GROUPS.forEach(t => matrix[a.label][t.label] = 0); });
   let any = false;
-  data.forEach(row => {
+  heatmapData.forEach(row => {
     const edadRaw = val(row, cols, 'edad', '');
     const antRaw = val(row, cols, 'antiguedad', '');
     if(edadRaw === '' || antRaw === '') return;
@@ -716,18 +729,22 @@ function renderHeatmapBajas(data, cols){
     container.innerHTML = `<div class="heatmap-empty-msg">No hay suficientes datos de edad/antigüedad para construir el mapa de calor.</div>`;
     return;
   }
+  const activeEdad = FILTER_STATE.edadRange || '';
+  const activeAnt = FILTER_STATE.antiguedadRange || '';
   let maxVal = 0;
   AGE_GROUPS.forEach(a => TENURE_GROUPS.forEach(t => { maxVal = Math.max(maxVal, matrix[a.label][t.label]); }));
   const headerCells = TENURE_GROUPS.map(t => `<th class="heatmap-axis-x">${t.label}</th>`).join('');
   const bodyRows = AGE_GROUPS.map(a => {
     const cells = TENURE_GROUPS.map(t => {
       const v = matrix[a.label][t.label];
+      const isActive = activeEdad === a.label && activeAnt === t.label;
+      const attrs = `data-edad="${a.label}" data-ant="${t.label}" title="Edad: ${a.label} · Antigüedad: ${t.label} · Bajas: ${v}"`;
       if(v === 0){
-        return `<td><div class="heatmap-cell is-empty" title="Edad: ${a.label} · Antigüedad: ${t.label} · Bajas: 0">—</div></td>`;
+        return `<td><div class="heatmap-cell is-empty${isActive?' is-active':''}" ${attrs}>—</div></td>`;
       }
       const ratio = maxVal > 0 ? v / maxVal : 0;
       const bg = heatColor(ratio);
-      return `<td><div class="heatmap-cell" style="background:${bg}" title="Edad: ${a.label} · Antigüedad: ${t.label} · Bajas: ${v}">${v}</div></td>`;
+      return `<td><div class="heatmap-cell${isActive?' is-active':''}" style="background:${bg}" ${attrs}>${v}</div></td>`;
     }).join('');
     return `<tr><th>${a.label}</th>${cells}</tr>`;
   }).join('');
@@ -747,6 +764,22 @@ function renderHeatmapBajas(data, cols){
         <div class="heatmap-legend__item"><span class="heatmap-legend__swatch" style="background:${heatColor(1)}"></span>Alto</div>
       </div>
     </div>`;
+  container.querySelectorAll('.heatmap-cell').forEach(cell => {
+    cell.style.cursor = 'pointer';
+    cell.addEventListener('click', () => {
+      const e = cell.dataset.edad;
+      const t = cell.dataset.ant;
+      const isCurrent = FILTER_STATE.edadRange === e && FILTER_STATE.antiguedadRange === t;
+      if(isCurrent){
+        delete FILTER_STATE.edadRange;
+        delete FILTER_STATE.antiguedadRange;
+      } else {
+        FILTER_STATE.edadRange = e;
+        FILTER_STATE.antiguedadRange = t;
+      }
+      renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
+    });
+  });
 }
 function renderBajasDashboard(data, cols){
   if(!data.length){
