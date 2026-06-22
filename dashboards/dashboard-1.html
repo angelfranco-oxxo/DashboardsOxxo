@@ -1829,6 +1829,12 @@
         </select>
       </div>
       <div class="vac-fbox">
+        <label>Mes</label>
+        <select class="filtro-select" id="filtro-mes">
+          <option value="">Todos los meses</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
         <label>Orden</label>
         <select class="filtro-select" id="filtro-orden">
           <option value="desc">Más antigua primero</option>
@@ -1918,6 +1924,7 @@ const ALIASES = {
   plaza:    ['Plaza','PLAZA'],
   asesor:   ['Asesor','ASESOR','Asesor AT'],
   tienda:   ['Unidad org/','Unidad org.','Unidad org','Tienda','TIENDA','Unidad Organizativa'],
+  idPos:    ['ID posiciones','ID Posiciones','ID posicion','ID posición','Id posiciones','ID POSICIONES'],
   puesto:   ['Descripción de Posición','Descripcion de Posicion','Descripción Posición','Descripcion Posicion','Puesto','PUESTO'],
   status:   ['Status ocupación','Status ocupacion','Estatus ocupación','Estatus ocupacion','Status','Estatus'],
   fecha:    ['Fecha','FECHA'],
@@ -1939,6 +1946,48 @@ function buildMap(data){
 }
 function gv(row,map,k,fb=''){const key=map[k];const v=key?row[key]:undefined;return(v===undefined||v===null||String(v).trim()==='')?fb:v;}
 function gn(row,map,k){const v=String(gv(row,map,k,0));const n=Number(v.replace(/[^0-9.-]/g,''));return isNaN(n)?0:n;}
+
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function parseFechaVacante(value){
+  if(value instanceof Date && !isNaN(value)) return value;
+  const raw = String(value ?? '').trim();
+  if(!raw) return null;
+  if(/^\d+(\.\d+)?$/.test(raw)){
+    const serial = Number(raw);
+    if(serial > 25000 && serial < 80000){
+      const utc = Date.UTC(1899, 11, 30) + serial * 86400000;
+      const d = new Date(utc);
+      return isNaN(d) ? null : d;
+    }
+  }
+  const clean = raw.replace(/\s+\d{1,2}:\d{2}(:\d{2})?.*$/, '').replace(/[.]/g,'/').replace(/-/g,'/');
+  const parts = clean.split('/').map(p => p.trim()).filter(Boolean);
+  if(parts.length >= 3){
+    let day, month, year;
+    if(parts[0].length === 4){
+      year = Number(parts[0]); month = Number(parts[1]); day = Number(parts[2]);
+    } else {
+      day = Number(parts[0]); month = Number(parts[1]); year = Number(parts[2]);
+    }
+    if(year < 100) year += 2000;
+    const d = new Date(year, month - 1, day);
+    if(!isNaN(d) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
+  }
+  const d = new Date(raw);
+  return isNaN(d) ? null : d;
+}
+
+function mesKeyFromDate(date){
+  if(!date) return '';
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+}
+
+function mesLabel(key){
+  const [year, month] = String(key).split('-').map(Number);
+  if(!year || !month) return key;
+  return `${MESES[month-1]} ${year}`;
+}
 
 // Clasificar puesto
 function tipoPuesto(desc){
@@ -2001,6 +2050,7 @@ function getFiltros(){
     asesor: document.getElementById('filtro-asesor').value,
     puesto: activePuesto,
     dias:   parseInt(document.getElementById('filtro-dias').value)||0,
+    mes:    document.getElementById('filtro-mes')?.value || '',
     orden:  document.getElementById('filtro-orden').value,
   };
 }
@@ -2008,6 +2058,7 @@ function getFiltros(){
 function limpiarFiltros(){
   document.getElementById('filtro-asesor').value='';
   document.getElementById('filtro-dias').value='';
+  document.getElementById('filtro-mes').value='';
   document.getElementById('filtro-orden').value='desc';
   activePuesto = '';
   refreshDashboard();
@@ -2020,6 +2071,7 @@ function filtrarDatos(){
   if(f.asesor) filtered=filtered.filter(r=>r.asesor===f.asesor);
   if(f.puesto) filtered=filtered.filter(r=>r.tipo===f.puesto);
   if(f.dias)   filtered=filtered.filter(r=>r.dias>=f.dias);
+  if(f.mes)    filtered=filtered.filter(r=>r.mesKey===f.mes);
   // Ordenar por días
   filtered.sort((a,b)=>f.orden==='desc'?b.dias-a.dias:a.dias-b.dias);
   return filtered;
@@ -2074,8 +2126,11 @@ function poblarFiltros(){
   const puestos=[...new Set(allData.map(r=>r.tipo).filter(Boolean))].sort();
   const selA=document.getElementById('filtro-asesor');
   asesores.forEach(a=>selA.add(new Option(a,a)));
+  const selMes=document.getElementById('filtro-mes');
+  const meses=[...new Set(allData.map(r=>r.mesKey).filter(Boolean))].sort();
+  meses.forEach(m=>selMes.add(new Option(mesLabel(m),m)));
   // Eventos
-  ['filtro-asesor','filtro-dias','filtro-orden'].forEach(id=>{
+  ['filtro-asesor','filtro-dias','filtro-mes','filtro-orden'].forEach(id=>{
     document.getElementById(id).addEventListener('change', () => {
       activePuesto = '';
       refreshDashboard();
@@ -2223,16 +2278,28 @@ async function initDashboard(){
   colMap=buildMap(rawData);
 
   // Normalizar datos
-  allData=rawData.map(r=>({
-    plaza:  String(gv(r,colMap,'plaza','')).trim(),
-    asesor: String(gv(r,colMap,'asesor','Sin asesor')).trim(),
-    tienda: String(gv(r,colMap,'tienda','Sin tienda')).trim(),
-    puesto: String(gv(r,colMap,'puesto','')).trim(),
-    status: String(gv(r,colMap,'status','')).trim(),
-    fecha:  String(gv(r,colMap,'fecha','')).trim(),
-    dias:   gn(r,colMap,'dias'),
-    tipo:   tipoPuesto(gv(r,colMap,'puesto','')),
-  })).filter(r=>r.tienda&&r.tienda!=='Sin tienda');
+  allData=rawData.map(r=>{
+    const fechaRaw = gv(r,colMap,'fecha','');
+    const fechaObj = parseFechaVacante(fechaRaw);
+    const plaza = String(gv(r,colMap,'plaza','')).trim();
+    const puesto = String(gv(r,colMap,'puesto','')).trim();
+    return {
+      plaza,
+      asesor: String(gv(r,colMap,'asesor','Sin asesor')).trim(),
+      tienda: String(gv(r,colMap,'tienda','Sin tienda')).trim(),
+      idPos:  String(gv(r,colMap,'idPos','')).trim(),
+      puesto,
+      status: String(gv(r,colMap,'status','')).trim(),
+      fecha:  String(fechaRaw || '').trim(),
+      fechaObj,
+      mesKey: mesKeyFromDate(fechaObj),
+      dias:   gn(r,colMap,'dias'),
+      tipo:   tipoPuesto(puesto),
+    };
+  }).filter(r=>{
+    const plazaOk = !r.plaza || r.plaza.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes('OAXACA');
+    return plazaOk && r.tienda && r.tienda !== 'Sin tienda';
+  });
 
   poblarFiltros();
   refreshDashboard();
@@ -2256,10 +2323,11 @@ function renderOverview(allData){
   const asesoresUnicos=[...new Set(allData.map(r=>r.asesor))].length;
   const filtroAsesor = document.getElementById('filtro-asesor')?.value || '';
   const filtroDias = document.getElementById('filtro-dias')?.value || '';
+  const filtroMes = document.getElementById('filtro-mes')?.value || '';
 
   // KPIs
   document.getElementById('kpi-section').innerHTML=`
-    <div class="kpi-card rojo ${!activePuesto && !filtroAsesor && !filtroDias ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
+    <div class="kpi-card rojo ${!activePuesto && !filtroAsesor && !filtroDias && !filtroMes ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
       <div class="kpi-card__label">Total Vacantes</div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neg">${asesoresUnicos} asesores afectados</div>
@@ -2305,6 +2373,7 @@ function renderOverview(allData){
         if(kpi === 'todos') {
           activePuesto = '';
           document.getElementById('filtro-dias').value = '';
+          document.getElementById('filtro-mes').value = '';
         } else if(kpi === 'antiguos') {
           activePuesto = '';
           document.getElementById('filtro-dias').value = '7';
