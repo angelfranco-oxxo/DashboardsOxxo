@@ -1815,6 +1815,15 @@
         </select>
       </div>
       <div class="vac-fbox">
+        <label>Puesto</label>
+        <select class="filtro-select" id="filtro-puesto">
+          <option value="">Todos los puestos</option>
+          <option value="Lider">Lider</option>
+          <option value="Encargado">Encargado</option>
+          <option value="Ayudante">Ayudante</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
         <label>Antigüedad</label>
         <select class="filtro-select" id="filtro-dias">
           <option value="">Todas las antigüedades</option>
@@ -2088,7 +2097,7 @@ function forceKpiLayout(){
 function getFiltros(){
   return{
     asesor: document.getElementById('filtro-asesor').value,
-    puesto: activePuesto,
+    puesto: document.getElementById('filtro-puesto')?.value || activePuesto,
     dias:   parseInt(document.getElementById('filtro-dias').value)||0,
     mes:    document.getElementById('filtro-mes')?.value || '',
     orden:  document.getElementById('filtro-orden').value,
@@ -2097,6 +2106,7 @@ function getFiltros(){
 
 function limpiarFiltros(){
   document.getElementById('filtro-asesor').value='';
+  document.getElementById('filtro-puesto').value='';
   document.getElementById('filtro-dias').value='';
   document.getElementById('filtro-mes').value='';
   document.getElementById('filtro-orden').value='desc';
@@ -2163,7 +2173,6 @@ function refreshDashboard(){
 // Poblar selectores de filtro
 function poblarFiltros(){
   const asesores=[...new Set(allData.map(r=>r.asesor).filter(Boolean))].sort();
-  const puestos=[...new Set(allData.map(r=>r.tipo).filter(Boolean))].sort();
   const selA=document.getElementById('filtro-asesor');
   asesores.forEach(a=>selA.add(new Option(a,a)));
   const selMes=document.getElementById('filtro-mes');
@@ -2171,9 +2180,9 @@ function poblarFiltros(){
     .sort((a,b)=>a[0].localeCompare(b[0]));
   meses.forEach(([value,label])=>selMes.add(new Option(label,value)));
   // Eventos
-  ['filtro-asesor','filtro-dias','filtro-mes','filtro-orden'].forEach(id=>{
+  ['filtro-asesor','filtro-puesto','filtro-dias','filtro-mes','filtro-orden'].forEach(id=>{
     document.getElementById(id).addEventListener('change', () => {
-      activePuesto = '';
+      activePuesto = document.getElementById('filtro-puesto')?.value || '';
       refreshDashboard();
     });
   });
@@ -2362,36 +2371,37 @@ function renderOverview(allData){
   const tiendaAntigua=allData.find(r=>r.dias===maxDias)?.tienda||'—';
   const asesoresUnicos=[...new Set(allData.map(r=>r.asesor))].length;
   const filtroAsesor = document.getElementById('filtro-asesor')?.value || '';
+  const filtroPuesto = document.getElementById('filtro-puesto')?.value || activePuesto || '';
   const filtroDias = document.getElementById('filtro-dias')?.value || '';
   const filtroMes = document.getElementById('filtro-mes')?.value || '';
 
   // KPIs
   document.getElementById('kpi-section').innerHTML=`
-    <div class="kpi-card rojo ${!activePuesto && !filtroAsesor && !filtroDias && !filtroMes ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
+    <div class="kpi-card rojo ${!filtroPuesto && !filtroAsesor && !filtroDias && !filtroMes ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
       <div class="kpi-card__label">Total Vacantes</div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neg">${asesoresUnicos} asesores afectados</div>
       <div class="kpi-card__icon">🔍</div>
     </div>
-    <div class="kpi-card rojo ${activePuesto==='Lider' ? 'active' : ''}" data-kpi="Lider" title="Filtrar por Lider">
+    <div class="kpi-card rojo ${filtroPuesto==='Lider' ? 'active' : ''}" data-kpi="Lider" title="Filtrar por Lider">
       <div class="kpi-card__label">Lider</div>
       <div class="kpi-card__value">${lideres}</div>
       <div class="kpi-card__delta neg">Alta prioridad · clic para filtrar</div>
       <div class="kpi-card__icon">👔</div>
     </div>
-    <div class="kpi-card naranja ${activePuesto==='Encargado' ? 'active' : ''}" data-kpi="Encargado" title="Filtrar por Encargado">
+    <div class="kpi-card naranja ${filtroPuesto==='Encargado' ? 'active' : ''}" data-kpi="Encargado" title="Filtrar por Encargado">
       <div class="kpi-card__label">Encargado</div>
       <div class="kpi-card__value">${encargados}</div>
       <div class="kpi-card__delta neu">Media prioridad · clic para filtrar</div>
       <div class="kpi-card__icon">🏪</div>
     </div>
-    <div class="kpi-card amarillo ${activePuesto==='Ayudante' ? 'active' : ''}" data-kpi="Ayudante" title="Filtrar por Ayudante">
+    <div class="kpi-card amarillo ${filtroPuesto==='Ayudante' ? 'active' : ''}" data-kpi="Ayudante" title="Filtrar por Ayudante">
       <div class="kpi-card__label">Ayudante</div>
       <div class="kpi-card__value">${ayudantes}</div>
       <div class="kpi-card__delta neu">Seguimiento · clic para filtrar</div>
       <div class="kpi-card__icon">👤</div>
     </div>
-    <div class="kpi-card ${maxDias>=15?'rojo':maxDias>=7?'naranja':'verde'} ${!activePuesto && filtroDias==='7' ? 'active' : ''}" data-kpi="antiguos" title="Filtrar vacantes con más de 7 días">
+    <div class="kpi-card ${maxDias>=15?'rojo':maxDias>=7?'naranja':'verde'} ${!filtroPuesto && filtroDias==='7' ? 'active' : ''}" data-kpi="antiguos" title="Filtrar vacantes con más de 7 días">
       <div class="kpi-card__label">Vacante más antigua</div>
       <div class="kpi-card__value">${maxDias||'—'}</div>
       <div class="kpi-card__delta ${maxDias>=15?'neg':'neu'}">${maxDias?'días · '+OXXO.truncate(tiendaAntigua,18):'Sin fecha'}</div>
@@ -2412,19 +2422,23 @@ function renderOverview(allData){
         card.classList.add('active');
         if(kpi === 'todos') {
           activePuesto = '';
+          document.getElementById('filtro-puesto').value = '';
           document.getElementById('filtro-dias').value = '';
           document.getElementById('filtro-mes').value = '';
         } else if(kpi === 'antiguos') {
           activePuesto = '';
+          document.getElementById('filtro-puesto').value = '';
           document.getElementById('filtro-dias').value = '7';
         } else {
           // Lider, Encargado, Ayudante
           activePuesto = kpi;
+          document.getElementById('filtro-puesto').value = kpi;
           document.getElementById('filtro-dias').value = '';
         }
         refreshDashboard();
       } else {
         activePuesto = '';
+        document.getElementById('filtro-puesto').value = '';
         document.getElementById('filtro-dias').value = '';
         refreshDashboard();
       }
