@@ -564,6 +564,15 @@ function filterOptionLabel(key, value){
   return OXXO.truncate(String(value), 28);
 }
 
+function latestMonthKey(data, cols){
+  return uniqueFilterOptions(data, cols, 'mes').slice(-1)[0] || '';
+}
+
+function defaultFilterState(data, cols){
+  const mes = latestMonthKey(data, cols);
+  return mes ? { mes } : {};
+}
+
 function updateAsesorLabel(data, cols){
   const label = document.getElementById('asesor-label');
   if(!label) return;
@@ -692,7 +701,7 @@ function setFilterBar(data, cols){
   const resetBtn = document.getElementById('reset-filters');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
-      FILTER_STATE = {};
+      FILTER_STATE = defaultFilterState(BASE_BAJAS_DATA, BAJAS_COLS);
       SELECTED_ASESORES = defaultAsesorSelection(BASE_BAJAS_DATA, BAJAS_COLS);
       document.querySelectorAll('.bajas-kpis .kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
       setFilterBar(BASE_BAJAS_DATA, BAJAS_COLS);
@@ -1064,12 +1073,12 @@ function renderBajasDashboard(data, cols){
       if(!isActive) {
         card.classList.add('active');
         if(kpi === 'todos') {
-          FILTER_STATE = {};
+          FILTER_STATE = defaultFilterState(BASE_BAJAS_DATA, BAJAS_COLS);
         } else {
-          FILTER_STATE = { [kpi]: kpiVal };
+          FILTER_STATE = { ...defaultFilterState(BASE_BAJAS_DATA, BAJAS_COLS), [kpi]: kpiVal };
         }
       } else {
-        FILTER_STATE = {};
+        FILTER_STATE = defaultFilterState(BASE_BAJAS_DATA, BAJAS_COLS);
       }
       renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
     });
@@ -1210,7 +1219,7 @@ async function initDashboard(){
 
   BASE_BAJAS_DATA = data;
   BAJAS_COLS = cols;
-  FILTER_STATE = {};
+  FILTER_STATE = defaultFilterState(BASE_BAJAS_DATA, BAJAS_COLS);
   SELECTED_ASESORES = defaultAsesorSelection(BASE_BAJAS_DATA, BAJAS_COLS);
   setFilterBar(BASE_BAJAS_DATA, BAJAS_COLS);
   renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
