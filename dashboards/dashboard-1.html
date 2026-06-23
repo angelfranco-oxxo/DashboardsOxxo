@@ -1928,18 +1928,18 @@
   <!-- FILA 3 PANELES -->
   <div class="row3">
     <div class="card">
-      <div class="card-head"><div class="card-title">Top 5 · Más vacantes</div></div>
+      <div class="card-head"><div class="card-title">Top 5 · Más vacantes<span class="info-tip" tabindex="0" data-tip="Agrupa las vacantes filtradas por Tienda (columna 'Unidad org/') y muestra las 5 tiendas con más vacantes abiertas, de mayor a menor."></span></div></div>
       <div id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
     </div>
     <div class="card">
-      <div class="card-head"><div class="card-title">Distribución por puesto</div></div>
+      <div class="card-head"><div class="card-title">Distribución por puesto<span class="info-tip" tabindex="0" data-tip="Reparte las vacantes filtradas según la columna 'Descripción de Posición' (Lider / Encargado / Ayudante)."></span></div></div>
       <div class="puesto-panel">
         <div class="chart-sm"><canvas id="chart-dona"></canvas></div>
         <div class="puesto-breakdown" id="puesto-breakdown"></div>
       </div>
     </div>
     <div class="card" style="display:flex;flex-direction:column;">
-      <div class="card-head"><div class="card-title">Riesgo operativo por asesor</div></div>
+      <div class="card-head"><div class="card-title">Riesgo operativo por asesor<span class="info-tip" tabindex="0" data-tip="Clasifica a cada Asesor por número de vacantes a su cargo: Alto = 4 o más, Medio = 2-3, Bajo = 0-1, según los filtros activos."></span></div></div>
       <div id="risk-panel" style="flex:1;display:flex;flex-direction:column;">
         <div class="risk-row">
           <div class="risk-box alto"><div class="risk-lbl">Alto (≥4 vac.)</div><div class="risk-val" id="risk-alto">—</div><div class="risk-icon">🚨</div></div>
@@ -1954,13 +1954,13 @@
   <div class="row2">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">Vacantes por Asesor</div>
+        <div class="card-title">Vacantes por Asesor<span class="info-tip" tabindex="0" data-tip="Suma de vacantes (filas filtradas) por cada Asesor responsable. Permite ver carga de trabajo entre asesores."></span></div>
         <span class="card-badge" id="chart-total">—</span>
       </div>
       <div class="chart-lg"><canvas id="chart-barras"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-head"><div class="card-title">Estado por Asesor</div></div>
+      <div class="card-head"><div class="card-title">Estado por Asesor<span class="info-tip" tabindex="0" data-tip="Semáforo por Asesor según su volumen de vacantes y antigüedad promedio. Verde = bajo riesgo, amarillo = atención, rojo = crítico."></span></div></div>
       <div id="semaforo-table">
         <div class="state-box"><div class="spinner"></div></div>
       </div>
@@ -1970,7 +1970,7 @@
   <!-- TABLA DETALLE -->
   <div class="card tabla-card" style="margin-bottom:16px">
     <div class="card-head">
-      <div class="card-title">Detalle por Tienda</div>
+      <div class="card-title">Detalle por Tienda<span class="info-tip" tabindex="0" data-tip="Listado fila por fila de Dashboard_1_Diario con los filtros activos. Tienda y Asesor vacíos se muestran como 'Sin tienda' / 'Sin asesor', no se eliminan."></span></div>
       <span class="card-badge" id="row-count">— registros</span>
     </div>
     <div id="tabla-detalle">
@@ -2693,31 +2693,31 @@ function renderOverview(allData){
   // KPIs
   document.getElementById('kpi-section').innerHTML=`
     <div class="kpi-card rojo ${!filtroPuestos.length && !filtroPuesto && !filtroAsesor && !filtroTienda && !filtroDias && !filtroMes ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
-      <div class="kpi-card__label">Total Vacantes</div>
+      <div class="kpi-card__label">Total Vacantes<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Cuenta cada fila de la pestaña Dashboard_1_Diario (1 fila = 1 posición vacante), aplicando los filtros activos de Mes, Plaza, Tienda, Puesto y Asesor. No se excluye ningún registro."></span></div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neg">${asesoresUnicos} asesores afectados</div>
       <div class="kpi-card__icon">🔍</div>
     </div>
     <div class="kpi-card rojo ${filtroPuesto==='Lider' ? 'active' : ''}" data-kpi="Lider" title="Filtrar por Lider">
-      <div class="kpi-card__label">Lider</div>
+      <div class="kpi-card__label">Lider<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Vacantes donde la columna 'Descripción de Posición' = Lider, con los filtros activos aplicados."></span></div>
       <div class="kpi-card__value">${lideres}</div>
       <div class="kpi-card__delta neg">Alta prioridad · clic para filtrar</div>
       <div class="kpi-card__icon">👔</div>
     </div>
     <div class="kpi-card naranja ${filtroPuesto==='Encargado' ? 'active' : ''}" data-kpi="Encargado" title="Filtrar por Encargado">
-      <div class="kpi-card__label">Encargado</div>
+      <div class="kpi-card__label">Encargado<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Vacantes donde la columna 'Descripción de Posición' = Encargado, con los filtros activos aplicados."></span></div>
       <div class="kpi-card__value">${encargados}</div>
       <div class="kpi-card__delta neu">Media prioridad · clic para filtrar</div>
       <div class="kpi-card__icon">🏪</div>
     </div>
     <div class="kpi-card amarillo ${filtroPuesto==='Ayudante' ? 'active' : ''}" data-kpi="Ayudante" title="Filtrar por Ayudante">
-      <div class="kpi-card__label">Ayudante</div>
+      <div class="kpi-card__label">Ayudante<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Vacantes donde la columna 'Descripción de Posición' = Ayudante, con los filtros activos aplicados."></span></div>
       <div class="kpi-card__value">${ayudantes}</div>
       <div class="kpi-card__delta neu">Seguimiento · clic para filtrar</div>
       <div class="kpi-card__icon">👤</div>
     </div>
     <div class="kpi-card ${maxDias>=15?'rojo':maxDias>=7?'naranja':'verde'} ${!filtroPuestos.length && !filtroPuesto && !filtroTienda && filtroDias==='7' ? 'active' : ''}" data-kpi="antiguos" title="Filtrar vacantes con más de 7 días">
-      <div class="kpi-card__label">Vacante más antigua</div>
+      <div class="kpi-card__label">Vacante más antigua<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Valor máximo de la columna 'Dias Vacantes' entre las vacantes filtradas. Indica la antigüedad de la vacante más persistente, no un promedio."></span></div>
       <div class="kpi-card__value">${maxDias||'—'}</div>
       <div class="kpi-card__delta ${maxDias>=15?'neg':'neu'}">${maxDias?'días · '+OXXO.truncate(tiendaAntigua,18):'Sin fecha'}</div>
       <div class="kpi-card__icon">⏱️</div>
