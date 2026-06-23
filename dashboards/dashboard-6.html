@@ -154,14 +154,14 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
   <div class="row2 row2-wide">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">📊 Días Ausentes por Tipo</div>
+        <div class="card-title">📊 Días Ausentes por Tipo<span class="info-tip" tabindex="0" data-tip="Suma de 'Días presenc./abs.' agrupada por la columna 'Denominación' (tipo de ausentismo)."></span></div>
         <span class="card-badge" id="badge-tipos">— tipos</span>
       </div>
       <div class="chart-wrap chart-lg"><canvas id="chart-tipos"></canvas></div>
     </div>
     <div class="card">
       <div class="card-head">
-        <div class="card-title">🏆 Días Ausentes por Asesor</div>
+        <div class="card-title">🏆 Días Ausentes por Asesor<span class="info-tip" tabindex="0" data-tip="Suma de 'Días presenc./abs.' agrupada por columna Asesor, ordenado de mayor a menor."></span></div>
       </div>
       <div id="ranking-asesores" style="max-height:360px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#FF6B00 rgba(0,0,0,.06);padding-right:6px"><div class="state-box"><div class="spinner"></div></div></div>
     </div>
@@ -171,14 +171,14 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
   <div class="row2">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">🏪 Top Tiendas con más Ausentismos</div>
+        <div class="card-title">🏪 Top Tiendas con más Ausentismos<span class="info-tip" tabindex="0" data-tip="Suma de 'Días presenc./abs.' agrupada por columna Tienda, las 10 con más días, de mayor a menor."></span></div>
         <span class="card-badge" id="badge-tiendas">— tiendas</span>
       </div>
       <div class="chart-wrap chart-md"><canvas id="chart-tiendas"></canvas></div>
     </div>
     <div class="card">
       <div class="card-head">
-        <div class="card-title">👷 Ausentismos por Función</div>
+        <div class="card-title">👷 Ausentismos por Función<span class="info-tip" tabindex="0" data-tip="Suma de 'Días presenc./abs.' agrupada por columna 'Función' (puesto del colaborador)."></span></div>
       </div>
       <div class="chart-wrap chart-md"><canvas id="chart-funcion"></canvas></div>
     </div>
@@ -187,7 +187,7 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
   <!-- Resumen por tipo -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
-      <div class="card-title">📋 Resumen por Tipo de Ausentismo</div>
+      <div class="card-title">📋 Resumen por Tipo de Ausentismo<span class="info-tip" tabindex="0" data-tip="Tabla agregada por 'Denominación' con conteo de registros, días y horas totales."></span></div>
     </div>
     <div id="tabla-resumen"></div>
   </div>
@@ -195,7 +195,7 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
   <!-- Detalle completo -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
-      <div class="card-title">🔍 Detalle Completo</div>
+      <div class="card-title">🔍 Detalle Completo<span class="info-tip" tabindex="0" data-tip="Listado fila por fila de Dashboard_6_Semanal con los filtros activos aplicados (Plaza, Tienda, Función, Tipo)."></span></div>
       <span class="card-badge" id="row-count">— registros</span>
     </div>
     <div class="tbl-wrap">
@@ -293,49 +293,49 @@ function renderAll() {
   // KPIs
   document.getElementById('kpi-section').innerHTML = `
     <div class="kpi-card azul">
-      <div class="kpi-card__label">Empleados Ausentes</div>
+      <div class="kpi-card__label">Empleados Ausentes<span class="info-tip" tabindex="0" data-tip="Empleados distintos (columna N° de personal) con al menos un registro de ausentismo en Dashboard_6_Semanal."></span></div>
       <div class="kpi-card__value">${totalEmps}</div>
       <div class="kpi-card__delta neu">${data.length} registros · ${semana}</div>
       <div class="kpi-card__icon">👥</div>
     </div>
     <div class="kpi-card naranja">
-      <div class="kpi-card__label">Días Ausentes</div>
+      <div class="kpi-card__label">Días Ausentes<span class="info-tip" tabindex="0" data-tip="Suma de la columna 'Días presenc./abs.' de todas las filas filtradas; las horas usan 'Horas de presencia'."></span></div>
       <div class="kpi-card__value">${OXXO.formatNum(Math.round(totalDias))}</div>
       <div class="kpi-card__delta neg">${OXXO.formatNum(Math.round(totalHoras))} horas</div>
       <div class="kpi-card__icon">📅</div>
     </div>
     <div class="kpi-card rojo">
-      <div class="kpi-card__label">Faltas</div>
+      <div class="kpi-card__label">Faltas<span class="info-tip" tabindex="0" data-tip="Filas donde la columna 'Denominación' contiene 'falta', sin incluir incapacidades, vacaciones o permisos."></span></div>
       <div class="kpi-card__value">${faltas}</div>
       <div class="kpi-card__delta neg">sin justificar</div>
       <div class="kpi-card__icon">❌</div>
     </div>
     <div class="kpi-card amarillo">
-      <div class="kpi-card__label">Incapacidades</div>
+      <div class="kpi-card__label">Incapacidades<span class="info-tip" tabindex="0" data-tip="Filas donde 'Denominación' contiene 'inc.', 'incap' o 'enf' (incapacidades médicas y por accidente)."></span></div>
       <div class="kpi-card__value">${incapac}</div>
       <div class="kpi-card__delta neu">médicas y accidentes</div>
       <div class="kpi-card__icon">🏥</div>
     </div>
     <div class="kpi-card verde">
-      <div class="kpi-card__label">Vacaciones</div>
+      <div class="kpi-card__label">Vacaciones<span class="info-tip" tabindex="0" data-tip="Filas donde 'Denominación' contiene 'vacac' (vacaciones programadas que coinciden con la semana)."></span></div>
       <div class="kpi-card__value">${vacaciones}</div>
       <div class="kpi-card__delta pos">programadas</div>
       <div class="kpi-card__icon">✈️</div>
     </div>
     <div class="kpi-card azul">
-      <div class="kpi-card__label">Permisos</div>
+      <div class="kpi-card__label">Permisos<span class="info-tip" tabindex="0" data-tip="Filas donde 'Denominación' contiene 'matern', 'patern' o 'permiso'."></span></div>
       <div class="kpi-card__value">${permisos}</div>
       <div class="kpi-card__delta neu">mat. / pat.</div>
       <div class="kpi-card__icon">👶</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-card__label">Tiendas Afectadas</div>
+      <div class="kpi-card__label">Tiendas Afectadas<span class="info-tip" tabindex="0" data-tip="Tiendas distintas (columna Tienda) con al menos un registro de ausentismo en la semana."></span></div>
       <div class="kpi-card__value">${tiendas}</div>
       <div class="kpi-card__delta neu">con ausentismos</div>
       <div class="kpi-card__icon">🏪</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-card__label">Prom. Días / Emp.</div>
+      <div class="kpi-card__label">Prom. Días / Emp.<span class="info-tip" tabindex="0" data-tip="Días Ausentes totales divididos entre el número de Empleados Ausentes."></span></div>
       <div class="kpi-card__value">${totalEmps > 0 ? (totalDias/totalEmps).toFixed(1) : '—'}</div>
       <div class="kpi-card__delta neu">días promedio</div>
       <div class="kpi-card__icon">📊</div>
