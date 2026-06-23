@@ -361,12 +361,12 @@
 
   <section class="bajas-analisis-grid">
     <article class="bajas-panel compromiso-panel">
-      <div class="compromiso-title">Compromiso vs resultado</div>
+      <div class="compromiso-title">Compromiso vs resultado<span class="info-tip" tabindex="0" data-tip="Compara el número de bajas Comprometidas vs Reales por AT (columnas 'Comprometido' y 'Real'). Ordenado de mayor a menor número de bajas reales." style="margin-left:8px;vertical-align:middle"></span></div>
       <div id="tabla-compromiso"><div class="state-box"><div class="spinner"></div></div></div>
     </article>
 
     <article class="bajas-panel bajas-row-panel" style="margin:0">
-      <div class="bajas-panel__title">Bajas por Asesor</div>
+      <div class="bajas-panel__title">Bajas por Asesor<span class="info-tip" tabindex="0" data-tip="Suma de bajas (filas filtradas de Dashboard_2_Diario) agrupadas por Asesor responsable."></span></div>
       <div class="chart-wide"><canvas id="chart-asesores"></canvas></div>
     </article>
   </section>
@@ -376,32 +376,32 @@
     <div class="plazas-panel__grid">
       <!-- Ranking plazas -->
       <div>
-        <div class="bajas-panel__title" style="margin-bottom:14px">🏆 Ranking de Plazas · Bajas acumuladas del mes actual</div>
+        <div class="bajas-panel__title" style="margin-bottom:14px">🏆 Ranking de Plazas · Bajas acumuladas del mes actual<span class="info-tip" tabindex="0" data-tip="Cuenta bajas por Plaza del mes en curso. Este ranking NO se ve afectado por los filtros de Temporalidad, Rot. Temprana, Puesto o Asesor — siempre refleja el total real de la plaza."></span></div>
         <div id="tabla-plazas">
           <div class="state-box"><div class="spinner"></div></div>
         </div>
       </div>
       <!-- Gráfica plazas -->
       <div>
-        <div class="bajas-panel__title" style="margin-bottom:14px">Comparativo por Plaza</div>
+        <div class="bajas-panel__title" style="margin-bottom:14px">Comparativo por Plaza<span class="info-tip" tabindex="0" data-tip="Misma base que el ranking de plazas: bajas del mes en curso por Plaza, sin filtros activos."></span></div>
         <div class="plazas-chart"><canvas id="chart-plazas"></canvas></div>
       </div>
     </div>
   </section>
 
   <section class="bajas-panel bajas-row-panel">
-    <div class="bajas-panel__title">Top 10 tiendas con más bajas</div>
+    <div class="bajas-panel__title">Top 10 tiendas con más bajas<span class="info-tip" tabindex="0" data-tip="Agrupa las bajas filtradas por Tienda y muestra las 10 con mayor número de bajas, de mayor a menor."></span></div>
     <div class="chart-wide"><canvas id="chart-tiendas"></canvas></div>
   </section>
 
   <section class="bajas-panel heatmap-panel">
-    <div class="bajas-panel__title">Mapa de calor de bajas</div>
+    <div class="bajas-panel__title">Mapa de calor de bajas<span class="info-tip" tabindex="0" data-tip="Cruza rango de Edad vs rango de Antigüedad de las bajas filtradas. El color indica concentración de bajas; clic en una celda filtra el dashboard a ese cruce."></span></div>
     <div id="heatmap-bajas"></div>
   </section>
 
   <section class="panel bajas-detail-panel panel--accent-red">
     <div class="panel__header">
-      <div class="panel__title">Detalle completo de bajas</div>
+      <div class="panel__title">Detalle completo de bajas<span class="info-tip" tabindex="0" data-tip="Listado fila por fila de Dashboard_2_Diario con los filtros activos aplicados (Temporalidad, Rot. Temprana, Puesto, Asesor)."></span></div>
       <span class="panel__badge orange" id="row-count">— registros</span>
     </div>
     <div id="tabla-detalle"><div class="state-box"><div class="spinner"></div><div class="state-box__text">Cargando detalle desde Google Sheets…</div></div></div>
@@ -1056,10 +1056,10 @@ function renderBajasDashboard(data, cols){
   const bajaTemprana = (byTemp['0 - 45 días'] || 0);
 
   document.getElementById('kpi-section').innerHTML = `
-    <div class="kpi-card rojo" data-kpi="todos" title="Ver todas las bajas"><div class="kpi-card__label">Total Bajas</div><div class="kpi-card__value">${total}</div><div class="kpi-card__delta neg">según filtros activos</div><div class="kpi-card__icon">📉</div></div>
-    <div class="kpi-card rojo" data-kpi="asesor" data-kpi-val="${maxAsesor.label}" title="Filtrar por ${maxAsesor.label}"><div class="kpi-card__label">AT con más bajas</div><div class="kpi-card__value">${maxAsesor.total}</div><div class="kpi-card__delta neg">${OXXO.truncate(maxAsesor.label,24)} · clic para filtrar</div><div class="kpi-card__icon">👤</div></div>
-    <div class="kpi-card naranja" data-kpi="tienda" data-kpi-val="${topEntries(byTienda,1)[0]?.label||''}" title="Filtrar por ${topEntries(byTienda,1)[0]?.label||''}"><div class="kpi-card__label">Tienda con más bajas</div><div class="kpi-card__value" style="font-size:1.3rem">${OXXO.truncate(topEntries(byTienda,1)[0]?.label||'—',16)}</div><div class="kpi-card__delta neu">${topEntries(byTienda,1)[0]?.total||0} bajas · clic para filtrar</div><div class="kpi-card__icon">🏪</div></div>
-    <div class="kpi-card amarillo" data-kpi="rotTemp" data-kpi-val="Si" title="Filtrar rotación temprana"><div class="kpi-card__label">Rot. Temprana</div><div class="kpi-card__value">${countBy(data,r=>val(r,cols,'rotTemp','No'))['Si']||countBy(data,r=>val(r,cols,'rotTemp','No'))['SI']||0}</div><div class="kpi-card__delta neu">${total>0?Math.round(((countBy(data,r=>val(r,cols,'rotTemp','No'))['Si']||countBy(data,r=>val(r,cols,'rotTemp','No'))['SI']||0)/total)*100):0}% del total · clic para filtrar</div><div class="kpi-card__icon">⏱️</div></div>`;
+    <div class="kpi-card rojo" data-kpi="todos" title="Ver todas las bajas"><div class="kpi-card__label">Total Bajas<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Cuenta cada fila de Dashboard_2_Diario (1 fila = 1 baja) con los filtros activos de Mes, Temporalidad, Rot. Temprana, Puesto y Asesor aplicados."></span></div><div class="kpi-card__value">${total}</div><div class="kpi-card__delta neg">según filtros activos</div><div class="kpi-card__icon">📉</div></div>
+    <div class="kpi-card rojo" data-kpi="asesor" data-kpi-val="${maxAsesor.label}" title="Filtrar por ${maxAsesor.label}"><div class="kpi-card__label">AT con más bajas<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Agrupa las bajas filtradas por columna 'Asesor' y toma el que tiene mayor número."></span></div><div class="kpi-card__value">${maxAsesor.total}</div><div class="kpi-card__delta neg">${OXXO.truncate(maxAsesor.label,24)} · clic para filtrar</div><div class="kpi-card__icon">👤</div></div>
+    <div class="kpi-card naranja" data-kpi="tienda" data-kpi-val="${topEntries(byTienda,1)[0]?.label||''}" title="Filtrar por ${topEntries(byTienda,1)[0]?.label||''}"><div class="kpi-card__label">Tienda con más bajas<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Agrupa las bajas filtradas por columna 'Tienda' y toma la que tiene mayor número."></span></div><div class="kpi-card__value" style="font-size:1.3rem">${OXXO.truncate(topEntries(byTienda,1)[0]?.label||'—',16)}</div><div class="kpi-card__delta neu">${topEntries(byTienda,1)[0]?.total||0} bajas · clic para filtrar</div><div class="kpi-card__icon">🏪</div></div>
+    <div class="kpi-card amarillo" data-kpi="rotTemp" data-kpi-val="Si" title="Filtrar rotación temprana"><div class="kpi-card__label">Rot. Temprana<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Bajas donde la columna 'Rot_Temp' = Sí, es decir colaboradores que se fueron poco después de su ingreso, con los filtros activos aplicados."></span></div><div class="kpi-card__value">${countBy(data,r=>val(r,cols,'rotTemp','No'))['Si']||countBy(data,r=>val(r,cols,'rotTemp','No'))['SI']||0}</div><div class="kpi-card__delta neu">${total>0?Math.round(((countBy(data,r=>val(r,cols,'rotTemp','No'))['Si']||countBy(data,r=>val(r,cols,'rotTemp','No'))['SI']||0)/total)*100):0}% del total · clic para filtrar</div><div class="kpi-card__icon">⏱️</div></div>`;
 
   // Eventos click en KPIs
   document.querySelectorAll('.bajas-kpis .kpi-card[data-kpi]').forEach(card => {
