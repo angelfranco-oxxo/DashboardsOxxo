@@ -2121,6 +2121,19 @@ function pillHTML(t,c){return`<span class="pill ${c}"><span class="pill-dot"></s
 // Estado global
 let allData=[], colMap={}, activePuesto='', selectedPuestoValues=[], selectedTiendaValues=[], tiendaOptionsData=[];
 let selectedAsesorValues=null, asesorOptionsData=[];
+const DEFAULT_PUESTOS = [
+  'ENCARGADO TURNO',
+  'ENCARGADO TURNO SATELITE',
+  'LIDER TIENDA',
+  'LIDER TIENDA SATELITE',
+  'AYUDANTE TIENDA',
+  'AYUDANTE TIENDA SATELITE',
+];
+
+function availableDefaultPuestos(){
+  const available=new Set(allData.map(r=>r.puesto).filter(Boolean));
+  return DEFAULT_PUESTOS.filter(p=>available.has(p));
+}
 
 const SIN_ASESOR='SIN ASESOR ASIGNADO';
 function asesorCanon(name){
@@ -2313,7 +2326,7 @@ function getFiltros(){
 
 function limpiarFiltros(){
   setSelectedAsesores(defaultAsesorSelection());
-  setSelectedPuestos();
+  setSelectedPuestos(availableDefaultPuestos());
   setSelectedTiendas();
   document.getElementById('tienda-search').value='';
   renderTiendaOptions();
@@ -2387,7 +2400,7 @@ function poblarFiltros(){
   tiendaOptionsData=[...new Set(allData.map(r=>r.tienda).filter(Boolean))].sort();
   setSelectedAsesores(defaultAsesorSelection());
   renderAsesorOptions();
-  setSelectedPuestos();
+  setSelectedPuestos(availableDefaultPuestos());
   setSelectedTiendas();
   renderTiendaOptions();
   const selMes=document.getElementById('filtro-mes');
