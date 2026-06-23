@@ -2006,6 +2006,299 @@
         font-size: 1.72rem !important;
       }
     }
+
+    /* Executive overview */
+    .executive-overview {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 30px 24px 6px;
+    }
+
+    .executive-shell {
+      position: relative;
+      overflow: hidden;
+      border-radius: 26px;
+      border: 1px solid rgba(247,25,38,0.14);
+      background:
+        radial-gradient(circle at 9% 0%, rgba(242,165,43,0.20), transparent 26%),
+        radial-gradient(circle at 92% 12%, rgba(247,25,38,0.12), transparent 30%),
+        linear-gradient(145deg, rgba(255,255,255,0.90), rgba(255,248,242,0.72));
+      box-shadow: 0 24px 60px rgba(112,45,28,0.12), inset 0 1px 0 rgba(255,255,255,0.86);
+      padding: clamp(22px, 3vw, 32px);
+    }
+
+    .executive-shell::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(135deg, rgba(255,255,255,0.34) 1px, transparent 1px);
+      background-size: 42px 42px;
+      opacity: 0.22;
+      pointer-events: none;
+    }
+
+    .executive-shell > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .executive-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .executive-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: #a13a28;
+    }
+
+    .executive-kicker::before {
+      content: '';
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #f71926;
+      box-shadow: 0 0 0 6px rgba(247,25,38,0.10);
+    }
+
+    .executive-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 3vw, 3rem);
+      line-height: .95;
+      letter-spacing: 0;
+      color: #211510;
+      margin: 0;
+    }
+
+    .executive-subtitle {
+      margin-top: 8px;
+      color: #78655d;
+      font-size: 14px;
+      line-height: 1.45;
+      max-width: 760px;
+    }
+
+    .executive-chip {
+      white-space: nowrap;
+      border-radius: 999px;
+      border: 1px solid rgba(247,25,38,0.16);
+      background: rgba(255,255,255,0.72);
+      color: #f71926;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.84);
+    }
+
+    .executive-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .exec-metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .exec-metric,
+    .exec-panel {
+      border-radius: 20px;
+      border: 1px solid rgba(130,54,38,0.12);
+      background: linear-gradient(145deg, rgba(255,255,255,0.82), rgba(255,250,245,0.62));
+      box-shadow: 0 16px 36px rgba(112,45,28,0.08), inset 0 1px 0 rgba(255,255,255,0.84);
+    }
+
+    .exec-metric {
+      min-height: 138px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .exec-metric::after {
+      content: attr(data-code);
+      position: absolute;
+      right: 12px;
+      bottom: -8px;
+      font-family: var(--font-display);
+      font-size: 4rem;
+      font-weight: 900;
+      line-height: 1;
+      color: rgba(247,25,38,0.045);
+    }
+
+    .exec-metric__label {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: #9c786d;
+    }
+
+    .exec-metric__value {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 3vw, 2.65rem);
+      line-height: .92;
+      color: #211510;
+      font-weight: 900;
+    }
+
+    .exec-metric__note {
+      font-size: 12px;
+      font-weight: 800;
+      color: #f71926;
+      line-height: 1.32;
+    }
+
+    .exec-panel {
+      padding: 18px;
+    }
+
+    .exec-panel__title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(130,54,38,0.12);
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: #211510;
+    }
+
+    .priority-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .priority-item {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.58);
+      border: 1px solid rgba(130,54,38,0.10);
+    }
+
+    .priority-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: rgba(247,25,38,0.09);
+      color: #f71926;
+      font-weight: 900;
+    }
+
+    .priority-main strong {
+      display: block;
+      color: #211510;
+      font-size: 13px;
+      line-height: 1.1;
+    }
+
+    .priority-main span {
+      display: block;
+      margin-top: 3px;
+      color: #78655d;
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .priority-link {
+      color: #f71926;
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    .data-health {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .health-pill {
+      border-radius: 16px;
+      background: rgba(255,255,255,0.58);
+      border: 1px solid rgba(130,54,38,0.10);
+      padding: 12px;
+    }
+
+    .health-pill span {
+      display: block;
+      color: #9c786d;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    .health-pill strong {
+      display: block;
+      margin-top: 4px;
+      color: #211510;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    @media (max-width: 1100px) {
+      .executive-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .exec-metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 700px) {
+      .executive-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .executive-chip {
+        white-space: normal;
+      }
+
+      .exec-metric-grid,
+      .data-health {
+        grid-template-columns: 1fr;
+      }
+
+      .priority-item {
+        grid-template-columns: 34px 1fr;
+      }
+
+      .priority-link {
+        grid-column: 2;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2043,11 +2336,11 @@
       </p>
       <div class="hero__stats">
         <div class="hero__stat">
-          <div class="hero__stat-value">6</div>
+          <div class="hero__stat-value">7</div>
           <div class="hero__stat-label">Dashboards</div>
         </div>
         <div class="hero__stat">
-          <div class="hero__stat-value">3</div>
+          <div class="hero__stat-value">4</div>
           <div class="hero__stat-label">Diarios</div>
         </div>
         <div class="hero__stat">
@@ -2086,6 +2379,105 @@
 <!-- ══════════════════════════════════════════════
      SECCIÓN: DASHBOARDS DIARIOS
 ══════════════════════════════════════════════════ -->
+<section class="executive-overview" aria-label="Resumen ejecutivo">
+  <div class="executive-shell">
+    <div class="executive-head">
+      <div>
+        <div class="executive-kicker">Vista ejecutiva</div>
+        <h2 class="executive-title">Estado operativo de talento</h2>
+        <div class="executive-subtitle">
+          Lectura rapida para priorizar seguimiento: vacantes, bajas, estructura, tiempo extra,
+          ausentismos y TREO en un solo punto de entrada.
+        </div>
+      </div>
+      <div class="executive-chip">Plaza Oaxaca - Google Sheets</div>
+    </div>
+
+    <div class="executive-layout">
+      <div>
+        <div class="exec-metric-grid">
+          <div class="exec-metric" data-code="01">
+            <div class="exec-metric__label">Dashboards activos</div>
+            <div class="exec-metric__value">7</div>
+            <div class="exec-metric__note">3 diarios - 4 semanales</div>
+          </div>
+          <div class="exec-metric" data-code="02">
+            <div class="exec-metric__label">Cobertura de datos</div>
+            <div class="exec-metric__value" id="exec-coverage">-</div>
+            <div class="exec-metric__note" id="exec-coverage-note">Validando configuracion</div>
+          </div>
+          <div class="exec-metric" data-code="03">
+            <div class="exec-metric__label">Ultima revision</div>
+            <div class="exec-metric__value" id="exec-check-time">-</div>
+            <div class="exec-metric__note">Sesion actual</div>
+          </div>
+          <div class="exec-metric" data-code="04">
+            <div class="exec-metric__label">Prioridad</div>
+            <div class="exec-metric__value">Mes</div>
+            <div class="exec-metric__note">Revisar filtros al mes mas reciente</div>
+          </div>
+        </div>
+
+        <div class="data-health">
+          <div class="health-pill">
+            <span>Fuente</span>
+            <strong>Google Sheets</strong>
+          </div>
+          <div class="health-pill">
+            <span>Actualizados</span>
+            <strong id="exec-updated-count">-</strong>
+          </div>
+          <div class="health-pill">
+            <span>Operacion</span>
+            <strong>Solo lectura</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="exec-panel">
+        <div class="exec-panel__title">
+          Prioridades de seguimiento
+          <span class="executive-chip" style="padding:7px 10px;font-size:10px">Atencion</span>
+        </div>
+        <div class="priority-list">
+          <div class="priority-item">
+            <div class="priority-icon">V</div>
+            <div class="priority-main">
+              <strong>Vacantes y cobertura</strong>
+              <span>Revisar tiendas con mayor antiguedad y puestos criticos.</span>
+            </div>
+            <a class="priority-link" href="dashboards/dashboard-1.html">Abrir</a>
+          </div>
+          <div class="priority-item">
+            <div class="priority-icon">B</div>
+            <div class="priority-main">
+              <strong>Bajas del mes</strong>
+              <span>Identificar asesor, tienda y puesto con mayor concentracion.</span>
+            </div>
+            <a class="priority-link" href="dashboards/dashboard-2.html">Abrir</a>
+          </div>
+          <div class="priority-item">
+            <div class="priority-icon">E</div>
+            <div class="priority-main">
+              <strong>Estructura y TREO</strong>
+              <span>Validar tiendas incompletas, criticas y movimientos pendientes.</span>
+            </div>
+            <a class="priority-link" href="dashboards/dashboard-3.html">Abrir</a>
+          </div>
+          <div class="priority-item">
+            <div class="priority-icon">A</div>
+            <div class="priority-main">
+              <strong>Ausentismo y tiempo extra</strong>
+              <span>Cruzar sobrecarga operativa contra ausencias recurrentes.</span>
+            </div>
+            <a class="priority-link" href="dashboards/dashboard-4.html">Abrir</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="dashboards-section">
   <div class="dashboards-section__header">
     <div>
@@ -2287,6 +2679,26 @@
   updateClock();
   setInterval(updateClock, 30000);
 
+  function updateExecutiveOverview(config) {
+    const dashboardIds = ['d1', 'd2', 'd3', 's4', 's5', 's6', 's7'];
+    const withDate = dashboardIds.filter((id) => {
+      const data = config && config[id];
+      return data && data.ultima_actualizacion;
+    }).length;
+    const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    const coverageEl = document.getElementById('exec-coverage');
+    const coverageNoteEl = document.getElementById('exec-coverage-note');
+    const countEl = document.getElementById('exec-updated-count');
+    const checkEl = document.getElementById('exec-check-time');
+
+    if (coverageEl) coverageEl.textContent = `${withDate}/${dashboardIds.length}`;
+    if (coverageNoteEl) coverageNoteEl.textContent = withDate === dashboardIds.length
+      ? 'Todos con fecha registrada'
+      : 'Fechas pendientes por validar';
+    if (countEl) countEl.textContent = `${withDate} de ${dashboardIds.length}`;
+    if (checkEl) checkEl.textContent = now;
+  }
+
   // ── CARGAR CONFIGURACIÓN DESDE SHEETS ──
   // Rellena la última actualización de cada tarjeta
   async function loadIndexConfig() {
@@ -2318,13 +2730,15 @@
         hour: '2-digit', minute: '2-digit', second: '2-digit'
       });
     }
+
+    updateExecutiveOverview(config);
   }
 
   loadIndexConfig();
   // Animaciones de entrada al hacer scroll
   function initScrollReveals() {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const blocks = document.querySelectorAll('.system-bar, .dashboards-section, .global-footer');
+    const blocks = document.querySelectorAll('.system-bar, .executive-overview, .dashboards-section, .global-footer');
 
     blocks.forEach((block) => block.classList.add('section-reveal'));
 
