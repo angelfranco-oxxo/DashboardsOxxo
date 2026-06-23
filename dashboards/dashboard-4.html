@@ -222,14 +222,14 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
   <div class="te-row1">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">🏆 Ranking de Asesores por Gasto en TE</div>
+        <div class="card-title">🏆 Ranking de Asesores por Gasto en TE<span class="info-tip" tabindex="0" data-tip="Suma de 'Importe' agrupada por Asesor, ordenado de mayor a menor gasto en tiempo extra."></span></div>
         <span class="card-badge" id="ranking-badge">Top 10</span>
       </div>
       <div class="rank-list" id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
     </div>
     <div class="card">
       <div class="card-head">
-        <div class="card-title">🕐 Distribución de Horas por Tipo de TE</div>
+        <div class="card-title">🕐 Distribución de Horas por Tipo de TE<span class="info-tip" tabindex="0" data-tip="Suma de 'Cantidad' agrupada por tipo (Doble, Triple, Día Descanso) según la columna 'Textos homologados'."></span></div>
       </div>
       <div class="donut-body">
         <div class="donut-chart-wrap">
@@ -245,13 +245,13 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
   <div class="te-row2">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">📊 Top 10 Asesores — Gasto TE</div>
+        <div class="card-title">📊 Top 10 Asesores — Gasto TE<span class="info-tip" tabindex="0" data-tip="Los 10 Asesores con mayor suma de 'Importe' en tiempo extra, de mayor a menor."></span></div>
       </div>
       <div class="bar-chart-area"><canvas id="chart-asesores"></canvas></div>
     </div>
     <div class="card">
       <div class="card-head">
-        <div class="card-title">🏪 Top 10 Tiendas — Gasto TE</div>
+        <div class="card-title">🏪 Top 10 Tiendas — Gasto TE<span class="info-tip" tabindex="0" data-tip="Las 10 tiendas con mayor suma de 'Importe' en tiempo extra, de mayor a menor."></span></div>
       </div>
       <div class="bar-chart-area"><canvas id="chart-tiendas"></canvas></div>
     </div>
@@ -260,7 +260,7 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
   <!-- Detail table -->
   <div class="card te-detail">
     <div class="card-head">
-      <div class="card-title">📋 Detalle de Gasto en Tiempo Extra por Asesor</div>
+      <div class="card-title">📋 Detalle de Gasto en Tiempo Extra por Asesor<span class="info-tip" tabindex="0" data-tip="Tabla agregada por Asesor con horas y gasto desglosado por tipo de TE, con los filtros activos aplicados."></span></div>
       <span class="card-badge" id="table-badge">— registros</span>
     </div>
     <div class="te-table-wrap">
@@ -357,47 +357,47 @@ function renderAll() {
   // ── KPIs (kpi-card skin style) ──
   document.getElementById('kpi-section').innerHTML = `
     <div class="kpi-card" id="kpi-all" onclick="setFilter(null)" title="Ver todo" style="border-top:3px solid #FFD200">
-      <div class="kpi-card__label">Total Horas TE</div>
+      <div class="kpi-card__label">Total Horas TE<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de la columna 'Cantidad' de todas las filas de Dashboard_4_Semanal con los filtros activos (incluye doble, triple y día descanso)."></span></div>
       <div class="kpi-card__value">${fmtH(totalHoras)}</div>
       <div class="kpi-card__sub">horas · Sem ${semana}</div>
       <div class="kpi-filter-hint">▶ Ver todo</div>
     </div>
     <div class="kpi-card" id="kpi-gasto" onclick="setFilter(null)" title="Ver todo" style="border-top:3px solid #FF6B00">
-      <div class="kpi-card__label">Total Gasto $</div>
+      <div class="kpi-card__label">Total Gasto $<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de la columna 'Importe' de todas las filas filtradas. Costo/hora = Total Gasto ÷ Total Horas."></span></div>
       <div class="kpi-card__value">${fmt$(totalGasto)}</div>
       <div class="kpi-card__sub">${totalEmps} empleados · $${costoXHora.toFixed(0)}/h</div>
       <div class="kpi-filter-hint">▶ Ver todo</div>
     </div>
     <div class="kpi-card" id="kpi-doble" onclick="setFilter('doble')" title="Filtrar: TE Doble" style="border-top:3px solid #FFD200">
-      <div class="kpi-card__label">Horas TE Doble</div>
+      <div class="kpi-card__label">Horas TE Doble<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Filas donde 'Textos homologados' = 'Tiempo Extra Doble'. Clic en la tarjeta filtra el dashboard a este tipo."></span></div>
       <div class="kpi-card__value">${fmtH(totalHDoble)}</div>
       <div class="kpi-card__sub">${pct(totalHDoble,totalBase)} del total · ${fmt$(totalGDoble)}</div>
       <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
     <div class="kpi-card" id="kpi-triple" onclick="setFilter('triple')" title="Filtrar: TE Triple" style="border-top:3px solid #D92B2B">
-      <div class="kpi-card__label">Horas TE Triple</div>
+      <div class="kpi-card__label">Horas TE Triple<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Filas donde 'Textos homologados' = 'Tiempo Extra Triple'. Clic en la tarjeta filtra el dashboard a este tipo."></span></div>
       <div class="kpi-card__value">${fmtH(totalHTriple)}</div>
       <div class="kpi-card__sub">${pct(totalHTriple,totalBase)} del total · ${fmt$(totalGTriple)}</div>
       <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
     <div class="kpi-card" id="kpi-desc" onclick="setFilter('descanso')" title="Filtrar: Día Descanso" style="border-top:3px solid #0066CC">
-      <div class="kpi-card__label">Día Descanso</div>
+      <div class="kpi-card__label">Día Descanso<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Filas donde 'Textos homologados' empieza con 'Día Des' (trabajo en día de descanso). Clic filtra el dashboard a este tipo."></span></div>
       <div class="kpi-card__value">${fmtH(totalHDesc)}</div>
       <div class="kpi-card__sub">${pct(totalHDesc,totalBase)} del total · ${fmt$(totalGDesc)}</div>
       <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
     <div class="kpi-card" style="border-top:3px solid #00A650">
-      <div class="kpi-card__label">Tiendas con TE</div>
+      <div class="kpi-card__label">Tiendas con TE<span class="info-tip" tabindex="0" data-tip="Tiendas distintas (columna unidad organizativa) con al menos una hora de tiempo extra en la semana."></span></div>
       <div class="kpi-card__value">${totalTiendas}</div>
       <div class="kpi-card__sub">tiendas activas</div>
     </div>
     <div class="kpi-card" style="border-top:3px solid #9E9E9E">
-      <div class="kpi-card__label">Empleados con TE</div>
+      <div class="kpi-card__label">Empleados con TE<span class="info-tip" tabindex="0" data-tip="Empleados distintos (columna Asesor / Nombre del empleado) con al menos una hora de tiempo extra registrada."></span></div>
       <div class="kpi-card__value">${totalEmps}</div>
       <div class="kpi-card__sub">colaboradores</div>
     </div>
     <div class="kpi-card" style="border-top:3px solid #FF6B00">
-      <div class="kpi-card__label">Costo / Hora Prom.</div>
+      <div class="kpi-card__label">Costo / Hora Prom.<span class="info-tip" tabindex="0" data-tip="Total Gasto $ dividido entre Total Horas TE de todas las filas filtradas."></span></div>
       <div class="kpi-card__value">$${costoXHora.toFixed(0)}</div>
       <div class="kpi-card__sub">promedio por hora</div>
     </div>`;

@@ -213,7 +213,7 @@
     <!-- Tabla detalle -->
     <div class="card detail-card">
       <div class="card-head">
-        <div class="card-title">📋 Detalle por Tienda</div>
+        <div class="card-title">📋 Detalle por Tienda<span class="info-tip" tabindex="0" data-tip="Listado fila por fila de Dashboard_7_Semanal con los filtros activos (Zona, AT, Movimiento, Antigüedad)."></span></div>
         <span class="card-badge" id="tbl-count">— tiendas</span>
       </div>
       <div class="tbl-wrap">
@@ -246,7 +246,7 @@
 
       <!-- Donut alineación global -->
       <div class="card">
-        <div class="card-head"><div class="card-title">🎯 Alineación Global</div></div>
+        <div class="card-head"><div class="card-title">🎯 Alineación Global<span class="info-tip" tabindex="0" data-tip="Porcentaje de tiendas Alineadas sobre el total de tiendas filtradas."></span></div></div>
         <div class="donut-wrap">
           <div class="donut-container">
             <svg class="donut" width="140" height="140" viewBox="0 0 140 140">
@@ -270,7 +270,7 @@
 
       <!-- Mix movimiento -->
       <div class="card">
-        <div class="card-head"><div class="card-title">🔀 Mix de Movimiento</div></div>
+        <div class="card-head"><div class="card-title">🔀 Mix de Movimiento<span class="info-tip" tabindex="0" data-tip="Distribución de tiendas filtradas entre Alineada, Subir y Bajar."></span></div></div>
         <div class="stat-grid">
           <div class="stat-card s"><div class="sv" id="mix-ali">—</div><div class="sl">✔ Alineada</div></div>
           <div class="stat-card" style="background:#fff4e0"><div class="sv" id="mix-sub" style="color:#B85000">—</div><div class="sl">▲ Subir</div></div>
@@ -286,7 +286,7 @@
 
     <!-- Ranking por asesor (tiendas por alinear) -->
     <div class="card">
-      <div class="card-head"><div class="card-title">👤 Tiendas por Alinear por AT</div></div>
+      <div class="card-head"><div class="card-title">👤 Tiendas por Alinear por AT<span class="info-tip" tabindex="0" data-tip="Cuenta tiendas con movimiento Subir o Bajar agrupadas por columna Asesor/AT."></span></div></div>
       <div id="rank-asesor" style="max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#F71926 rgba(0,0,0,.06);padding-right:6px">
         <div class="state-box"><div class="spinner"></div></div>
       </div>
@@ -294,7 +294,7 @@
 
     <!-- Distribución por antigüedad -->
     <div class="card">
-      <div class="card-head"><div class="card-title">🏪 Tiendas a Subir por AT</div></div>
+      <div class="card-head"><div class="card-title">🏪 Tiendas a Subir por AT<span class="info-tip" tabindex="0" data-tip="Cuenta tiendas con movimiento 'Subir' agrupadas por columna Asesor/AT."></span></div></div>
       <div id="rank-subir" style="max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#F71926 rgba(0,0,0,.06);padding-right:6px">
         <div class="state-box"><div class="spinner"></div></div>
       </div>
@@ -302,7 +302,7 @@
 
     <!-- Tiendas a bajar por AT -->
     <div class="card">
-      <div class="card-head"><div class="card-title">📉 Tiendas a Bajar por AT</div></div>
+      <div class="card-head"><div class="card-title">📉 Tiendas a Bajar por AT<span class="info-tip" tabindex="0" data-tip="Cuenta tiendas con movimiento 'Bajar' agrupadas por columna Asesor/AT."></span></div></div>
       <div id="rank-bajar" style="max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#F71926 rgba(0,0,0,.06);padding-right:6px">
         <div class="state-box"><div class="spinner"></div></div>
       </div>
@@ -542,31 +542,31 @@ function renderKPIs(data){
 
   document.getElementById('kpi-section').innerHTML = `
     <div class="kpi-card azul ${!ACTIVE_KPI ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('')}">
-      <div class="kpi-card__label">Total Tiendas</div>
+      <div class="kpi-card__label">Total Tiendas<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Número de tiendas distintas en Dashboard_7_Semanal con los filtros activos aplicados."></span></div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neu">Plaza Oaxaca</div>
       <div class="kpi-card__icon">🏪</div>
     </div>
     <div class="kpi-card verde ${ACTIVE_KPI==='Alineada' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('Alineada')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('Alineada')}">
-      <div class="kpi-card__label">Alineadas ✔</div>
+      <div class="kpi-card__label">Alineadas ✔<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas cuyo movimiento calculado (Est_SAP vs Est_Final P2) resulta en 'Alineada': no requieren subir ni bajar estructura."></span></div>
       <div class="kpi-card__value">${alineadas}</div>
       <div class="kpi-card__delta pos">${pct}% del total</div>
       <div class="kpi-card__icon">✅</div>
     </div>
     <div class="kpi-card naranja ${ACTIVE_KPI==='Subir' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('Subir')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('Subir')}">
-      <div class="kpi-card__label">Por Subir ▲</div>
+      <div class="kpi-card__label">Por Subir ▲<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas donde Est_Final P2 es mayor que Est_SAP: requieren agregar posiciones."></span></div>
       <div class="kpi-card__value">${subir}</div>
       <div class="kpi-card__delta neu">Posiciones a agregar</div>
       <div class="kpi-card__icon">📈</div>
     </div>
     <div class="kpi-card rojo ${ACTIVE_KPI==='Bajar' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('Bajar')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('Bajar')}">
-      <div class="kpi-card__label">Por Bajar ▼</div>
+      <div class="kpi-card__label">Por Bajar ▼<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas donde Est_Final P2 es menor que Est_SAP: requieren liberar posiciones."></span></div>
       <div class="kpi-card__value">${bajar}</div>
       <div class="kpi-card__delta neg">Posiciones a liberar</div>
       <div class="kpi-card__icon">📉</div>
     </div>
     <div class="kpi-card amarillo ${ACTIVE_KPI==='vacantes' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('vacantes')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('vacantes')}">
-      <div class="kpi-card__label">Vacantes Totales</div>
+      <div class="kpi-card__label">Vacantes Totales<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de la columna 'Vacantes' de las tiendas filtradas."></span></div>
       <div class="kpi-card__value">${vacantes}</div>
       <div class="kpi-card__delta neu">En tiendas filtradas</div>
       <div class="kpi-card__icon">👤</div>
