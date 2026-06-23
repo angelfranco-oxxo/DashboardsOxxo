@@ -345,6 +345,7 @@
     </div>
     <div class="bajas-filters" id="filter-bar">
       <div class="filter-box"><label class="filter-title">Asesor</label><div class="spinner" style="width:20px;height:20px;margin:4px 0"></div></div>
+      <div class="filter-box"><label class="filter-title">Mes</label></div>
       <div class="filter-box"><label class="filter-title">Temporalidad</label></div>
       <div class="filter-box"><label class="filter-title">Rot. Temp.</label></div>
       <div class="filter-box"><label class="filter-title">Puesto</label></div>
@@ -418,6 +419,7 @@ const TAB = OXXO.SHEETS_CONFIG.TABS.d2;
 const OBJETIVO_PLAZA = 'OAXACA';
 
 const ALIASES = {
+  mes: ['Mes','MES','Mes baja','Mes de baja','Mes_baja'],
   semana: ['Semana','SEMANA','Week','Semana de baja'],
   region: ['Región','Region','REGION','División','Division'],
   plaza: ['Plaza','PLAZA','Zona'],
@@ -464,6 +466,56 @@ function countBy(data, getter){ const o={}; data.forEach(r=>{const k = getter(r)
 function topEntries(obj, limit=15){ return Object.entries(obj).map(([label,total])=>({label,total})).sort((a,b)=>b.total-a.total).slice(0,limit); }
 function uniq(data, getter, limit=8){ return [...new Set(data.map(getter).filter(Boolean))].slice(0,limit); }
 function chipHTML(values){ return values.length ? values.map(v=>`<span class="chip-orange">${OXXO.truncate(String(v),22)}</span>`).join('') : '<span class="chip-orange">—</span>'; }
+const MONTH_ABBR = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const MONTH_MAP = {
+  ene:1, enero:1, jan:1, january:1,
+  feb:2, febrero:2, february:2,
+  mar:3, marzo:3, march:3,
+  abr:4, abril:4, apr:4, april:4,
+  may:5, mayo:5,
+  jun:6, junio:6, june:6,
+  jul:7, julio:7, july:7,
+  ago:8, agosto:8, aug:8, august:8,
+  sep:9, sept:9, septiembre:9, set:9, september:9,
+  oct:10, octubre:10, october:10,
+  nov:11, noviembre:11, november:11,
+  dic:12, diciembre:12, dec:12, december:12,
+};
+function normalizeMonthKey(value){
+  const raw = String(value ?? '').trim();
+  if(!raw) return '';
+  const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\./g,'').trim();
+  let m = clean.match(/^(\d{4})[-\/](\d{1,2})(?:[-\/]\d{1,2})?$/);
+  if(m) return `${m[1]}-${String(+m[2]).padStart(2,'0')}`;
+  m = clean.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
+  if(m){
+    const y = +m[3] < 100 ? 2000 + +m[3] : +m[3];
+    return `${y}-${String(+m[2]).padStart(2,'0')}`;
+  }
+  m = clean.match(/^([a-z]+)[-\/\s]?(\d{2,4})$/);
+  if(m && MONTH_MAP[m[1]]){
+    const y = +m[2] < 100 ? 2000 + +m[2] : +m[2];
+    return `${y}-${String(MONTH_MAP[m[1]]).padStart(2,'0')}`;
+  }
+  m = clean.match(/^(\d{1,2})[-\/\s]([a-z]+)[-\/\s](\d{2,4})$/);
+  if(m && MONTH_MAP[m[2]]){
+    const y = +m[3] < 100 ? 2000 + +m[3] : +m[3];
+    return `${y}-${String(MONTH_MAP[m[2]]).padStart(2,'0')}`;
+  }
+  if(/^\d{4,5}$/.test(clean)){
+    const date = new Date(Date.UTC(1899, 11, 30) + Number(clean) * 86400000);
+    if(!Number.isNaN(date.getTime())) return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,'0')}`;
+  }
+  return '';
+}
+function monthKeyFromRow(row, cols){
+  return normalizeMonthKey(val(row, cols, 'mes')) || normalizeMonthKey(val(row, cols, 'fecha'));
+}
+function monthLabel(key){
+  const m = String(key || '').match(/^(\d{4})-(\d{2})$/);
+  if(!m) return key || 'Sin mes';
+  return `${MONTH_ABBR[+m[2]-1]}-${String(m[1]).slice(-2)}`;
+}
 let BASE_BAJAS_DATA = [];
 let BAJAS_COLS = {};
 let FILTER_STATE = {};
@@ -492,6 +544,7 @@ function passesAsesorFilter(row, cols){
 }
 
 function getFilterValue(row, cols, key) {
+  if (key === 'mes') return monthKeyFromRow(row, cols);
   if (key === 'temporalidad') return getTemporalidad(row, cols);
   if (key === 'puesto') return normalizePuesto(val(row, cols, 'puesto'));
   if (key === 'motivo') return normalizeMotivo(val(row, cols, 'motivo'));
@@ -501,8 +554,14 @@ function getFilterValue(row, cols, key) {
 }
 
 function uniqueFilterOptions(data, cols, key) {
-  return [...new Set(data.map(r => getFilterValue(r, cols, key)).filter(Boolean))]
-    .sort((a,b) => String(a).localeCompare(String(b), 'es'));
+  const values = [...new Set(data.map(r => getFilterValue(r, cols, key)).filter(Boolean))];
+  if(key === 'mes') return values.sort((a,b)=>String(a).localeCompare(String(b)));
+  return values.sort((a,b) => String(a).localeCompare(String(b), 'es'));
+}
+
+function filterOptionLabel(key, value){
+  if(key === 'mes') return monthLabel(value);
+  return OXXO.truncate(String(value), 28);
 }
 
 function updateAsesorLabel(data, cols){
@@ -540,6 +599,7 @@ function esc2(value){
 let _asesorDocClickBound = false;
 function setFilterBar(data, cols){
   const filterDefs = [
+    ['mes', 'Mes'],
     ['temporalidad', 'Temporalidad'],
     ['rotTemp', 'Rot. Temp.'],
     ['puesto', 'Puesto'],
@@ -564,7 +624,7 @@ function setFilterBar(data, cols){
     const values = uniqueFilterOptions(data, cols, key);
     const selected = FILTER_STATE[key] || '';
     const options = [''].concat(values).map(v => {
-      const label = v === '' ? 'Todos' : OXXO.truncate(String(v), 28);
+      const label = v === '' ? 'Todos' : filterOptionLabel(key, v);
       return `<option value="${String(v).replace(/"/g,'&quot;')}" ${String(v) === String(selected) ? 'selected' : ''}>${label}</option>`;
     }).join('');
     return `
@@ -836,10 +896,10 @@ function renderCompromiso(data, cols){
 
 function renderDetail(data, cols){
   const columns = [
-    ['semana','Semana'], ['plaza','Plaza'], ['asesor','Asesor'], ['tienda','Tienda'], ['empleado','Colaborador'], ['puesto','Puesto'], ['motivo','Motivo'], ['detalle','Detalle baja'], ['temporalidad','Temporalidad'], ['rotTemp','Rot. Temp.'], ['genero','Género'], ['personal','No. personal']
-  ].filter(([k]) => cols[k] || k==='temporalidad');
+    ['mes','Mes'], ['semana','Semana'], ['plaza','Plaza'], ['asesor','Asesor'], ['tienda','Tienda'], ['empleado','Colaborador'], ['puesto','Puesto'], ['motivo','Motivo'], ['detalle','Detalle baja'], ['temporalidad','Temporalidad'], ['rotTemp','Rot. Temp.'], ['genero','Género'], ['personal','No. personal']
+  ].filter(([k]) => cols[k] || k==='temporalidad' || k==='mes');
   const rows = data.map(r => '<tr>' + columns.map(([k]) => {
-    let v = k==='puesto' ? normalizePuesto(val(r,cols,k)) : k==='motivo' ? normalizeMotivo(val(r,cols,k)) : k==='temporalidad' ? getTemporalidad(r,cols) : val(r,cols,k,'—');
+    let v = k==='puesto' ? normalizePuesto(val(r,cols,k)) : k==='motivo' ? normalizeMotivo(val(r,cols,k)) : k==='temporalidad' ? getTemporalidad(r,cols) : k==='mes' ? monthLabel(monthKeyFromRow(r,cols)) : val(r,cols,k,'—');
     return `<td>${OXXO.truncate(String(v||'—'), 38)}</td>`;
   }).join('') + '</tr>').join('');
   document.getElementById('tabla-detalle').innerHTML = `<div class="table-wrapper"><table class="data-table"><thead><tr>${columns.map(([,label])=>`<th>${label}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
