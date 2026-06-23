@@ -880,48 +880,9 @@ function render(data){
     .sort((a,b)=>b.aprov-a.aprov);
 
   // ── TABLA RESUMEN POR AT ─────────────────────────────────
-  const tbodyAT = asesoresSorted.map((at,i)=>{
-    const pct=(at.aprov*100).toFixed(2);
-    const ec=at.ec||0;
-    const ecPct=(ec*100).toFixed(2);
-    const color=ecColor(at.aprov);
-    return`<tr${at.criticas>0?' style="background:#FFF5F5"':''}>
-      <td><strong>${at.asesor}</strong></td>
-      <td class="text-center">${at.completas}</td>
-      <td class="text-center">${at.incompletas}</td>
-      <td class="text-center" style="color:${at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)'};font-weight:${at.criticas>0?700:400}">${at.criticas>0?at.criticas:'—'}</td>
-      <td class="text-center">${at.total}</td>
-      <td class="text-center">${ecPill(at.aprov,pct+'%')}</td>
-    </tr>`;
-  }).join('');
-
-  const totalCompletas=asesoresSorted.reduce((s,a)=>s+a.completas,0);
-  const totalInc=asesoresSorted.reduce((s,a)=>s+a.incompletas,0);
-  const totalCrit=asesoresSorted.reduce((s,a)=>s+a.criticas,0);
-
-  document.getElementById('tabla-at').innerHTML=`
-    <div class="tbl-wrap"><table class="tbl">
-      <thead><tr>
-        <th>AT</th>
-        <th style="text-align:center">Equipo<br>Completo</th>
-        <th style="text-align:center">Equipo<br>Incompleto</th>
-        <th style="text-align:center">Tienda<br>Crítica</th>
-        <th style="text-align:center">Total<br>General</th>
-        <th style="text-align:center">Aprov. %</th>
-      </tr></thead>
-      <tbody>
-        ${tbodyAT}
-        <tr class="total-row">
-          <td>Total general</td>
-          <td class="text-center">${totalCompletas}</td>
-          <td class="text-center">${totalInc}</td>
-          <td class="text-center">${totalCrit}</td>
-          <td class="text-center">${total}</td>
-          <td class="text-center">${ecPill(aprovPromTiendas,(aprovPromTiendas*100).toFixed(2)+'%')}</td>
-        </tr>
-      </tbody>
-    </table></div>`;
-  document.getElementById('row-count').textContent=`${asesoresSorted.length} asesores`;
+  AT_DATA = asesoresSorted;
+  AT_TOTALS = { total, aprovPromTiendas };
+  renderTablaAT();
 
   // ── RANKING AUSENTISMOS POR TIENDA ───────────────────────
   // Agrupar ausentismos por tienda
@@ -1103,6 +1064,79 @@ function render(data){
   }
 
   renderTiendasRiesgo(data);
+}
+
+// ── TABLA RESUMEN POR AT (con ordenamiento) ──────────────────
+let AT_DATA = [];
+let AT_TOTALS = { total:0, aprovPromTiendas:0 };
+let AT_SORT = { col: 'aprov', dir: 'desc' };
+
+function renderTablaAT(){
+  const sorted = [...AT_DATA].sort((a,b)=>{
+    let va, vb;
+    if(AT_SORT.col==='asesor'){ va=a.asesor; vb=b.asesor; return AT_SORT.dir==='asc'?va.localeCompare(vb):vb.localeCompare(va); }
+    if(AT_SORT.col==='completas'){ va=a.completas; vb=b.completas; }
+    else if(AT_SORT.col==='incompletas'){ va=a.incompletas; vb=b.incompletas; }
+    else if(AT_SORT.col==='criticas'){ va=a.criticas; vb=b.criticas; }
+    else if(AT_SORT.col==='total'){ va=a.total; vb=b.total; }
+    else { va=a.aprov; vb=b.aprov; }
+    return AT_SORT.dir==='asc'?va-vb:vb-va;
+  });
+
+  const arrow = col => {
+    if(AT_SORT.col !== col) return '<span style="opacity:.3;margin-left:4px">⇅</span>';
+    return AT_SORT.dir==='asc' ? '<span style="margin-left:4px">↑</span>' : '<span style="margin-left:4px">↓</span>';
+  };
+  const thStyle = 'cursor:pointer;user-select:none;white-space:nowrap';
+
+  const tbodyAT = sorted.map((at)=>{
+    const pct=(at.aprov*100).toFixed(2);
+    return`<tr${at.criticas>0?' style="background:#FFF5F5"':''}>
+      <td><strong>${at.asesor}</strong></td>
+      <td class="text-center">${at.completas}</td>
+      <td class="text-center">${at.incompletas}</td>
+      <td class="text-center" style="color:${at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)'};font-weight:${at.criticas>0?700:400}">${at.criticas>0?at.criticas:'—'}</td>
+      <td class="text-center">${at.total}</td>
+      <td class="text-center">${ecPill(at.aprov,pct+'%')}</td>
+    </tr>`;
+  }).join('');
+
+  const totalCompletas=AT_DATA.reduce((s,a)=>s+a.completas,0);
+  const totalInc=AT_DATA.reduce((s,a)=>s+a.incompletas,0);
+  const totalCrit=AT_DATA.reduce((s,a)=>s+a.criticas,0);
+
+  document.getElementById('tabla-at').innerHTML=`
+    <div class="tbl-wrap"><table class="tbl" id="tbl-at">
+      <thead><tr>
+        <th style="${thStyle}" data-sort="asesor">AT${arrow('asesor')}</th>
+        <th style="${thStyle};text-align:center" data-sort="completas">Equipo<br>Completo${arrow('completas')}</th>
+        <th style="${thStyle};text-align:center" data-sort="incompletas">Equipo<br>Incompleto${arrow('incompletas')}</th>
+        <th style="${thStyle};text-align:center" data-sort="criticas">Tienda<br>Crítica${arrow('criticas')}</th>
+        <th style="${thStyle};text-align:center" data-sort="total">Total<br>General${arrow('total')}</th>
+        <th style="${thStyle};text-align:center" data-sort="aprov">Aprov. %${arrow('aprov')}</th>
+      </tr></thead>
+      <tbody>
+        ${tbodyAT}
+        <tr class="total-row">
+          <td>Total general</td>
+          <td class="text-center">${totalCompletas}</td>
+          <td class="text-center">${totalInc}</td>
+          <td class="text-center">${totalCrit}</td>
+          <td class="text-center">${AT_TOTALS.total}</td>
+          <td class="text-center">${ecPill(AT_TOTALS.aprovPromTiendas,(AT_TOTALS.aprovPromTiendas*100).toFixed(2)+'%')}</td>
+        </tr>
+      </tbody>
+    </table></div>`;
+  document.getElementById('row-count').textContent=`${AT_DATA.length} asesores`;
+
+  document.querySelectorAll('#tbl-at thead th[data-sort]').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const col = th.dataset.sort;
+      if(AT_SORT.col === col) AT_SORT.dir = AT_SORT.dir==='asc'?'desc':'asc';
+      else { AT_SORT.col = col; AT_SORT.dir = 'desc'; }
+      renderTablaAT();
+    });
+  });
 }
 
 // ── TABLA TIENDAS INCOMPLETAS Y CRÍTICAS (con ordenamiento) ──
