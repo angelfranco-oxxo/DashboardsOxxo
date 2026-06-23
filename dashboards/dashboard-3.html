@@ -508,7 +508,7 @@
     <!-- EC % por AT -->
     <div class="card">
       <div class="card-head">
-        <div class="card-title">EC % por AT (desde Sheet)</div>
+        <div class="card-title">EC % por AT (desde Sheet)<span class="info-tip" tabindex="0" data-tip="Columna 'Ec por AT' tomada directamente del Sheet: porcentaje de equipo completo agrupado por AT."></span></div>
       </div>
       <div id="tabla-ec-at">
         <div class="state-box"><div class="spinner"></div></div>
@@ -518,7 +518,7 @@
     <!-- Ranking EC% por AT -->
     <div class="card">
       <div class="card-head">
-        <div class="card-title">🏥 Ranking Ausentismos por Tienda</div>
+        <div class="card-title">🏥 Ranking Ausentismos por Tienda<span class="info-tip" tabindex="0" data-tip="Suma de la columna 'Ausentismos' agrupada por Tienda, ordenado de mayor a menor."></span></div>
       </div>
       <div id="ranking-at">
         <div class="state-box"><div class="spinner"></div></div>
@@ -530,7 +530,7 @@
   <div class="d3-metrics-grid">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">Aprovechamiento por Plaza</div>
+        <div class="card-title">Aprovechamiento por Plaza<span class="info-tip" tabindex="0" data-tip="Promedio de 'Aprovechamiento de estructura de Plaza' agrupado por columna Plaza."></span></div>
       </div>
       <div id="tabla-plazas">
         <div class="state-box"><div class="spinner"></div></div>
@@ -538,7 +538,7 @@
     </div>
     <div class="card">
       <div class="card-head">
-        <div class="card-title">Resumen por AT</div>
+        <div class="card-title">Resumen por AT<span class="info-tip" tabindex="0" data-tip="Agrupa filas por columna 'AT' calculando Aprovechamiento, Ausentismos y Vacantes; columnas ordenables haciendo clic en el encabezado."></span></div>
         <span class="card-badge" id="row-count">— registros</span>
       </div>
       <div id="tabla-at">
@@ -550,7 +550,7 @@
   <!-- TABLA TIENDAS INCOMPLETAS Y CRÍTICAS (full width) -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
-      <div class="card-title">🚨 Tiendas Incompletas y Críticas</div>
+      <div class="card-title">🚨 Tiendas Incompletas y Críticas<span class="info-tip" tabindex="0" data-tip="Lista tiendas con Estatus = Incompleto o Crítica, ordenadas por menor aprovechamiento primero."></span></div>
       <span class="card-badge" id="badge-tiendas-inc">— tiendas</span>
     </div>
     <div id="tabla-incompletas">
@@ -563,7 +563,7 @@
 
     <!-- Dona distribución estatus -->
     <div class="card estatus-card">
-      <div class="card-head"><div class="card-title">Distribución Estatus</div></div>
+      <div class="card-head"><div class="card-title">Distribución Estatus<span class="info-tip" tabindex="0" data-tip="Dona con el conteo de tiendas por cada valor de la columna 'Estatus' (Completo, Incompleto, Crítica)."></span></div></div>
       <div class="estatus-distribution">
         <div class="chart-wrap estatus-chart-wrap"><canvas id="chart-dona"></canvas></div>
         <div class="estatus-summary" id="estatus-summary"></div>
@@ -575,7 +575,7 @@
   <!-- TABLA DETALLE COMPLETO -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
-      <div class="card-title">Detalle por Tienda</div>
+      <div class="card-title">Detalle por Tienda<span class="info-tip" tabindex="0" data-tip="Listado fila por fila de Dashboard_3_Diario con los filtros activos aplicados (Plaza, AT, Esquema, Estatus)."></span></div>
       <span class="card-badge" id="detalle-count">— tiendas</span>
     </div>
     <div id="tabla-detalle">
@@ -824,31 +824,31 @@ function render(data){
   // ── KPIs ────────────────────────────────────────────────
   document.getElementById('kpi-section').innerHTML=`
     <div class="kpi-card ${ecColor(aprovProm)}">
-      <div class="kpi-card__label">Aprovechamiento General</div>
+      <div class="kpi-card__label">Aprovechamiento General<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Promedio de la columna 'Aprovechamiento' (Estructura_diaria / Estructura_objetivo) de todas las tiendas filtradas en Dashboard_3_Diario."></span></div>
       <div class="kpi-card__value">${(aprovProm*100).toFixed(2)}%</div>
       <div class="kpi-card__delta ${aprovProm>=0.95?'pos':aprovProm>=0.80?'neu':'neg'}">Plaza Oaxaca</div>
       <div class="kpi-card__icon">📊</div>
     </div>
     <div class="kpi-card azul ${document.getElementById('filtro-estatus')?.value===''?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('')}">
-      <div class="kpi-card__label">Tiendas Totales</div>
+      <div class="kpi-card__label">Tiendas Totales<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Número de tiendas distintas presentes en Dashboard_3_Diario con los filtros activos aplicados."></span></div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neu">${completas} completas · ${incompletas} inc. · ${criticas} crít.</div>
       <div class="kpi-card__icon">🏪</div>
     </div>
     <div class="kpi-card verde ${document.getElementById('filtro-estatus')?.value==='completo'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('completo')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('completo')}">
-      <div class="kpi-card__label">Equipo Completo</div>
+      <div class="kpi-card__label">Equipo Completo<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas cuyo Estatus = Completo, es decir sin vacantes pendientes según la columna 'Estatus'."></span></div>
       <div class="kpi-card__value">${completas}</div>
       <div class="kpi-card__delta pos">${total>0?Math.round(completas/total*100):0}% del total</div>
       <div class="kpi-card__icon">✅</div>
     </div>
     <div class="kpi-card amarillo ${document.getElementById('filtro-estatus')?.value==='incompleto'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('incompleto')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('incompleto')}">
-      <div class="kpi-card__label">Equipo Incompleto</div>
+      <div class="kpi-card__label">Equipo Incompleto<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas cuyo Estatus = Incompleto, con al menos una vacante pero sin alcanzar nivel crítico."></span></div>
       <div class="kpi-card__value">${incompletas}</div>
       <div class="kpi-card__delta neu">Requieren atención</div>
       <div class="kpi-card__icon">⚠️</div>
     </div>
     <div class="kpi-card rojo ${document.getElementById('filtro-estatus')?.value==='critica'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('critica')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('critica')}">
-      <div class="kpi-card__label">Tienda Crítica</div>
+      <div class="kpi-card__label">Tienda Crítica<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas cuyo Estatus contiene 'crítica': aprovechamiento de estructura por debajo del umbral mínimo aceptable."></span></div>
       <div class="kpi-card__value">${criticas}</div>
       <div class="kpi-card__delta neg">Acción inmediata</div>
       <div class="kpi-card__icon">🚨</div>
