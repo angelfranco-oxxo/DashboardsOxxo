@@ -261,7 +261,7 @@
   <section class="vac-grid-main">
     <article class="panel panel--dark-title panel--accent-red">
       <div class="panel__header">
-        <div class="panel__title">Dias por asesor</div>
+        <div class="panel__title">Dias por asesor<span class="info-tip" tabindex="0" data-tip="Compara 'periodo_anterior' vs 'periodo_actual' agrupado por Asesor."></span></div>
         <span class="panel__badge badge-gris">Periodo anterior vs actual</span>
       </div>
       <div class="vac-chart"><canvas id="chart-asesores"></canvas></div>
@@ -269,7 +269,7 @@
 
     <article class="panel panel--accent-red">
       <div class="panel__header">
-        <div class="panel__title">Acciones recomendadas</div>
+        <div class="panel__title">Acciones recomendadas<span class="info-tip" tabindex="0" data-tip="Recomendaciones generadas a partir de los colaboradores con saldo vencido o por vencer en los proximos 30 dias."></span></div>
         <span class="panel__badge badge-gris">Prioridad</span>
       </div>
       <div id="actions-list" class="vac-actions-list"><div class="state-box"><div class="spinner"></div></div></div>
@@ -278,22 +278,22 @@
 
   <section class="vac-grid-two">
     <article class="panel panel--accent-red">
-      <div class="panel__header"><div class="panel__title">Top tiendas con mas dias</div></div>
+      <div class="panel__header"><div class="panel__title">Top tiendas con mas dias<span class="info-tip" tabindex="0" data-tip="Suma de 'dias_restantes' agrupada por Tienda, ordenado de mayor a menor."></span></div></div>
       <div class="vac-chart"><canvas id="chart-plazas"></canvas></div>
     </article>
     <article class="panel panel--accent-yellow">
-      <div class="panel__header"><div class="panel__title">Puestos con mayor acumulacion</div></div>
+      <div class="panel__header"><div class="panel__title">Puestos con mayor acumulacion<span class="info-tip" tabindex="0" data-tip="Suma de 'dias_restantes' agrupada por Puesto, ordenado de mayor a menor."></span></div></div>
       <div class="vac-chart"><canvas id="chart-puestos"></canvas></div>
     </article>
   </section>
 
   <section class="vac-grid-two">
     <article class="panel panel--accent-red">
-      <div class="panel__header"><div class="panel__title">Vencimiento periodo anterior</div></div>
+      <div class="panel__header"><div class="panel__title">Vencimiento periodo anterior<span class="info-tip" tabindex="0" data-tip="Clasifica el saldo de 'periodo_anterior' en buckets de dias hasta su fecha de vencimiento: Vencido, 0-30, 31-60, 61-90."></span></div></div>
       <div class="vac-chart vac-chart--compact"><canvas id="chart-vencimiento-ant"></canvas></div>
     </article>
     <article class="panel panel--accent-blue">
-      <div class="panel__header"><div class="panel__title">Distribucion de saldo por colaborador</div></div>
+      <div class="panel__header"><div class="panel__title">Distribucion de saldo por colaborador<span class="info-tip" tabindex="0" data-tip="Agrupa colaboradores en rangos de 'dias_restantes' (0, 1-5, 6-10, 11-15, 16-20, 21+)."></span></div></div>
       <div class="vac-chart vac-chart--compact"><canvas id="chart-distribucion"></canvas></div>
     </article>
   </section>

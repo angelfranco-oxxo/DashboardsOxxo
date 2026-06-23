@@ -10,12 +10,12 @@ const state = {
 };
 
 const KPI_DEFS = [
-  { id: 'all', label: 'Dias restantes', color: 'rojo' },
-  { id: 'ant', label: 'Periodo anterior', color: 'amarillo' },
-  { id: 'act', label: 'Periodo actual', color: 'azul' },
-  { id: 'avg', label: 'Promedio', color: 'verde' },
-  { id: 'vencido', label: 'Vencidos ant.', color: 'rojo' },
-  { id: 'prox30', label: 'Vencen 0-30', color: 'amarillo' },
+  { id: 'all', label: 'Dias restantes', color: 'rojo', tip: 'Suma de "dias_restantes" (saldo total de vacaciones pendiente) de todos los colaboradores con los filtros activos.' },
+  { id: 'ant', label: 'Periodo anterior', color: 'amarillo', tip: 'Suma de "periodo_anterior": dias de vacaciones pendientes de ejercicios anteriores al actual.' },
+  { id: 'act', label: 'Periodo actual', color: 'azul', tip: 'Suma de "periodo_actual": dias de vacaciones generados en el periodo en curso.' },
+  { id: 'avg', label: 'Promedio', color: 'verde', tip: 'Dias restantes totales divididos entre el numero de colaboradores con saldo mayor a 0.' },
+  { id: 'vencido', label: 'Vencidos ant.', color: 'rojo', tip: 'Colaboradores cuyo periodo anterior cae en el bucket "Vencido" segun fecha de vencimiento.' },
+  { id: 'prox30', label: 'Vencen 0-30', color: 'amarillo', tip: 'Colaboradores cuyo periodo anterior vence en los proximos 0-30 dias.' },
 ];
 
 function n(value, decimals = 0) {
@@ -336,7 +336,7 @@ function renderKpis(rows) {
     const deltaClass = ['all', 'act', 'avg'].includes(card.id) ? 'neu' : 'neg';
     return `
       <button class="kpi-card ${def.color}${active}" type="button" data-kpi-filter="${card.id}">
-        <div class="kpi-card__label">${def.label}</div>
+        <div class="kpi-card__label">${def.label}<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="${def.tip}"></span></div>
         <div class="kpi-card__value">${card.value}</div>
         <div class="kpi-card__delta ${deltaClass}">${card.delta}</div>
       </button>`;
