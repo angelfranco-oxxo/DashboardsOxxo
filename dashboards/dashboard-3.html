@@ -560,18 +560,6 @@
 
   </div>
 
-  <!-- TABLA DETALLE COMPLETO -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-head">
-      <div class="card-title">Detalle por Tienda<span class="info-tip" tabindex="0" data-tip="Listado fila por fila de Dashboard_3_Diario con los filtros activos aplicados (Plaza, AT, Esquema, Estatus)."></span></div>
-      <span class="card-badge" id="detalle-count">— tiendas</span>
-    </div>
-    <div id="tabla-detalle">
-      <div class="state-box"><div class="spinner"></div>
-        <div style="font-size:12px;color:var(--color-gray)">Cargando datos…</div></div>
-    </div>
-  </div>
-
   <!-- FOOTER -->
   <div class="foot">
     <div><span class="foot-dot"></span>Datos cargados: <strong id="load-time">—</strong></div>
@@ -720,38 +708,10 @@ function renderEstatusDistribution(completas, incompletas, criticas, total){
 // Plazas foco (hardcoded para las tarjetas superiores)
 const PLAZAS_FOCO = ['OAXACA','TUXTLA','ISTMO','VILLAHERMOSA','CHONTALPA'];
 
-let allTablaData = [];
-
-function filtrarTablaDetalle(asesor) {
-  const filtered = asesor ? allTablaData.filter(r => r.asesor === asesor) : allTablaData;
-  const detRows = filtered.map(r => {
-    const ausent = r.ausent || 0;
-    const rowStyle = ausent > 3 ? ' style="background:#FFFBE6;border-left:3px solid #FFD200"' : '';
-    const ausentCell = ausent > 3
-      ? `<td class="text-center"><span style="background:#FFD200;color:#1A1A2E;font-weight:800;font-family:var(--font-display);font-size:13px;padding:2px 10px;border-radius:20px">⚠ ${ausent}</span></td>`
-      : `<td class="text-center">${ausent}</td>`;
-    return `<tr${rowStyle}>
-      <td>${OXXO.truncate(r.asesor,28)}</td>
-      <td>${OXXO.truncate(r.tienda,30)}</td>
-      <td class="text-center">${r.esquema||'—'}</td>
-      <td class="text-center">${r.estructura||'—'}</td>
-      ${ausentCell}
-      <td class="text-center">${(r.vacante||0).toFixed(1)}%</td>
-    </tr>`;
-  }).join('');
-
-  const tbl = document.getElementById('tabla-detalle');
-  if(tbl) {
-    tbl.querySelector('tbody').innerHTML = detRows;
-    document.getElementById('detalle-count').textContent =
-      asesor ? `${filtered.length} tiendas · ${asesor.split(' ')[0]}` : `${filtered.length} tiendas`;
-  }
-}
-
 async function initDashboard(){
   const rawData = await OXXO.fetchSheetData(TAB);
-  if(rawData===null){['kpi-section','plazas-row','tabla-at','ranking-at','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
-  if(rawData.length===0){['kpi-section','plazas-row','tabla-at','ranking-at','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
+  if(rawData===null){['kpi-section','plazas-row','tabla-at','ranking-at'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
+  if(rawData.length===0){['kpi-section','plazas-row','tabla-at','ranking-at'].forEach(id=>OXXO.showEmpty(id));return;}
 
   const map = buildMap(rawData);
   console.log('Mapa de columnas:', JSON.stringify(map));
@@ -966,32 +926,6 @@ function render(data){
   renderEstatusDistribution(completas, incompletas, criticas, total);
 
 
-
-  // ── TABLA DETALLE COMPLETO ───────────────────────────────
-  const detRows = data.map(r=>{
-    return`<tr>
-      <td>${OXXO.truncate(r.asesor,28)}</td>
-      <td>${OXXO.truncate(r.tienda,30)}</td>
-      <td class="text-center">${r.esquema||'—'}</td>
-      <td class="text-center">${r.estructura||'—'}</td>
-      <td class="text-center">${r.ausent||0}</td>
-      <td class="text-center">${(r.vacante||0).toFixed(1)}%</td>
-    </tr>`;
-  }).join('');
-
-  allTablaData = data;
-  document.getElementById('tabla-detalle').innerHTML=`
-    <div class="tbl-wrap"><table class="tbl">
-      <thead><tr>
-        <th>Asesor</th><th>Tienda</th>
-        <th style="text-align:center">Esquema</th>
-        <th style="text-align:center">Estructura</th>
-        <th style="text-align:center">Ausentismos</th>
-        <th style="text-align:center">% Vacantes</th>
-      </tr></thead>
-      <tbody>${detRows}</tbody>
-    </table></div>`;
-  document.getElementById('detalle-count').textContent=`${data.length} tiendas`;
 
   // ── TABLA EC POR AT (% de Equipo Completo, calculado por Asesor) ───────────────
   const ecAtEl = document.getElementById('tabla-ec-at');
