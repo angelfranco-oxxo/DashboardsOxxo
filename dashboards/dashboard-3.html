@@ -237,6 +237,53 @@
     -webkit-text-fill-color:var(--exec-ink,#181112) !important;
   }
   .hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
+
+  /* ── MODAL DETALLE POR ASESOR ── */
+  .am-overlay{
+    position:fixed; inset:0; z-index:1000;
+    background:rgba(30,16,12,.55); backdrop-filter:blur(3px);
+    display:none; align-items:flex-start; justify-content:center;
+    padding:32px 16px; overflow-y:auto;
+  }
+  .am-overlay.open{ display:flex; }
+  .am-dialog{
+    background:var(--color-card,#fff); width:min(960px,100%);
+    border-radius:22px; box-shadow:0 30px 80px rgba(30,16,12,.35);
+    overflow:hidden; animation:amIn .22s ease;
+  }
+  @keyframes amIn{ from{ transform:translateY(14px); opacity:0 } to{ transform:none; opacity:1 } }
+  .am-head{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:20px 26px; background:linear-gradient(135deg,#3B1918,#1F1010); color:#fff;
+  }
+  .am-head__eyebrow{ font-size:11px; letter-spacing:1.5px; text-transform:uppercase; opacity:.7; }
+  .am-head__title h2{ margin:2px 0 0; font-family:var(--font-display,sans-serif); font-size:1.45rem; font-weight:800; color:#fff; }
+  .am-close{
+    background:rgba(255,255,255,.14); border:none; color:#fff; cursor:pointer;
+    width:36px; height:36px; border-radius:10px; font-size:15px; flex-shrink:0;
+    transition:background .15s;
+  }
+  .am-close:hover{ background:rgba(255,255,255,.28); }
+  .am-body{ padding:22px 26px 28px; }
+  .am-kpis{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+    gap:12px; margin-bottom:22px;
+  }
+  .am-kpi{
+    background:var(--color-bg,#FBF6F2); border:1px solid var(--color-border,#EEE3DC);
+    border-radius:14px; padding:12px 10px; text-align:center;
+  }
+  .am-kpi__val{ font-family:var(--font-display,sans-serif); font-size:1.5rem; font-weight:800; line-height:1; }
+  .am-kpi__lbl{ font-size:10px; letter-spacing:.5px; text-transform:uppercase; color:var(--color-gray,#9a8c84); margin-top:6px; }
+  .am-charts{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px; }
+  .am-chart-card{ background:var(--color-bg,#FBF6F2); border:1px solid var(--color-border,#EEE3DC); border-radius:16px; padding:14px 16px; }
+  .am-chart-title{ font-size:12px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--color-gray,#9a8c84); margin-bottom:10px; }
+  .am-chart-wrap{ position:relative; height:230px; }
+  .am-table-title{ font-size:13px; font-weight:700; margin-bottom:10px; }
+  @media(max-width:720px){
+    .am-charts{ grid-template-columns:1fr; }
+    .am-head__title h2{ font-size:1.2rem; }
+  }
   </style>
   <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final" />
   <style id="d3-layout-fine-tune">
@@ -498,6 +545,20 @@
     <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
   </div>
 
+</div>
+
+<!-- MODAL DETALLE POR ASESOR -->
+<div class="am-overlay" id="asesor-modal" onclick="if(event.target===this)closeAsesorModal()">
+  <div class="am-dialog" role="dialog" aria-modal="true">
+    <div class="am-head">
+      <div class="am-head__title">
+        <span class="am-head__eyebrow">Detalle del Asesor</span>
+        <h2 id="asesor-modal-title">—</h2>
+      </div>
+      <button class="am-close" onclick="closeAsesorModal()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="am-body" id="asesor-modal-body"></div>
+  </div>
 </div>
 
 <script src="../js/core.js"></script>
@@ -868,7 +929,6 @@ function render(data){
 let AT_DATA = [];
 let AT_TOTALS = { total:0, aprovPromTiendas:0 };
 let AT_SORT = { col: 'aprov', dir: 'desc' };
-let AT_EXPANDED = new Set();
 
 function renderTablaAT(){
   const sorted = [...AT_DATA].sort((a,b)=>{
@@ -891,44 +951,15 @@ function renderTablaAT(){
 
   const tbodyAT = sorted.map((at)=>{
     const pct=(at.aprov*100).toFixed(2);
-    const expanded = AT_EXPANDED.has(at.asesor);
-    const tiendas = (at.tiendas||[]).slice().sort((a,b)=>(b.aprov||0)-(a.aprov||0));
-    const detailRows = tiendas.map(t=>{
-      const tAprov = (t.aprov||0).toFixed(2);
-      const tColor = isCritica(t.estatus) ? 'var(--semaforo-rojo)' : isIncompleta(t.estatus) ? '#B8960C' : 'var(--semaforo-verde)';
-      return `<tr>
-        <td style="padding:6px 10px;font-size:11.5px">${t.tienda}</td>
-        <td style="padding:6px 10px;font-size:11.5px;color:var(--color-gray)">${t.esquema||'—'}</td>
-        <td style="padding:6px 10px;font-size:11.5px;text-align:center;color:${tColor};font-weight:600">${t.estatus||'—'}</td>
-        <td style="padding:6px 10px;font-size:11.5px;text-align:center">${t.ausent??'—'}</td>
-        <td style="padding:6px 10px;font-size:11.5px;text-align:center">${t.vacante!=null?t.vacante.toFixed(2)+'%':'—'}</td>
-        <td style="padding:6px 10px;font-size:11.5px;text-align:right;font-weight:700;color:${tColor}">${tAprov}%</td>
-      </tr>`;
-    }).join('');
-    const detailRow = expanded ? `<tr class="at-detail-row"><td colspan="7" style="padding:0;background:var(--color-bg)">
-      <div style="padding:10px 16px 14px">
-        <table style="width:100%;border-collapse:collapse">
-          <thead><tr style="color:var(--color-gray);text-transform:uppercase;letter-spacing:.5px">
-            <th style="padding:4px 10px;text-align:left;font-size:9.5px">Tienda</th>
-            <th style="padding:4px 10px;text-align:left;font-size:9.5px">Esquema</th>
-            <th style="padding:4px 10px;text-align:center;font-size:9.5px">Estatus</th>
-            <th style="padding:4px 10px;text-align:center;font-size:9.5px">Ausentismos</th>
-            <th style="padding:4px 10px;text-align:center;font-size:9.5px">Vacantes</th>
-            <th style="padding:4px 10px;text-align:right;font-size:9.5px">Aprov. %</th>
-          </tr></thead>
-          <tbody>${detailRows}</tbody>
-        </table>
-      </div>
-    </td></tr>` : '';
-    return`<tr class="at-row" data-at="${at.asesor.replace(/"/g,'&quot;')}" style="cursor:pointer;${at.criticas>0?'background:#FFF5F5':''}">
-      <td><strong>${expanded?'▾':'▸'} ${at.asesor}</strong></td>
+    return`<tr class="at-row" data-at="${at.asesor.replace(/"/g,'&quot;')}" style="cursor:pointer;${at.criticas>0?'background:#FFF5F5':''}" title="Ver detalle de ${at.asesor.replace(/"/g,'&quot;')}">
+      <td><strong>${at.asesor}</strong> <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
       <td class="text-center">${at.completas}</td>
       <td class="text-center">${at.incompletas}</td>
       <td class="text-center" style="color:${at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)'};font-weight:${at.criticas>0?700:400}">${at.criticas>0?at.criticas:'—'}</td>
       <td class="text-center">${at.total}</td>
       <td class="text-center">${ecPill(at.aprov,pct+'%')}</td>
       <td class="text-center">${at.ecPorAt!=null ? ecPill(at.ecPorAt/100, at.ecPorAt.toFixed(2)+'%') : '<span style="color:var(--color-gray)">—</span>'}</td>
-    </tr>${detailRow}`;
+    </tr>`;
   }).join('');
 
   const totalCompletas=AT_DATA.reduce((s,a)=>s+a.completas,0);
@@ -971,13 +1002,101 @@ function renderTablaAT(){
   });
 
   document.querySelectorAll('#tbl-at tbody tr.at-row').forEach(tr=>{
-    tr.addEventListener('click', ()=>{
-      const at = tr.dataset.at;
-      if(AT_EXPANDED.has(at)) AT_EXPANDED.delete(at);
-      else AT_EXPANDED.add(at);
-      renderTablaAT();
-    });
+    tr.addEventListener('click', ()=> openAsesorModal(tr.dataset.at));
   });
+}
+
+// ── MODAL DETALLE POR ASESOR ──────────────────────────────
+let MODAL_CHARTS = [];
+function closeAsesorModal(){
+  MODAL_CHARTS.forEach(c=>{ try{c.destroy();}catch(e){} });
+  MODAL_CHARTS = [];
+  const ov = document.getElementById('asesor-modal');
+  if(ov) ov.classList.remove('open');
+}
+function openAsesorModal(asesorName){
+  const at = AT_DATA.find(a=>a.asesor===asesorName);
+  if(!at) return;
+  const ov = document.getElementById('asesor-modal');
+  const body = document.getElementById('asesor-modal-body');
+  document.getElementById('asesor-modal-title').textContent = at.asesor;
+
+  const tiendas = (at.tiendas||[]).slice().sort((a,b)=>(b.ausent||0)-(a.ausent||0));
+  const aprovPct = (at.aprov*100).toFixed(2);
+  const ecAtPct = at.ecPorAt!=null ? at.ecPorAt.toFixed(2)+'%' : '—';
+  const promAus = tiendas.length ? (tiendas.reduce((s,t)=>s+(t.ausent||0),0)/tiendas.length).toFixed(1) : '0';
+
+  const kpi = (label,val,color)=>`<div class="am-kpi">
+    <div class="am-kpi__val" style="${color?`color:${color}`:''}">${val}</div>
+    <div class="am-kpi__lbl">${label}</div></div>`;
+
+  const detRows = tiendas.map(t=>{
+    const c = isCritica(t.estatus)?'var(--semaforo-rojo)':isIncompleta(t.estatus)?'#B8960C':'var(--semaforo-verde)';
+    return `<tr${isCritica(t.estatus)?' style="background:#FFF5F5"':''}>
+      <td style="font-weight:600">${t.tienda}</td>
+      <td style="color:var(--color-gray)">${t.esquema||'—'}</td>
+      <td class="text-center" style="color:${c};font-weight:600">${t.estatus||'—'}</td>
+      <td class="text-center">${t.ausent??'—'}</td>
+      <td class="text-center">${t.vacante!=null?t.vacante.toFixed(2)+'%':'—'}</td>
+      <td class="text-right" style="font-weight:700;color:${c}">${(t.aprov||0).toFixed(2)}%</td>
+    </tr>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div class="am-kpis">
+      ${kpi('Total Tiendas', at.total)}
+      ${kpi('Equipo Completo', at.completas, 'var(--semaforo-verde)')}
+      ${kpi('Equipo Incompleto', at.incompletas, '#B8960C')}
+      ${kpi('Tienda Crítica', at.criticas, at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)')}
+      ${kpi('Aprov. % Prom.', aprovPct+'%')}
+      ${kpi('EC % (AT)', ecAtPct)}
+      ${kpi('Ausent. Prom.', promAus)}
+    </div>
+    <div class="am-charts">
+      <div class="am-chart-card">
+        <div class="am-chart-title">Distribución de Estatus</div>
+        <div class="am-chart-wrap"><canvas id="am-chart-estatus"></canvas></div>
+      </div>
+      <div class="am-chart-card">
+        <div class="am-chart-title">Ausentismos por Tienda (Top 10)</div>
+        <div class="am-chart-wrap"><canvas id="am-chart-aus"></canvas></div>
+      </div>
+    </div>
+    <div class="am-table-title">Detalle por Tienda (${tiendas.length})</div>
+    <div class="tbl-wrap" style="max-height:300px;overflow:auto"><table class="tbl">
+      <thead><tr>
+        <th>Tienda</th><th>Esquema</th><th class="text-center">Estatus</th>
+        <th class="text-center">Ausentismos</th><th class="text-center">Vacantes</th><th class="text-right">Aprov. %</th>
+      </tr></thead>
+      <tbody>${detRows||'<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--color-gray)">Sin tiendas.</td></tr>'}</tbody>
+    </table></div>`;
+
+  ov.classList.add('open');
+
+  // Gráficas
+  if(window.Chart){
+    const cE = document.getElementById('am-chart-estatus');
+    MODAL_CHARTS.push(new Chart(cE.getContext('2d'), {
+      type:'doughnut',
+      data:{ labels:['Equipo Completo','Equipo Incompleto','Tienda Crítica'],
+        datasets:[{ data:[at.completas,at.incompletas,at.criticas],
+          backgroundColor:['#1DB954','#E8B500','#D92B2B'], borderWidth:0 }] },
+      options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+        plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } } } }
+    }));
+    const top = tiendas.slice(0,10);
+    const cA = document.getElementById('am-chart-aus');
+    MODAL_CHARTS.push(new Chart(cA.getContext('2d'), {
+      type:'bar',
+      data:{ labels: top.map(t=>t.tienda),
+        datasets:[{ label:'Ausentismos', data: top.map(t=>t.ausent||0),
+          backgroundColor: top.map(t=>isCritica(t.estatus)?'#D92B2B':isIncompleta(t.estatus)?'#E8B500':'#1DB954'),
+          borderRadius:4 }] },
+      options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        plugins:{ legend:{ display:false } },
+        scales:{ x:{ beginAtZero:true, ticks:{font:{size:10}} }, y:{ ticks:{font:{size:10}} } } }
+    }));
+  }
 }
 
 // ── FILTROS ───────────────────────────────────────────────
@@ -1084,6 +1203,7 @@ function limpiarFiltros(){
   applyFilters();
 }
 
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAsesorModal(); });
 document.addEventListener('DOMContentLoaded', initDashboard);
 </script>
 </body>
