@@ -726,13 +726,14 @@ function render(data){
   const byAsesor = {};
   data.forEach(r=>{
     const a=r.asesor;
-    if(!byAsesor[a])byAsesor[a]={total:0,completas:0,incompletas:0,criticas:0,aprovSum:0};
+    if(!byAsesor[a])byAsesor[a]={total:0,completas:0,incompletas:0,criticas:0,aprovSum:0,tiendas:[]};
     byAsesor[a].total++;
     byAsesor[a].aprovSum+=(r.aprov||0);
     byAsesor[a].ausentSum=(byAsesor[a].ausentSum||0)+(r.ausent||0);
     if(isCritica(r.estatus))byAsesor[a].criticas++;
     else if(isIncompleta(r.estatus))byAsesor[a].incompletas++;
     else if(isCompleta(r.estatus))byAsesor[a].completas++;
+    byAsesor[a].tiendas.push(r);
   });
 
   // EC % por AT (columna 'Ec por AT' del sheet, agrupada por 'AT'): fijo, no depende de filtros.
@@ -820,6 +821,7 @@ function render(data){
 let AT_DATA = [];
 let AT_TOTALS = { total:0, aprovPromTiendas:0 };
 let AT_SORT = { col: 'aprov', dir: 'desc' };
+let AT_EXPANDED = new Set();
 
 function renderTablaAT(){
   const sorted = [...AT_DATA].sort((a,b)=>{
@@ -842,15 +844,44 @@ function renderTablaAT(){
 
   const tbodyAT = sorted.map((at)=>{
     const pct=(at.aprov*100).toFixed(2);
-    return`<tr${at.criticas>0?' style="background:#FFF5F5"':''}>
-      <td><strong>${at.asesor}</strong></td>
+    const expanded = AT_EXPANDED.has(at.asesor);
+    const tiendas = (at.tiendas||[]).slice().sort((a,b)=>(b.aprov||0)-(a.aprov||0));
+    const detailRows = tiendas.map(t=>{
+      const tAprov = (t.aprov||0).toFixed(2);
+      const tColor = isCritica(t.estatus) ? 'var(--semaforo-rojo)' : isIncompleta(t.estatus) ? '#B8960C' : 'var(--semaforo-verde)';
+      return `<tr>
+        <td style="padding:6px 10px;font-size:11.5px">${t.tienda}</td>
+        <td style="padding:6px 10px;font-size:11.5px;color:var(--color-gray)">${t.esquema||'—'}</td>
+        <td style="padding:6px 10px;font-size:11.5px;text-align:center;color:${tColor};font-weight:600">${t.estatus||'—'}</td>
+        <td style="padding:6px 10px;font-size:11.5px;text-align:center">${t.ausent??'—'}</td>
+        <td style="padding:6px 10px;font-size:11.5px;text-align:center">${t.vacante!=null?t.vacante.toFixed(2)+'%':'—'}</td>
+        <td style="padding:6px 10px;font-size:11.5px;text-align:right;font-weight:700;color:${tColor}">${tAprov}%</td>
+      </tr>`;
+    }).join('');
+    const detailRow = expanded ? `<tr class="at-detail-row"><td colspan="7" style="padding:0;background:var(--color-bg)">
+      <div style="padding:10px 16px 14px">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="color:var(--color-gray);text-transform:uppercase;letter-spacing:.5px">
+            <th style="padding:4px 10px;text-align:left;font-size:9.5px">Tienda</th>
+            <th style="padding:4px 10px;text-align:left;font-size:9.5px">Esquema</th>
+            <th style="padding:4px 10px;text-align:center;font-size:9.5px">Estatus</th>
+            <th style="padding:4px 10px;text-align:center;font-size:9.5px">Ausentismos</th>
+            <th style="padding:4px 10px;text-align:center;font-size:9.5px">Vacantes</th>
+            <th style="padding:4px 10px;text-align:right;font-size:9.5px">Aprov. %</th>
+          </tr></thead>
+          <tbody>${detailRows}</tbody>
+        </table>
+      </div>
+    </td></tr>` : '';
+    return`<tr class="at-row" data-at="${at.asesor.replace(/"/g,'&quot;')}" style="cursor:pointer;${at.criticas>0?'background:#FFF5F5':''}">
+      <td><strong>${expanded?'▾':'▸'} ${at.asesor}</strong></td>
       <td class="text-center">${at.completas}</td>
       <td class="text-center">${at.incompletas}</td>
       <td class="text-center" style="color:${at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)'};font-weight:${at.criticas>0?700:400}">${at.criticas>0?at.criticas:'—'}</td>
       <td class="text-center">${at.total}</td>
       <td class="text-center">${ecPill(at.aprov,pct+'%')}</td>
       <td class="text-center">${at.ecPorAt!=null ? ecPill(at.ecPorAt/100, at.ecPorAt.toFixed(2)+'%') : '<span style="color:var(--color-gray)">—</span>'}</td>
-    </tr>`;
+    </tr>${detailRow}`;
   }).join('');
 
   const totalCompletas=AT_DATA.reduce((s,a)=>s+a.completas,0);
@@ -888,6 +919,15 @@ function renderTablaAT(){
       const col = th.dataset.sort;
       if(AT_SORT.col === col) AT_SORT.dir = AT_SORT.dir==='asc'?'desc':'asc';
       else { AT_SORT.col = col; AT_SORT.dir = 'desc'; }
+      renderTablaAT();
+    });
+  });
+
+  document.querySelectorAll('#tbl-at tbody tr.at-row').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const at = tr.dataset.at;
+      if(AT_EXPANDED.has(at)) AT_EXPANDED.delete(at);
+      else AT_EXPANDED.add(at);
       renderTablaAT();
     });
   });
