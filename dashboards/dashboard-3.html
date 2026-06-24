@@ -1141,7 +1141,11 @@ function applyFilters(){
 }
 
 // Detalle por Tienda — filtra la base "Plaza Oaxaca" por Asesor y Estatus activos.
+let DET_FILTERS = { asesorSel:'', estatusSel:'' };
+let DET_SORT = { col:'ausent', dir:'desc' };
 function renderDetalle(asesorSel, estatusSel){
+  if(asesorSel!==undefined) DET_FILTERS = { asesorSel, estatusSel };
+  ({ asesorSel, estatusSel } = DET_FILTERS);
   const card = document.getElementById('detalle-card');
   if(!card) return;
   if(!DETALLE_DATA.length){ card.style.display='none'; return; }
@@ -1155,7 +1159,19 @@ function renderDetalle(asesorSel, estatusSel){
   if(estatusSel==='incompleto') d = d.filter(r=>isIncompleta(r.estatus));
   if(estatusSel==='critica')    d = d.filter(r=>isCritica(r.estatus));
 
-  d = d.slice().sort((a,b)=>(b.ausent||0)-(a.ausent||0));
+  const vacTot = r => (r.vacLider||0)+(r.vacEnc||0)+(r.vacAyu||0);
+  const strCols = { tienda:1, asesor:1, estatus:1, ecSinAus:1 };
+  d = d.slice().sort((a,b)=>{
+    const c = DET_SORT.col;
+    let va, vb;
+    if(c==='desglose'){ va=vacTot(a); vb=vacTot(b); }
+    else if(strCols[c]){ va=String(a[c]||''); vb=String(b[c]||''); return DET_SORT.dir==='asc'?va.localeCompare(vb):vb.localeCompare(va); }
+    else { va=a[c]||0; vb=b[c]||0; }
+    return DET_SORT.dir==='asc'?va-vb:vb-va;
+  });
+  const arrowD = col => DET_SORT.col!==col ? '<span style="opacity:.3;margin-left:4px">⇅</span>'
+    : (DET_SORT.dir==='asc'?'<span style="margin-left:4px">↑</span>':'<span style="margin-left:4px">↓</span>');
+  const thS = 'cursor:pointer;user-select:none;white-space:nowrap';
 
   const rows = d.map(r=>{
     const ec = estatusColor(r.estatus);
@@ -1179,19 +1195,27 @@ function renderDetalle(asesorSel, estatusSel){
   document.getElementById('tabla-detalle').innerHTML = `
     <div class="tbl-wrap"><table class="tbl" id="tbl-detalle">
       <thead><tr>
-        <th>Tienda</th>
-        ${hasAsesor?'<th>Asesor</th>':''}
-        <th class="text-center">Estructura<br>Diaria</th>
-        <th class="text-center">Ausentismos</th>
-        <th class="text-center">Vacantes</th>
-        <th class="text-center">Desglose<br>Vacantes</th>
-        <th class="text-center">Estatus</th>
-        <th class="text-center">EC sin<br>Ausentismo</th>
+        <th style="${thS}" data-sort="tienda">Tienda${arrowD('tienda')}</th>
+        ${hasAsesor?`<th style="${thS}" data-sort="asesor">Asesor${arrowD('asesor')}</th>`:''}
+        <th style="${thS};text-align:center" data-sort="estructura">Estructura<br>Diaria${arrowD('estructura')}</th>
+        <th style="${thS};text-align:center" data-sort="ausent">Ausentismos${arrowD('ausent')}</th>
+        <th style="${thS};text-align:center" data-sort="vacante">Vacantes${arrowD('vacante')}</th>
+        <th style="${thS};text-align:center" data-sort="desglose">Desglose<br>Vacantes${arrowD('desglose')}</th>
+        <th style="${thS};text-align:center" data-sort="estatus">Estatus${arrowD('estatus')}</th>
+        <th style="${thS};text-align:center" data-sort="ecSinAus">EC sin<br>Ausentismo${arrowD('ecSinAus')}</th>
       </tr></thead>
       <tbody>${rows || `<tr><td colspan="${ncols}" style="text-align:center;color:var(--color-gray);padding:18px">Sin tiendas para los filtros seleccionados.</td></tr>`}</tbody>
     </table></div>`;
   document.getElementById('detalle-count').textContent = `${d.length} tienda${d.length===1?'':'s'}`;
 
+  document.querySelectorAll('#tbl-detalle thead th[data-sort]').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const col = th.dataset.sort;
+      if(DET_SORT.col===col) DET_SORT.dir = DET_SORT.dir==='asc'?'desc':'asc';
+      else { DET_SORT.col = col; DET_SORT.dir = 'desc'; }
+      renderDetalle();
+    });
+  });
   document.querySelectorAll('#tbl-detalle tbody tr.det-row').forEach(tr=>{
     tr.addEventListener('click', ()=> openTiendaModal(tr.dataset.tienda));
   });
