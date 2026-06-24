@@ -479,12 +479,6 @@
         </select>
       </div>
       <div class="vac-fbox">
-        <label>Esquema</label>
-        <select class="filtro-select" id="filtro-esquema" onchange="applyFilters()">
-          <option value="">Todos los esquemas</option>
-        </select>
-      </div>
-      <div class="vac-fbox">
         <label>Estatus</label>
         <select class="filtro-select" id="filtro-estatus" onchange="applyFilters()">
           <option value="">Todos los estatus</option>
@@ -789,8 +783,10 @@ function render(data){
   const completas  = data.filter(r=>isCompleta(r.estatus)).length;
   const incompletas= data.filter(r=>isIncompleta(r.estatus)).length;
   const criticas   = data.filter(r=>isCritica(r.estatus)).length;
-  // Aprovechamiento General: únicamente Plaza Oaxaca, leyendo 'Aprovechamiento de estructura de Plaza'
-  const oaxacaVals = data.filter(r=>statusText(r.col_plaza).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
+  // Aprovechamiento General: únicamente Plaza Oaxaca, leyendo 'Aprovechamiento de estructura de Plaza'.
+  // Se toma de TODO el histórico (ALL_DATA), no de la selección de filtros, para usar la última
+  // data parcial disponible cuando la semana-mes más reciente aún no está completa.
+  const oaxacaVals = ALL_DATA.filter(r=>statusText(r.col_plaza).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
   const aprovProm = oaxacaVals.length > 0 ? (oaxacaVals.reduce((a,b)=>a+b,0)/oaxacaVals.length)/100 : 0;
   const semana     = data.find(r=>r.semana)?.semana || ACTIVE_SEMANA;
 
@@ -908,7 +904,7 @@ function render(data){
   // ── TABLA APROVECHAMIENTO POR PLAZA ─────────────────────
   // Promedio de 'Aprovechamiento de estructura de Plaza' (ya precalculada por Plaza en el sheet)
   const plazaSums = {};
-  data.forEach(r => {
+  ALL_DATA.forEach(r => {
     const plaza = r.col_plaza;
     if(!plaza || !(r.aprovPlaza>0)) return;
     if(!plazaSums[plaza]) plazaSums[plaza] = { sum:0, n:0 };
@@ -987,9 +983,16 @@ function render(data){
   // ── TABLA EC POR AT (% de Equipo Completo, calculado por Asesor) ───────────────
   const ecAtEl = document.getElementById('tabla-ec-at');
   if(ecAtEl) {
-    const ecAtData = asesoresSorted
-      .filter(v => v.ecPorAt > 0)
-      .map(v => ({ at: v.asesor, ec: v.ecPorAt }))
+    const ecByAsesor = {};
+    ALL_DATA.forEach(r => {
+      if(!(r.ecPorAt>0)) return;
+      const a = r.asesor;
+      if(!ecByAsesor[a]) ecByAsesor[a] = { sum:0, n:0 };
+      ecByAsesor[a].sum += r.ecPorAt;
+      ecByAsesor[a].n++;
+    });
+    const ecAtData = Object.entries(ecByAsesor)
+      .map(([at,v]) => ({ at, ec: v.n>0 ? v.sum/v.n : 0 }))
       .sort((a,b) => b.ec - a.ec);
 
     if(ecAtData.length > 0) {
@@ -1124,18 +1127,15 @@ function populateFilters(data){
     semSel.value = ACTIVE_SEMANA;
   }
   fillSelect('filtro-asesor', uniqueSorted(data,'asesor'));
-  fillSelect('filtro-esquema', uniqueSorted(data,'esquema'));
   filtersReady = true;
 }
 function applyFilters(){
   const sem = document.getElementById('filtro-semana').value;
   const a = document.getElementById('filtro-asesor').value;
-  const e = document.getElementById('filtro-esquema').value;
   const s = document.getElementById('filtro-estatus').value;
   let d = ALL_DATA;
   if(sem) d = d.filter(r=>r.semana===sem);
   if(a) d = d.filter(r=>r.asesor===a);
-  if(e) d = d.filter(r=>r.esquema===e);
   if(s==='completo')   d = d.filter(r=>isCompleta(r.estatus));
   if(s==='incompleto') d = d.filter(r=>isIncompleta(r.estatus));
   if(s==='critica')    d = d.filter(r=>isCritica(r.estatus));
@@ -1147,7 +1147,7 @@ function setKpiEstatus(value){
   applyFilters();
 }
 function limpiarFiltros(){
-  ['filtro-asesor','filtro-esquema','filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  ['filtro-asesor','filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   const semSel = document.getElementById('filtro-semana');
   if(semSel) semSel.value = ACTIVE_SEMANA;
   applyFilters();
