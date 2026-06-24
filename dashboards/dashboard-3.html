@@ -784,9 +784,18 @@ function render(data){
   const incompletas= data.filter(r=>isIncompleta(r.estatus)).length;
   const criticas   = data.filter(r=>isCritica(r.estatus)).length;
   // Aprovechamiento General: únicamente Plaza Oaxaca, leyendo 'Aprovechamiento de estructura de Plaza'.
-  // Se toma de TODO el histórico (ALL_DATA), no de la selección de filtros, para usar la última
-  // data parcial disponible cuando la semana-mes más reciente aún no está completa.
-  const oaxacaVals = ALL_DATA.filter(r=>statusText(r.col_plaza).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
+  // Respeta el filtro de Semana-Mes activo. Si la semana seleccionada aún no tiene data
+  // disponible para Oaxaca (semana parcial/recién iniciada), cae a la semana anterior más
+  // reciente que sí tenga datos, para no regresar 0.00%.
+  const semanaActiva = document.getElementById('filtro-semana')?.value || ACTIVE_SEMANA;
+  let oaxacaVals = data.filter(r=>statusText(r.col_plaza).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
+  if(oaxacaVals.length === 0 && semanaActiva){
+    const semanasPrevias = SEMANAS.filter(s=>s<=semanaActiva).sort().reverse();
+    for(const s of semanasPrevias){
+      const vals = ALL_DATA.filter(r=>r.semana===s && statusText(r.col_plaza).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
+      if(vals.length > 0){ oaxacaVals = vals; break; }
+    }
+  }
   const aprovProm = oaxacaVals.length > 0 ? (oaxacaVals.reduce((a,b)=>a+b,0)/oaxacaVals.length)/100 : 0;
   const semana     = data.find(r=>r.semana)?.semana || ACTIVE_SEMANA;
 
