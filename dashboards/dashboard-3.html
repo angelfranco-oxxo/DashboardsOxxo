@@ -467,6 +467,17 @@
     </div>
   </div>
 
+  <!-- DETALLE POR TIENDA (base "Plaza Oaxaca") -->
+  <div class="card d3-fullcard" id="detalle-card" style="display:none">
+    <div class="card-head">
+      <div class="card-title">Detalle por Tienda<span class="info-tip" tabindex="0" data-tip="Detalle por tienda de la base 'Plaza Oaxaca'. Se filtra con el Asesor y el Estatus seleccionados (al hacer clic en un KPI se muestran solo las tiendas de ese estatus)."></span></div>
+      <span class="card-badge" id="detalle-count">— tiendas</span>
+    </div>
+    <div id="tabla-detalle">
+      <div class="state-box"><div class="spinner"></div></div>
+    </div>
+  </div>
+
   <!-- GRÁFICAS -->
   <div class="charts-row">
 
@@ -492,6 +503,9 @@
 <script src="../js/core.js"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d3;
+// Pestaña separada con el detalle por tienda (base "Plaza Oaxaca").
+// Si no existe en el Google Sheet, el panel de detalle simplemente no se muestra.
+const TAB_DETALLE = 'Plaza Oaxaca';
 
 // Columnas exactas del Google Sheets (pestaña Dashboard_3_Diario, ahora con corte semanal "Cobertura de Tienda")
 const C = {
@@ -524,6 +538,26 @@ const ALIASES = {
   at:        ['AT','At'],
   plaza_at:  ['Plaza_2','PLAZA_2'],
 };
+
+// Alias para la pestaña de detalle por tienda (base "Plaza Oaxaca")
+const ALIASES_DET = {
+  asesor:    ['Asesor','Asesor ','ASESOR'],
+  tienda:    ['Tienda','Tienda ','TIENDA'],
+  estructura:['Estructura Diaria','Estructura diaria','Estructura_diaria','Estructura'],
+  ausent:    ['AUSENTISMOS','AUSENTISMOS ','Ausentismos','aus no justificado'],
+  vacante:   ['Vacante','Vacantes','% Vacantes'],
+  vacLider:  ['LIDER','Lider','Líder'],
+  vacEnc:    ['ENCARGADO','Encargado'],
+  vacAyu:    ['AYUDANTE','Ayudante'],
+  estatus:   ['Estatus Con impacto Ausentismo','Estatus con impacto Ausentismo','Estatus Con Impacto Ausentismo','Estatus','Clas Aprov'],
+  ecSinAus:  ['EC SIN AUSENTISMO','EC sin ausentismo','EC Sin Ausentismo'],
+};
+function buildMapDet(data){
+  const s=data.find(r=>Object.values(r).some(v=>String(v||'').trim()!==''))||data[0]||{};
+  const m={};
+  Object.entries(ALIASES_DET).forEach(([k,al])=>m[k]=findKey(s,al));
+  return m;
+}
 
 function cleanKey(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9%]/g,'');}
 function findKey(row,aliases){
@@ -658,6 +692,28 @@ async function initDashboard(){
   ALL_DATA = data;
   SEMANAS = [...new Set(data.map(r=>r.semana).filter(Boolean))].sort();
   ACTIVE_SEMANA = SEMANAS[SEMANAS.length-1] || '';
+
+  // Detalle por tienda (pestaña separada "Plaza Oaxaca"). Carga aparte y opcional:
+  // si la pestaña no existe o falla, se oculta el panel sin afectar el resto.
+  try {
+    const rawDet = await OXXO.fetchSheetData(TAB_DETALLE);
+    if(rawDet && rawDet.length){
+      const md = buildMapDet(rawDet);
+      DETALLE_DATA = rawDet.map(r=>({
+        asesor:   String(gv(r,md,'asesor','')).trim(),
+        tienda:   String(gv(r,md,'tienda','')).trim(),
+        estructura:gn(r,md,'estructura'),
+        ausent:   gn(r,md,'ausent'),
+        vacante:  gn(r,md,'vacante'),
+        vacLider: gn(r,md,'vacLider'),
+        vacEnc:   gn(r,md,'vacEnc'),
+        vacAyu:   gn(r,md,'vacAyu'),
+        estatus:  String(gv(r,md,'estatus','')).trim(),
+        ecSinAus: String(gv(r,md,'ecSinAus','')).trim(),
+      })).filter(r=>r.tienda);
+    }
+  } catch(e){ DETALLE_DATA = []; }
+
   populateFilters(data);
   applyFilters();
   OXXO.updateFooterTime('load-time');
@@ -935,6 +991,7 @@ function renderTablaAT(){
 
 // ── FILTROS ───────────────────────────────────────────────
 let ALL_DATA = [];
+let DETALLE_DATA = [];
 let SEMANAS = [];
 let ACTIVE_SEMANA = '';
 let filtersReady = false;
@@ -969,6 +1026,58 @@ function applyFilters(){
   if(s==='incompleto') d = d.filter(r=>isIncompleta(r.estatus));
   if(s==='critica')    d = d.filter(r=>isCritica(r.estatus));
   render(d);
+  renderDetalle(a, s);
+}
+
+// Detalle por Tienda — filtra la base "Plaza Oaxaca" por Asesor y Estatus activos.
+function renderDetalle(asesorSel, estatusSel){
+  const card = document.getElementById('detalle-card');
+  if(!card) return;
+  if(!DETALLE_DATA.length){ card.style.display='none'; return; }
+  card.style.display='';
+
+  const norm = s => cleanKey(s);
+  let d = DETALLE_DATA;
+  if(asesorSel) d = d.filter(r=>norm(r.asesor)===norm(asesorSel));
+  if(estatusSel==='completo')   d = d.filter(r=>isCompleta(r.estatus));
+  if(estatusSel==='incompleto') d = d.filter(r=>isIncompleta(r.estatus));
+  if(estatusSel==='critica')    d = d.filter(r=>isCritica(r.estatus));
+
+  d = d.slice().sort((a,b)=>(b.ausent||0)-(a.ausent||0));
+
+  const rows = d.map(r=>{
+    const ec = estatusColor(r.estatus);
+    const ecColorVar = ec==='rojo'?'var(--semaforo-rojo)':ec==='amarillo'?'#B8960C':'var(--semaforo-verde)';
+    const vacBreak = (r.vacLider+r.vacEnc+r.vacAyu)>0
+      ? `<span style="color:var(--color-gray);font-size:11px">L${r.vacLider} · E${r.vacEnc} · A${r.vacAyu}</span>`
+      : '<span style="color:var(--color-gray)">—</span>';
+    return `<tr${isCritica(r.estatus)?' style="background:#FFF5F5"':''}>
+      <td style="font-weight:600">${r.tienda}</td>
+      <td>${r.asesor}</td>
+      <td class="text-center">${r.estructura||'—'}</td>
+      <td class="text-center">${r.ausent||0}</td>
+      <td class="text-center">${r.vacante||0}</td>
+      <td class="text-center">${vacBreak}</td>
+      <td class="text-center" style="color:${ecColorVar};font-weight:600">${r.estatus||'—'}</td>
+      <td class="text-center">${r.ecSinAus||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tabla-detalle').innerHTML = `
+    <div class="tbl-wrap"><table class="tbl" id="tbl-detalle">
+      <thead><tr>
+        <th>Tienda</th>
+        <th>Asesor</th>
+        <th class="text-center">Estructura<br>Diaria</th>
+        <th class="text-center">Ausentismos</th>
+        <th class="text-center">Vacantes</th>
+        <th class="text-center">Desglose<br>Vacantes</th>
+        <th class="text-center">Estatus</th>
+        <th class="text-center">EC sin<br>Ausentismo</th>
+      </tr></thead>
+      <tbody>${rows || '<tr><td colspan="8" style="text-align:center;color:var(--color-gray);padding:18px">Sin tiendas para los filtros seleccionados.</td></tr>'}</tbody>
+    </table></div>`;
+  document.getElementById('detalle-count').textContent = `${d.length} tienda${d.length===1?'':'s'}`;
 }
 function setKpiEstatus(value){
   const sel = document.getElementById('filtro-estatus');
