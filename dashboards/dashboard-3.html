@@ -1226,11 +1226,11 @@ function openTiendaModal(tiendaName){
       ${kpi('EC sin Ausentismo', `<span style="font-size:.95rem">${t.ecSinAus||'—'}</span>`)}
       ${kpi('Esquema', `<span style="font-size:.95rem">${t.esquema||'EP'}</span>`)}
     </div>
-    <div class="am-charts">
-      <div class="am-chart-card">
+    <div class="am-charts" style="${totalVac>0?'':'grid-template-columns:1fr'}">
+      ${totalVac>0?`<div class="am-chart-card">
         <div class="am-chart-title">Vacantes por Puesto</div>
         <div class="am-chart-wrap"><canvas id="am-chart-vac"></canvas></div>
-      </div>
+      </div>`:''}
       <div class="am-chart-card">
         <div class="am-chart-title">Comparativo vs Promedio</div>
         <div class="am-chart-wrap"><canvas id="am-chart-cmp"></canvas></div>
@@ -1255,15 +1255,17 @@ function openTiendaModal(tiendaName){
   ov.classList.add('open');
 
   if(window.Chart){
-    const cV = document.getElementById('am-chart-vac');
-    MODAL_CHARTS.push(new Chart(cV.getContext('2d'), {
-      type:'doughnut',
-      data:{ labels:['Líder','Encargado','Ayudante'],
-        datasets:[{ data:[t.vacLider||0,t.vacEnc||0,t.vacAyu||0],
-          backgroundColor:['#D92B2B','#E8B500','#3B82F6'], borderWidth:0 }] },
-      options:{ responsive:true, maintainAspectRatio:false, cutout:'60%',
-        plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } } } }
-    }));
+    if(totalVac>0){
+      const cV = document.getElementById('am-chart-vac');
+      MODAL_CHARTS.push(new Chart(cV.getContext('2d'), {
+        type:'doughnut',
+        data:{ labels:['Líder','Encargado','Ayudante'],
+          datasets:[{ data:[t.vacLider||0,t.vacEnc||0,t.vacAyu||0],
+            backgroundColor:['#D92B2B','#E8B500','#3B82F6'], borderWidth:0 }] },
+        options:{ responsive:true, maintainAspectRatio:false, cutout:'60%',
+          plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } } } }
+      }));
+    }
     const cC = document.getElementById('am-chart-cmp');
     MODAL_CHARTS.push(new Chart(cC.getContext('2d'), {
       type:'bar',
