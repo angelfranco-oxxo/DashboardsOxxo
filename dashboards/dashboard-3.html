@@ -246,32 +246,21 @@
       gap:18px !important;
       margin-bottom:18px !important;
     }
-    .d3-metrics-grid{
-      display:grid !important;
-      grid-template-columns:minmax(330px,.62fr) minmax(650px,1.38fr) !important;
-      gap:18px !important;
-      margin-bottom:18px !important;
-      align-items:stretch !important;
-    }
-    .d3-top-grid > .card,
-    .d3-metrics-grid > .card{
+    .d3-top-grid > .card{
       align-self:stretch !important;
       min-height:0 !important;
       display:flex !important;
       flex-direction:column !important;
       overflow:hidden !important;
       padding:18px 20px !important;
-    }
-    .d3-top-grid > .card{
       height:455px !important;
     }
-    .d3-metrics-grid > .card{
-      height:395px !important;
+    .d3-fullcard{
+      margin-bottom:18px !important;
+      padding:22px 24px !important;
     }
     #tabla-ec-at,
-    #ranking-at,
-    #tabla-plazas,
-    #tabla-at{
+    #ranking-at{
       flex:1 1 auto !important;
       min-height:0 !important;
     }
@@ -343,8 +332,7 @@
     #ranking-at .rank-bar-bg{
       height:6px !important;
     }
-    #tabla-ec-at table,
-    #tabla-at .tbl{
+    #tabla-ec-at table{
       table-layout:fixed !important;
     }
     #tabla-ec-at table{
@@ -370,65 +358,21 @@
     #tabla-ec-at tbody tr:nth-child(even){
       background:rgba(255,246,241,.52) !important;
     }
-    #tabla-at .tbl-wrap{
-      height:100% !important;
-      overflow:hidden !important;
-    }
-    #tabla-at .tbl{
-      table-layout:fixed !important;
-      height:100% !important;
-    }
-    #tabla-at .tbl thead th{
-      padding-top:5px !important;
-      padding-bottom:5px !important;
-      font-size:9.5px !important;
-      line-height:1.05 !important;
-    }
-    #tabla-at .tbl tbody td{
-      padding-top:2.5px !important;
-      padding-bottom:2.5px !important;
-      font-size:10px !important;
-      line-height:1.05 !important;
-    }
     #tabla-at .tbl th:first-child,
     #tabla-at .tbl td:first-child{
       width:34% !important;
-    }
-    #tabla-at .tbl .total-row td{
-      padding-top:4px !important;
-      padding-bottom:4px !important;
-    }
-    #tabla-at .tbl .ec-pill{
-      font-size:10px !important;
-      padding:2px 8px !important;
-    }
-    #tabla-plazas table{
-      table-layout:fixed !important;
-      width:100% !important;
-      height:100% !important;
-    }
-    #tabla-plazas td,
-    #tabla-plazas th{
-      padding:12px 12px !important;
-    }
-    #tabla-plazas td:first-child{
-      font-size:12.5px !important;
-      line-height:1.15 !important;
     }
     #tabla-plazas td:last-child{
       font-size:15px !important;
     }
     @media(max-width:1200px){
-      .d3-top-grid,
-      .d3-metrics-grid{
+      .d3-top-grid{
         grid-template-columns:1fr !important;
       }
-      .d3-top-grid > .card,
-      .d3-metrics-grid > .card{
+      .d3-top-grid > .card{
         height:auto !important;
       }
-      #ranking-at,
-      #tabla-at .tbl-wrap{
+      #ranking-at{
         max-height:360px !important;
       }
     }
@@ -502,24 +446,24 @@
 
 
 
-  <!-- TABLA APROVECHAMIENTO POR PLAZA + RESUMEN POR AT -->
-  <div class="d3-metrics-grid">
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">Aprovechamiento por Plaza<span class="info-tip" tabindex="0" data-tip="Promedio de '% Aprovechamiento' agrupado por columna Plaza, en la semana seleccionada."></span></div>
-      </div>
-      <div id="tabla-plazas">
-        <div class="state-box"><div class="spinner"></div></div>
-      </div>
+  <!-- TABLA APROVECHAMIENTO POR PLAZA -->
+  <div class="card d3-fullcard">
+    <div class="card-head">
+      <div class="card-title">Aprovechamiento por Plaza<span class="info-tip" tabindex="0" data-tip="Promedio de '% Aprovechamiento' agrupado por columna Plaza, en la semana seleccionada."></span></div>
     </div>
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">Resumen por AT<span class="info-tip" tabindex="0" data-tip="Agrupa filas por Asesor calculando Aprovechamiento; incluye el EC % de la columna 'Ec por AT' (fijo, no cambia con los filtros). Columnas ordenables haciendo clic en el encabezado."></span></div>
-        <span class="card-badge" id="row-count">— registros</span>
-      </div>
-      <div id="tabla-at">
-        <div class="state-box"><div class="spinner"></div></div>
-      </div>
+    <div id="tabla-plazas">
+      <div class="state-box"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- RESUMEN POR AT -->
+  <div class="card d3-fullcard">
+    <div class="card-head">
+      <div class="card-title">Resumen por AT<span class="info-tip" tabindex="0" data-tip="Agrupa filas por Asesor calculando Aprovechamiento; incluye el EC % de la columna 'Ec por AT' (fijo, no cambia con los filtros). Columnas ordenables haciendo clic en el encabezado."></span></div>
+      <span class="card-badge" id="row-count">— registros</span>
+    </div>
+    <div id="tabla-at">
+      <div class="state-box"><div class="spinner"></div></div>
     </div>
   </div>
 
