@@ -612,6 +612,8 @@ const ALIASES = {
   semana:    ['Mes Semana','Semana','Fecha','FECHA'],
   ec_por_at: ['Ec por AT','EC POR AT','EC por AT','Ec Por AT'],
   aprov_plaza: ['Aprovechamiento de estructura de Plaza','Aprovechamiento de Estructura de Plaza','Aprovechamiento estructura de Plaza'],
+  at:        ['AT','At'],
+  plaza_at:  ['Plaza_2','PLAZA_2'],
 };
 
 function cleanKey(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9%]/g,'');}
@@ -768,6 +770,8 @@ async function initDashboard(){
     semana:    String(gv(r,map,'semana','')).trim(),
     ecPorAt:   gn(r,map,'ec_por_at'),
     aprovPlaza:gn(r,map,'aprov_plaza'),
+    at:        String(gv(r,map,'at','')).trim(),
+    plazaAt:   String(gv(r,map,'plaza_at','')).trim(),
   }));
 
   ALL_DATA = data;
@@ -788,11 +792,11 @@ function render(data){
   // disponible para Oaxaca (semana parcial/recién iniciada), cae a la semana anterior más
   // reciente que sí tenga datos, para no regresar 0.00%.
   const semanaActiva = document.getElementById('filtro-semana')?.value || ACTIVE_SEMANA;
-  let oaxacaVals = data.filter(r=>statusText(r.col_plaza).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
+  let oaxacaVals = data.filter(r=>statusText(r.plazaAt).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
   if(oaxacaVals.length === 0 && semanaActiva){
     const semanasPrevias = SEMANAS.filter(s=>s<=semanaActiva).sort().reverse();
     for(const s of semanasPrevias){
-      const vals = ALL_DATA.filter(r=>r.semana===s && statusText(r.col_plaza).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
+      const vals = ALL_DATA.filter(r=>r.semana===s && statusText(r.plazaAt).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
       if(vals.length > 0){ oaxacaVals = vals; break; }
     }
   }
@@ -914,7 +918,7 @@ function render(data){
   // Promedio de 'Aprovechamiento de estructura de Plaza' (ya precalculada por Plaza en el sheet)
   const plazaSums = {};
   ALL_DATA.forEach(r => {
-    const plaza = r.col_plaza;
+    const plaza = r.plazaAt;
     if(!plaza || !(r.aprovPlaza>0)) return;
     if(!plazaSums[plaza]) plazaSums[plaza] = { sum:0, n:0 };
     plazaSums[plaza].sum += r.aprovPlaza;
@@ -994,8 +998,8 @@ function render(data){
   if(ecAtEl) {
     const ecByAsesor = {};
     ALL_DATA.forEach(r => {
-      if(!(r.ecPorAt>0)) return;
-      const a = r.asesor;
+      if(!(r.ecPorAt>0) || !r.at) return;
+      const a = r.at;
       if(!ecByAsesor[a]) ecByAsesor[a] = { sum:0, n:0 };
       ecByAsesor[a].sum += r.ecPorAt;
       ecByAsesor[a].n++;
