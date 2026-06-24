@@ -280,6 +280,14 @@
   .am-chart-title{ font-size:12px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--color-gray,#9a8c84); margin-bottom:10px; }
   .am-chart-wrap{ position:relative; height:230px; }
   .am-table-title{ font-size:13px; font-weight:700; margin-bottom:10px; }
+
+  /* Fila de tienda crítica: rojo de peligro */
+  .tbl tbody tr.row-critica{
+    background:rgba(217,43,43,.12) !important;
+    box-shadow:inset 4px 0 0 var(--semaforo-rojo,#D92B2B);
+  }
+  .tbl tbody tr.row-critica:hover{ background:rgba(217,43,43,.20) !important; }
+  .tbl tbody tr.row-critica td:first-child{ color:var(--semaforo-rojo,#D92B2B); font-weight:700; }
   @media(max-width:720px){
     .am-charts{ grid-template-columns:1fr; }
     .am-head__title h2{ font-size:1.2rem; }
@@ -951,7 +959,7 @@ function renderTablaAT(){
 
   const tbodyAT = sorted.map((at)=>{
     const pct=(at.aprov*100).toFixed(2);
-    return`<tr class="at-row" data-at="${at.asesor.replace(/"/g,'&quot;')}" style="cursor:pointer;${at.criticas>0?'background:#FFF5F5':''}" title="Ver detalle de ${at.asesor.replace(/"/g,'&quot;')}">
+    return`<tr class="at-row${at.criticas>0?' row-critica':''}" data-at="${at.asesor.replace(/"/g,'&quot;')}" style="cursor:pointer" title="Ver detalle de ${at.asesor.replace(/"/g,'&quot;')}">
       <td><strong>${at.asesor}</strong> <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
       <td class="text-center">${at.completas}</td>
       <td class="text-center">${at.incompletas}</td>
@@ -1179,7 +1187,7 @@ function renderDetalle(asesorSel, estatusSel){
     const vacBreak = (r.vacLider+r.vacEnc+r.vacAyu)>0
       ? `<span style="color:var(--color-gray);font-size:11px">L${r.vacLider} · E${r.vacEnc} · A${r.vacAyu}</span>`
       : '<span style="color:var(--color-gray)">—</span>';
-    return `<tr class="det-row" data-tienda="${String(r.tienda).replace(/"/g,'&quot;')}" style="cursor:pointer;${isCritica(r.estatus)?'background:#FFF5F5':''}" title="Ver detalle de ${String(r.tienda).replace(/"/g,'&quot;')}">
+    return `<tr class="det-row${isCritica(r.estatus)?' row-critica':''}" data-tienda="${String(r.tienda).replace(/"/g,'&quot;')}" style="cursor:pointer" title="Ver detalle de ${String(r.tienda).replace(/"/g,'&quot;')}">
       <td style="font-weight:600">${r.tienda} <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
       ${hasAsesor?`<td>${r.asesor}</td>`:''}
       <td class="text-center">${r.estructura||'—'}</td>
