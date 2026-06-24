@@ -470,7 +470,7 @@
   <!-- DETALLE POR TIENDA (base "Plaza Oaxaca") -->
   <div class="card d3-fullcard" id="detalle-card" style="display:none">
     <div class="card-head">
-      <div class="card-title">Detalle por Tienda<span class="info-tip" tabindex="0" data-tip="Detalle por tienda de la base 'Plaza Oaxaca'. Se filtra con el Asesor y el Estatus seleccionados (al hacer clic en un KPI se muestran solo las tiendas de ese estatus)."></span></div>
+      <div class="card-title">Detalle por Tienda<span class="info-tip" tabindex="0" data-tip="Detalle por tienda (pestaña 'Detalle_Dashboard_3', únicamente mes actual). Se filtra por el Estatus seleccionado: al hacer clic en un KPI (ej. Equipo Completo) se muestran solo las tiendas de ese estatus."></span></div>
       <span class="card-badge" id="detalle-count">— tiendas</span>
     </div>
     <div id="tabla-detalle">
@@ -505,7 +505,7 @@
 const TAB = OXXO.SHEETS_CONFIG.TABS.d3;
 // Pestaña separada con el detalle por tienda (base "Plaza Oaxaca").
 // Si no existe en el Google Sheet, el panel de detalle simplemente no se muestra.
-const TAB_DETALLE = 'Plaza Oaxaca';
+const TAB_DETALLE = 'Detalle_Dashboard_3';
 
 // Columnas exactas del Google Sheets (pestaña Dashboard_3_Diario, ahora con corte semanal "Cobertura de Tienda")
 const C = {
@@ -1037,8 +1037,9 @@ function renderDetalle(asesorSel, estatusSel){
   card.style.display='';
 
   const norm = s => cleanKey(s);
+  const hasAsesor = DETALLE_DATA.some(r=>r.asesor);
   let d = DETALLE_DATA;
-  if(asesorSel) d = d.filter(r=>norm(r.asesor)===norm(asesorSel));
+  if(asesorSel && hasAsesor) d = d.filter(r=>norm(r.asesor)===norm(asesorSel));
   if(estatusSel==='completo')   d = d.filter(r=>isCompleta(r.estatus));
   if(estatusSel==='incompleto') d = d.filter(r=>isIncompleta(r.estatus));
   if(estatusSel==='critica')    d = d.filter(r=>isCritica(r.estatus));
@@ -1053,7 +1054,7 @@ function renderDetalle(asesorSel, estatusSel){
       : '<span style="color:var(--color-gray)">—</span>';
     return `<tr${isCritica(r.estatus)?' style="background:#FFF5F5"':''}>
       <td style="font-weight:600">${r.tienda}</td>
-      <td>${r.asesor}</td>
+      ${hasAsesor?`<td>${r.asesor}</td>`:''}
       <td class="text-center">${r.estructura||'—'}</td>
       <td class="text-center">${r.ausent||0}</td>
       <td class="text-center">${r.vacante||0}</td>
@@ -1063,11 +1064,12 @@ function renderDetalle(asesorSel, estatusSel){
     </tr>`;
   }).join('');
 
+  const ncols = hasAsesor ? 8 : 7;
   document.getElementById('tabla-detalle').innerHTML = `
     <div class="tbl-wrap"><table class="tbl" id="tbl-detalle">
       <thead><tr>
         <th>Tienda</th>
-        <th>Asesor</th>
+        ${hasAsesor?'<th>Asesor</th>':''}
         <th class="text-center">Estructura<br>Diaria</th>
         <th class="text-center">Ausentismos</th>
         <th class="text-center">Vacantes</th>
@@ -1075,7 +1077,7 @@ function renderDetalle(asesorSel, estatusSel){
         <th class="text-center">Estatus</th>
         <th class="text-center">EC sin<br>Ausentismo</th>
       </tr></thead>
-      <tbody>${rows || '<tr><td colspan="8" style="text-align:center;color:var(--color-gray);padding:18px">Sin tiendas para los filtros seleccionados.</td></tr>'}</tbody>
+      <tbody>${rows || `<tr><td colspan="${ncols}" style="text-align:center;color:var(--color-gray);padding:18px">Sin tiendas para los filtros seleccionados.</td></tr>`}</tbody>
     </table></div>`;
   document.getElementById('detalle-count').textContent = `${d.length} tienda${d.length===1?'':'s'}`;
 }
