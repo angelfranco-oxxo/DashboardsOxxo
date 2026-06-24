@@ -502,16 +502,6 @@
 
 
 
-  <!-- Ranking Ausentismos -->
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-head">
-      <div class="card-title">🏥 Ranking Ausentismos por Tienda<span class="info-tip" tabindex="0" data-tip="Suma de la columna 'Ausentismos' agrupada por Tienda, ordenado de mayor a menor."></span></div>
-    </div>
-    <div id="ranking-at">
-      <div class="state-box"><div class="spinner"></div></div>
-    </div>
-  </div>
-
   <!-- TABLA APROVECHAMIENTO POR PLAZA + RESUMEN POR AT -->
   <div class="d3-metrics-grid">
     <div class="card">
@@ -697,8 +687,8 @@ const PLAZAS_FOCO = ['OAXACA','TUXTLA','ISTMO','VILLAHERMOSA','CHONTALPA'];
 
 async function initDashboard(){
   const rawData = await OXXO.fetchSheetData(TAB);
-  if(rawData===null){['kpi-section','plazas-row','tabla-at','ranking-at'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
-  if(rawData.length===0){['kpi-section','plazas-row','tabla-at','ranking-at'].forEach(id=>OXXO.showEmpty(id));return;}
+  if(rawData===null){['kpi-section','plazas-row','tabla-at'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
+  if(rawData.length===0){['kpi-section','plazas-row','tabla-at'].forEach(id=>OXXO.showEmpty(id));return;}
 
   const map = buildMap(rawData);
   console.log('Mapa de columnas:', JSON.stringify(map));
@@ -826,52 +816,6 @@ function render(data){
   AT_DATA = asesoresSorted;
   AT_TOTALS = { total, aprovPromTiendas: aprovProm };
   renderTablaAT();
-
-  // ── RANKING AUSENTISMOS POR TIENDA ───────────────────────
-  // Agrupar ausentismos por tienda
-  const ausentMap = {};
-  data.forEach(r => {
-    const key = r.tienda;
-    if (!key || key === 'Sin tienda') return;
-    if (!ausentMap[key]) ausentMap[key] = { tienda: key, asesor: r.asesor, ausent: 0 };
-    ausentMap[key].ausent += (r.ausent || 0);
-  });
-  // Ordenar de mayor a menor ausentismo, mostrar solo tiendas con ausent > 0
-  const ausentSorted = Object.values(ausentMap)
-    .filter(t => t.ausent > 0)
-    .sort((a, b) => b.ausent - a.ausent);
-
-  if (ausentSorted.length === 0) {
-    document.getElementById('ranking-at').innerHTML =
-      `<div class="state-box" style="padding:30px 0">
-        <div style="font-size:2rem">🎉</div>
-        <div style="font-weight:700;color:var(--color-dark)">Sin ausentismos registrados</div>
-      </div>`;
-  } else {
-    const maxAusent = Math.max(...ausentSorted.map(t => t.ausent), 1);
-    const ausentHTML = ausentSorted.map((t, i) => {
-      const barW = ((t.ausent / maxAusent) * 100).toFixed(1);
-      const color = t.ausent >= 3 ? 'rojo' : t.ausent === 2 ? 'amarillo' : 'verde';
-      const barColor = color === 'rojo' ? 'var(--semaforo-rojo)' : color === 'amarillo' ? 'var(--semaforo-amarillo)' : '#00A650';
-      const parts = t.asesor.split(' ');
-      const shortAt = parts.length >= 3 ? parts[0]+' '+parts[1].charAt(0)+'. '+parts[parts.length-1] : t.asesor;
-      return `<div class="rank-item">
-        <div class="rank-num">${i+1}</div>
-        <div>
-          <div class="rank-name" style="margin-bottom:1px">${t.tienda}</div>
-          <div style="font-size:10px;color:var(--color-gray);margin-bottom:3px">${shortAt}</div>
-          <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:0%;background:${barColor}" data-w="${barW}%"></div></div>
-        </div>
-        <div class="rank-val ${color}">${t.ausent}</div>
-      </div>`;
-    }).join('');
-    document.getElementById('ranking-at').innerHTML = `<div>${ausentHTML}</div>`;
-    requestAnimationFrame(() => {
-      document.querySelectorAll('#ranking-at .rank-bar-fill').forEach((b, i) => {
-        setTimeout(() => { b.style.width = b.dataset.w; }, i * 60);
-      });
-    });
-  }
 
   // ── TABLA APROVECHAMIENTO POR PLAZA ─────────────────────
   // Promedio de 'Aprovechamiento de estructura de Plaza' (ya precalculada por Plaza en el sheet)
