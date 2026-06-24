@@ -724,16 +724,11 @@ function render(data){
   const completas  = data.filter(r=>isCompleta(r.estatus)).length;
   const incompletas= data.filter(r=>isIncompleta(r.estatus)).length;
   const criticas   = data.filter(r=>isCritica(r.estatus)).length;
-  // Aprovechamiento General: únicamente Plaza Oaxaca, leyendo 'Aprovechamiento de estructura de Plaza'.
-  // En el sheet actual esta columna tiene UN solo valor de Oaxaca en toda la base (no es una
-  // serie por mes), por eso se prioriza el de la semana seleccionada y, si esa semana no tiene
-  // valor de Oaxaca, se toma el valor de Oaxaca disponible en cualquier otra semana, para que el
-  // KPI nunca quede en 0.00% al cambiar el filtro de Semana-Mes.
-  let oaxacaVals = data.filter(r=>statusText(r.plazaAt).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
-  if(oaxacaVals.length === 0){
-    oaxacaVals = ALL_DATA.filter(r=>statusText(r.plazaAt).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
-  }
-  const aprovProm = oaxacaVals.length > 0 ? (oaxacaVals.reduce((a,b)=>a+b,0)/oaxacaVals.length)/100 : 0;
+  // Aprovechamiento General: promedio de '% Aprovechamiento' de las tiendas de la selección
+  // actual (Plaza Oaxaca). Cambia con el filtro de Semana-Mes (y demás filtros) porque se
+  // recalcula sobre los datos filtrados de cada mes.
+  const aprovVals = data.map(r=>r.aprov).filter(v=>!isNaN(v));
+  const aprovProm = aprovVals.length > 0 ? (aprovVals.reduce((a,b)=>a+b,0)/aprovVals.length)/100 : 0;
   const semana     = data.find(r=>r.semana)?.semana || ACTIVE_SEMANA;
 
   // Actualizar semana en hero
