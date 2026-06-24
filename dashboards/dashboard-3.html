@@ -552,17 +552,6 @@
     </div>
   </div>
 
-  <!-- TABLA TIENDAS INCOMPLETAS Y CRÍTICAS (full width) -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-head">
-      <div class="card-title">🚨 Tiendas Incompletas y Críticas<span class="info-tip" tabindex="0" data-tip="Lista tiendas con Estatus = Incompleto o Crítica, ordenadas por menor aprovechamiento primero."></span></div>
-      <span class="card-badge" id="badge-tiendas-inc">— tiendas</span>
-    </div>
-    <div id="tabla-incompletas">
-      <div class="state-box"><div class="spinner"></div></div>
-    </div>
-  </div>
-
   <!-- GRÁFICAS -->
   <div class="charts-row">
 
@@ -627,6 +616,8 @@ const ALIASES = {
   estatus:   ['Clas Aprov','Estatus','Estatus Con impacto Ausentismo','Estatus con impacto Ausentismo','Estatus Con Impacto Ausentismo','ESTATUS'],
   col_plaza: ['Plaza','PLAZA'],
   semana:    ['Mes Semana','Semana','Fecha','FECHA'],
+  ec_por_at: ['Ec por AT','EC POR AT','EC por AT','Ec Por AT'],
+  aprov_plaza: ['Aprovechamiento de estructura de Plaza','Aprovechamiento de Estructura de Plaza','Aprovechamiento estructura de Plaza'],
 };
 
 function cleanKey(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9%]/g,'');}
@@ -781,6 +772,8 @@ async function initDashboard(){
     estatus:   String(gv(r,map,'estatus','')).trim(),
     col_plaza: String(gv(r,map,'col_plaza','')).trim(),
     semana:    String(gv(r,map,'semana','')).trim(),
+    ecPorAt:   gn(r,map,'ec_por_at'),
+    aprovPlaza:gn(r,map,'aprov_plaza'),
   }));
 
   ALL_DATA = data;
@@ -796,9 +789,9 @@ function render(data){
   const completas  = data.filter(r=>isCompleta(r.estatus)).length;
   const incompletas= data.filter(r=>isIncompleta(r.estatus)).length;
   const criticas   = data.filter(r=>isCritica(r.estatus)).length;
-  // Promedio de Aprovechamiento Estructura entre las tiendas de la semana filtrada
-  const aprovVals = data.map(r=>r.aprov).filter(v=>v>0);
-  const aprovProm = aprovVals.length > 0 ? (aprovVals.reduce((a,b)=>a+b,0)/aprovVals.length)/100 : 0;
+  // Aprovechamiento General: únicamente Plaza Oaxaca, leyendo 'Aprovechamiento de estructura de Plaza'
+  const oaxacaVals = data.filter(r=>statusText(r.col_plaza).includes('oaxaca')).map(r=>r.aprovPlaza).filter(v=>v>0);
+  const aprovProm = oaxacaVals.length > 0 ? (oaxacaVals.reduce((a,b)=>a+b,0)/oaxacaVals.length)/100 : 0;
   const semana     = data.find(r=>r.semana)?.semana || ACTIVE_SEMANA;
 
   // Actualizar semana en hero
@@ -843,9 +836,10 @@ function render(data){
   const byAsesor = {};
   data.forEach(r=>{
     const a=r.asesor;
-    if(!byAsesor[a])byAsesor[a]={total:0,completas:0,incompletas:0,criticas:0,aprovSum:0};
+    if(!byAsesor[a])byAsesor[a]={total:0,completas:0,incompletas:0,criticas:0,aprovSum:0,ecPorAtSum:0,ecPorAtN:0};
     byAsesor[a].total++;
     byAsesor[a].aprovSum+=(r.aprov||0);
+    if(r.ecPorAt>0){ byAsesor[a].ecPorAtSum+=r.ecPorAt; byAsesor[a].ecPorAtN++; }
     byAsesor[a].ausentSum=(byAsesor[a].ausentSum||0)+(r.ausent||0);
     if(isCritica(r.estatus))byAsesor[a].criticas++;
     else if(isIncompleta(r.estatus))byAsesor[a].incompletas++;
@@ -856,6 +850,7 @@ function render(data){
     .map(([a,v])=>({...v, asesor:a,
       aprov: v.total > 0 ? (v.aprovSum/v.total)/100 : 0,
       ec: v.total > 0 ? v.completas/v.total : 0,
+      ecPorAt: v.ecPorAtN > 0 ? v.ecPorAtSum/v.ecPorAtN : 0,
     }))
     .sort((a,b)=>b.aprov-a.aprov);
 
@@ -911,13 +906,13 @@ function render(data){
   }
 
   // ── TABLA APROVECHAMIENTO POR PLAZA ─────────────────────
-  // Promedio de '% Aprovechamiento' agrupado por columna Plaza (ya no viene precalculada en el sheet)
+  // Promedio de 'Aprovechamiento de estructura de Plaza' (ya precalculada por Plaza en el sheet)
   const plazaSums = {};
   data.forEach(r => {
     const plaza = r.col_plaza;
-    if(!plaza) return;
+    if(!plaza || !(r.aprovPlaza>0)) return;
     if(!plazaSums[plaza]) plazaSums[plaza] = { sum:0, n:0 };
-    plazaSums[plaza].sum += (r.aprov||0);
+    plazaSums[plaza].sum += r.aprovPlaza;
     plazaSums[plaza].n++;
   });
   const plazaData = Object.entries(plazaSums)
@@ -993,7 +988,8 @@ function render(data){
   const ecAtEl = document.getElementById('tabla-ec-at');
   if(ecAtEl) {
     const ecAtData = asesoresSorted
-      .map(v => ({ at: v.asesor, ec: v.ec*100 }))
+      .filter(v => v.ecPorAt > 0)
+      .map(v => ({ at: v.asesor, ec: v.ecPorAt }))
       .sort((a,b) => b.ec - a.ec);
 
     if(ecAtData.length > 0) {
@@ -1030,7 +1026,6 @@ function render(data){
     }
   }
 
-  renderTiendasRiesgo(data);
 }
 
 // ── TABLA RESUMEN POR AT (con ordenamiento) ──────────────────
@@ -1102,78 +1097,6 @@ function renderTablaAT(){
       if(AT_SORT.col === col) AT_SORT.dir = AT_SORT.dir==='asc'?'desc':'asc';
       else { AT_SORT.col = col; AT_SORT.dir = 'desc'; }
       renderTablaAT();
-    });
-  });
-}
-
-// ── TABLA TIENDAS INCOMPLETAS Y CRÍTICAS (con ordenamiento) ──
-let RIESGO_DATA = [];
-let RIESGO_SORT = { col: 'aprov', dir: 'asc' };
-
-function renderTiendasRiesgo(data){
-  if(data !== undefined) RIESGO_DATA = data.filter(r=>isIncompleta(r.estatus)||isCritica(r.estatus));
-
-  const sorted = [...RIESGO_DATA].sort((a,b)=>{
-    let va, vb;
-    if(RIESGO_SORT.col==='asesor') { va=a.asesor; vb=b.asesor; return RIESGO_SORT.dir==='asc'?va.localeCompare(vb):vb.localeCompare(va); }
-    if(RIESGO_SORT.col==='tienda') { va=a.tienda; vb=b.tienda; return RIESGO_SORT.dir==='asc'?va.localeCompare(vb):vb.localeCompare(va); }
-    if(RIESGO_SORT.col==='estatus'){ va=isCritica(a.estatus)?0:1; vb=isCritica(b.estatus)?0:1; return RIESGO_SORT.dir==='asc'?va-vb:vb-va; }
-    if(RIESGO_SORT.col==='vacante'){ va=a.vacante||0; vb=b.vacante||0; return RIESGO_SORT.dir==='asc'?va-vb:vb-va; }
-    // default: aprov
-    va=a.aprov||0; vb=b.aprov||0; return RIESGO_SORT.dir==='asc'?va-vb:vb-va;
-  });
-
-  document.getElementById('badge-tiendas-inc').textContent = sorted.length + ' tiendas';
-
-  if(sorted.length === 0){
-    document.getElementById('tabla-incompletas').innerHTML=`
-      <div class="state-box"><div class="state-box__icon">✅</div>
-      <div class="state-box__title">Sin tiendas en riesgo</div></div>`;
-    return;
-  }
-
-  const arrow = col => {
-    if(RIESGO_SORT.col !== col) return '<span style="opacity:.3;margin-left:4px">⇅</span>';
-    return RIESGO_SORT.dir==='asc' ? '<span style="margin-left:4px">↑</span>' : '<span style="margin-left:4px">↓</span>';
-  };
-  const thStyle = 'cursor:pointer;user-select:none;white-space:nowrap';
-
-  const rowsInc = sorted.map(r=>{
-    const isCrit = isCritica(r.estatus);
-    const aprovPct = r.aprov > 0 ? (r.aprov > 1 ? r.aprov.toFixed(2) : (r.aprov*100).toFixed(2)) : '—';
-    return`<tr style="${isCrit?'background:#FFF0F0':''}">
-      <td>${OXXO.truncate(r.asesor,22)}</td>
-      <td>${OXXO.truncate(r.tienda,28)}</td>
-      <td class="text-center">
-        <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;background:${isCrit?'#FDEAEA':'#FFF9E0'};color:${isCrit?'var(--semaforo-rojo)':'#8a6a00'}">
-          ${isCrit?'🔴 Crítica':'🟡 Incompleta'}
-        </span>
-      </td>
-      <td class="text-center" style="font-family:var(--font-display);font-weight:700;color:${isCrit?'var(--semaforo-rojo)':'#B8960C'}">${aprovPct}%</td>
-      <td class="text-center" style="font-size:11px;color:var(--color-gray)">${r.vacante||0} vac.</td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('tabla-incompletas').innerHTML=`
-    <div class="tbl-wrap risk-table-wrap">
-      <table class="tbl" id="tbl-incompletas">
-        <thead><tr>
-          <th style="${thStyle}" data-sort="asesor">Asesor${arrow('asesor')}</th>
-          <th style="${thStyle}" data-sort="tienda">Tienda${arrow('tienda')}</th>
-          <th style="${thStyle};text-align:center" data-sort="estatus">Estatus${arrow('estatus')}</th>
-          <th style="${thStyle};text-align:center" data-sort="aprov">Aprov. %${arrow('aprov')}</th>
-          <th style="${thStyle};text-align:center" data-sort="vacante">Vacantes${arrow('vacante')}</th>
-        </tr></thead>
-        <tbody>${rowsInc}</tbody>
-      </table>
-    </div>`;
-
-  document.querySelectorAll('#tbl-incompletas thead th[data-sort]').forEach(th=>{
-    th.addEventListener('click', ()=>{
-      const col = th.dataset.sort;
-      if(RIESGO_SORT.col === col) RIESGO_SORT.dir = RIESGO_SORT.dir==='asc'?'desc':'asc';
-      else { RIESGO_SORT.col = col; RIESGO_SORT.dir = 'asc'; }
-      renderTiendasRiesgo();
     });
   });
 }
