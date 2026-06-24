@@ -462,11 +462,16 @@
         <p>Equipo Completo · Equipo Incompleto · Tienda Crítica · Aprovechamiento por AT y Plaza</p>
       </div>
       <div class="hero-right">
-        <span class="hero-badge">⟳ Diario · Plaza Oaxaca</span>
+        <span class="hero-badge">⟳ Semanal · Plaza Oaxaca</span>
         <span class="hero-date" id="hero-date" style="display:none"></span>
       </div>
     </div>
     <div class="vac-filters">
+      <div class="vac-fbox">
+        <label>Semana</label>
+        <select class="filtro-select" id="filtro-semana" onchange="applyFilters()">
+        </select>
+      </div>
       <div class="vac-fbox">
         <label>Asesor</label>
         <select class="filtro-select" id="filtro-asesor" onchange="applyFilters()">
@@ -508,7 +513,7 @@
     <!-- EC % por AT -->
     <div class="card">
       <div class="card-head">
-        <div class="card-title">EC % por AT (desde Sheet)<span class="info-tip" tabindex="0" data-tip="Columna 'Ec por AT' tomada directamente del Sheet: porcentaje de equipo completo agrupado por AT."></span></div>
+        <div class="card-title">EC % por AT<span class="info-tip" tabindex="0" data-tip="Porcentaje de tiendas con Clas Aprov = Equipo Completo, agrupado por Asesor, en la semana seleccionada."></span></div>
       </div>
       <div id="tabla-ec-at">
         <div class="state-box"><div class="spinner"></div></div>
@@ -530,7 +535,7 @@
   <div class="d3-metrics-grid">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">Aprovechamiento por Plaza<span class="info-tip" tabindex="0" data-tip="Promedio de 'Aprovechamiento de estructura de Plaza' agrupado por columna Plaza."></span></div>
+        <div class="card-title">Aprovechamiento por Plaza<span class="info-tip" tabindex="0" data-tip="Promedio de '% Aprovechamiento' agrupado por columna Plaza, en la semana seleccionada."></span></div>
       </div>
       <div id="tabla-plazas">
         <div class="state-box"><div class="spinner"></div></div>
@@ -596,47 +601,35 @@
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d3;
 
-// Columnas exactas del Google Sheets (pestaña Dashboard_3_Diario)
+// Columnas exactas del Google Sheets (pestaña Dashboard_3_Diario, ahora con corte semanal "Cobertura de Tienda")
 const C = {
   asesor:    'Asesor',
   tienda:    'Tienda',
   esquema:   'Esquema',
-  estructura:'Estructura_diaria',
-  ausent:    'Ausentismos',
-  vacante:   'Vacantes',
-  lider:     'Vac_Lider',
-  enc:       'Vac_Encargado',
-  ayud:      'Vac_Ayudante',
-  aprov:     'Aprovechamiento',
-  estatus:   'Estatus',
-  aprov_sin: 'Aprov_sin_ausentismo',
-  est_sin:   'Estatus_sin_ausentismo',
-  fecha:     'Fecha',
+  estructura:'Promedio activo mensual num',
+  ausent:    'aus no justificado',
+  vacante:   '% Vacantes',
+  aprov:     '% Aprovechamiento',
+  estatus:   'Clas Aprov',
+  col_plaza: 'Plaza',
+  semana:    'Mes Semana',
 };
 
 // También acepta nombres del archivo original (detección flexible)
 const ALIASES = {
   asesor:    ['Asesor','Asesor ','ASESOR'],
-  tienda:    ['Tienda','TIENDA'],
+  tienda:    ['Tienda','Tienda ','TIENDA'],
   esquema:   ['Esquema','ESQUEMA'],
-  estructura:['Estructura_diaria','Estructura Diaria','Estructura diaria','Estructura','ESTRUCTURA'],
-  ausent:    ['Ausentismos','AUSENTISMOS','AUSENTISMOS '],
-  vacante:   ['Vacantes','Vacante','VACANTE'],
-  lider:     ['Vac_Lider','LIDER','Lider','Líder'],
-  enc:       ['Vac_Encargado','ENCARGADO','Encargado'],
-  ayud:      ['Vac_Ayudante','AYUDANTE','Ayudante'],
-  aprov:     ['Aprovechamiento','Aprovechamiento Estructura','Aprovechamiento estructura'],
-  estatus:   ['Estatus','Estatus Con impacto Ausentismo','Estatus con impacto Ausentismo','Estatus Con Impacto Ausentismo','ESTATUS'],
-  aprov_sin: ['Aprov_sin_ausentismo','Aprovechamiento Estructura Sin ausentismo','Aprovechamiento Estructura Sin Ausentismo','Aprovechamiento Estructura Sin ausentismo ','Aprovechamiento Estructura Sin ausentismo'],
-  est_sin:   ['Estatus_sin_ausentismo','EC SIN AUSENTISMO','EC Sin Ausentismo'],
-  col_at:    ['AT'],
-  ec_por_at: ['Ec por AT','EC por AT','EC Por AT','ec por at'],
+  estructura:['Promedio activo mensual num','Estructura_diaria','Estructura Diaria','Estructura diaria','Estructura','ESTRUCTURA'],
+  ausent:    ['aus no justificado','Ausentismos','AUSENTISMOS','AUSENTISMOS '],
+  vacante:   ['% Vacantes','Vacantes','Vacante','VACANTE'],
+  aprov:     ['% Aprovechamiento','Aprovechamiento','Aprovechamiento Estructura','Aprovechamiento estructura'],
+  estatus:   ['Clas Aprov','Estatus','Estatus Con impacto Ausentismo','Estatus con impacto Ausentismo','Estatus Con Impacto Ausentismo','ESTATUS'],
   col_plaza: ['Plaza','PLAZA'],
-  aprov_plaza: ['Aprovechamiento de estructura de Plaza','Aprovechamiento de Estructura de Plaza','Aprov de Plaza'],
-  fecha:     ['Fecha','FECHA'],
+  semana:    ['Mes Semana','Semana','Fecha','FECHA'],
 };
 
-function cleanKey(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+function cleanKey(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9%]/g,'');}
 function findKey(row,aliases){
   const keys=Object.keys(row||{});
   const map=new Map(keys.map(k=>[cleanKey(k),k]));
@@ -756,7 +749,7 @@ function filtrarTablaDetalle(asesor) {
       <td class="text-center">${r.esquema||'—'}</td>
       <td class="text-center">${r.estructura||'—'}</td>
       ${ausentCell}
-      <td class="text-center">${r.vacante||0}</td>
+      <td class="text-center">${(r.vacante||0).toFixed(1)}%</td>
     </tr>`;
   }).join('');
 
@@ -775,30 +768,26 @@ async function initDashboard(){
 
   const map = buildMap(rawData);
   console.log('Mapa de columnas:', JSON.stringify(map));
-  console.log('aprov fila 0:', rawData[0]?.[map.aprov], '| aprov_sin fila 0:', rawData[0]?.[map.aprov_sin]);
 
-  // Normalizar datos
+  // Normalizar datos (aprov y vacante llegan como fracción 0-1 del sheet; se pasan a unidades de %)
   const data = rawData.map(r=>({
     asesor:    String(gv(r,map,'asesor','Sin asesor')).trim(),
     tienda:    String(gv(r,map,'tienda','Sin tienda')).trim(),
     esquema:   String(gv(r,map,'esquema','')).trim(),
     estructura:gn(r,map,'estructura'),
     ausent:    gn(r,map,'ausent'),
-    vacante:   gn(r,map,'vacante'),
-    aprov:     gn(r,map,'aprov'),
+    vacante:   gn(r,map,'vacante')*100,
+    aprov:     gn(r,map,'aprov')*100,
     estatus:   String(gv(r,map,'estatus','')).trim(),
-    aprov_sin: gn(r,map,'aprov_sin'),
-    est_sin:   String(gv(r,map,'est_sin','')).trim(),
-    fecha:     String(gv(r,map,'fecha','')).trim(),
-    col_at:    String(gv(r,map,'col_at','')).trim(),
-    ec_por_at: String(gv(r,map,'ec_por_at','')).trim(),
     col_plaza: String(gv(r,map,'col_plaza','')).trim(),
-    aprov_plaza: String(gv(r,map,'aprov_plaza','')).trim(),
+    semana:    String(gv(r,map,'semana','')).trim(),
   }));
 
   ALL_DATA = data;
+  SEMANAS = [...new Set(data.map(r=>r.semana).filter(Boolean))].sort();
+  ACTIVE_SEMANA = SEMANAS[SEMANAS.length-1] || '';
   populateFilters(data);
-  render(data);
+  applyFilters();
   OXXO.updateFooterTime('load-time');
 }
 
@@ -807,24 +796,20 @@ function render(data){
   const completas  = data.filter(r=>isCompleta(r.estatus)).length;
   const incompletas= data.filter(r=>isIncompleta(r.estatus)).length;
   const criticas   = data.filter(r=>isCritica(r.estatus)).length;
-  // Promedio de Aprovechamiento Estructura por tienda (respaldo si no viene el dato de plaza)
+  // Promedio de Aprovechamiento Estructura entre las tiendas de la semana filtrada
   const aprovVals = data.map(r=>r.aprov).filter(v=>v>0);
-  const aprovPromTiendas = aprovVals.length > 0 ? (aprovVals.reduce((a,b)=>a+b,0)/aprovVals.length)/100 : 0;
-  // KPI principal: tomar directamente el Aprovechamiento de estructura de Plaza para OAXACA
-  const oaxacaRow = data.find(r=>cleanKey(r.col_plaza).includes('oaxaca') && r.aprov_plaza);
-  const oaxacaAprovRaw = oaxacaRow ? parseFloat(String(oaxacaRow.aprov_plaza).replace('%','')) : NaN;
-  const aprovProm = !isNaN(oaxacaAprovRaw) ? (oaxacaAprovRaw > 1 ? oaxacaAprovRaw / 100 : oaxacaAprovRaw) : aprovPromTiendas;
-  const fecha      = data.find(r=>r.fecha)?.fecha || '';
+  const aprovProm = aprovVals.length > 0 ? (aprovVals.reduce((a,b)=>a+b,0)/aprovVals.length)/100 : 0;
+  const semana     = data.find(r=>r.semana)?.semana || ACTIVE_SEMANA;
 
-  // Actualizar fecha en hero
+  // Actualizar semana en hero
   const heroDateEl = document.getElementById('hero-date');
-  heroDateEl.textContent = fecha;
-  heroDateEl.style.display = fecha ? '' : 'none';
+  heroDateEl.textContent = semana ? `Semana ${semana}` : '';
+  heroDateEl.style.display = semana ? '' : 'none';
 
   // ── KPIs ────────────────────────────────────────────────
   document.getElementById('kpi-section').innerHTML=`
     <div class="kpi-card ${ecColor(aprovProm)}">
-      <div class="kpi-card__label">Aprovechamiento General<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Promedio de la columna 'Aprovechamiento' (Estructura_diaria / Estructura_objetivo) de todas las tiendas filtradas en Dashboard_3_Diario."></span></div>
+      <div class="kpi-card__label">Aprovechamiento General<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Promedio de la columna '% Aprovechamiento' de todas las tiendas filtradas, en la semana seleccionada."></span></div>
       <div class="kpi-card__value">${(aprovProm*100).toFixed(2)}%</div>
       <div class="kpi-card__delta ${aprovProm>=0.95?'pos':aprovProm>=0.80?'neu':'neg'}">Plaza Oaxaca</div>
       <div class="kpi-card__icon">📊</div>
@@ -858,30 +843,25 @@ function render(data){
   const byAsesor = {};
   data.forEach(r=>{
     const a=r.asesor;
-    if(!byAsesor[a])byAsesor[a]={total:0,completas:0,incompletas:0,criticas:0,aprovSum:0,aprovSinSum:0};
+    if(!byAsesor[a])byAsesor[a]={total:0,completas:0,incompletas:0,criticas:0,aprovSum:0};
     byAsesor[a].total++;
     byAsesor[a].aprovSum+=(r.aprov||0);
-    byAsesor[a].aprovSinSum+=(r.aprov_sin||0);
     byAsesor[a].ausentSum=(byAsesor[a].ausentSum||0)+(r.ausent||0);
-    if(!byAsesor[a].ecDirecto && r.ec_por_at) byAsesor[a].ecDirecto = r.ec_por_at;
     if(isCritica(r.estatus))byAsesor[a].criticas++;
     else if(isIncompleta(r.estatus))byAsesor[a].incompletas++;
     else if(isCompleta(r.estatus))byAsesor[a].completas++;
   });
 
   const asesoresSorted = Object.entries(byAsesor)
-    .map(([a,v])=>{
-      const ecDirecto = v.ecDirecto ? parseFloat(String(v.ecDirecto).replace('%',''))/100 : 0;
-      return {...v, asesor:a,
-        aprov: v.total > 0 ? (v.aprovSum/v.total)/100 : 0,
-        ec: ecDirecto || (v.total > 0 ? (v.aprovSinSum/v.total)/100 : 0)
-      };
-    })
+    .map(([a,v])=>({...v, asesor:a,
+      aprov: v.total > 0 ? (v.aprovSum/v.total)/100 : 0,
+      ec: v.total > 0 ? v.completas/v.total : 0,
+    }))
     .sort((a,b)=>b.aprov-a.aprov);
 
   // ── TABLA RESUMEN POR AT ─────────────────────────────────
   AT_DATA = asesoresSorted;
-  AT_TOTALS = { total, aprovPromTiendas };
+  AT_TOTALS = { total, aprovPromTiendas: aprovProm };
   renderTablaAT();
 
   // ── RANKING AUSENTISMOS POR TIENDA ───────────────────────
@@ -931,18 +911,17 @@ function render(data){
   }
 
   // ── TABLA APROVECHAMIENTO POR PLAZA ─────────────────────
-  // Leer columnas Plaza y Aprovechamiento de estructura de Plaza
-  const plazaMap = {};
+  // Promedio de '% Aprovechamiento' agrupado por columna Plaza (ya no viene precalculada en el sheet)
+  const plazaSums = {};
   data.forEach(r => {
     const plaza = r.col_plaza;
-    const aprov = r.aprov_plaza;
-    if(plaza && aprov && !plazaMap[plaza]) {
-      const n = parseFloat(String(aprov).replace('%',''));
-      if(!isNaN(n)) plazaMap[plaza] = n;
-    }
+    if(!plaza) return;
+    if(!plazaSums[plaza]) plazaSums[plaza] = { sum:0, n:0 };
+    plazaSums[plaza].sum += (r.aprov||0);
+    plazaSums[plaza].n++;
   });
-  const plazaData = Object.entries(plazaMap)
-    .map(([plaza, aprov]) => ({ plaza, aprov }))
+  const plazaData = Object.entries(plazaSums)
+    .map(([plaza, v]) => ({ plaza, aprov: v.n>0 ? v.sum/v.n : 0 }))
     .sort((a,b) => b.aprov - a.aprov);
 
   if(plazaData.length > 0) {
@@ -986,15 +965,13 @@ function render(data){
 
   // ── TABLA DETALLE COMPLETO ───────────────────────────────
   const detRows = data.map(r=>{
-    const color=ecColor(r.aprov);
     return`<tr>
       <td>${OXXO.truncate(r.asesor,28)}</td>
       <td>${OXXO.truncate(r.tienda,30)}</td>
       <td class="text-center">${r.esquema||'—'}</td>
       <td class="text-center">${r.estructura||'—'}</td>
       <td class="text-center">${r.ausent||0}</td>
-      <td class="text-center">${r.vacante||0}</td>
-
+      <td class="text-center">${(r.vacante||0).toFixed(1)}%</td>
     </tr>`;
   }).join('');
 
@@ -1006,27 +983,17 @@ function render(data){
         <th style="text-align:center">Esquema</th>
         <th style="text-align:center">Estructura</th>
         <th style="text-align:center">Ausentismos</th>
-        <th style="text-align:center">Vacantes</th>
+        <th style="text-align:center">% Vacantes</th>
       </tr></thead>
       <tbody>${detRows}</tbody>
     </table></div>`;
   document.getElementById('detalle-count').textContent=`${data.length} tiendas`;
 
-  // ── TABLA EC POR AT (desde columna del sheet) ───────────────
+  // ── TABLA EC POR AT (% de Equipo Completo, calculado por Asesor) ───────────────
   const ecAtEl = document.getElementById('tabla-ec-at');
   if(ecAtEl) {
-    // Recolectar AT y Ec por AT únicos
-    const ecAtMap = {};
-    data.forEach(r => {
-      const at = r.col_at;
-      const ec = r.ec_por_at;
-      if(at && ec && !ecAtMap[at]) {
-        const n = parseFloat(String(ec).replace('%',''));
-        if(!isNaN(n)) ecAtMap[at] = n;
-      }
-    });
-    const ecAtData = Object.entries(ecAtMap)
-      .map(([at, ec]) => ({ at, ec }))
+    const ecAtData = asesoresSorted
+      .map(v => ({ at: v.asesor, ec: v.ec*100 }))
       .sort((a,b) => b.ec - a.ec);
 
     if(ecAtData.length > 0) {
@@ -1213,6 +1180,8 @@ function renderTiendasRiesgo(data){
 
 // ── FILTROS ───────────────────────────────────────────────
 let ALL_DATA = [];
+let SEMANAS = [];
+let ACTIVE_SEMANA = '';
 let filtersReady = false;
 function uniqueSorted(data, key){
   return [...new Set(data.map(r=>String(r[key]||'').trim()).filter(Boolean))].sort();
@@ -1225,15 +1194,23 @@ function fillSelect(id, values){
 }
 function populateFilters(data){
   if(filtersReady) return;
+  const semSel = document.getElementById('filtro-semana');
+  if(semSel){
+    semSel.innerHTML = '';
+    SEMANAS.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=`Semana ${s}`; semSel.appendChild(o); });
+    semSel.value = ACTIVE_SEMANA;
+  }
   fillSelect('filtro-asesor', uniqueSorted(data,'asesor'));
   fillSelect('filtro-esquema', uniqueSorted(data,'esquema'));
   filtersReady = true;
 }
 function applyFilters(){
+  const sem = document.getElementById('filtro-semana').value;
   const a = document.getElementById('filtro-asesor').value;
   const e = document.getElementById('filtro-esquema').value;
   const s = document.getElementById('filtro-estatus').value;
   let d = ALL_DATA;
+  if(sem) d = d.filter(r=>r.semana===sem);
   if(a) d = d.filter(r=>r.asesor===a);
   if(e) d = d.filter(r=>r.esquema===e);
   if(s==='completo')   d = d.filter(r=>isCompleta(r.estatus));
@@ -1248,6 +1225,8 @@ function setKpiEstatus(value){
 }
 function limpiarFiltros(){
   ['filtro-asesor','filtro-esquema','filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  const semSel = document.getElementById('filtro-semana');
+  if(semSel) semSel.value = ACTIVE_SEMANA;
   applyFilters();
 }
 
