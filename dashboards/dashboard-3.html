@@ -502,26 +502,13 @@
 
 
 
-  <!-- GRID PRINCIPAL: EC % por AT + Ranking -->
-  <div class="main-grid d3-top-grid">
-    <!-- EC % por AT -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">EC % por AT<span class="info-tip" tabindex="0" data-tip="Porcentaje de tiendas con Clas Aprov = Equipo Completo, agrupado por Asesor, en la semana seleccionada."></span></div>
-      </div>
-      <div id="tabla-ec-at">
-        <div class="state-box"><div class="spinner"></div></div>
-      </div>
+  <!-- Ranking Ausentismos -->
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-head">
+      <div class="card-title">🏥 Ranking Ausentismos por Tienda<span class="info-tip" tabindex="0" data-tip="Suma de la columna 'Ausentismos' agrupada por Tienda, ordenado de mayor a menor."></span></div>
     </div>
-
-    <!-- Ranking EC% por AT -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">🏥 Ranking Ausentismos por Tienda<span class="info-tip" tabindex="0" data-tip="Suma de la columna 'Ausentismos' agrupada por Tienda, ordenado de mayor a menor."></span></div>
-      </div>
-      <div id="ranking-at">
-        <div class="state-box"><div class="spinner"></div></div>
-      </div>
+    <div id="ranking-at">
+      <div class="state-box"><div class="spinner"></div></div>
     </div>
   </div>
 
@@ -537,7 +524,7 @@
     </div>
     <div class="card">
       <div class="card-head">
-        <div class="card-title">Resumen por AT<span class="info-tip" tabindex="0" data-tip="Agrupa filas por columna 'AT' calculando Aprovechamiento, Ausentismos y Vacantes; columnas ordenables haciendo clic en el encabezado."></span></div>
+        <div class="card-title">Resumen por AT<span class="info-tip" tabindex="0" data-tip="Agrupa filas por Asesor calculando Aprovechamiento; incluye el EC % de la columna 'Ec por AT' (fijo, no cambia con los filtros). Columnas ordenables haciendo clic en el encabezado."></span></div>
         <span class="card-badge" id="row-count">— registros</span>
       </div>
       <div id="tabla-at">
@@ -716,15 +703,15 @@ async function initDashboard(){
   const map = buildMap(rawData);
   console.log('Mapa de columnas:', JSON.stringify(map));
 
-  // Normalizar datos (aprov y vacante llegan como fracción 0-1 del sheet; se pasan a unidades de %)
+  // Normalizar datos (aprov y vacante ya vienen en unidades de % en el sheet, ej. "90.9%" = 90.9)
   const data = rawData.map(r=>({
     asesor:    String(gv(r,map,'asesor','Sin asesor')).trim(),
     tienda:    String(gv(r,map,'tienda','Sin tienda')).trim(),
     esquema:   String(gv(r,map,'esquema','')).trim(),
     estructura:gn(r,map,'estructura'),
     ausent:    gn(r,map,'ausent'),
-    vacante:   gn(r,map,'vacante')*100,
-    aprov:     gn(r,map,'aprov')*100,
+    vacante:   gn(r,map,'vacante'),
+    aprov:     gn(r,map,'aprov'),
     estatus:   String(gv(r,map,'estatus','')).trim(),
     col_plaza: String(gv(r,map,'col_plaza','')).trim(),
     semana:    String(gv(r,map,'semana','')).trim(),
@@ -805,22 +792,34 @@ function render(data){
   const byAsesor = {};
   data.forEach(r=>{
     const a=r.asesor;
-    if(!byAsesor[a])byAsesor[a]={total:0,completas:0,incompletas:0,criticas:0,aprovSum:0,ecPorAtSum:0,ecPorAtN:0};
+    if(!byAsesor[a])byAsesor[a]={total:0,completas:0,incompletas:0,criticas:0,aprovSum:0};
     byAsesor[a].total++;
     byAsesor[a].aprovSum+=(r.aprov||0);
-    if(r.ecPorAt>0){ byAsesor[a].ecPorAtSum+=r.ecPorAt; byAsesor[a].ecPorAtN++; }
     byAsesor[a].ausentSum=(byAsesor[a].ausentSum||0)+(r.ausent||0);
     if(isCritica(r.estatus))byAsesor[a].criticas++;
     else if(isIncompleta(r.estatus))byAsesor[a].incompletas++;
     else if(isCompleta(r.estatus))byAsesor[a].completas++;
   });
 
+  // EC % por AT (columna 'Ec por AT' del sheet, agrupada por 'AT'): fijo, no depende de filtros.
+  const ecByAt = {};
+  ALL_DATA.forEach(r => {
+    if(!(r.ecPorAt>0) || !r.at) return;
+    const k = r.at.trim().toUpperCase();
+    if(!ecByAt[k]) ecByAt[k] = { sum:0, n:0 };
+    ecByAt[k].sum += r.ecPorAt;
+    ecByAt[k].n++;
+  });
+
   const asesoresSorted = Object.entries(byAsesor)
-    .map(([a,v])=>({...v, asesor:a,
-      aprov: v.total > 0 ? (v.aprovSum/v.total)/100 : 0,
-      ec: v.total > 0 ? v.completas/v.total : 0,
-      ecPorAt: v.ecPorAtN > 0 ? v.ecPorAtSum/v.ecPorAtN : 0,
-    }))
+    .map(([a,v])=>{
+      const ecAt = ecByAt[a.trim().toUpperCase()];
+      return {...v, asesor:a,
+        aprov: v.total > 0 ? (v.aprovSum/v.total)/100 : 0,
+        ec: v.total > 0 ? v.completas/v.total : 0,
+        ecPorAt: ecAt ? ecAt.sum/ecAt.n : null,
+      };
+    })
     .sort((a,b)=>b.aprov-a.aprov);
 
   // ── TABLA RESUMEN POR AT ─────────────────────────────────
@@ -927,55 +926,6 @@ function render(data){
 
 
 
-  // ── TABLA EC POR AT (% de Equipo Completo, calculado por Asesor) ───────────────
-  const ecAtEl = document.getElementById('tabla-ec-at');
-  if(ecAtEl) {
-    const ecByAsesor = {};
-    ALL_DATA.forEach(r => {
-      if(!(r.ecPorAt>0) || !r.at) return;
-      const a = r.at;
-      if(!ecByAsesor[a]) ecByAsesor[a] = { sum:0, n:0 };
-      ecByAsesor[a].sum += r.ecPorAt;
-      ecByAsesor[a].n++;
-    });
-    const ecAtData = Object.entries(ecByAsesor)
-      .map(([at,v]) => ({ at, ec: v.n>0 ? v.sum/v.n : 0 }))
-      .sort((a,b) => b.ec - a.ec);
-
-    if(ecAtData.length > 0) {
-      const maxEc = Math.max(...ecAtData.map(d => d.ec), 1);
-      const rowsEc = ecAtData.map((d,i) => {
-        const color = d.ec >= 95 ? 'verde' : d.ec >= 85 ? 'amarillo' : 'rojo';
-        const barW = (d.ec / maxEc * 100).toFixed(1);
-        const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
-        return `<tr>
-          <td style="padding:7px 10px;text-align:center;font-size:12px">${medal}</td>
-          <td style="padding:7px 10px;font-weight:600;font-size:11.5px">${OXXO.truncate(d.at, 34)}</td>
-          <td style="padding:7px 10px">
-            <div style="height:5px;background:var(--color-border);border-radius:3px;overflow:hidden">
-              <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:3px;transition:width .8s ease"></div>
-            </div>
-          </td>
-          <td style="padding:7px 10px;text-align:right;font-family:var(--font-display);font-size:1.05rem;font-weight:800;color:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)'}">${d.ec.toFixed(2)}%</td>
-        </tr>`;
-      }).join('');
-      ecAtEl.innerHTML = `
-        <div style="overflow:visible;max-height:none">
-          <table style="width:100%;border-collapse:collapse">
-            <thead><tr style="background:var(--color-bg)">
-              <th style="padding:8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">#</th>
-              <th style="padding:8px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">AT</th>
-              <th style="padding:8px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Tendencia</th>
-              <th style="padding:8px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">EC %</th>
-            </tr></thead>
-            <tbody>${rowsEc}</tbody>
-          </table>
-        </div>`;
-    } else {
-      ecAtEl.innerHTML = '<div style="font-size:12px;color:var(--color-gray);padding:16px">Agrega columnas AT y Ec por AT al sheet.</div>';
-    }
-  }
-
 }
 
 // ── TABLA RESUMEN POR AT (con ordenamiento) ──────────────────
@@ -991,6 +941,7 @@ function renderTablaAT(){
     else if(AT_SORT.col==='incompletas'){ va=a.incompletas; vb=b.incompletas; }
     else if(AT_SORT.col==='criticas'){ va=a.criticas; vb=b.criticas; }
     else if(AT_SORT.col==='total'){ va=a.total; vb=b.total; }
+    else if(AT_SORT.col==='ecPorAt'){ va=a.ecPorAt??-1; vb=b.ecPorAt??-1; }
     else { va=a.aprov; vb=b.aprov; }
     return AT_SORT.dir==='asc'?va-vb:vb-va;
   });
@@ -1010,6 +961,7 @@ function renderTablaAT(){
       <td class="text-center" style="color:${at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)'};font-weight:${at.criticas>0?700:400}">${at.criticas>0?at.criticas:'—'}</td>
       <td class="text-center">${at.total}</td>
       <td class="text-center">${ecPill(at.aprov,pct+'%')}</td>
+      <td class="text-center">${at.ecPorAt!=null ? ecPill(at.ecPorAt/100, at.ecPorAt.toFixed(2)+'%') : '<span style="color:var(--color-gray)">—</span>'}</td>
     </tr>`;
   }).join('');
 
@@ -1026,6 +978,7 @@ function renderTablaAT(){
         <th style="${thStyle};text-align:center" data-sort="criticas">Tienda<br>Crítica${arrow('criticas')}</th>
         <th style="${thStyle};text-align:center" data-sort="total">Total<br>General${arrow('total')}</th>
         <th style="${thStyle};text-align:center" data-sort="aprov">Aprov. %${arrow('aprov')}</th>
+        <th style="${thStyle};text-align:center" data-sort="ecPorAt">EC %<br>(AT)${arrow('ecPorAt')}</th>
       </tr></thead>
       <tbody>
         ${tbodyAT}
@@ -1036,6 +989,7 @@ function renderTablaAT(){
           <td class="text-center">${totalCrit}</td>
           <td class="text-center">${AT_TOTALS.total}</td>
           <td class="text-center">${ecPill(AT_TOTALS.aprovPromTiendas,(AT_TOTALS.aprovPromTiendas*100).toFixed(2)+'%')}</td>
+          <td class="text-center">—</td>
         </tr>
       </tbody>
     </table></div>`;
