@@ -2246,6 +2246,13 @@ function defaultTiendaSelection(){
   return tiendaOptionsData.filter(t=>t && !isDefaultExcludedTienda(t));
 }
 
+function sortTiendasForDefaultFilter(a,b){
+  const aExcluded=isDefaultExcludedTienda(a);
+  const bExcluded=isDefaultExcludedTienda(b);
+  if(aExcluded!==bExcluded) return aExcluded ? 1 : -1;
+  return String(a||'').localeCompare(String(b||''), 'es', { sensitivity:'base' });
+}
+
 function isDefaultTiendaSelection(values=selectedTiendaValues){
   const defaults=defaultTiendaSelection();
   if(values.length!==defaults.length) return false;
@@ -2264,7 +2271,7 @@ function setSelectedTiendas(values=defaultTiendaSelection()){
 function updateTiendaLabel(){
   const label=document.getElementById('tienda-label');
   if(!label) return;
-  if(isDefaultTiendaSelection()) label.textContent='Todas las tiendas';
+  if(isDefaultTiendaSelection()) label.textContent='Tiendas operativas';
   else if(!selectedTiendaValues.length) label.textContent='Sin tiendas';
   else if(selectedTiendaValues.length===1) label.textContent=selectedTiendaValues[0];
   else label.textContent=`${selectedTiendaValues.length} tiendas seleccionadas`;
@@ -2284,7 +2291,7 @@ function renderTiendaOptions(query=''){
     const active=isAll?isDefaultTiendaSelection():selectedTiendaValues.includes(value);
     return `<button type="button" class="smart-filter__option ${active?'is-active':''}" data-tienda="${esc(value)}">
       <span class="smart-filter__check"></span>
-      <span>${isAll?'Todas las tiendas':esc(value)}</span>
+      <span>${isAll?'Tiendas operativas':esc(value)}</span>
     </button>`;
   }).join('');
   wrap.innerHTML=rows || '<div class="smart-filter__empty">Sin resultados</div>';
@@ -2414,7 +2421,7 @@ function refreshDashboard(){
 // Poblar selectores de filtro
 function poblarFiltros(){
   buildAsesorOptions();
-  tiendaOptionsData=[...new Set(allData.map(r=>r.tienda).filter(Boolean))].sort();
+  tiendaOptionsData=[...new Set(allData.map(r=>r.tienda).filter(Boolean))].sort(sortTiendasForDefaultFilter);
   setSelectedAsesores(defaultAsesorSelection());
   renderAsesorOptions();
   setSelectedPuestos(availableDefaultPuestos());
