@@ -468,6 +468,12 @@
     </div>
     <div class="vac-filters">
       <div class="vac-fbox">
+        <label>Mes</label>
+        <select class="filtro-select" id="filtro-mes" onchange="onMesChange()">
+          <option value="">Todos los meses</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
         <label>Semana</label>
         <select class="filtro-select" id="filtro-semana" onchange="applyFilters()">
         </select>
@@ -629,6 +635,22 @@ const ALIASES = {
   semana:    ['Mes Semana','Semana','Fecha','FECHA'],
 };
 
+const MESES_NOMBRE = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+// "Mes Semana" trae a\u00f1o-semana del a\u00f1o (ej. 2026-1). Se aproxima el mes calendario
+// a partir del lunes de esa semana ISO, ya que el origen no trae mes expl\u00edcito.
+function semanaToMes(semanaStr){
+  const m = String(semanaStr||'').match(/(\d{4})-(\d{1,2})/);
+  if(!m) return null;
+  const year = Number(m[1]);
+  const week = Number(m[2]);
+  if(!year || !week) return null;
+  const simple = new Date(year, 0, 1 + (week - 1) * 7);
+  const dow = simple.getDay();
+  const monday = new Date(simple);
+  monday.setDate(simple.getDate() - (dow === 0 ? 6 : dow - 1));
+  const monthIdx = monday.getMonth();
+  return { key: `${monday.getFullYear()}-${String(monthIdx + 1).padStart(2,'0')}`, label: `${MESES_NOMBRE[monthIdx]} ${monday.getFullYear()}` };
+}
 function cleanKey(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9%]/g,'');}
 function findKey(row,aliases){
   const keys=Object.keys(row||{});
@@ -770,18 +792,24 @@ async function initDashboard(){
   console.log('Mapa de columnas:', JSON.stringify(map));
 
   // Normalizar datos (aprov y vacante llegan como fracción 0-1 del sheet; se pasan a unidades de %)
-  const data = rawData.map(r=>({
-    asesor:    String(gv(r,map,'asesor','Sin asesor')).trim(),
-    tienda:    String(gv(r,map,'tienda','Sin tienda')).trim(),
-    esquema:   String(gv(r,map,'esquema','')).trim(),
-    estructura:gn(r,map,'estructura'),
-    ausent:    gn(r,map,'ausent'),
-    vacante:   gn(r,map,'vacante')*100,
-    aprov:     gn(r,map,'aprov')*100,
-    estatus:   String(gv(r,map,'estatus','')).trim(),
-    col_plaza: String(gv(r,map,'col_plaza','')).trim(),
-    semana:    String(gv(r,map,'semana','')).trim(),
-  }));
+  const data = rawData.map(r=>{
+    const semana = String(gv(r,map,'semana','')).trim();
+    const mes = semanaToMes(semana);
+    return {
+      asesor:    String(gv(r,map,'asesor','Sin asesor')).trim(),
+      tienda:    String(gv(r,map,'tienda','Sin tienda')).trim(),
+      esquema:   String(gv(r,map,'esquema','')).trim(),
+      estructura:gn(r,map,'estructura'),
+      ausent:    gn(r,map,'ausent'),
+      vacante:   gn(r,map,'vacante')*100,
+      aprov:     gn(r,map,'aprov')*100,
+      estatus:   String(gv(r,map,'estatus','')).trim(),
+      col_plaza: String(gv(r,map,'col_plaza','')).trim(),
+      semana,
+      mesKey:    mes ? mes.key : '',
+      mesLabel:  mes ? mes.label : '',
+    };
+  });
 
   ALL_DATA = data;
   SEMANAS = [...new Set(data.map(r=>r.semana).filter(Boolean))].sort();
@@ -1182,6 +1210,7 @@ function renderTiendasRiesgo(data){
 let ALL_DATA = [];
 let SEMANAS = [];
 let ACTIVE_SEMANA = '';
+let MESES = [];
 let filtersReady = false;
 function uniqueSorted(data, key){
   return [...new Set(data.map(r=>String(r[key]||'').trim()).filter(Boolean))].sort();
@@ -1192,24 +1221,44 @@ function fillSelect(id, values){
   sel.innerHTML = ''; sel.appendChild(first);
   values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
 }
+function fillSemanaOptions(mesKey){
+  const semSel = document.getElementById('filtro-semana');
+  if(!semSel) return;
+  const semanas = mesKey ? ALL_DATA.filter(r=>r.mesKey===mesKey).map(r=>r.semana) : SEMANAS;
+  const lista = [...new Set(semanas)].filter(Boolean).sort();
+  semSel.innerHTML = '';
+  const optTodas = document.createElement('option'); optTodas.value = ''; optTodas.textContent = 'Todas las semanas';
+  semSel.appendChild(optTodas);
+  lista.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=`Semana ${s}`; semSel.appendChild(o); });
+  semSel.value = (!mesKey && lista.includes(ACTIVE_SEMANA)) ? ACTIVE_SEMANA : '';
+}
 function populateFilters(data){
   if(filtersReady) return;
-  const semSel = document.getElementById('filtro-semana');
-  if(semSel){
-    semSel.innerHTML = '';
-    SEMANAS.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=`Semana ${s}`; semSel.appendChild(o); });
-    semSel.value = ACTIVE_SEMANA;
+  MESES = [...new Map(data.map(r=>[r.mesKey, r.mesLabel]).filter(([k])=>k)).entries()]
+    .sort((a,b)=>a[0].localeCompare(b[0]));
+  const mesSel = document.getElementById('filtro-mes');
+  if(mesSel){
+    mesSel.innerHTML = '<option value="">Todos los meses</option>';
+    MESES.forEach(([key,label])=>{ const o=document.createElement('option'); o.value=key; o.textContent=label; mesSel.appendChild(o); });
   }
+  fillSemanaOptions('');
   fillSelect('filtro-asesor', uniqueSorted(data,'asesor'));
   fillSelect('filtro-esquema', uniqueSorted(data,'esquema'));
   filtersReady = true;
 }
+function onMesChange(){
+  const mesKey = document.getElementById('filtro-mes').value;
+  fillSemanaOptions(mesKey);
+  applyFilters();
+}
 function applyFilters(){
+  const mes = document.getElementById('filtro-mes').value;
   const sem = document.getElementById('filtro-semana').value;
   const a = document.getElementById('filtro-asesor').value;
   const e = document.getElementById('filtro-esquema').value;
   const s = document.getElementById('filtro-estatus').value;
   let d = ALL_DATA;
+  if(mes) d = d.filter(r=>r.mesKey===mes);
   if(sem) d = d.filter(r=>r.semana===sem);
   if(a) d = d.filter(r=>r.asesor===a);
   if(e) d = d.filter(r=>r.esquema===e);
@@ -1224,9 +1273,8 @@ function setKpiEstatus(value){
   applyFilters();
 }
 function limpiarFiltros(){
-  ['filtro-asesor','filtro-esquema','filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
-  const semSel = document.getElementById('filtro-semana');
-  if(semSel) semSel.value = ACTIVE_SEMANA;
+  ['filtro-mes','filtro-asesor','filtro-esquema','filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  fillSemanaOptions('');
   applyFilters();
 }
 
