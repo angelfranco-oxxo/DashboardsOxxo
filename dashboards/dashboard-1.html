@@ -2135,6 +2135,17 @@ function availableDefaultPuestos(){
   return DEFAULT_PUESTOS.filter(p=>available.has(p));
 }
 
+function isAllowedPuesto(value){
+  return DEFAULT_PUESTOS.includes(String(value||'').trim());
+}
+
+function isDefaultPuestoSelection(values=selectedPuestoValues){
+  const defaults=availableDefaultPuestos();
+  if(values.length!==defaults.length) return false;
+  const set=new Set(values);
+  return defaults.every(p=>set.has(p));
+}
+
 const SIN_ASESOR='SIN ASESOR ASIGNADO';
 function asesorCanon(name){
   const t=String(name||'').trim();
@@ -2196,14 +2207,14 @@ function selectedPuestos(){
   return [...selectedPuestoValues];
 }
 
-function setSelectedPuestos(values=[]){
+function setSelectedPuestos(values=availableDefaultPuestos()){
   selectedPuestoValues=[...new Set(values.filter(Boolean))];
   renderPuestoOptions();
   updatePuestoLabel();
 }
 
 function puestosByTipo(tipo){
-  return [...new Set(allData.filter(r=>r.tipo===tipo).map(r=>r.puesto).filter(Boolean))].sort();
+  return [...new Set(allData.filter(r=>r.tipo===tipo && isAllowedPuesto(r.puesto)).map(r=>r.puesto).filter(Boolean))].sort();
 }
 
 function esc(value){
@@ -2221,13 +2232,13 @@ function updatePuestoLabel(){
 function renderPuestoOptions(){
   const wrap=document.getElementById('puesto-options');
   if(!wrap) return;
-  const puestos=[...new Set(allData.map(r=>r.puesto).filter(Boolean))].sort();
+  const puestos=availableDefaultPuestos();
   const items=['',...puestos].map(value=>{
     const isAll=value==='';
-    const active=isAll?!selectedPuestoValues.length:selectedPuestoValues.includes(value);
+    const active=isAll?isDefaultPuestoSelection():selectedPuestoValues.includes(value);
     return `<button type="button" class="smart-filter__option ${active?'is-active':''}" data-puesto="${esc(value)}">
       <span class="smart-filter__check"></span>
-      <span>${isAll?'Todos los puestos':esc(value)}</span>
+      <span>${isAll?'Puestos operativos':esc(value)}</span>
     </button>`;
   }).join('');
   wrap.innerHTML=items||'<div class="smart-filter__empty">Sin puestos</div>';
@@ -2367,7 +2378,8 @@ function filtrarDatos(){
   if(f.asesores && !f.asesoresAll) filtered=filtered.filter(r=>f.asesores.includes(asesorCanon(r.asesor)));
   if(f.tiendas) filtered=f.tiendas.length ? filtered.filter(r=>f.tiendas.includes(r.tienda)) : [];
   if(f.puestos.length) filtered=filtered.filter(r=>f.puestos.includes(r.puesto));
-  else if(f.puesto) filtered=filtered.filter(r=>r.tipo===f.puesto);
+  else if(f.puesto) filtered=filtered.filter(r=>r.tipo===f.puesto && isAllowedPuesto(r.puesto));
+  else filtered=[];
   if(f.dias)   filtered=filtered.filter(r=>r.dias>=f.dias);
   if(f.mes)    filtered=filtered.filter(r=>r.mesKey===f.mes);
   // Ordenar por días
@@ -2709,6 +2721,7 @@ function renderOverview(allData){
   const asesoresUnicos=[...new Set(allData.map(r=>r.asesor))].length;
   const filtroAsesor = (selectedAsesorValues && selectedAsesorValues.length!==asesorOptionsData.length) ? '1' : '';
   const filtroPuestos = selectedPuestos();
+  const filtroPuestosDefault = isDefaultPuestoSelection(filtroPuestos);
   const filtroPuesto = activePuesto || '';
   const filtroTienda = isDefaultTiendaSelection() ? '' : (document.getElementById('filtro-tienda')?.value || '');
   const filtroDias = document.getElementById('filtro-dias')?.value || '';
@@ -2716,7 +2729,7 @@ function renderOverview(allData){
 
   // KPIs
   document.getElementById('kpi-section').innerHTML=`
-    <div class="kpi-card rojo ${!filtroPuestos.length && !filtroPuesto && !filtroAsesor && !filtroTienda && !filtroDias && !filtroMes ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
+    <div class="kpi-card rojo ${filtroPuestosDefault && !filtroPuesto && !filtroAsesor && !filtroTienda && !filtroDias && !filtroMes ? 'active' : ''}" data-kpi="todos" title="Ver todas las vacantes">
       <div class="kpi-card__label">Total Vacantes<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Cuenta cada fila de la pestaña Dashboard_1_Diario (1 fila = 1 posición vacante), aplicando los filtros activos de Mes, Plaza, Tienda, Puesto y Asesor. No se excluye ningún registro."></span></div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neg">${asesoresUnicos} asesores afectados</div>
