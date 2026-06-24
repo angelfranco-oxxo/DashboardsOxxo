@@ -552,7 +552,7 @@
   <div class="am-dialog" role="dialog" aria-modal="true">
     <div class="am-head">
       <div class="am-head__title">
-        <span class="am-head__eyebrow">Detalle del Asesor</span>
+        <span class="am-head__eyebrow" id="asesor-modal-eyebrow">Detalle del Asesor</span>
         <h2 id="asesor-modal-title">—</h2>
       </div>
       <button class="am-close" onclick="closeAsesorModal()" aria-label="Cerrar">✕</button>
@@ -1019,6 +1019,7 @@ function openAsesorModal(asesorName){
   if(!at) return;
   const ov = document.getElementById('asesor-modal');
   const body = document.getElementById('asesor-modal-body');
+  document.getElementById('asesor-modal-eyebrow').textContent = 'Detalle del Asesor';
   document.getElementById('asesor-modal-title').textContent = at.asesor;
 
   const tiendas = (at.tiendas||[]).slice().sort((a,b)=>(b.ausent||0)-(a.ausent||0));
@@ -1162,8 +1163,8 @@ function renderDetalle(asesorSel, estatusSel){
     const vacBreak = (r.vacLider+r.vacEnc+r.vacAyu)>0
       ? `<span style="color:var(--color-gray);font-size:11px">L${r.vacLider} · E${r.vacEnc} · A${r.vacAyu}</span>`
       : '<span style="color:var(--color-gray)">—</span>';
-    return `<tr${isCritica(r.estatus)?' style="background:#FFF5F5"':''}>
-      <td style="font-weight:600">${r.tienda}</td>
+    return `<tr class="det-row" data-tienda="${String(r.tienda).replace(/"/g,'&quot;')}" style="cursor:pointer;${isCritica(r.estatus)?'background:#FFF5F5':''}" title="Ver detalle de ${String(r.tienda).replace(/"/g,'&quot;')}">
+      <td style="font-weight:600">${r.tienda} <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
       ${hasAsesor?`<td>${r.asesor}</td>`:''}
       <td class="text-center">${r.estructura||'—'}</td>
       <td class="text-center">${r.ausent||0}</td>
@@ -1190,6 +1191,92 @@ function renderDetalle(asesorSel, estatusSel){
       <tbody>${rows || `<tr><td colspan="${ncols}" style="text-align:center;color:var(--color-gray);padding:18px">Sin tiendas para los filtros seleccionados.</td></tr>`}</tbody>
     </table></div>`;
   document.getElementById('detalle-count').textContent = `${d.length} tienda${d.length===1?'':'s'}`;
+
+  document.querySelectorAll('#tbl-detalle tbody tr.det-row').forEach(tr=>{
+    tr.addEventListener('click', ()=> openTiendaModal(tr.dataset.tienda));
+  });
+}
+
+// ── MODAL DETALLE POR TIENDA ──────────────────────────────
+function openTiendaModal(tiendaName){
+  const t = DETALLE_DATA.find(r=>String(r.tienda)===String(tiendaName));
+  if(!t) return;
+  const ov = document.getElementById('asesor-modal');
+  const body = document.getElementById('asesor-modal-body');
+  document.getElementById('asesor-modal-eyebrow').textContent = 'Detalle de la Tienda';
+  document.getElementById('asesor-modal-title').textContent = t.tienda;
+
+  const ec = estatusColor(t.estatus);
+  const ecColorVar = ec==='rojo'?'var(--semaforo-rojo)':ec==='amarillo'?'#B8960C':'var(--semaforo-verde)';
+  const totalVac = (t.vacLider||0)+(t.vacEnc||0)+(t.vacAyu||0);
+  // Promedios de la base completa para comparación
+  const prom = (key)=>{ const v=DETALLE_DATA.map(r=>r[key]||0); return v.length? v.reduce((a,b)=>a+b,0)/v.length : 0; };
+  const promAus = prom('ausent'), promEstr = prom('estructura');
+
+  const kpi = (label,val,color)=>`<div class="am-kpi">
+    <div class="am-kpi__val" style="${color?`color:${color}`:''}">${val}</div>
+    <div class="am-kpi__lbl">${label}</div></div>`;
+
+  body.innerHTML = `
+    <div class="am-kpis">
+      ${kpi('Estructura Diaria', t.estructura||0)}
+      ${kpi('Ausentismos', t.ausent||0, (t.ausent||0)>promAus?'var(--semaforo-rojo)':'var(--semaforo-verde)')}
+      ${kpi('Vacantes', t.vacante||0, totalVac>0?'#B8960C':'var(--semaforo-verde)')}
+      ${kpi('Estatus', `<span style="font-size:.95rem;color:${ecColorVar}">${t.estatus||'—'}</span>`)}
+      ${kpi('EC sin Ausentismo', `<span style="font-size:.95rem">${t.ecSinAus||'—'}</span>`)}
+      ${kpi('Esquema', `<span style="font-size:.95rem">${t.esquema||'EP'}</span>`)}
+    </div>
+    <div class="am-charts">
+      <div class="am-chart-card">
+        <div class="am-chart-title">Vacantes por Puesto</div>
+        <div class="am-chart-wrap"><canvas id="am-chart-vac"></canvas></div>
+      </div>
+      <div class="am-chart-card">
+        <div class="am-chart-title">Comparativo vs Promedio</div>
+        <div class="am-chart-wrap"><canvas id="am-chart-cmp"></canvas></div>
+      </div>
+    </div>
+    <div class="am-table-title">Resumen</div>
+    <div class="tbl-wrap"><table class="tbl">
+      <tbody>
+        <tr><td style="font-weight:600">Tienda</td><td class="text-right">${t.tienda}</td></tr>
+        ${t.asesor?`<tr><td style="font-weight:600">Asesor</td><td class="text-right">${t.asesor}</td></tr>`:''}
+        <tr><td style="font-weight:600">Estructura Diaria</td><td class="text-right">${t.estructura||0}</td></tr>
+        <tr><td style="font-weight:600">Ausentismos</td><td class="text-right">${t.ausent||0}</td></tr>
+        <tr><td style="font-weight:600">Vacantes (total)</td><td class="text-right">${t.vacante||0}</td></tr>
+        <tr><td style="font-weight:600">Vacantes Líder</td><td class="text-right">${t.vacLider||0}</td></tr>
+        <tr><td style="font-weight:600">Vacantes Encargado</td><td class="text-right">${t.vacEnc||0}</td></tr>
+        <tr><td style="font-weight:600">Vacantes Ayudante</td><td class="text-right">${t.vacAyu||0}</td></tr>
+        <tr><td style="font-weight:600">Estatus (con impacto)</td><td class="text-right" style="color:${ecColorVar};font-weight:700">${t.estatus||'—'}</td></tr>
+        <tr><td style="font-weight:600">EC sin Ausentismo</td><td class="text-right">${t.ecSinAus||'—'}</td></tr>
+      </tbody>
+    </table></div>`;
+
+  ov.classList.add('open');
+
+  if(window.Chart){
+    const cV = document.getElementById('am-chart-vac');
+    MODAL_CHARTS.push(new Chart(cV.getContext('2d'), {
+      type:'doughnut',
+      data:{ labels:['Líder','Encargado','Ayudante'],
+        datasets:[{ data:[t.vacLider||0,t.vacEnc||0,t.vacAyu||0],
+          backgroundColor:['#D92B2B','#E8B500','#3B82F6'], borderWidth:0 }] },
+      options:{ responsive:true, maintainAspectRatio:false, cutout:'60%',
+        plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } } } }
+    }));
+    const cC = document.getElementById('am-chart-cmp');
+    MODAL_CHARTS.push(new Chart(cC.getContext('2d'), {
+      type:'bar',
+      data:{ labels:['Ausentismos','Estructura'],
+        datasets:[
+          { label:'Esta tienda', data:[t.ausent||0,t.estructura||0], backgroundColor:'#3B1918', borderRadius:4 },
+          { label:'Promedio plaza', data:[+promAus.toFixed(1),+promEstr.toFixed(1)], backgroundColor:'#C9A99A', borderRadius:4 },
+        ] },
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } } },
+        scales:{ y:{ beginAtZero:true, ticks:{font:{size:10}} }, x:{ ticks:{font:{size:11}} } } }
+    }));
+  }
 }
 function setKpiEstatus(value){
   const sel = document.getElementById('filtro-estatus');
