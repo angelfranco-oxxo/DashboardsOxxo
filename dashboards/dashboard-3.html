@@ -913,9 +913,9 @@ function render(data){
         return `<tr>
           <td style="font-weight:600;font-size:13px;padding:10px 12px">${p.plaza}</td>
           <td style="padding:10px 12px">
-            <div style="position:relative;height:6px;background:var(--color-border);border-radius:3px">
-              <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:3px;transition:width .8s ease"></div>
-              <div title="Meta 95%" style="position:absolute;top:-2px;bottom:-2px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
+            <div style="position:relative;height:10px;background:var(--color-border);border-radius:5px">
+              <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:5px;transition:width .8s ease"></div>
+              <div title="Meta 95%" style="position:absolute;top:-3px;bottom:-3px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
             </div>
           </td>
           <td style="text-align:right;padding:10px 12px;white-space:nowrap">
@@ -925,7 +925,7 @@ function render(data){
       }).join('');
       plazaEl.innerHTML = `
         <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-          <colgroup><col style="width:46%"><col style="width:32%"><col style="width:22%"></colgroup>
+          <colgroup><col style="width:30%"><col style="width:52%"><col style="width:18%"></colgroup>
           <thead><tr style="background:var(--color-bg)">
             <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Plaza</th>
             <th style="padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Avance</th>
@@ -970,9 +970,9 @@ function renderEcAt(){
     return `<tr${critica?' style="background:rgba(217,43,43,.06)"':''}>
       <td style="font-weight:600;font-size:13px;padding:10px 12px;overflow-wrap:break-word">${at.asesor}${critica?' <span style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</td>
       <td style="padding:10px 12px">
-        <div style="position:relative;height:6px;background:var(--color-border);border-radius:3px">
-          <div style="height:100%;width:${barW}%;background:${barColor};border-radius:3px;transition:width .8s ease"></div>
-          <div title="Meta 95%" style="position:absolute;top:-2px;bottom:-2px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
+        <div style="position:relative;height:10px;background:var(--color-border);border-radius:5px">
+          <div style="height:100%;width:${barW}%;background:${barColor};border-radius:5px;transition:width .8s ease"></div>
+          <div title="Meta 95%" style="position:absolute;top:-3px;bottom:-3px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
         </div>
       </td>
       <td style="text-align:right;padding:10px 12px;white-space:nowrap">
@@ -982,7 +982,7 @@ function renderEcAt(){
   }).join('');
   el.innerHTML = `
     <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-      <colgroup><col style="width:46%"><col style="width:32%"><col style="width:22%"></colgroup>
+      <colgroup><col style="width:34%"><col style="width:48%"><col style="width:18%"></colgroup>
       <thead><tr style="background:var(--color-bg)">
         <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">AT</th>
         <th style="padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Avance</th>
