@@ -907,15 +907,15 @@ function render(data){
     // Insertar tabla de plazas antes de las gráficas
     const plazaEl = document.getElementById('tabla-plazas');
     if(plazaEl) {
-      const maxAprovPlaza = Math.max(...plazaData.map(p => p.aprov), 1);
       const rowsPlaza = plazaData.map((p,i) => {
         const color = p.aprov >= 95 ? 'verde' : p.aprov >= 85 ? 'amarillo' : 'rojo';
-        const barW = (p.aprov / maxAprovPlaza * 100).toFixed(1);
+        const barW = Math.min(p.aprov, 100).toFixed(1);
         return `<tr>
           <td style="font-weight:600;font-size:13px;padding:10px 12px">${p.plaza}</td>
           <td style="padding:10px 12px">
-            <div style="height:6px;background:var(--color-border);border-radius:3px;overflow:hidden">
+            <div style="position:relative;height:6px;background:var(--color-border);border-radius:3px">
               <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:3px;transition:width .8s ease"></div>
+              <div title="Meta 95%" style="position:absolute;top:-2px;bottom:-2px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
             </div>
           </td>
           <td style="text-align:right;padding:10px 12px">
@@ -927,11 +927,14 @@ function render(data){
         <table style="width:100%;border-collapse:collapse">
           <thead><tr style="background:var(--color-bg)">
             <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Plaza</th>
-            <th style="padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Tendencia</th>
+            <th style="padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Avance</th>
             <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Aprov. %</th>
           </tr></thead>
           <tbody>${rowsPlaza}</tbody>
-        </table>`;
+        </table>
+        <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:11px;color:var(--color-gray)">
+          <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>Meta 95%
+        </div>`;
     }
   }
 
@@ -966,8 +969,9 @@ function renderEcAt(){
     return `<tr${critica?' style="background:rgba(217,43,43,.06)"':''}>
       <td style="font-weight:600;font-size:13px;padding:10px 12px">${at.asesor}${critica?' <span style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</td>
       <td style="padding:10px 12px">
-        <div style="height:6px;background:var(--color-border);border-radius:3px;overflow:hidden">
+        <div style="position:relative;height:6px;background:var(--color-border);border-radius:3px">
           <div style="height:100%;width:${barW}%;background:${barColor};border-radius:3px;transition:width .8s ease"></div>
+          <div title="Meta 95%" style="position:absolute;top:-2px;bottom:-2px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
         </div>
       </td>
       <td style="text-align:right;padding:10px 12px">
@@ -983,7 +987,10 @@ function renderEcAt(){
         <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">EC %</th>
       </tr></thead>
       <tbody>${rows}</tbody>
-    </table>`;
+    </table>
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:11px;color:var(--color-gray)">
+      <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>Meta 95%
+    </div>`;
 }
 
 // ── TABLA RESUMEN POR AT (con ordenamiento) ──────────────────
