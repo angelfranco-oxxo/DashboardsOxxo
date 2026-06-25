@@ -501,20 +501,31 @@
 
 
 
-  <!-- TABLA APROVECHAMIENTO POR PLAZA -->
-  <div class="card d3-fullcard">
-    <div class="card-head">
-      <div class="card-title">Aprovechamiento por Plaza<span class="info-tip" tabindex="0" data-tip="Promedio de '% Aprovechamiento' agrupado por columna Plaza, en la semana seleccionada."></span></div>
+  <!-- TABLA APROVECHAMIENTO POR PLAZA + EC % (AT) -->
+  <div style="display:grid;grid-template-columns:minmax(280px,1.3fr) minmax(220px,.9fr);gap:18px;margin-bottom:18px" id="plaza-ec-row">
+    <div class="card d3-fullcard" style="margin-bottom:0">
+      <div class="card-head">
+        <div class="card-title">Aprovechamiento por Plaza<span class="info-tip" tabindex="0" data-tip="Promedio de '% Aprovechamiento' agrupado por columna Plaza, en la semana seleccionada."></span></div>
+      </div>
+      <div id="tabla-plazas">
+        <div class="state-box"><div class="spinner"></div></div>
+      </div>
     </div>
-    <div id="tabla-plazas">
-      <div class="state-box"><div class="spinner"></div></div>
+
+    <div class="card d3-fullcard" style="margin-bottom:0">
+      <div class="card-head">
+        <div class="card-title">EC % (AT)<span class="info-tip" tabindex="0" data-tip="EC % de la columna 'Ec por AT' del sheet, agrupado por Asesor. Fijo, no cambia con los filtros."></span></div>
+      </div>
+      <div id="tabla-ec-at">
+        <div class="state-box"><div class="spinner"></div></div>
+      </div>
     </div>
   </div>
 
   <!-- RESUMEN POR AT -->
   <div class="card d3-fullcard">
     <div class="card-head">
-      <div class="card-title">Resumen por AT<span class="info-tip" tabindex="0" data-tip="Agrupa filas por Asesor calculando Aprovechamiento; incluye el EC % de la columna 'Ec por AT' (fijo, no cambia con los filtros). Columnas ordenables haciendo clic en el encabezado."></span></div>
+      <div class="card-title">Resumen por AT<span class="info-tip" tabindex="0" data-tip="Agrupa filas por Asesor calculando Aprovechamiento. Columnas ordenables haciendo clic en el encabezado."></span></div>
       <span class="card-badge" id="row-count">— registros</span>
     </div>
     <div id="tabla-at">
@@ -926,11 +937,37 @@ function render(data){
 
 
 
+  // ── TABLA EC % (AT) ──────────────────────────────────────
+  renderEcAt();
+
   // ── GRÁFICA DONA ESTATUS ─────────────────────────────────
   renderEstatusDistribution(completas, incompletas, criticas, total);
 
 
 
+}
+
+// ── TABLA EC % (AT) ───────────────────────────────────────────
+function renderEcAt(){
+  const el = document.getElementById('tabla-ec-at');
+  if(!el) return;
+  const withEc = AT_DATA.filter(a => a.ecPorAt != null).sort((a,b) => b.ecPorAt - a.ecPorAt);
+  if(withEc.length === 0){
+    el.innerHTML = '<div class="state-box">Sin datos de EC %</div>';
+    return;
+  }
+  const rows = withEc.map(at => `<tr>
+    <td style="font-weight:600;font-size:13px;padding:10px 12px">${at.asesor}</td>
+    <td class="text-center" style="padding:10px 12px">${ecPill(at.ecPorAt/100, at.ecPorAt.toFixed(2)+'%')}</td>
+  </tr>`).join('');
+  el.innerHTML = `
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:var(--color-bg)">
+        <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">AT</th>
+        <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">EC %</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 // ── TABLA RESUMEN POR AT (con ordenamiento) ──────────────────
@@ -946,7 +983,6 @@ function renderTablaAT(){
     else if(AT_SORT.col==='incompletas'){ va=a.incompletas; vb=b.incompletas; }
     else if(AT_SORT.col==='criticas'){ va=a.criticas; vb=b.criticas; }
     else if(AT_SORT.col==='total'){ va=a.total; vb=b.total; }
-    else if(AT_SORT.col==='ecPorAt'){ va=a.ecPorAt??-1; vb=b.ecPorAt??-1; }
     else { va=a.aprov; vb=b.aprov; }
     return AT_SORT.dir==='asc'?va-vb:vb-va;
   });
@@ -966,7 +1002,6 @@ function renderTablaAT(){
       <td class="text-center" style="color:${at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)'};font-weight:${at.criticas>0?700:400}">${at.criticas>0?at.criticas:'—'}</td>
       <td class="text-center">${at.total}</td>
       <td class="text-center">${ecPill(at.aprov,pct+'%')}</td>
-      <td class="text-center">${at.ecPorAt!=null ? ecPill(at.ecPorAt/100, at.ecPorAt.toFixed(2)+'%') : '<span style="color:var(--color-gray)">—</span>'}</td>
     </tr>`;
   }).join('');
 
@@ -983,7 +1018,6 @@ function renderTablaAT(){
         <th style="${thStyle};text-align:center" data-sort="criticas">Tienda<br>Crítica${arrow('criticas')}</th>
         <th style="${thStyle};text-align:center" data-sort="total">Total<br>General${arrow('total')}</th>
         <th style="${thStyle};text-align:center" data-sort="aprov">Aprov. %${arrow('aprov')}</th>
-        <th style="${thStyle};text-align:center" data-sort="ecPorAt">EC %<br>(AT)${arrow('ecPorAt')}</th>
       </tr></thead>
       <tbody>
         ${tbodyAT}
@@ -994,7 +1028,6 @@ function renderTablaAT(){
           <td class="text-center">${totalCrit}</td>
           <td class="text-center">${AT_TOTALS.total}</td>
           <td class="text-center">${ecPill(AT_TOTALS.aprovPromTiendas,(AT_TOTALS.aprovPromTiendas*100).toFixed(2)+'%')}</td>
-          <td class="text-center">—</td>
         </tr>
       </tbody>
     </table></div>`;
@@ -1156,6 +1189,9 @@ function renderDetalle(asesorSel, estatusSel){
   ({ asesorSel, estatusSel } = DET_FILTERS);
   const card = document.getElementById('detalle-card');
   if(!card) return;
+  const semSel = document.getElementById('filtro-semana');
+  const semActual = semSel ? semSel.value : ACTIVE_SEMANA;
+  if(semActual && ACTIVE_SEMANA && semActual !== ACTIVE_SEMANA){ card.style.display='none'; return; }
   if(!DETALLE_DATA.length){ card.style.display='none'; return; }
   card.style.display='';
 
