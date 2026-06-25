@@ -476,20 +476,20 @@
 
   <!-- TABLA APROVECHAMIENTO POR PLAZA + EC % (AT) -->
   <div style="display:grid;grid-template-columns:minmax(280px,1.3fr) minmax(220px,.9fr);gap:18px;margin-bottom:18px" id="plaza-ec-row">
-    <div class="card d3-fullcard" style="margin-bottom:0">
+    <div class="card d3-fullcard" style="margin-bottom:0;display:flex;flex-direction:column">
       <div class="card-head">
         <div class="card-title">Aprovechamiento por Plaza<span class="info-tip" tabindex="0" data-tip="Promedio de '% Aprovechamiento' agrupado por columna Plaza, en la semana seleccionada."></span></div>
       </div>
-      <div id="tabla-plazas">
+      <div id="tabla-plazas" style="flex:1;display:flex;flex-direction:column">
         <div class="state-box"><div class="spinner"></div></div>
       </div>
     </div>
 
-    <div class="card d3-fullcard" style="margin-bottom:0">
+    <div class="card d3-fullcard" style="margin-bottom:0;display:flex;flex-direction:column">
       <div class="card-head">
         <div class="card-title">EC % (AT)<span class="info-tip" tabindex="0" data-tip="EC % de la columna 'Ec por AT' del sheet, agrupado por Asesor. Fijo, no cambia con los filtros."></span></div>
       </div>
-      <div id="tabla-ec-at">
+      <div id="tabla-ec-at" style="flex:1;display:flex;flex-direction:column">
         <div class="state-box"><div class="spinner"></div></div>
       </div>
     </div>
@@ -883,29 +883,26 @@ function render(data){
       const rowsPlaza = plazaData.map((p,i) => {
         const color = p.aprov >= 95 ? 'verde' : p.aprov >= 85 ? 'amarillo' : 'rojo';
         const barW = Math.min(p.aprov, 100).toFixed(1);
-        return `<tr>
-          <td style="font-weight:600;font-size:13px;padding:10px 12px">${p.plaza}</td>
-          <td style="padding:10px 12px">
-            <div style="position:relative;height:10px;background:var(--color-border);border-radius:5px">
-              <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:5px;transition:width .8s ease"></div>
+        return `<div style="flex:1;min-height:36px;display:grid;grid-template-columns:30% 52% 18%;align-items:center;padding:0 12px;${i%2?'background:rgba(0,0,0,.015)':''}">
+          <div style="font-weight:600;font-size:14px">${p.plaza}</div>
+          <div style="padding:0 10px">
+            <div style="position:relative;height:12px;background:var(--color-border);border-radius:6px">
+              <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:6px;transition:width .8s ease"></div>
               <div title="Meta 95%" style="position:absolute;top:-3px;bottom:-3px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
             </div>
-          </td>
-          <td style="text-align:right;padding:10px 12px;white-space:nowrap">
-            <span style="font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)'}">${p.aprov.toFixed(2)}%</span>
-          </td>
-        </tr>`;
+          </div>
+          <div style="text-align:right;white-space:nowrap">
+            <span style="font-family:var(--font-display);font-size:1.35rem;font-weight:800;color:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)'}">${p.aprov.toFixed(2)}%</span>
+          </div>
+        </div>`;
       }).join('');
       plazaEl.innerHTML = `
-        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-          <colgroup><col style="width:30%"><col style="width:52%"><col style="width:18%"></colgroup>
-          <thead><tr style="background:var(--color-bg)">
-            <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Plaza</th>
-            <th style="padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Avance</th>
-            <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Aprov. %</th>
-          </tr></thead>
-          <tbody>${rowsPlaza}</tbody>
-        </table>
+        <div style="display:grid;grid-template-columns:30% 52% 18%;padding:8px 12px;background:var(--color-bg)">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Plaza</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase;padding:0 10px">Avance</div>
+          <div style="text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Aprov. %</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column">${rowsPlaza}</div>
         <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:11px;color:var(--color-gray)">
           <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>Meta 95%
         </div>`;
@@ -933,36 +930,34 @@ function renderEcAt(){
     el.innerHTML = '<div class="state-box">Sin datos de EC %</div>';
     return;
   }
-  const rows = withEc.map(at => {
+  const rows = withEc.map((at,i) => {
     const v = at.ecPorAt;
     const color = v >= 95 ? 'verde' : v >= 85 ? 'amarillo' : 'rojo';
     const barColor = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)';
     const txtColor = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)';
     const barW = Math.min(v, 100).toFixed(1);
     const critica = v < 70;
-    return `<tr${critica?' style="background:rgba(217,43,43,.06)"':''}>
-      <td style="font-weight:600;font-size:13px;padding:10px 12px;overflow-wrap:break-word">${at.asesor}${critica?' <span style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</td>
-      <td style="padding:10px 12px">
-        <div style="position:relative;height:10px;background:var(--color-border);border-radius:5px">
-          <div style="height:100%;width:${barW}%;background:${barColor};border-radius:5px;transition:width .8s ease"></div>
+    const bg = critica ? 'rgba(217,43,43,.06)' : (i%2 ? 'rgba(0,0,0,.015)' : '');
+    return `<div style="flex:1;min-height:32px;display:grid;grid-template-columns:34% 48% 18%;align-items:center;padding:0 12px;${bg?`background:${bg}`:''}">
+      <div style="font-weight:600;font-size:14px;overflow-wrap:break-word">${at.asesor}${critica?' <span style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</div>
+      <div style="padding:0 10px">
+        <div style="position:relative;height:12px;background:var(--color-border);border-radius:6px">
+          <div style="height:100%;width:${barW}%;background:${barColor};border-radius:6px;transition:width .8s ease"></div>
           <div title="Meta 95%" style="position:absolute;top:-3px;bottom:-3px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
         </div>
-      </td>
-      <td style="text-align:right;padding:10px 12px;white-space:nowrap">
-        <span style="font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:${txtColor}">${v.toFixed(2)}%</span>
-      </td>
-    </tr>`;
+      </div>
+      <div style="text-align:right;white-space:nowrap">
+        <span style="font-family:var(--font-display);font-size:1.35rem;font-weight:800;color:${txtColor}">${v.toFixed(2)}%</span>
+      </div>
+    </div>`;
   }).join('');
   el.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-      <colgroup><col style="width:34%"><col style="width:48%"><col style="width:18%"></colgroup>
-      <thead><tr style="background:var(--color-bg)">
-        <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">AT</th>
-        <th style="padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Avance</th>
-        <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">EC %</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div style="display:grid;grid-template-columns:34% 48% 18%;padding:8px 12px;background:var(--color-bg)">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">AT</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase;padding:0 10px">Avance</div>
+      <div style="text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">EC %</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column">${rows}</div>
     <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:11px;color:var(--color-gray)">
       <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>Meta 95%
     </div>`;
