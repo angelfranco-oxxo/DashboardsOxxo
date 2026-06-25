@@ -956,15 +956,31 @@ function renderEcAt(){
     el.innerHTML = '<div class="state-box">Sin datos de EC %</div>';
     return;
   }
-  const rows = withEc.map(at => `<tr>
-    <td style="font-weight:600;font-size:13px;padding:10px 12px">${at.asesor}</td>
-    <td class="text-center" style="padding:10px 12px">${ecPill(at.ecPorAt/100, at.ecPorAt.toFixed(2)+'%')}</td>
-  </tr>`).join('');
+  const rows = withEc.map(at => {
+    const v = at.ecPorAt;
+    const color = v >= 95 ? 'verde' : v >= 85 ? 'amarillo' : 'rojo';
+    const barColor = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)';
+    const txtColor = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)';
+    const barW = Math.min(v, 100).toFixed(1);
+    const critica = v < 70;
+    return `<tr${critica?' style="background:rgba(217,43,43,.06)"':''}>
+      <td style="font-weight:600;font-size:13px;padding:10px 12px">${at.asesor}${critica?' <span style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</td>
+      <td style="padding:10px 12px">
+        <div style="height:6px;background:var(--color-border);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${barW}%;background:${barColor};border-radius:3px;transition:width .8s ease"></div>
+        </div>
+      </td>
+      <td style="text-align:right;padding:10px 12px">
+        <span style="font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:${txtColor}">${v.toFixed(2)}%</span>
+      </td>
+    </tr>`;
+  }).join('');
   el.innerHTML = `
     <table style="width:100%;border-collapse:collapse">
       <thead><tr style="background:var(--color-bg)">
         <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">AT</th>
-        <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">EC %</th>
+        <th style="padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Avance</th>
+        <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">EC %</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
