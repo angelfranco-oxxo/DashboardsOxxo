@@ -583,12 +583,12 @@ const ALIASES = {
   vacante:   ['% Vacantes','Vacantes','Vacante','VACANTE'],
   aprov:     ['% Aprovechamiento','Aprovechamiento','Aprovechamiento Estructura','Aprovechamiento estructura'],
   estatus:   ['Clas Aprov','Estatus','Estatus Con impacto Ausentismo','Estatus con impacto Ausentismo','Estatus Con Impacto Ausentismo','ESTATUS'],
-  col_plaza: ['Plaza','PLAZA'],
+  col_plaza: ['PLAZAS','Plazas','Plaza','PLAZA'],
   semana:    ['Mes Semana','Semana','Fecha','FECHA'],
-  ec_por_at: ['Ec por AT','EC POR AT','EC por AT','Ec Por AT'],
-  aprov_plaza: ['Aprovechamiento de estructura de Plaza','Aprovechamiento de Estructura de Plaza','Aprovechamiento estructura de Plaza'],
-  at:        ['AT','At'],
-  plaza_at:  ['Plaza_2','PLAZA_2'],
+  ec_por_at: ['Ec','EC','Ec por AT','EC POR AT','EC por AT','Ec Por AT'],
+  aprov_plaza: ['Aprovechamiento de estructura a hoy','Aprovechamiento de estructura de Plaza','Aprovechamiento de Estructura de Plaza','Aprovechamiento estructura de Plaza'],
+  at:        ['Ats','ATS','AT','At'],
+  plaza_at:  ['PLAZAS','Plazas','Plaza_2','PLAZA_2'],
 };
 
 // Alias para la pestaña de detalle por tienda (base "Plaza Oaxaca")
@@ -733,7 +733,9 @@ async function initDashboard(){
 
   // Normalizar datos (aprov y vacante ya vienen en unidades de % en el sheet, ej. "90.9%" = 90.9)
   const data = rawData.map(r=>({
-    asesor:    String(gv(r,map,'asesor','Sin asesor')).trim(),
+    // Nombre de asesor en MAYUSCULAS: la base trae el mismo asesor con distinto casing
+    // (p.ej. 'Jordan Vazquez Toala' y 'JORDAN VAZQUEZ TOALA'); normalizar evita duplicados.
+    asesor:    String(gv(r,map,'asesor','Sin asesor')).trim().toUpperCase(),
     tienda:    String(gv(r,map,'tienda','Sin tienda')).trim(),
     esquema:   String(gv(r,map,'esquema','')).trim(),
     estructura:gn(r,map,'estructura'),
@@ -871,15 +873,15 @@ function render(data){
   renderTablaAT();
 
   // ── TABLA APROVECHAMIENTO POR PLAZA ─────────────────────
-  // % de tiendas que cumplen el umbral por plaza: cada tienda con Aprovechamiento Estructura
-  // > 92.5% cuenta como 100 y el resto como 0 (campo r.aprov ya viene umbralizado), luego se
-  // promedia por plaza para obtener el porcentaje de tiendas que cumplen.
+  // Valor fijo 'Aprovechamiento de estructura a hoy' emparejado con la columna 'PLAZAS'
+  // (lista fija de plazas en el sheet). No existe plaza por tienda en la base, por lo que se
+  // muestra el porcentaje precalculado de cada plaza tal cual viene.
   const plazaSums = {};
   ALL_DATA.forEach(r => {
     const plaza = r.plazaAt;
-    if(!plaza) return;
+    if(!plaza || !(r.aprovPlaza>0)) return;
     if(!plazaSums[plaza]) plazaSums[plaza] = { sum:0, n:0 };
-    plazaSums[plaza].sum += r.aprov;
+    plazaSums[plaza].sum += r.aprovPlaza;
     plazaSums[plaza].n++;
   });
   const plazaData = Object.entries(plazaSums)
