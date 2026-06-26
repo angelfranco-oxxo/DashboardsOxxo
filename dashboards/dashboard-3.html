@@ -873,13 +873,15 @@ function render(data){
   renderTablaAT();
 
   // ── TABLA APROVECHAMIENTO POR PLAZA ─────────────────────
-  // Promedio de 'Aprovechamiento de estructura de Plaza' (ya precalculada por Plaza en el sheet)
+  // % de tiendas que cumplen el umbral por plaza: cada tienda con Aprovechamiento Estructura
+  // > 92.5% cuenta como 100 y el resto como 0 (campo r.aprov ya viene umbralizado), luego se
+  // promedia por plaza para obtener el porcentaje de tiendas que cumplen.
   const plazaSums = {};
   ALL_DATA.forEach(r => {
     const plaza = r.plazaAt;
-    if(!plaza || !(r.aprovPlaza>0)) return;
+    if(!plaza) return;
     if(!plazaSums[plaza]) plazaSums[plaza] = { sum:0, n:0 };
-    plazaSums[plaza].sum += r.aprovPlaza;
+    plazaSums[plaza].sum += r.aprov;
     plazaSums[plaza].n++;
   });
   const plazaData = Object.entries(plazaSums)
