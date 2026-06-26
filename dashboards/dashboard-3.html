@@ -617,18 +617,21 @@ function findKey(row,aliases){
   const keys=Object.keys(row||{});
   const map=new Map(keys.map(k=>[cleanKey(k),k]));
   for(const a of aliases){const f=map.get(cleanKey(a));if(f)return f;}
-  // Coincidencia aproximada SOLO direccional (el alias debe estar contenido en el nombre
-  // de la columna) y con longitud minima de 3. Asi alias cortos o genericos no secuestran
-  // columnas equivocadas: 'AT' ya no captura 'estATus', y 'Aprovechamiento de estructura de
-  // Plaza' ya no cae sobre 'Aprovechamiento Estructura' (por tienda). Si la columna fija no
-  // existe en la base, el campo queda vacio en lugar de mostrar datos de otra columna.
-  for(const a of aliases){const ac=cleanKey(a);if(ac.length<3)continue;const f=keys.find(k=>cleanKey(k).includes(ac));if(f)return f;}
+  // Coincidencia aproximada (alias contenido en la columna o viceversa), ignorando alias de
+  // menos de 3 caracteres para que 'AT' no capture 'estATus'. Las colisiones semanticas
+  // (p.ej. la columna de Plaza cayendo sobre la de aprovechamiento por tienda) se resuelven
+  // despues en buildMap descartando el match cuando coincide con otra columna ya asignada.
+  for(const a of aliases){const ac=cleanKey(a);if(ac.length<3)continue;const f=keys.find(k=>{const ck=cleanKey(k);return ck.includes(ac)||ac.includes(ck);});if(f)return f;}
   return null;
 }
 function buildMap(data){
   const s=data.find(r=>Object.values(r).some(v=>String(v||'').trim()!==''))||data[0]||{};
   const m={};
   Object.entries(ALIASES).forEach(([k,al])=>m[k]=findKey(s,al));
+  // Resolver colisiones: si la columna de Plaza o de AT cayo por aproximacion sobre la de
+  // aprovechamiento por tienda o la de estatus, descartarla (queda vacia, no datos ajenos).
+  if(m.aprov_plaza && m.aprov_plaza===m.aprov) m.aprov_plaza=null;
+  if(m.at && m.at===m.estatus) m.at=null;
   return m;
 }
 function gv(row,map,k,fb=''){const key=map[k];const v=key?row[key]:undefined;return(v===undefined||v===null||String(v).trim()==='')?fb:v;}
@@ -746,7 +749,7 @@ async function initDashboard(){
     ecPorAt:   gn(r,map,'ec_por_at'),
     aprovPlaza:gn(r,map,'aprov_plaza'),
     at:        String(gv(r,map,'at','')).trim(),
-    plazaAt:   String(gv(r,map,'plaza_at','')).trim(),
+    plazaAt:   String(gv(r,map,'plaza_at', gv(r,map,'col_plaza',''))).trim(),
   }));
 
   ALL_DATA = data;
@@ -914,6 +917,10 @@ function render(data){
           <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>Meta 95%
         </div>`;
     }
+  } else {
+    // Sin datos de Plaza: mostrar estado vacio en lugar de dejar el spinner cargando.
+    const plazaEl = document.getElementById('tabla-plazas');
+    if(plazaEl) plazaEl.innerHTML = '<div class="state-box" style="padding:24px;color:var(--color-gray)">Sin datos de aprovechamiento por plaza.</div>';
   }
 
 
