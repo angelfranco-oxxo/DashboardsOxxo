@@ -215,27 +215,33 @@
   <style id="d3-extras">
   .hero{flex-direction:column !important;align-items:stretch !important;gap:18px}
   .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
-  .vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px 16px;align-items:end}
-  .vac-fbox{display:flex;flex-direction:column;gap:6px;min-width:0}
-  .vac-fbox > label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.85)}
+  .vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px 18px;align-items:end}
+  .vac-fbox{display:flex;flex-direction:column;gap:8px;min-width:0}
+  .vac-fbox > label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.92);display:flex;align-items:center;gap:6px}
   .hero .filtro-select,.hero .filtro-btn{
     width:100%;box-sizing:border-box;
-    background:rgba(255,255,255,0.14) !important;
-    border:1px solid rgba(255,255,255,0.32) !important;
-    color:#fff !important;font-weight:700;
-    border-radius:999px !important;padding:10px 16px !important;
-    transition:background .2s,color .2s,border-color .2s;
+    background:rgba(255,255,255,0.97) !important;
+    border:1px solid rgba(255,255,255,0.6) !important;
+    color:#181112 !important;-webkit-text-fill-color:#181112 !important;font-weight:700;font-size:14px;
+    border-radius:14px !important;padding:12px 16px !important;
+    box-shadow:0 6px 18px rgba(60,20,15,0.16);
+    transition:transform .15s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease;
+    cursor:pointer;
   }
-  .hero .filtro-select:focus{outline:none;border-color:#fff !important}
+  .hero .filtro-select{
+    appearance:none;-webkit-appearance:none;-moz-appearance:none;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%23b3261e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat:no-repeat !important;background-position:right 14px center !important;padding-right:40px !important;
+  }
+  .hero .filtro-select:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(60,20,15,0.22)}
+  .hero .filtro-select:focus{outline:none;border-color:var(--hb-red,#F71926) !important;box-shadow:0 0 0 3px rgba(247,25,38,.20)}
   .hero .filtro-select option{color:#1a1a1a;background:#fff}
-  .hero .filtro-btn:hover{background:#fff !important;color:var(--hb-red) !important;border-color:#fff !important}
-  html:not([data-theme="dark"]) .hero .filtro-select,
-  html:not([data-theme="dark"]) .hero .filtro-btn{
-    background:rgba(255,255,255,0.78) !important;
-    border-color:var(--exec-line-strong,rgba(42,27,25,0.2)) !important;
-    color:var(--exec-ink,#181112) !important;
-    -webkit-text-fill-color:var(--exec-ink,#181112) !important;
+  .hero .filtro-btn{
+    background:rgba(255,255,255,0.14) !important;border:1px solid rgba(255,255,255,0.6) !important;
+    color:#fff !important;-webkit-text-fill-color:#fff !important;font-weight:800;box-shadow:none;
+    display:flex;align-items:center;justify-content:center;gap:6px;
   }
+  .hero .filtro-btn:hover{background:#fff !important;color:var(--hb-red) !important;-webkit-text-fill-color:var(--hb-red) !important;border-color:#fff !important;transform:translateY(-1px);box-shadow:0 10px 24px rgba(60,20,15,0.22)}
   .hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
 
   /* ── MODAL DETALLE POR ASESOR ── */
@@ -440,18 +446,13 @@
     </div>
     <div class="vac-filters">
       <div class="vac-fbox">
-        <label>Semana-Mes</label>
-        <select class="filtro-select" id="filtro-semana" onchange="applyFilters()">
-        </select>
-      </div>
-      <div class="vac-fbox">
-        <label>Asesor</label>
+        <label>👤 Asesor</label>
         <select class="filtro-select" id="filtro-asesor" onchange="applyFilters()">
           <option value="">Todos los asesores</option>
         </select>
       </div>
       <div class="vac-fbox">
-        <label>Estatus</label>
+        <label>🏷️ Estatus</label>
         <select class="filtro-select" id="filtro-estatus" onchange="applyFilters()">
           <option value="">Todos los estatus</option>
           <option value="completo">Equipo Completo</option>
@@ -460,8 +461,8 @@
         </select>
       </div>
       <div class="vac-fbox">
-        <label>Filtros</label>
-        <button class="filtro-btn" onclick="limpiarFiltros()">✕ Limpiar</button>
+        <label>Acciones</label>
+        <button class="filtro-btn" onclick="limpiarFiltros()">✕ Limpiar filtros</button>
       </div>
     </div>
   </div>
@@ -1185,7 +1186,9 @@ function populateFilters(data){
   filtersReady = true;
 }
 function applyFilters(){
-  const sem = document.getElementById('filtro-semana').value;
+  // El filtro de Semana-Mes se removio (la base tiene una sola fecha); se mantiene la variable
+  // por compatibilidad pero sin filtrar por semana.
+  const sem = document.getElementById('filtro-semana')?.value || '';
   const a = document.getElementById('filtro-asesor').value;
   const s = document.getElementById('filtro-estatus').value;
   let d = ALL_DATA;
