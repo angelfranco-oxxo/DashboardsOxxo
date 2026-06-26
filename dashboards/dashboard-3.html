@@ -488,7 +488,7 @@
 
     <div class="card d3-fullcard" style="margin-bottom:0;display:flex;flex-direction:column">
       <div class="card-head">
-        <div class="card-title">EC % (AT)<span class="info-tip" tabindex="0" data-tip="EC % de la columna 'Ec por AT' del sheet, agrupado por Asesor. Fijo, no cambia con los filtros."></span></div>
+        <div class="card-title">Aprovechamiento por AT<span class="info-tip" tabindex="0" data-tip="Aprovechamiento por AT (columna 'Ec' del sheet), agrupado por Asesor. Fijo, no cambia con los filtros."></span></div>
       </div>
       <div id="tabla-ec-at" style="flex:1;display:flex;flex-direction:column">
         <div class="state-box"><div class="spinner"></div></div>
@@ -991,7 +991,7 @@ function renderEcAt(){
 // ── TABLA RESUMEN POR AT (con ordenamiento) ──────────────────
 let AT_DATA = [];
 let AT_TOTALS = { total:0, aprovPromTiendas:0 };
-let AT_SORT = { col: 'aprov', dir: 'desc' };
+let AT_SORT = { col: 'total', dir: 'desc' };
 
 function renderTablaAT(){
   const sorted = [...AT_DATA].sort((a,b)=>{
@@ -1019,7 +1019,6 @@ function renderTablaAT(){
       <td class="text-center">${at.incompletas}</td>
       <td class="text-center" style="color:${at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)'};font-weight:${at.criticas>0?700:400}">${at.criticas>0?at.criticas:'—'}</td>
       <td class="text-center">${at.total}</td>
-      <td class="text-center">${ecPill(at.aprov,pct+'%')}</td>
     </tr>`;
   }).join('');
 
@@ -1035,7 +1034,6 @@ function renderTablaAT(){
         <th style="${thStyle};text-align:center" data-sort="incompletas">Equipo<br>Incompleto${arrow('incompletas')}</th>
         <th style="${thStyle};text-align:center" data-sort="criticas">Tienda<br>Crítica${arrow('criticas')}</th>
         <th style="${thStyle};text-align:center" data-sort="total">Total<br>General${arrow('total')}</th>
-        <th style="${thStyle};text-align:center" data-sort="aprov">Aprov. %${arrow('aprov')}</th>
       </tr></thead>
       <tbody>
         ${tbodyAT}
@@ -1045,7 +1043,6 @@ function renderTablaAT(){
           <td class="text-center">${totalInc}</td>
           <td class="text-center">${totalCrit}</td>
           <td class="text-center">${AT_TOTALS.total}</td>
-          <td class="text-center">${ecPill(AT_TOTALS.aprovPromTiendas,(AT_TOTALS.aprovPromTiendas*100).toFixed(2)+'%')}</td>
         </tr>
       </tbody>
     </table></div>`;
