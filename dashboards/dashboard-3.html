@@ -737,7 +737,9 @@ async function initDashboard(){
     estructura:gn(r,map,'estructura'),
     ausent:    gn(r,map,'ausent'),
     vacante:   gn(r,map,'vacante'),
-    aprov:     gn(r,map,'aprov'),
+    // Aprovechamiento Estructura se evalua por umbral: >92.5% cuenta como 100%, en caso
+    // contrario 0%. Asi el promedio general y por AT reflejan el % de tiendas que cumplen.
+    aprov:     gn(r,map,'aprov') > 92.5 ? 100 : 0,
     estatus:   String(gv(r,map,'estatus','')).trim(),
     col_plaza: String(gv(r,map,'col_plaza','')).trim(),
     semana:    String(gv(r,map,'semana','')).trim(),
