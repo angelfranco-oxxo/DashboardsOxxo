@@ -628,6 +628,15 @@ const ALIASES_DET = {
   totalIncid:['Total de incidencias'],
   fechaRescEC:['Fecha maxima rescate EC','Fecha máxima rescate EC'],
   fechaRescTC:['Fecha maxima rescate TC','Fecha máxima rescate TC'],
+  aprovSinAus:['Aprovechamiento Estructura Sin ausentismo','Aprovechamiento Estructura sin ausentismo'],
+  ventaMesAnt:['VENTA MES ANTERIOR','Venta mes anterior'],
+  tienda25:  ['Tiendas 25%mayor venta','Tiendas 25% mayor venta','Tiendas 25'],
+  tiendaBatting:['Tienda Batting'],
+  clasifLider:['Lider N/casificacion','Lider Nclasificacion','Lider N clasificacion'],
+  presencias100:['Numero de presencias para 100% ec','Numero de presencias para 100'],
+  diferencia:['Diferencia'],
+  ausRestEC: ['Numero de ausentismos restantes para EC'],
+  ausRestTC: ['Numero de ausentismos restantes para TC'],
 };
 function buildMapDet(data){
   const s=data.find(r=>Object.values(r).some(v=>String(v||'').trim()!==''))||data[0]||{};
@@ -815,6 +824,15 @@ async function initDashboard(){
         totalIncid: gn(r,md,'totalIncid'),
         fechaRescEC:String(gv(r,md,'fechaRescEC','')).trim(),
         fechaRescTC:String(gv(r,md,'fechaRescTC','')).trim(),
+        aprovSinAus:gn(r,md,'aprovSinAus'),
+        ventaMesAnt:gn(r,md,'ventaMesAnt'),
+        tienda25:  String(gv(r,md,'tienda25','')).trim(),
+        tiendaBatting:String(gv(r,md,'tiendaBatting','')).trim(),
+        clasifLider:String(gv(r,md,'clasifLider','')).trim(),
+        presencias100:gn(r,md,'presencias100'),
+        diferencia:gn(r,md,'diferencia'),
+        ausRestEC: gn(r,md,'ausRestEC'),
+        ausRestTC: gn(r,md,'ausRestTC'),
       })).filter(r=>r.tienda);
   } catch(e){ DETALLE_DATA = []; }
 
@@ -1341,6 +1359,10 @@ function openTiendaModal(tiendaName){
 
   const apr = t.aprov>92.5 ? 100 : 0;
   const dias = v => { const n=Number(v); return isFinite(n) ? (Math.round(n*10)/10).toString() : '—'; };
+  const sec = ti => `<tr><td colspan="2" style="background:var(--color-bg);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--color-gray);padding:9px 12px">${ti}</td></tr>`;
+  const kv  = (l,v,st) => `<tr><td style="font-weight:600">${l}</td><td class="text-right" style="${st||''}">${v}</td></tr>`;
+  const fmtMoney = n => '$'+Number(n||0).toLocaleString('es-MX',{maximumFractionDigits:0});
+  const flag = v => { const s=String(v||'').toUpperCase(); return s==='SI'||s==='SÍ'?'<span style="color:var(--semaforo-verde);font-weight:700">Sí</span>':s==='NO'?'<span style="color:var(--color-gray)">No</span>':(v||'—'); };
   body.innerHTML = `
     <div class="am-kpis">
       ${kpi('Estructura Diaria', t.estructura||0)}
@@ -1362,27 +1384,44 @@ function openTiendaModal(tiendaName){
         <div class="am-chart-wrap"><canvas id="am-chart-cmp"></canvas></div>
       </div>
     </div>
-    <div class="am-table-title">Resumen</div>
+    <div class="am-table-title">Detalle completo</div>
     <div class="tbl-wrap"><table class="tbl">
       <tbody>
-        <tr><td style="font-weight:600">Tienda</td><td class="text-right">${t.tienda}</td></tr>
-        ${t.asesor?`<tr><td style="font-weight:600">Asesor</td><td class="text-right">${t.asesor}</td></tr>`:''}
-        <tr><td style="font-weight:600">Estructura Diaria</td><td class="text-right">${t.estructura||0}</td></tr>
-        <tr><td style="font-weight:600">Ausentismos</td><td class="text-right">${t.ausent||0}</td></tr>
-        <tr><td style="font-weight:600">Vacantes (total)</td><td class="text-right">${t.vacante||0}</td></tr>
-        <tr><td style="font-weight:600">Vacantes Líder</td><td class="text-right">${t.vacLider||0}</td></tr>
-        <tr><td style="font-weight:600">Vacantes Encargado</td><td class="text-right">${t.vacEnc||0}</td></tr>
-        <tr><td style="font-weight:600">Vacantes Ayudante</td><td class="text-right">${t.vacAyu||0}</td></tr>
-        <tr><td style="font-weight:600">Estatus (con impacto)</td><td class="text-right" style="color:${ecColorVar};font-weight:700">${t.estatus||'—'}</td></tr>
-        <tr><td style="font-weight:600">EC sin Ausentismo</td><td class="text-right">${t.ecSinAus||'—'}</td></tr>
-        <tr><td style="font-weight:600">Aprovechamiento</td><td class="text-right" style="font-weight:700;color:${apr===100?'var(--semaforo-verde)':'var(--semaforo-rojo)'}">${apr}%</td></tr>
-        ${t.totalIncid?`<tr><td style="font-weight:600">Total incidencias</td><td class="text-right">${t.totalIncid}</td></tr>`:''}
-        ${t.impactoAus?`<tr><td style="font-weight:600">% Impacto Ausentismo</td><td class="text-right">${t.impactoAus.toFixed(1)}%</td></tr>`:''}
-        ${t.impactoVac?`<tr><td style="font-weight:600">% Impacto Vacante</td><td class="text-right">${t.impactoVac.toFixed(1)}%</td></tr>`:''}
-        <tr><td style="font-weight:600">Días rescate EC</td><td class="text-right">${dias(t.diasEC)}</td></tr>
-        <tr><td style="font-weight:600">Días rescate TC</td><td class="text-right">${dias(t.diasTC)}</td></tr>
-        ${t.fechaRescEC?`<tr><td style="font-weight:600">Fecha máx. rescate EC</td><td class="text-right">${t.fechaRescEC}</td></tr>`:''}
-        ${t.fechaRescTC?`<tr><td style="font-weight:600">Fecha máx. rescate TC</td><td class="text-right">${t.fechaRescTC}</td></tr>`:''}
+        ${sec('Identificación')}
+        ${kv('Tienda', t.tienda)}
+        ${t.asesor?kv('Asesor', t.asesor):''}
+        ${kv('Esquema', t.esquema||'—')}
+        ${t.clasifLider?kv('Clasificación Líder', t.clasifLider):''}
+
+        ${sec('Aprovechamiento')}
+        ${kv('Aprovechamiento (umbral)', apr+'%', `font-weight:700;color:${apr===100?'var(--semaforo-verde)':'var(--semaforo-rojo)'}`)}
+        ${t.aprovSinAus?kv('Aprov. sin ausentismo', t.aprovSinAus.toFixed(2)+'%'):''}
+        ${kv('Estructura Diaria', t.estructura||0)}
+        ${t.presencias100?kv('Presencias para 100% EC', t.presencias100):''}
+        ${t.diferencia?kv('Diferencia', t.diferencia):''}
+
+        ${sec('Incidencias')}
+        ${kv('Ausentismos', t.ausent||0)}
+        ${kv('Vacantes (total)', t.vacante||0)}
+        ${kv('· Líder / Encargado / Ayudante', `${t.vacLider||0} / ${t.vacEnc||0} / ${t.vacAyu||0}`)}
+        ${t.totalIncid?kv('Total incidencias', t.totalIncid):''}
+        ${t.impactoAus?kv('% Impacto Ausentismo', t.impactoAus.toFixed(1)+'%'):''}
+        ${t.impactoVac?kv('% Impacto Vacante', t.impactoVac.toFixed(1)+'%'):''}
+
+        ${sec('Estatus y rescate')}
+        ${kv('Estatus (con impacto)', t.estatus||'—', `color:${ecColorVar};font-weight:700`)}
+        ${kv('EC sin Ausentismo', t.ecSinAus||'—')}
+        ${kv('Ausentismos restantes EC', t.ausRestEC)}
+        ${kv('Ausentismos restantes TC', t.ausRestTC)}
+        ${kv('Días rescate EC', dias(t.diasEC))}
+        ${kv('Días rescate TC', dias(t.diasTC))}
+        ${t.fechaRescEC?kv('Fecha máx. rescate EC', t.fechaRescEC):''}
+        ${t.fechaRescTC?kv('Fecha máx. rescate TC', t.fechaRescTC):''}
+
+        ${sec('Venta')}
+        ${t.ventaMesAnt?kv('Venta mes anterior', fmtMoney(t.ventaMesAnt)):''}
+        ${kv('Tienda 25% mayor venta', flag(t.tienda25))}
+        ${kv('Tienda Batting', flag(t.tiendaBatting))}
       </tbody>
     </table></div>`;
 
