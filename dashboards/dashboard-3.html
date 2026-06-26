@@ -643,6 +643,11 @@ function isCritica(e){const s=statusText(e);return s.includes('crit');}
 function isIncompleta(e){const s=statusText(e);return s.includes('incompleto');}
 function isCompleta(e){const s=statusText(e);return s.includes('completo') && !s.includes('incompleto') && !s.includes('crit');}
 function estatusColor(e){if(isCritica(e))return'rojo';if(isIncompleta(e))return'amarillo';if(isCompleta(e))return'verde';return'gris';}
+// Nombre corto: primeros 2 nombres en Title Case (ej. 'JORGE ADRIAN POSADAS LOPEZ' -> 'Jorge Adrian')
+function shortName(s){
+  return String(s||'').trim().split(/\s+/).slice(0,2)
+    .map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
+}
 function ecPill(pct,label){const c=ecColor(pct);return`<span class="ec-pill ${c}"><span class="ec-dot"></span>${label}</span>`;}
 
 function renderEstatusDistribution(completas, incompletas, criticas, total){
@@ -895,6 +900,8 @@ function render(data){
       const rowsPlaza = plazaData.map((p,i) => {
         const color = p.aprov >= 95 ? 'verde' : p.aprov >= 85 ? 'amarillo' : 'rojo';
         const barW = Math.min(p.aprov, 100).toFixed(1);
+        const txtColor = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)';
+        const tint = color==='verde'?'rgba(29,185,84,.12)':color==='amarillo'?'rgba(184,150,12,.14)':'rgba(217,43,43,.10)';
         return `<div style="flex:1;min-height:36px;display:grid;grid-template-columns:30% 52% 18%;align-items:center;padding:0 12px;${i%2?'background:rgba(0,0,0,.015)':''}">
           <div style="font-weight:600;font-size:14px">${p.plaza}</div>
           <div style="padding:0 10px">
@@ -904,7 +911,7 @@ function render(data){
             </div>
           </div>
           <div style="text-align:right;white-space:nowrap">
-            <span style="font-family:var(--font-display);font-size:1.35rem;font-weight:800;color:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)'}">${p.aprov.toFixed(2)}%</span>
+            <span style="display:inline-block;font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:${txtColor};background:${tint};padding:3px 11px;border-radius:999px">${p.aprov.toFixed(2)}%</span>
           </div>
         </div>`;
       }).join('');
@@ -952,10 +959,11 @@ function renderEcAt(){
     const barColor = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)';
     const txtColor = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)';
     const barW = Math.min(v, 100).toFixed(1);
+    const tint = color==='verde'?'rgba(29,185,84,.12)':color==='amarillo'?'rgba(184,150,12,.14)':'rgba(217,43,43,.10)';
     const critica = v < 70;
     const bg = critica ? 'rgba(217,43,43,.06)' : (i%2 ? 'rgba(0,0,0,.015)' : '');
     return `<div style="flex:1;min-height:32px;display:grid;grid-template-columns:34% 48% 18%;align-items:center;padding:0 12px;${bg?`background:${bg}`:''}">
-      <div style="font-weight:600;font-size:14px;overflow-wrap:break-word">${at.asesor}${critica?' <span style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</div>
+      <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${at.asesor}">${shortName(at.asesor)}${critica?' <span style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</div>
       <div style="padding:0 10px">
         <div style="position:relative;height:12px;background:var(--color-border);border-radius:6px">
           <div style="height:100%;width:${barW}%;background:${barColor};border-radius:6px;transition:width .8s ease"></div>
@@ -963,7 +971,7 @@ function renderEcAt(){
         </div>
       </div>
       <div style="text-align:right;white-space:nowrap">
-        <span style="font-family:var(--font-display);font-size:1.35rem;font-weight:800;color:${txtColor}">${v.toFixed(2)}%</span>
+        <span style="display:inline-block;font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:${txtColor};background:${tint};padding:3px 11px;border-radius:999px">${v.toFixed(2)}%</span>
       </div>
     </div>`;
   }).join('');
@@ -1005,7 +1013,7 @@ function renderTablaAT(){
   const tbodyAT = sorted.map((at)=>{
     const pct=(at.aprov*100).toFixed(2);
     return`<tr class="at-row${at.criticas>0?' row-critica':''}" data-at="${at.asesor.replace(/"/g,'&quot;')}" style="cursor:pointer" title="Ver detalle de ${at.asesor.replace(/"/g,'&quot;')}">
-      <td><strong>${at.asesor}</strong> <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
+      <td><strong>${shortName(at.asesor)}</strong> <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
       <td class="text-center">${at.completas}</td>
       <td class="text-center">${at.incompletas}</td>
       <td class="text-center" style="color:${at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)'};font-weight:${at.criticas>0?700:400}">${at.criticas>0?at.criticas:'—'}</td>
@@ -1234,7 +1242,7 @@ function renderDetalle(asesorSel, estatusSel){
       : '<span style="color:var(--color-gray)">—</span>';
     return `<tr class="det-row${isCritica(r.estatus)?' row-critica':''}" data-tienda="${String(r.tienda).replace(/"/g,'&quot;')}" style="cursor:pointer" title="Ver detalle de ${String(r.tienda).replace(/"/g,'&quot;')}">
       <td style="font-weight:600">${r.tienda} <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
-      ${hasAsesor?`<td>${r.asesor}</td>`:''}
+      ${hasAsesor?`<td title="${String(r.asesor).replace(/"/g,'&quot;')}">${shortName(r.asesor)}</td>`:''}
       <td class="text-center">${r.estructura||'—'}</td>
       <td class="text-center">${r.ausent||0}</td>
       <td class="text-center">${r.vacante||0}</td>
