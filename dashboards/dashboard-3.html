@@ -617,7 +617,12 @@ function findKey(row,aliases){
   const keys=Object.keys(row||{});
   const map=new Map(keys.map(k=>[cleanKey(k),k]));
   for(const a of aliases){const f=map.get(cleanKey(a));if(f)return f;}
-  for(const a of aliases){const ac=cleanKey(a);const f=keys.find(k=>cleanKey(k).includes(ac)||ac.includes(cleanKey(k)));if(f)return f;}
+  // Coincidencia aproximada SOLO direccional (el alias debe estar contenido en el nombre
+  // de la columna) y con longitud minima de 3. Asi alias cortos o genericos no secuestran
+  // columnas equivocadas: 'AT' ya no captura 'estATus', y 'Aprovechamiento de estructura de
+  // Plaza' ya no cae sobre 'Aprovechamiento Estructura' (por tienda). Si la columna fija no
+  // existe en la base, el campo queda vacio en lugar de mostrar datos de otra columna.
+  for(const a of aliases){const ac=cleanKey(a);if(ac.length<3)continue;const f=keys.find(k=>cleanKey(k).includes(ac));if(f)return f;}
   return null;
 }
 function buildMap(data){
