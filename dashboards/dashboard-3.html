@@ -509,7 +509,7 @@
   <!-- DETALLE POR TIENDA (base "Plaza Oaxaca") -->
   <div class="card d3-fullcard" id="detalle-card" style="display:none">
     <div class="card-head">
-      <div class="card-title">Detalle por Tienda<span class="info-tip" tabindex="0" data-tip="Detalle por tienda (pestaña 'Detalle_Dashboard_3', únicamente mes actual). Se filtra por el Estatus seleccionado: al hacer clic en un KPI (ej. Equipo Completo) se muestran solo las tiendas de ese estatus."></span></div>
+      <div class="card-title">Detalle por Tienda<span class="info-tip" tabindex="0" data-tip="Detalle por tienda (desde la base principal, únicamente mes actual). Se filtra por el Estatus seleccionado: al hacer clic en un KPI (ej. Equipo Completo) se muestran solo las tiendas de ese estatus."></span></div>
       <span class="card-badge" id="detalle-count">— tiendas</span>
     </div>
     <div id="tabla-detalle">
@@ -556,9 +556,8 @@
 <script src="../js/core.js"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d3;
-// Pestaña separada con el detalle por tienda (base "Plaza Oaxaca").
-// Si no existe en el Google Sheet, el panel de detalle simplemente no se muestra.
-const TAB_DETALLE = 'Detalle_Dashboard_3';
+// El detalle por tienda se arma desde esta misma pestaña principal (ya no requiere una
+// pestaña separada 'Detalle_Dashboard_3').
 
 // Columnas exactas del Google Sheets (pestaña Dashboard_3_Diario, ahora con corte semanal "Cobertura de Tienda")
 const C = {
@@ -756,13 +755,13 @@ async function initDashboard(){
   SEMANAS = [...new Set(data.map(r=>r.semana).filter(Boolean))].sort();
   ACTIVE_SEMANA = SEMANAS[SEMANAS.length-1] || '';
 
-  // Detalle por tienda (pestaña separada "Plaza Oaxaca"). Carga aparte y opcional:
-  // si la pestaña no existe o falla, se oculta el panel sin afectar el resto.
+  // Detalle por tienda: se arma desde la MISMA base principal (rawData), filtrando solo el
+  // mes actual para no mezclar tiendas de meses anteriores. Si algo falla, se oculta el panel.
   try {
-    const rawDet = await OXXO.fetchSheetData(TAB_DETALLE);
-    if(rawDet && rawDet.length){
-      const md = buildMapDet(rawDet);
-      DETALLE_DATA = rawDet.map(r=>({
+    const md = buildMapDet(rawData);
+    DETALLE_DATA = rawData
+      .filter(r => !ACTIVE_SEMANA || String(gv(r,map,'semana','')).trim() === ACTIVE_SEMANA)
+      .map(r=>({
         asesor:   String(gv(r,md,'asesor','')).trim(),
         tienda:   String(gv(r,md,'tienda','')).trim(),
         estructura:gn(r,md,'estructura'),
@@ -774,7 +773,6 @@ async function initDashboard(){
         estatus:  String(gv(r,md,'estatus','')).trim(),
         ecSinAus: String(gv(r,md,'ecSinAus','')).trim(),
       })).filter(r=>r.tienda);
-    }
   } catch(e){ DETALLE_DATA = []; }
 
   populateFilters(data);
