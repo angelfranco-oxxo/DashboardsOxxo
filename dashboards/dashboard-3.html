@@ -622,6 +622,12 @@ const ALIASES_DET = {
   ecSinAus:  ['EC SIN AUSENTISMO','EC sin ausentismo','EC Sin Ausentismo'],
   diasEC:    ['Dias para rescate EC','Dias para rescate Ec','Días para rescate EC'],
   diasTC:    ['Dias para rescate TC','Días para rescate TC'],
+  esquema:   ['Esquema','ESQUEMA'],
+  impactoAus:['%Impacto Ausentismo','% Impacto Ausentismo','Impacto Ausentismo'],
+  impactoVac:['%Impacto Vacante','% Impacto Vacante','Impacto Vacante'],
+  totalIncid:['Total de incidencias'],
+  fechaRescEC:['Fecha maxima rescate EC','Fecha máxima rescate EC'],
+  fechaRescTC:['Fecha maxima rescate TC','Fecha máxima rescate TC'],
 };
 function buildMapDet(data){
   const s=data.find(r=>Object.values(r).some(v=>String(v||'').trim()!==''))||data[0]||{};
@@ -803,6 +809,12 @@ async function initDashboard(){
         aprov:    gn(r,map,'aprov'),
         diasEC:   gn(r,md,'diasEC'),
         diasTC:   gn(r,md,'diasTC'),
+        esquema:  String(gv(r,md,'esquema','')).trim(),
+        impactoAus: gn(r,md,'impactoAus'),
+        impactoVac: gn(r,md,'impactoVac'),
+        totalIncid: gn(r,md,'totalIncid'),
+        fechaRescEC:String(gv(r,md,'fechaRescEC','')).trim(),
+        fechaRescTC:String(gv(r,md,'fechaRescTC','')).trim(),
       })).filter(r=>r.tienda);
   } catch(e){ DETALLE_DATA = []; }
 
@@ -1117,8 +1129,8 @@ function openAsesorModal(asesorName){
       <td style="color:var(--color-gray)">${t.esquema||'—'}</td>
       <td class="text-center" style="color:${c};font-weight:600">${t.estatus||'—'}</td>
       <td class="text-center">${t.ausent??'—'}</td>
-      <td class="text-center">${t.vacante!=null?t.vacante.toFixed(2)+'%':'—'}</td>
-      <td class="text-right" style="font-weight:700;color:${c}">${(t.aprov||0).toFixed(2)}%</td>
+      <td class="text-center">${t.vacante!=null?t.vacante:'—'}</td>
+      <td class="text-right" style="font-weight:700;color:${(t.aprov||0)>92.5?'var(--semaforo-verde)':'var(--semaforo-rojo)'}">${(t.aprov||0)>92.5?100:0}%</td>
     </tr>`;
   }).join('');
 
@@ -1128,8 +1140,8 @@ function openAsesorModal(asesorName){
       ${kpi('Equipo Completo', at.completas, 'var(--semaforo-verde)')}
       ${kpi('Equipo Incompleto', at.incompletas, '#B8960C')}
       ${kpi('Tienda Crítica', at.criticas, at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)')}
-      ${kpi('Aprov. % Prom.', aprovPct+'%')}
-      ${kpi('EC % (AT)', ecAtPct)}
+      ${kpi('% Tiendas ≥92.5%', aprovPct+'%')}
+      ${kpi('Aprovechamiento por AT', ecAtPct)}
       ${kpi('Ausent. Prom.', promAus)}
     </div>
     <div class="am-charts">
@@ -1327,14 +1339,18 @@ function openTiendaModal(tiendaName){
     <div class="am-kpi__val" style="${color?`color:${color}`:''}">${val}</div>
     <div class="am-kpi__lbl">${label}</div></div>`;
 
+  const apr = t.aprov>92.5 ? 100 : 0;
+  const dias = v => { const n=Number(v); return isFinite(n) ? (Math.round(n*10)/10).toString() : '—'; };
   body.innerHTML = `
     <div class="am-kpis">
       ${kpi('Estructura Diaria', t.estructura||0)}
       ${kpi('Ausentismos', t.ausent||0, (t.ausent||0)>promAus?'var(--semaforo-rojo)':'var(--semaforo-verde)')}
       ${kpi('Vacantes', t.vacante||0, totalVac>0?'#B8960C':'var(--semaforo-verde)')}
+      ${kpi('Aprovechamiento', apr+'%', apr===100?'var(--semaforo-verde)':'var(--semaforo-rojo)')}
       ${kpi('Estatus', `<span style="font-size:.95rem;color:${ecColorVar}">${t.estatus||'—'}</span>`)}
-      ${kpi('EC sin Ausentismo', `<span style="font-size:.95rem">${t.ecSinAus||'—'}</span>`)}
-      ${kpi('Esquema', `<span style="font-size:.95rem">${t.esquema||'EP'}</span>`)}
+      ${kpi('Esquema', `<span style="font-size:.95rem">${t.esquema||'—'}</span>`)}
+      ${kpi('Días rescate EC', dias(t.diasEC), (t.diasEC||0)<=0?'var(--semaforo-verde)':'#B8960C')}
+      ${kpi('Días rescate TC', dias(t.diasTC), (t.diasTC||0)<=0?'var(--semaforo-verde)':'#B8960C')}
     </div>
     <div class="am-charts" style="${totalVac>0?'':'grid-template-columns:1fr'}">
       ${totalVac>0?`<div class="am-chart-card">
@@ -1359,6 +1375,14 @@ function openTiendaModal(tiendaName){
         <tr><td style="font-weight:600">Vacantes Ayudante</td><td class="text-right">${t.vacAyu||0}</td></tr>
         <tr><td style="font-weight:600">Estatus (con impacto)</td><td class="text-right" style="color:${ecColorVar};font-weight:700">${t.estatus||'—'}</td></tr>
         <tr><td style="font-weight:600">EC sin Ausentismo</td><td class="text-right">${t.ecSinAus||'—'}</td></tr>
+        <tr><td style="font-weight:600">Aprovechamiento</td><td class="text-right" style="font-weight:700;color:${apr===100?'var(--semaforo-verde)':'var(--semaforo-rojo)'}">${apr}%</td></tr>
+        ${t.totalIncid?`<tr><td style="font-weight:600">Total incidencias</td><td class="text-right">${t.totalIncid}</td></tr>`:''}
+        ${t.impactoAus?`<tr><td style="font-weight:600">% Impacto Ausentismo</td><td class="text-right">${t.impactoAus.toFixed(1)}%</td></tr>`:''}
+        ${t.impactoVac?`<tr><td style="font-weight:600">% Impacto Vacante</td><td class="text-right">${t.impactoVac.toFixed(1)}%</td></tr>`:''}
+        <tr><td style="font-weight:600">Días rescate EC</td><td class="text-right">${dias(t.diasEC)}</td></tr>
+        <tr><td style="font-weight:600">Días rescate TC</td><td class="text-right">${dias(t.diasTC)}</td></tr>
+        ${t.fechaRescEC?`<tr><td style="font-weight:600">Fecha máx. rescate EC</td><td class="text-right">${t.fechaRescEC}</td></tr>`:''}
+        ${t.fechaRescTC?`<tr><td style="font-weight:600">Fecha máx. rescate TC</td><td class="text-right">${t.fechaRescTC}</td></tr>`:''}
       </tbody>
     </table></div>`;
 
