@@ -61,7 +61,7 @@
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
   .detail-card{display:flex;flex-direction:column;min-height:0}
   .detail-card .tbl-wrap{flex:1}
-  .side-panel{display:grid;grid-template-rows:1fr 1fr;gap:14px;min-height:0}
+  .side-panel{display:grid;grid-template-rows:1fr;gap:14px;min-height:0}
   .side-panel .card{display:flex;flex-direction:column;min-height:0}
   .side-panel .donut-wrap{flex:1;justify-content:center}
   .side-panel .stat-grid{flex:1;align-items:center}
@@ -163,7 +163,7 @@
   .legend-label{display:flex;align-items:center;color:var(--color-dark)}
   .legend-count{font-weight:700;color:var(--color-dark)}
 
-  @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.row-main{grid-template-columns:1fr}.row2{grid-template-columns:1fr 1fr}.side-panel{grid-template-rows:auto auto}}
+  @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.row-main{grid-template-columns:1fr}.row2{grid-template-columns:1fr 1fr}.side-panel{grid-template-rows:auto}}
   @media(max-width:600px){.kpis{grid-template-columns:1fr 1fr !important}.row-main,.row2{grid-template-columns:1fr !important}}
   </style>
   <link rel="stylesheet" href="../css/dashboard-skin.css"/>
@@ -274,28 +274,18 @@
     <!-- Panel lateral -->
     <div class="side-panel">
 
-      <!-- Donut alineación global -->
+      <!-- Alineación Global (velocímetro + mix de movimiento) -->
       <div class="card">
-        <div class="card-head"><div class="card-title">🎯 Alineación Global<span class="info-tip" tabindex="0" data-tip="Porcentaje de tiendas Alineadas sobre el total de tiendas filtradas."></span></div></div>
+        <div class="card-head"><div class="card-title">🎯 Alineación Global<span class="info-tip" tabindex="0" data-tip="Velocímetro con el % de tiendas Alineadas y la distribución del movimiento (Alineada / Subir / Bajar) de las tiendas filtradas."></span></div></div>
         <div class="donut-wrap">
-          <div id="align-gauge" style="display:flex;justify-content:center;width:100%;padding:6px 0 2px">
+          <div id="align-gauge" style="display:flex;justify-content:center;width:100%;padding:6px 0 4px">
             <div class="state-box"><div class="spinner"></div></div>
           </div>
-          <div class="donut-legend">
-            <div class="legend-item"><span class="legend-label"><span class="legend-dot" style="background:#138c3e"></span>Alineadas</span><span class="legend-count" id="leg-alineada">—</span></div>
-            <div class="legend-item"><span class="legend-label"><span class="legend-dot" style="background:#B85000"></span>Subir</span><span class="legend-count" id="leg-subir">—</span></div>
-            <div class="legend-item"><span class="legend-label"><span class="legend-dot" style="background:#C0393B"></span>Bajar</span><span class="legend-count" id="leg-bajar">—</span></div>
+          <div class="stat-grid" style="margin-top:8px">
+            <div class="stat-card s"><div class="sv" id="mix-ali">—</div><div class="sl">✔ Alineada</div></div>
+            <div class="stat-card" style="background:#fff4e0"><div class="sv" id="mix-sub" style="color:#B85000">—</div><div class="sl">▲ Subir</div></div>
+            <div class="stat-card b"><div class="sv" id="mix-baj">—</div><div class="sl">▼ Bajar</div></div>
           </div>
-        </div>
-      </div>
-
-      <!-- Mix movimiento -->
-      <div class="card">
-        <div class="card-head"><div class="card-title">🔀 Mix de Movimiento<span class="info-tip" tabindex="0" data-tip="Distribución de tiendas filtradas entre Alineada, Subir y Bajar."></span></div></div>
-        <div class="stat-grid">
-          <div class="stat-card s"><div class="sv" id="mix-ali">—</div><div class="sl">✔ Alineada</div></div>
-          <div class="stat-card" style="background:#fff4e0"><div class="sv" id="mix-sub" style="color:#B85000">—</div><div class="sl">▲ Subir</div></div>
-          <div class="stat-card b"><div class="sv" id="mix-baj">—</div><div class="sl">▼ Bajar</div></div>
         </div>
       </div>
 
@@ -634,10 +624,6 @@ function renderDonut(data){
         <text x="${cx}" y="95" text-anchor="middle" style="font-size:12px;fill:var(--color-gray);font-weight:600">alineadas</text>
       </svg>`;
   }
-
-  document.getElementById('leg-alineada').textContent = alineadas;
-  document.getElementById('leg-subir').textContent    = subir;
-  document.getElementById('leg-bajar').textContent    = bajar;
 
   document.getElementById('mix-ali').textContent = alineadas;
   document.getElementById('mix-sub').textContent = subir;
