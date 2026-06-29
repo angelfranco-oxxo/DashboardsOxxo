@@ -278,17 +278,8 @@
       <div class="card">
         <div class="card-head"><div class="card-title">🎯 Alineación Global<span class="info-tip" tabindex="0" data-tip="Porcentaje de tiendas Alineadas sobre el total de tiendas filtradas."></span></div></div>
         <div class="donut-wrap">
-          <div class="donut-container">
-            <svg class="donut" width="140" height="140" viewBox="0 0 140 140">
-              <circle cx="70" cy="70" r="54" fill="none" stroke="var(--color-border)" stroke-width="18"/>
-              <circle id="seg-alineada" cx="70" cy="70" r="54" fill="none" stroke="#138c3e" stroke-width="18" stroke-dasharray="0 339.3" stroke-linecap="butt"/>
-              <circle id="seg-subir"    cx="70" cy="70" r="54" fill="none" stroke="#B85000" stroke-width="18" stroke-dasharray="0 339.3" stroke-linecap="butt"/>
-              <circle id="seg-bajar"    cx="70" cy="70" r="54" fill="none" stroke="#C0393B" stroke-width="18" stroke-dasharray="0 339.3" stroke-linecap="butt"/>
-            </svg>
-            <div class="donut-center">
-              <div class="big" id="donut-pct">—</div>
-              <div class="sm">alineadas</div>
-            </div>
+          <div id="align-gauge" style="display:flex;justify-content:center;width:100%;padding:6px 0 2px">
+            <div class="state-box"><div class="spinner"></div></div>
           </div>
           <div class="donut-legend">
             <div class="legend-item"><span class="legend-label"><span class="legend-dot" style="background:#138c3e"></span>Alineadas</span><span class="legend-count" id="leg-alineada">—</span></div>
@@ -610,29 +601,37 @@ function renderKPIs(data){
 }
 
 // ─────────────────────────────────────────────────────────
-// Render Donut
+// Render Velocímetro de Alineación Global
 function renderDonut(data){
   const total = data.length || 1;
   const alineadas = data.filter(r=>r.mov==='Alineada').length;
   const subir     = data.filter(r=>r.mov==='Subir').length;
   const bajar     = data.filter(r=>r.mov==='Bajar').length;
-  const C = 339.3; // 2πr ≈ 339.3 para r=54
-
-  let offset = 0;
-  function seg(id, count){
-    const dash = (count/total)*C;
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.setAttribute('stroke-dasharray', `${dash.toFixed(1)} ${(C-dash).toFixed(1)}`);
-    el.setAttribute('stroke-dashoffset', `-${offset.toFixed(1)}`);
-    offset += dash;
-  }
-  seg('seg-alineada', alineadas);
-  seg('seg-subir',    subir);
-  seg('seg-bajar',    bajar);
-
   const pct = Math.round(alineadas/total*100);
-  document.getElementById('donut-pct').textContent  = pct + '%';
+
+  const el = document.getElementById('align-gauge');
+  if(el){
+    const v=Math.max(0,Math.min(100,pct));
+    const color = v>=90?'#138c3e':v>=70?'#B8860B':'#C0393B';
+    const cx=100, cy=100, r=80, len=Math.PI*r;
+    const dash=(len*v/100).toFixed(1);
+    const ang=Math.PI*(1 - v/100);
+    const nx=(cx+(r-10)*Math.cos(ang)).toFixed(1), ny=(cy-(r-10)*Math.sin(ang)).toFixed(1);
+    const ma=Math.PI*(1 - 90/100);  // meta 90% de alineación
+    const m1x=(cx+(r-14)*Math.cos(ma)).toFixed(1), m1y=(cy-(r-14)*Math.sin(ma)).toFixed(1);
+    const m2x=(cx+(r+7)*Math.cos(ma)).toFixed(1),  m2y=(cy-(r+7)*Math.sin(ma)).toFixed(1);
+    el.innerHTML = `
+      <svg viewBox="0 0 200 132" style="width:100%;max-width:230px;overflow:visible">
+        <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="var(--color-border)" stroke-width="15" stroke-linecap="round"/>
+        <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="${color}" stroke-width="15" stroke-linecap="round" stroke-dasharray="${dash} ${len.toFixed(1)}" style="transition:stroke-dasharray .9s ease"/>
+        <line x1="${m1x}" y1="${m1y}" x2="${m2x}" y2="${m2y}" stroke="var(--color-ink,#1a1a1a)" stroke-width="2" opacity=".5"/>
+        <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#3B1918" stroke-width="3.5" stroke-linecap="round" style="transition:all .9s ease"/>
+        <circle cx="${cx}" cy="${cy}" r="7" fill="#3B1918"/>
+        <text x="${cx}" y="80" text-anchor="middle" style="font-family:var(--font-display,sans-serif);font-weight:800;font-size:34px;fill:${color}">${pct}%</text>
+        <text x="${cx}" y="98" text-anchor="middle" style="font-size:12px;fill:var(--color-gray);font-weight:600">alineadas</text>
+      </svg>`;
+  }
+
   document.getElementById('leg-alineada').textContent = alineadas;
   document.getElementById('leg-subir').textContent    = subir;
   document.getElementById('leg-bajar').textContent    = bajar;
