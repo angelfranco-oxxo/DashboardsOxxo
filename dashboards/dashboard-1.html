@@ -1884,8 +1884,7 @@
         <label>Antigüedad</label>
         <select class="filtro-select" id="filtro-dias">
           <option value="">Todas las antigüedades</option>
-          <option value="60">Más de 60 días</option>
-          <option value="45">Más de 45 días</option>
+          <option value="nuevas">Tiendas nuevas</option>
           <option value="30">Más de 30 días</option>
           <option value="21">Más de 21 días</option>
           <option value="15">Más de 15 días</option>
@@ -2113,6 +2112,8 @@ function tipoPuesto(desc){
 
 // Semáforo días
 function colorDias(d){if(d>=15)return'rojo';if(d>=7)return'amarillo';return'verde';}
+// Vacante de tienda nueva = sin valor en 'Días Vacantes' (celda vacía). 'Mes finalizado' no cuenta.
+function esTiendaNueva(r){ return r && !String(r.diasRaw||'').trim(); }
 function diasBadge(r){
   // Acepta el registro (para leer 'diasRaw') o un número suelto por compatibilidad.
   const raw = (r && typeof r==='object') ? String(r.diasRaw||'').trim() : '';
@@ -2364,6 +2365,7 @@ function getFiltros(){
     puesto: activePuesto,
     tiendas: selectedTiendas(),
     dias:   parseInt(document.getElementById('filtro-dias').value)||0,
+    soloNuevas: document.getElementById('filtro-dias').value==='nuevas',
     mes:    document.getElementById('filtro-mes')?.value || '',
   };
 }
@@ -2389,7 +2391,8 @@ function filtrarDatos(){
   if(f.puestos.length) filtered=filtered.filter(r=>f.puestos.includes(r.puesto));
   else if(f.puesto) filtered=filtered.filter(r=>r.tipo===f.puesto && isAllowedPuesto(r.puesto));
   else filtered=[];
-  if(f.dias)   filtered=filtered.filter(r=>r.dias>=f.dias);
+  if(f.soloNuevas) filtered=filtered.filter(r=>esTiendaNueva(r));
+  else if(f.dias)  filtered=filtered.filter(r=>r.dias>=f.dias);
   if(f.mes)    filtered=filtered.filter(r=>r.mesKey===f.mes);
   // Ordenar por días
   filtered.sort((a,b)=>b.dias-a.dias);
