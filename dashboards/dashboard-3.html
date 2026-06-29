@@ -1137,6 +1137,62 @@ function filterModalRows(inp){
   const cnt = block.querySelector('.am-filter-count'); if(cnt) cnt.textContent = shown;
   const empty = block.querySelector('.am-empty-msg'); if(empty) empty.style.display = shown===0 ? '' : 'none';
 }
+
+// Orden de la tabla de tiendas dentro del modal por asesor.
+let AM_TIENDAS = [];
+let AM_SORT = { col:'ausent', dir:'desc' };
+function amStatusRank(e){ if(isCritica(e))return 3; if(isIncompleta(e))return 2; if(isCompleta(e))return 1; return 0; }
+function amSortedTiendas(){
+  const c=AM_SORT.col, dir=AM_SORT.dir==='asc'?1:-1, strc={tienda:1,esquema:1};
+  return AM_TIENDAS.slice().sort((a,b)=>{
+    let va,vb;
+    if(c==='estatus'){ va=amStatusRank(a.estatus); vb=amStatusRank(b.estatus); }
+    else if(strc[c]){ va=String(a[c]||''); vb=String(b[c]||''); return dir*va.localeCompare(vb); }
+    else { va=a[c]||0; vb=b[c]||0; }
+    return dir*(va-vb);
+  });
+}
+function amArrow(col){ if(AM_SORT.col!==col) return '<span style="opacity:.3;margin-left:4px">⇅</span>'; return AM_SORT.dir==='asc'?'<span style="margin-left:4px">↑</span>':'<span style="margin-left:4px">↓</span>'; }
+function amDetRowsHTML(){
+  const rows = amSortedTiendas().map(t=>{
+    const c = isCritica(t.estatus)?'var(--semaforo-rojo)':isIncompleta(t.estatus)?'#B8960C':'var(--semaforo-verde)';
+    return `<tr data-f="${String(t.tienda||'').toLowerCase().replace(/"/g,'&quot;')}"${isCritica(t.estatus)?' style="background:#FFF5F5"':''}>
+      <td style="font-weight:600">${t.tienda}</td>
+      <td style="color:var(--color-gray)">${t.esquema||'—'}</td>
+      <td class="text-center" style="color:${c};font-weight:600">${t.estatus||'—'}</td>
+      <td class="text-center">${t.ausent??'—'}</td>
+      <td class="text-center">${t.vacante!=null?t.vacante:'—'}</td>
+      <td class="text-right" style="font-weight:700;color:${(t.aprov||0)>92.5?'var(--semaforo-verde)':'var(--semaforo-rojo)'}">${(t.aprov||0)>92.5?100:0}%</td>
+    </tr>`;
+  }).join('');
+  return rows || '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--color-gray)">Sin tiendas.</td></tr>';
+}
+function amTableHTML(){
+  const thS='cursor:pointer;user-select:none;white-space:nowrap';
+  return `<thead><tr>
+    <th style="${thS}" data-sort="tienda">Tienda${amArrow('tienda')}</th>
+    <th style="${thS}" data-sort="esquema">Esquema${amArrow('esquema')}</th>
+    <th style="${thS};text-align:center" data-sort="estatus">Estatus${amArrow('estatus')}</th>
+    <th style="${thS};text-align:center" data-sort="ausent">Ausentismos${amArrow('ausent')}</th>
+    <th style="${thS};text-align:center" data-sort="vacante">Vacantes${amArrow('vacante')}</th>
+    <th style="${thS};text-align:right" data-sort="aprov">Aprov. %${amArrow('aprov')}</th>
+  </tr></thead><tbody>${amDetRowsHTML()}</tbody>`;
+}
+function amWireSort(){
+  const tbl=document.getElementById('am-det-table'); if(!tbl) return;
+  tbl.querySelectorAll('thead th[data-sort]').forEach(th=>{
+    th.addEventListener('click',()=>{
+      const col=th.dataset.sort;
+      if(AM_SORT.col===col) AM_SORT.dir = AM_SORT.dir==='asc'?'desc':'asc';
+      else { AM_SORT.col=col; AM_SORT.dir = (col==='tienda'||col==='esquema')?'asc':'desc'; }
+      tbl.innerHTML = amTableHTML();
+      amWireSort();
+      const block=tbl.closest('.am-table-block');
+      const inp=block&&block.querySelector('.detalle-search input');
+      if(inp&&inp.value) filterModalRows(inp);
+    });
+  });
+}
 let MODAL_CHARTS = [];
 function closeAsesorModal(){
   MODAL_CHARTS.forEach(c=>{ try{c.destroy();}catch(e){} });
@@ -1161,17 +1217,8 @@ function openAsesorModal(asesorName){
     <div class="am-kpi__val" style="${color?`color:${color}`:''}">${val}</div>
     <div class="am-kpi__lbl">${label}</div></div>`;
 
-  const detRows = tiendas.map(t=>{
-    const c = isCritica(t.estatus)?'var(--semaforo-rojo)':isIncompleta(t.estatus)?'#B8960C':'var(--semaforo-verde)';
-    return `<tr data-f="${String(t.tienda||'').toLowerCase().replace(/"/g,'&quot;')}"${isCritica(t.estatus)?' style="background:#FFF5F5"':''}>
-      <td style="font-weight:600">${t.tienda}</td>
-      <td style="color:var(--color-gray)">${t.esquema||'—'}</td>
-      <td class="text-center" style="color:${c};font-weight:600">${t.estatus||'—'}</td>
-      <td class="text-center">${t.ausent??'—'}</td>
-      <td class="text-center">${t.vacante!=null?t.vacante:'—'}</td>
-      <td class="text-right" style="font-weight:700;color:${(t.aprov||0)>92.5?'var(--semaforo-verde)':'var(--semaforo-rojo)'}">${(t.aprov||0)>92.5?100:0}%</td>
-    </tr>`;
-  }).join('');
+  AM_TIENDAS = tiendas;
+  AM_SORT = { col:'ausent', dir:'desc' };
 
   body.innerHTML = `
     <div class="am-kpis">
@@ -1199,17 +1246,12 @@ function openAsesorModal(asesorName){
       <span class="detalle-search__icon">🔍</span>
       <input type="text" placeholder="Buscar tienda…" oninput="filterModalRows(this)" autocomplete="off">
     </div>
-    <div class="tbl-wrap" style="max-height:300px;overflow:auto"><table class="tbl">
-      <thead><tr>
-        <th>Tienda</th><th>Esquema</th><th class="text-center">Estatus</th>
-        <th class="text-center">Ausentismos</th><th class="text-center">Vacantes</th><th class="text-right">Aprov. %</th>
-      </tr></thead>
-      <tbody>${detRows||'<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--color-gray)">Sin tiendas.</td></tr>'}</tbody>
-    </table></div>
+    <div class="tbl-wrap" style="max-height:300px;overflow:auto"><table class="tbl" id="am-det-table">${amTableHTML()}</table></div>
     <div class="am-empty-msg" style="display:none;text-align:center;color:var(--color-gray);padding:14px">Sin tiendas que coincidan con la búsqueda.</div>
     </div>`;
 
   ov.classList.add('open');
+  amWireSort();
 
   // Gráficas
   if(window.Chart){
