@@ -139,7 +139,12 @@
   .d7-close:hover{background:#F71926;color:#fff}
   .d7-eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--color-gray)}
   .d7-title{font-family:var(--font-display,sans-serif);font-size:1.5rem;font-weight:800;margin:2px 0 16px}
-  .d7-action{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;font-weight:700;margin-bottom:18px}
+  .d7-action{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;font-weight:700;margin-bottom:14px}
+  .d7-recos{background:#FFFBEF;border:1px solid #F2E2B8;border-radius:14px;padding:12px 16px;margin-bottom:18px}
+  .d7-recos__title{font-size:12px;font-weight:800;letter-spacing:.04em;color:#9A6B00;margin-bottom:6px}
+  .d7-recos ul{margin:0;padding-left:18px}
+  .d7-recos li{font-size:13px;line-height:1.5;margin:3px 0;color:var(--color-dark)}
+  .d7-recos li b{font-weight:800}
   .d7-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
   .d7-kpi{background:linear-gradient(180deg,#fff,var(--color-bg,#FBF6F2));border:1px solid var(--color-border,#EEE3DC);border-radius:14px;padding:12px 8px;text-align:center}
   .d7-kpi .v{font-family:var(--font-display,sans-serif);font-size:1.5rem;font-weight:800;line-height:1}
@@ -809,6 +814,36 @@ function exportCSV(){
 // ─────────────────────────────────────────────────────────
 // Modal detalle por tienda
 function closeD7Modal(){ document.getElementById('d7-modal')?.classList.remove('open'); }
+// Genera recomendaciones accionables según la situación de la tienda.
+function buildRecos(r){
+  const sap=Number(r.est_sap)||0, treo=Number(r.est_final)||0, act=Number(r.empleados)||0, vac=Number(r.vacantes)||0;
+  const dif=Number(r.dif)||(treo-sap);
+  const ant=(r.antiguedad||'').toLowerCase();
+  const recos=[];
+  // Movimiento de estructura (SAP → TREO)
+  if(r.mov==='Subir'){
+    recos.push(`Solicitar el alta de <b>${Math.abs(dif)} posición(es)</b> en SAP para llegar a la estructura TREO (${treo}).`);
+    if(vac>0) recos.push(`Hay <b>${vac} vacante(s) abierta(s)</b>: cubrirlas primero antes de crear nuevas posiciones.`);
+  } else if(r.mov==='Bajar'){
+    recos.push(`Liberar/<b>reubicar ${Math.abs(dif)} posición(es)</b>; evaluarlas para tiendas sub-dotadas cercanas.`);
+    if(act>treo) recos.push(`Priorizar el movimiento del excedente al personal de mayor disponibilidad o menor antigüedad en el puesto.`);
+  }
+  // Dotación real vs TREO
+  if(act<treo){
+    recos.push(`<b>Sub-dotada:</b> faltan <b>${treo-act}</b> persona(s) respecto al TREO. Acelerar reclutamiento/cobertura.`);
+  } else if(act>treo){
+    recos.push(`<b>Sobre-dotada:</b> hay <b>${act-treo}</b> de más. Candidata a reubicar excedente sin afectar operación.`);
+  }
+  if(vac>0 && r.mov!=='Subir') recos.push(`Cubrir las <b>${vac} vacante(s)</b> pendientes.`);
+  // Antigüedad
+  if(ant.includes('nueva')) recos.push(`Tienda <b>nueva</b>: aplicar curva de arranque; no ajustar a la baja hasta estabilizar ventas/operación.`);
+  else if(ant.includes('reciente')) recos.push(`Tienda <b>reciente</b>: validar maduración de ventas antes de ajustes estructurales definitivos.`);
+  // Accionable oficial del sheet, si existe
+  if(r.accionable && String(r.accionable).trim()) recos.push(`Accionable TREO: <b>${esc(r.accionable)}</b>.`);
+  if(!recos.length) recos.push(`Estructura y dotación alineadas con el objetivo TREO. <b>Sin acciones requeridas.</b>`);
+  return recos;
+}
+
 function openTiendaModalD7(cr, tienda){
   const r = ALL.find(x=>String(x.cr||'')===String(cr) && String(x.tienda||'')===String(tienda))
          || ALL.find(x=>String(x.tienda||'')===String(tienda));
@@ -827,6 +862,10 @@ function openTiendaModalD7(cr, tienda){
   document.getElementById('d7-title').textContent = r.tienda||'—';
   document.getElementById('d7-body').innerHTML = `
     <div class="d7-action" style="background:${actBg};color:${actTxt}">${actIcon} ${esc(accion)}</div>
+    <div class="d7-recos">
+      <div class="d7-recos__title">💡 Recomendaciones</div>
+      <ul>${buildRecos(r).map(t=>`<li>${t}</li>`).join('')}</ul>
+    </div>
     <div class="d7-kpis">
       <div class="d7-kpi"><div class="v">${sap||'—'}</div><div class="l">SAP</div></div>
       <div class="d7-kpi"><div class="v">${treo||'—'}</div><div class="l">TREO</div></div>
