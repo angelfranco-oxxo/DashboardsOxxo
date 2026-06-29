@@ -227,8 +227,6 @@
               <th data-col="est_final" style="text-align:center">TREO</th>
               <th data-col="empleados" style="text-align:center">Activos</th>
               <th data-col="vacantes" style="text-align:center">Vacantes</th>
-              <th data-col="dif" style="text-align:center">Dif.</th>
-              <th data-col="antiguedad">Antigüedad</th>
             </tr>
           </thead>
           <tbody id="tbl-body"></tbody>
@@ -671,12 +669,10 @@ function renderTabla(){
       <td style="text-align:center;font-weight:700;color:var(--color-dark)">${r.est_final||'—'}</td>
       <td style="text-align:center">${r.empleados||'—'}</td>
       <td style="text-align:center">${r.vacantes||0}</td>
-      <td style="text-align:center">${difCell(r.dif)}</td>
-      <td>${antPill(r.antiguedad)}</td>
     </tr>`;
   }).join('');
 
-  document.getElementById('tbl-body').innerHTML = tbody || `<tr><td colspan="9"><div class="state-box">📭 Sin resultados</div></td></tr>`;
+  document.getElementById('tbl-body').innerHTML = tbody || `<tr><td colspan="7"><div class="state-box">📭 Sin resultados</div></td></tr>`;
 
   // Sort headers
   document.querySelectorAll('#main-tbl thead th').forEach(th=>{
