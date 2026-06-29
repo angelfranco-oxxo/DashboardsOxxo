@@ -978,35 +978,38 @@ function render(data){
     // Insertar tabla de plazas antes de las gráficas
     const plazaEl = document.getElementById('tabla-plazas');
     if(plazaEl) {
-      const rowsPlaza = plazaData.map((p,i) => {
+      const gauges = plazaData.map((p) => {
+        const v = Math.max(0, Math.min(100, p.aprov));
         const color = p.aprov >= 95 ? 'verde' : p.aprov >= 85 ? 'amarillo' : 'rojo';
-        const barW = Math.min(p.aprov, 100).toFixed(1);
+        const stroke = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)';
         const txtColor = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)';
-        const tint = color==='verde'?'rgba(29,185,84,.12)':color==='amarillo'?'rgba(184,150,12,.14)':'rgba(217,43,43,.10)';
-        return `<div style="flex:1;min-height:36px;display:grid;grid-template-columns:30% 52% 18%;align-items:center;padding:0 12px;${i%2?'background:rgba(0,0,0,.015)':''}">
-          <div style="font-weight:600;font-size:14px">${p.plaza}</div>
-          <div style="padding:0 10px">
-            <div style="position:relative;height:12px;background:var(--color-border);border-radius:6px">
-              <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:6px;transition:width .8s ease"></div>
-              <div title="Meta 95%" style="position:absolute;top:-3px;bottom:-3px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
-              <div title="Meta 95%" style="position:absolute;left:95%;top:-13px;transform:translateX(-50%);font-size:11px;line-height:1">🏁</div>
-              <div title="${p.plaza}: ${p.aprov.toFixed(2)}%" style="position:absolute;left:${barW}%;top:50%;transform:translate(-50%,-50%);font-size:15px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.28));transition:left .8s ease;z-index:2">🛒</div>
-            </div>
-          </div>
-          <div style="text-align:right;white-space:nowrap">
-            <span style="display:inline-block;font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:${txtColor};background:${tint};padding:3px 11px;border-radius:999px">${p.aprov.toFixed(2)}%</span>
-          </div>
+        const cx=100, cy=100, r=78, len=Math.PI*r;
+        const dash=(len*v/100).toFixed(1);
+        const ang=Math.PI*(1 - v/100);                 // 0% → izquierda, 100% → derecha
+        const nx=(cx+(r-10)*Math.cos(ang)).toFixed(1), ny=(cy-(r-10)*Math.sin(ang)).toFixed(1);
+        const ma=Math.PI*(1 - 95/100);                 // tick de meta 95%
+        const m1x=(cx+(r-14)*Math.cos(ma)).toFixed(1), m1y=(cy-(r-14)*Math.sin(ma)).toFixed(1);
+        const m2x=(cx+(r+7)*Math.cos(ma)).toFixed(1),  m2y=(cy-(r+7)*Math.sin(ma)).toFixed(1);
+        const fx=(cx+(r+11)*Math.cos(ma)).toFixed(1),  fy=(cy-(r+11)*Math.sin(ma)).toFixed(1);
+        return `<div style="display:flex;flex-direction:column;align-items:center;padding:8px 4px" title="${p.plaza}: ${p.aprov.toFixed(2)}%">
+          <svg viewBox="0 0 200 120" style="width:100%;max-width:168px;overflow:visible">
+            <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="var(--color-border)" stroke-width="13" stroke-linecap="round"/>
+            <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="${stroke}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${dash} ${len.toFixed(1)}" style="transition:stroke-dasharray .9s ease"/>
+            <line x1="${m1x}" y1="${m1y}" x2="${m2x}" y2="${m2y}" stroke="var(--color-ink,#1a1a1a)" stroke-width="2" opacity=".55"/>
+            <text x="${fx}" y="${fy}" text-anchor="middle" dominant-baseline="middle" style="font-size:11px">🏁</text>
+            <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#3B1918" stroke-width="3" stroke-linecap="round" style="transition:all .9s ease"/>
+            <circle cx="${cx}" cy="${cy}" r="6" fill="#3B1918"/>
+            <text x="${cx}" y="82" text-anchor="middle" style="font-family:var(--font-display,sans-serif);font-weight:800;font-size:30px;fill:${txtColor}">${p.aprov.toFixed(1)}%</text>
+          </svg>
+          <div style="font-weight:700;font-size:13px;margin-top:-2px;text-align:center">${p.plaza}</div>
         </div>`;
       }).join('');
       plazaEl.innerHTML = `
-        <div style="display:grid;grid-template-columns:30% 52% 18%;padding:8px 12px;background:var(--color-bg)">
-          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Plaza</div>
-          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase;padding:0 10px">Avance</div>
-          <div style="text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Aprov. %</div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:6px 4px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 10px;width:100%">${gauges}</div>
         </div>
-        <div style="flex:1;display:flex;flex-direction:column">${rowsPlaza}</div>
-        <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:11px;color:var(--color-gray)">
-          <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>Meta 95%
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;color:var(--color-gray)">
+          <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>🏁 Meta 95%
         </div>`;
     }
   } else {
