@@ -1882,16 +1882,15 @@
       </div>
       <div class="vac-fbox">
         <label>Antigüedad</label>
-        <select class="filtro-select" id="filtro-dias">
-          <option value="">Todas las antigüedades</option>
-          <option value="nuevas">Tiendas nuevas</option>
-          <option value="30">Más de 30 días</option>
-          <option value="21">Más de 21 días</option>
-          <option value="15">Más de 15 días</option>
-          <option value="7">Más de 7 días</option>
-          <option value="3">Más de 3 días</option>
-          <option value="1">Más de 1 día</option>
-        </select>
+        <div class="smart-filter" id="dias-filter">
+          <button class="smart-filter__button" type="button" id="dias-button">
+            <span class="smart-filter__label" id="dias-label">Todas las antigüedades</span>
+            <span class="smart-filter__chev">▾</span>
+          </button>
+          <div class="smart-filter__menu" id="dias-menu">
+            <div class="smart-filter__list" id="dias-options"></div>
+          </div>
+        </div>
       </div>
       <div class="vac-fbox">
         <label>Mes</label>
@@ -2254,6 +2253,44 @@ function renderPuestoOptions(){
   wrap.innerHTML=items||'<div class="smart-filter__empty">Sin puestos</div>';
 }
 
+// ── Filtro Antigüedad (multi-selección, mismo componente smart-filter) ──
+const DIAS_OPTS=[
+  {value:'nuevas',label:'Tiendas nuevas'},
+  {value:'30',label:'Más de 30 días'},
+  {value:'21',label:'Más de 21 días'},
+  {value:'15',label:'Más de 15 días'},
+  {value:'7',label:'Más de 7 días'},
+  {value:'3',label:'Más de 3 días'},
+  {value:'1',label:'Más de 1 día'},
+];
+let selectedDiasValues=[];
+function selectedDias(){ return [...selectedDiasValues]; }
+function setSelectedDias(values=[]){
+  selectedDiasValues=[...new Set((values||[]).filter(Boolean))];
+  renderDiasOptions(); updateDiasLabel();
+}
+function updateDiasLabel(){
+  const label=document.getElementById('dias-label'); if(!label) return;
+  const n=selectedDiasValues.length;
+  if(!n) label.textContent='Todas las antigüedades';
+  else if(n===1){ const o=DIAS_OPTS.find(o=>o.value===selectedDiasValues[0]); label.textContent=o?o.label:'1 filtro'; }
+  else label.textContent=`${n} antigüedades`;
+}
+function renderDiasOptions(){
+  const wrap=document.getElementById('dias-options'); if(!wrap) return;
+  wrap.innerHTML=[{value:'',label:'Todas las antigüedades'},...DIAS_OPTS].map(opt=>{
+    const isAll=opt.value==='';
+    const active=isAll?selectedDiasValues.length===0:selectedDiasValues.includes(opt.value);
+    return `<button type="button" class="smart-filter__option ${active?'is-active':''}" data-dias="${esc(opt.value)}">
+      <span class="smart-filter__check"></span><span>${esc(opt.label)}</span></button>`;
+  }).join('');
+}
+// Una vacante pasa el filtro si coincide con ALGUNA de las antigüedades elegidas (unión).
+function diasMatch(r){
+  if(!selectedDiasValues.length) return true;
+  return selectedDiasValues.some(v=> v==='nuevas' ? esTiendaNueva(r) : (r.dias>=Number(v)) );
+}
+
 function selectedTiendas(){
   return [...selectedTiendaValues];
 }
@@ -2364,8 +2401,7 @@ function getFiltros(){
     puestos: selectedPuestos(),
     puesto: activePuesto,
     tiendas: selectedTiendas(),
-    dias:   parseInt(document.getElementById('filtro-dias').value)||0,
-    soloNuevas: document.getElementById('filtro-dias').value==='nuevas',
+    dias:   selectedDias(),
     mes:    document.getElementById('filtro-mes')?.value || '',
   };
 }
@@ -2376,7 +2412,7 @@ function limpiarFiltros(){
   setSelectedTiendas();
   document.getElementById('tienda-search').value='';
   renderTiendaOptions();
-  document.getElementById('filtro-dias').value='';
+  setSelectedDias([]);
   document.getElementById('filtro-mes').value='';
   activePuesto = '';
   refreshDashboard();
@@ -2391,8 +2427,7 @@ function filtrarDatos(){
   if(f.puestos.length) filtered=filtered.filter(r=>f.puestos.includes(r.puesto));
   else if(f.puesto) filtered=filtered.filter(r=>r.tipo===f.puesto && isAllowedPuesto(r.puesto));
   else filtered=[];
-  if(f.soloNuevas) filtered=filtered.filter(r=>esTiendaNueva(r));
-  else if(f.dias)  filtered=filtered.filter(r=>r.dias>=f.dias);
+  if(selectedDiasValues.length) filtered=filtered.filter(diasMatch);
   if(f.mes)    filtered=filtered.filter(r=>r.mesKey===f.mes);
   // Ordenar por días
   filtered.sort((a,b)=>b.dias-a.dias);
@@ -2458,10 +2493,27 @@ function poblarFiltros(){
   if(meses.length){
     selMes.value=meses[meses.length-1][0];
   }
-  ['filtro-dias','filtro-mes'].forEach(id=>{
+  ['filtro-mes'].forEach(id=>{
     document.getElementById(id).addEventListener('change', () => {
       refreshDashboard();
     });
+  });
+
+  setSelectedDias([]);
+  document.getElementById('dias-button').addEventListener('click', () => {
+    const box=document.getElementById('dias-filter');
+    const willOpen=!box.classList.contains('open');
+    closeSmartFilters(willOpen ? 'dias-filter' : '');
+    box.classList.toggle('open', willOpen);
+  });
+  document.getElementById('dias-options').addEventListener('click', e => {
+    const btn=e.target.closest('[data-dias]');
+    if(!btn) return;
+    e.stopPropagation();
+    const value=btn.dataset.dias;
+    if(!value){ setSelectedDias([]); }
+    else { const set=new Set(selectedDiasValues); set.has(value)?set.delete(value):set.add(value); setSelectedDias([...set]); }
+    refreshDashboard();
   });
 
   document.getElementById('puesto-button').addEventListener('click', () => {
@@ -2737,7 +2789,7 @@ function renderOverview(allData){
   const filtroPuestosDefault = isDefaultPuestoSelection(filtroPuestos);
   const filtroPuesto = activePuesto || '';
   const filtroTienda = isDefaultTiendaSelection() ? '' : (document.getElementById('filtro-tienda')?.value || '');
-  const filtroDias = document.getElementById('filtro-dias')?.value || '';
+  const filtroDias = selectedDias().length ? '1' : '';
   const filtroMes = document.getElementById('filtro-mes')?.value || '';
 
   // KPIs
@@ -2789,25 +2841,25 @@ function renderOverview(allData){
           activePuesto = '';
           setSelectedPuestos();
           setSelectedTiendas();
-          document.getElementById('filtro-dias').value = '';
+          setSelectedDias([]);
           document.getElementById('filtro-mes').value = '';
         } else if(kpi === 'antiguos') {
           activePuesto = '';
           setSelectedPuestos();
           setSelectedTiendas();
-          document.getElementById('filtro-dias').value = '7';
+          setSelectedDias(['7']);
         } else {
           // Lider, Encargado, Ayudante
           activePuesto = kpi;
           setSelectedPuestos(puestosByTipo(kpi));
-          document.getElementById('filtro-dias').value = '';
+          setSelectedDias([]);
         }
         refreshDashboard();
       } else {
         activePuesto = '';
         setSelectedPuestos();
         setSelectedTiendas();
-        document.getElementById('filtro-dias').value = '';
+        setSelectedDias([]);
         refreshDashboard();
       }
     });
