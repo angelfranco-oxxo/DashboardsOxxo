@@ -612,23 +612,26 @@ function renderDonut(data){
   const el = document.getElementById('align-gauge');
   if(el){
     const v=Math.max(0,Math.min(100,pct));
-    const color = v>=90?'#138c3e':v>=70?'#B8860B':'#C0393B';
     const cx=100, cy=100, r=80, len=Math.PI*r;
-    const dash=(len*v/100).toFixed(1);
-    const ang=Math.PI*(1 - v/100);
-    const nx=(cx+(r-10)*Math.cos(ang)).toFixed(1), ny=(cy-(r-10)*Math.sin(ang)).toFixed(1);
-    const ma=Math.PI*(1 - 90/100);  // meta 90% de alineación
-    const m1x=(cx+(r-14)*Math.cos(ma)).toFixed(1), m1y=(cy-(r-14)*Math.sin(ma)).toFixed(1);
-    const m2x=(cx+(r+7)*Math.cos(ma)).toFixed(1),  m2y=(cy-(r+7)*Math.sin(ma)).toFixed(1);
+    const arc=`M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}`;
+    // Segmentos proporcionales sobre el semicírculo (igual que la dona, pero en velocímetro)
+    const segs=[{c:'#138c3e',n:alineadas},{c:'#B85000',n:subir},{c:'#C0393B',n:bajar}];
+    let off=0;
+    const segPaths=segs.map(s=>{
+      const segLen=(s.n/total)*len;
+      const p=`<path d="${arc}" fill="none" stroke="${s.c}" stroke-width="15" stroke-linecap="butt" stroke-dasharray="${segLen.toFixed(1)} ${len.toFixed(1)}" stroke-dashoffset="-${off.toFixed(1)}" style="transition:stroke-dasharray .9s ease,stroke-dashoffset .9s ease"/>`;
+      off+=segLen; return p;
+    }).join('');
+    const ang=Math.PI*(1 - v/100);  // aguja en el % de alineación
+    const nx=(cx+(r-12)*Math.cos(ang)).toFixed(1), ny=(cy-(r-12)*Math.sin(ang)).toFixed(1);
     el.innerHTML = `
       <svg viewBox="0 0 200 132" style="width:100%;max-width:230px;overflow:visible">
-        <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="var(--color-border)" stroke-width="15" stroke-linecap="round"/>
-        <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="${color}" stroke-width="15" stroke-linecap="round" stroke-dasharray="${dash} ${len.toFixed(1)}" style="transition:stroke-dasharray .9s ease"/>
-        <line x1="${m1x}" y1="${m1y}" x2="${m2x}" y2="${m2y}" stroke="var(--color-ink,#1a1a1a)" stroke-width="2" opacity=".5"/>
+        <path d="${arc}" fill="none" stroke="var(--color-border)" stroke-width="15" stroke-linecap="round"/>
+        ${segPaths}
         <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#3B1918" stroke-width="3.5" stroke-linecap="round" style="transition:all .9s ease"/>
         <circle cx="${cx}" cy="${cy}" r="7" fill="#3B1918"/>
-        <text x="${cx}" y="80" text-anchor="middle" style="font-family:var(--font-display,sans-serif);font-weight:800;font-size:34px;fill:${color}">${pct}%</text>
-        <text x="${cx}" y="98" text-anchor="middle" style="font-size:12px;fill:var(--color-gray);font-weight:600">alineadas</text>
+        <text x="${cx}" y="78" text-anchor="middle" style="font-family:var(--font-display,sans-serif);font-weight:800;font-size:34px;fill:#138c3e">${pct}%</text>
+        <text x="${cx}" y="95" text-anchor="middle" style="font-size:12px;fill:var(--color-gray);font-weight:600">alineadas</text>
       </svg>`;
   }
 
