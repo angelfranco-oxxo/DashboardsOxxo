@@ -991,8 +991,8 @@ function render(data){
         const m1x=(cx+(r-14)*Math.cos(ma)).toFixed(1), m1y=(cy-(r-14)*Math.sin(ma)).toFixed(1);
         const m2x=(cx+(r+7)*Math.cos(ma)).toFixed(1),  m2y=(cy-(r+7)*Math.sin(ma)).toFixed(1);
         const fx=(cx+(r+11)*Math.cos(ma)).toFixed(1),  fy=(cy-(r+11)*Math.sin(ma)).toFixed(1);
-        return `<div style="flex:0 1 28%;min-width:150px;max-width:230px;display:flex;flex-direction:column;align-items:center;padding:8px 4px" title="${p.plaza}: ${p.aprov.toFixed(2)}%">
-          <svg viewBox="0 0 200 120" style="width:100%;max-width:168px;overflow:visible">
+        return `<div style="flex:0 1 31%;min-width:170px;max-width:270px;display:flex;flex-direction:column;align-items:center;padding:6px 4px" title="${p.plaza}: ${p.aprov.toFixed(2)}%">
+          <svg viewBox="0 0 200 120" style="width:100%;max-width:205px;overflow:visible">
             <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="var(--color-border)" stroke-width="13" stroke-linecap="round"/>
             <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="${stroke}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${dash} ${len.toFixed(1)}" style="transition:stroke-dasharray .9s ease"/>
             <line x1="${m1x}" y1="${m1y}" x2="${m2x}" y2="${m2y}" stroke="var(--color-ink,#1a1a1a)" stroke-width="2" opacity=".55"/>
