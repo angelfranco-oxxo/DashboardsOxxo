@@ -133,7 +133,9 @@
   /* Modal detalle por tienda */
   .d7-overlay{position:fixed;inset:0;z-index:1000;background:rgba(30,16,12,.55);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:28px 16px;overflow-y:auto}
   .d7-overlay.open{display:flex}
-  .d7-modal{position:relative;width:min(640px,100%);background:var(--color-surface,#fff);border-radius:20px;box-shadow:0 30px 80px rgba(30,16,12,.4);padding:26px 28px;animation:d7In .22s ease}
+  .d7-modal{position:relative;width:min(900px,100%);background:var(--color-surface,#fff);border-radius:20px;box-shadow:0 30px 80px rgba(30,16,12,.4);padding:26px 28px;animation:d7In .22s ease}
+  .d7-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 26px;align-items:start}
+  @media(max-width:700px){ .d7-grid{grid-template-columns:1fr} }
   @keyframes d7In{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
   .d7-close{position:absolute;top:14px;right:16px;border:0;background:var(--color-bg,#FBF6F2);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px;color:var(--color-gray)}
   .d7-close:hover{background:#F71926;color:#fff}
@@ -862,36 +864,44 @@ function openTiendaModalD7(cr, tienda){
   document.getElementById('d7-title').textContent = r.tienda||'—';
   document.getElementById('d7-body').innerHTML = `
     <div class="d7-action" style="background:${actBg};color:${actTxt}">${actIcon} ${esc(accion)}</div>
-    <div class="d7-recos">
-      <div class="d7-recos__title">💡 Recomendaciones</div>
-      <ul>${buildRecos(r).map(t=>`<li>${t}</li>`).join('')}</ul>
-    </div>
     <div class="d7-kpis">
       <div class="d7-kpi"><div class="v">${sap||'—'}</div><div class="l">SAP</div></div>
       <div class="d7-kpi"><div class="v">${treo||'—'}</div><div class="l">TREO</div></div>
       <div class="d7-kpi"><div class="v" style="color:${actColor}">${r.empleados||'—'}</div><div class="l">Activos</div></div>
       <div class="d7-kpi"><div class="v" style="color:${vac>0?'#B85000':'inherit'}">${vac}</div><div class="l">Vacantes</div></div>
     </div>
-    <table class="d7-tbl"><tbody>
-      <tr class="d7-sec-row"><td class="d7-sec" colspan="2">Identificación</td></tr>
-      ${kv('Asesor / AT', r.asesor)}
-      ${kv('CR / ID', r.cr)}
-      ${kv('Antigüedad', r.antiguedad)}
-      ${kv('Concepto', r.concepto)}
-      ${kv('Turnos', r.turnos)}
-      ${kv('Krea', r.krea)}
-      ${kv('Siniestralidad', r.siniestralidad)}
-      <tr class="d7-sec-row"><td class="d7-sec" colspan="2">Estructura</td></tr>
-      ${kv('Movimiento', r.mov)}
-      ${kv('Diferencia (TREO − SAP)', (dif>0?'+':'')+dif)}
-      ${kv('Estructura óptima base', r.est_optima_base)}
-      ${kv('Racional de estructura', r.racional)}
-      <tr class="d7-sec-row"><td class="d7-sec" colspan="2">Operación</td></tr>
-      ${kv('Prom. MO / Venta', r.prom_mo_venta)}
-      ${kv('Transacciones mensuales', r.transacciones)}
-      ${kv('Carga de trabajo (hrs)', r.carga_hrs)}
-      ${kv('Accionable sugerido', r.accionable)}
-    </tbody></table>`;
+    <div class="d7-grid">
+      <div>
+        <div class="d7-recos">
+          <div class="d7-recos__title">💡 Recomendaciones</div>
+          <ul>${buildRecos(r).map(t=>`<li>${t}</li>`).join('')}</ul>
+        </div>
+        <table class="d7-tbl"><tbody>
+          <tr class="d7-sec-row"><td class="d7-sec" colspan="2">Identificación</td></tr>
+          ${kv('Asesor / AT', r.asesor)}
+          ${kv('CR / ID', r.cr)}
+          ${kv('Antigüedad', r.antiguedad)}
+          ${kv('Concepto', r.concepto)}
+          ${kv('Turnos', r.turnos)}
+          ${kv('Krea', r.krea)}
+          ${kv('Siniestralidad', r.siniestralidad)}
+        </tbody></table>
+      </div>
+      <div>
+        <table class="d7-tbl"><tbody>
+          <tr class="d7-sec-row"><td class="d7-sec" colspan="2">Estructura</td></tr>
+          ${kv('Movimiento', r.mov)}
+          ${kv('Diferencia (TREO − SAP)', (dif>0?'+':'')+dif)}
+          ${kv('Estructura óptima base', r.est_optima_base)}
+          ${kv('Racional de estructura', r.racional)}
+          <tr class="d7-sec-row"><td class="d7-sec" colspan="2">Operación</td></tr>
+          ${kv('Prom. MO / Venta', r.prom_mo_venta)}
+          ${kv('Transacciones mensuales', r.transacciones)}
+          ${kv('Carga de trabajo (hrs)', r.carga_hrs)}
+          ${kv('Accionable sugerido', r.accionable)}
+        </tbody></table>
+      </div>
+    </div>`;
   document.getElementById('d7-modal').classList.add('open');
 }
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeD7Modal(); });
