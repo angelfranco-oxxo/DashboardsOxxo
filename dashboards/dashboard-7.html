@@ -60,11 +60,17 @@
   .row-main{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px;align-items:stretch}
   .row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
-  .dbar-row{display:grid;grid-template-columns:96px 1fr 36px;align-items:center;gap:10px;margin:8px 0}
-  .dbar-lbl{font-size:12px;font-weight:600}
-  .dbar-bg{height:10px;background:var(--color-border);border-radius:5px;overflow:hidden}
-  .dbar-fill{height:100%;border-radius:5px;width:0;transition:width .8s ease}
-  .dbar-val{font-size:13px;font-weight:800;text-align:right}
+  .row3 .card{display:flex;flex-direction:column;min-height:300px}
+  .row3 .card .card-head{flex:0 0 auto}
+  #dist-antiguedad{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}
+  #dist-concepto{flex:1;overflow-y:auto;display:flex;flex-direction:column;justify-content:space-evenly}
+  #tot-estructura{flex:1;align-items:stretch}
+  .row3 .card #tot-bar{flex:0 0 auto}
+  .dbar-row{display:grid;grid-template-columns:110px 1fr 44px;align-items:center;gap:12px;margin:6px 0}
+  .dbar-lbl{font-size:14px;font-weight:700}
+  .dbar-bg{height:18px;background:var(--color-border);border-radius:9px;overflow:hidden}
+  .dbar-fill{height:100%;border-radius:9px;width:0;transition:width .8s ease}
+  .dbar-val{font-size:17px;font-weight:800;text-align:right;font-family:var(--font-display,sans-serif)}
   .detail-card{display:flex;flex-direction:column;min-height:0}
   .detail-card .tbl-wrap{flex:1}
   .side-panel{display:grid;grid-template-rows:1fr;gap:14px;min-height:0}
