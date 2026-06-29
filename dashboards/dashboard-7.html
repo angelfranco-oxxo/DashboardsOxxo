@@ -48,7 +48,7 @@
   .hero .filtro-btn:hover{background:#fff !important;color:var(--hb-red) !important;-webkit-text-fill-color:var(--hb-red) !important;border-color:#fff !important;transform:translateY(-1px);box-shadow:0 10px 24px rgba(60,20,15,0.22)}
 
   /* KPIs */
-  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 
   /* Cards */
   .card{background:var(--color-surface);border-radius:14px;padding:20px;box-shadow:var(--shadow-card)}
@@ -58,7 +58,13 @@
 
   /* Layout grids */
   .row-main{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px;align-items:stretch}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+  .row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+  .dbar-row{display:grid;grid-template-columns:96px 1fr 36px;align-items:center;gap:10px;margin:8px 0}
+  .dbar-lbl{font-size:12px;font-weight:600}
+  .dbar-bg{height:10px;background:var(--color-border);border-radius:5px;overflow:hidden}
+  .dbar-fill{height:100%;border-radius:5px;width:0;transition:width .8s ease}
+  .dbar-val{font-size:13px;font-weight:800;text-align:right}
   .detail-card{display:flex;flex-direction:column;min-height:0}
   .detail-card .tbl-wrap{flex:1}
   .side-panel{display:grid;grid-template-rows:1fr;gap:14px;min-height:0}
@@ -164,8 +170,8 @@
   .legend-label{display:flex;align-items:center;color:var(--color-dark)}
   .legend-count{font-weight:700;color:var(--color-dark)}
 
-  @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.row-main{grid-template-columns:1fr}.row2{grid-template-columns:1fr 1fr}.side-panel{grid-template-rows:auto}}
-  @media(max-width:600px){.kpis{grid-template-columns:1fr 1fr !important}.row-main,.row2{grid-template-columns:1fr !important}}
+  @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.row-main{grid-template-columns:1fr}.row2,.row3{grid-template-columns:1fr 1fr}.side-panel{grid-template-rows:auto}}
+  @media(max-width:600px){.kpis{grid-template-columns:1fr 1fr !important}.row-main,.row2,.row3{grid-template-columns:1fr !important}}
   </style>
   <link rel="stylesheet" href="../css/dashboard-skin.css"/>
   <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
@@ -312,6 +318,35 @@
       </div>
     </div>
 
+    <!-- Top tiendas con mayor brecha -->
+    <div class="card">
+      <div class="card-head"><div class="card-title">⚠️ Mayor Brecha (Activos vs TREO)<span class="info-tip" tabindex="0" data-tip="Tiendas ordenadas por la diferencia absoluta entre Activos y TREO. Clic para ver el detalle."></span></div></div>
+      <div id="rank-brecha" style="max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#F71926 rgba(0,0,0,.06);padding-right:6px">
+        <div class="state-box"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FILA 3: Antigüedad + Concepto + Totales -->
+  <div class="row3">
+    <div class="card">
+      <div class="card-head"><div class="card-title">🕓 Distribución por Antigüedad<span class="info-tip" tabindex="0" data-tip="Conteo de tiendas filtradas por antigüedad (Madura / Reciente / Nueva)."></span></div></div>
+      <div id="dist-antiguedad"><div class="state-box"><div class="spinner"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">🏷️ Mix por Concepto<span class="info-tip" tabindex="0" data-tip="Conteo de tiendas filtradas agrupadas por Concepto de tienda."></span></div></div>
+      <div id="dist-concepto" style="max-height:240px;overflow-y:auto"><div class="state-box"><div class="spinner"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">🧮 Totales de Estructura<span class="info-tip" tabindex="0" data-tip="Suma de SAP, TREO y Activos de las tiendas filtradas."></span></div></div>
+      <div class="stat-grid" id="tot-estructura" style="margin-top:4px">
+        <div class="stat-card m"><div class="sv" id="tot-sap">—</div><div class="sl">SAP</div></div>
+        <div class="stat-card s"><div class="sv" id="tot-treo">—</div><div class="sl">TREO</div></div>
+        <div class="stat-card" style="background:#eef4ff"><div class="sv" id="tot-act" style="color:#1D4ED8">—</div><div class="sl">Activos</div></div>
+      </div>
+      <div id="tot-bar" style="margin-top:14px"></div>
+    </div>
   </div>
 
   <!-- Footer -->
@@ -503,6 +538,8 @@ function filtrar(){
     if(f.mov    && r.mov    !== f.mov)    return false;
     if(f.ant    && r.antiguedad !== f.ant) return false;
     if(ACTIVE_KPI === 'vacantes' && (Number(r.vacantes)||0) <= 0) return false;
+    if(ACTIVE_KPI === 'subdotada'  && !((Number(r.empleados)||0) < (Number(r.est_final)||0))) return false;
+    if(ACTIVE_KPI === 'sobredotada'&& !((Number(r.empleados)||0) > (Number(r.est_final)||0))) return false;
     return true;
   });
 
@@ -522,7 +559,7 @@ function filtrar(){
 function applyFilters(){
   const movSelect = document.getElementById('filtro-mov');
   if(movSelect && movSelect.value) ACTIVE_KPI = movSelect.value;
-  else if(ACTIVE_KPI !== 'vacantes') ACTIVE_KPI = '';
+  else if(!['vacantes','subdotada','sobredotada'].includes(ACTIVE_KPI)) ACTIVE_KPI = '';
   filtrar();
   renderAll();
 }
@@ -557,6 +594,15 @@ function renderKPIs(data){
   // Posiciones netas (magnitud, no solo conteo de tiendas): cuánto hay que agregar/liberar en total.
   const posSubir = data.reduce((s,r)=>{const d=Number(r.dif)||0; return s+(d>0?d:0);}, 0);
   const posBajar = data.reduce((s,r)=>{const d=Number(r.dif)||0; return s+(d<0?-d:0);}, 0);
+  const neto = posSubir - posBajar;
+  // Cobertura de estructura: activos vs objetivo TREO.
+  const sumTreo = data.reduce((s,r)=>s+(Number(r.est_final)||0), 0);
+  const sumAct  = data.reduce((s,r)=>s+(Number(r.empleados)||0), 0);
+  const cobertura = sumTreo>0 ? Math.round(sumAct/sumTreo*100) : 0;
+  const cobClass = cobertura>=98 ? 'pos' : cobertura>=90 ? 'neu' : 'neg';
+  // Sub / sobre-dotación por tienda.
+  const subdot   = data.filter(r=>(Number(r.empleados)||0) < (Number(r.est_final)||0)).length;
+  const sobredot = data.filter(r=>(Number(r.empleados)||0) > (Number(r.est_final)||0)).length;
 
   document.getElementById('kpi-section').innerHTML = `
     <div class="kpi-card azul ${!ACTIVE_KPI ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('')}">
@@ -565,11 +611,23 @@ function renderKPIs(data){
       <div class="kpi-card__delta neu">Plaza Oaxaca</div>
       <div class="kpi-card__icon">🏪</div>
     </div>
+    <div class="kpi-card azul">
+      <div class="kpi-card__label">Cobertura Estructura<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de Activos ÷ suma de TREO de las tiendas filtradas. Indica qué % de la estructura objetivo está cubierta con gente."></span></div>
+      <div class="kpi-card__value">${cobertura}%</div>
+      <div class="kpi-card__delta ${cobClass}">${sumAct} de ${sumTreo} posiciones</div>
+      <div class="kpi-card__icon">🎯</div>
+    </div>
     <div class="kpi-card verde ${ACTIVE_KPI==='Alineada' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('Alineada')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('Alineada')}">
       <div class="kpi-card__label">Alineadas ✔<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas cuyo movimiento calculado (Est_SAP vs Est_Final P2) resulta en 'Alineada': no requieren subir ni bajar estructura."></span></div>
       <div class="kpi-card__value">${alineadas}</div>
       <div class="kpi-card__delta pos">${pct}% del total</div>
       <div class="kpi-card__icon">✅</div>
+    </div>
+    <div class="kpi-card amarillo ${ACTIVE_KPI==='vacantes' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('vacantes')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('vacantes')}">
+      <div class="kpi-card__label">Vacantes Totales<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de la columna 'Vacantes' de las tiendas filtradas."></span></div>
+      <div class="kpi-card__value">${vacantes}</div>
+      <div class="kpi-card__delta neu">En tiendas filtradas</div>
+      <div class="kpi-card__icon">👤</div>
     </div>
     <div class="kpi-card naranja ${ACTIVE_KPI==='Subir' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('Subir')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('Subir')}">
       <div class="kpi-card__label">Por Subir ▲<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas donde Est_Final P2 es mayor que Est_SAP: requieren agregar posiciones."></span></div>
@@ -583,11 +641,17 @@ function renderKPIs(data){
       <div class="kpi-card__delta neg">−${posBajar} posiciones a liberar</div>
       <div class="kpi-card__icon">📉</div>
     </div>
-    <div class="kpi-card amarillo ${ACTIVE_KPI==='vacantes' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('vacantes')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('vacantes')}">
-      <div class="kpi-card__label">Vacantes Totales<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de la columna 'Vacantes' de las tiendas filtradas."></span></div>
-      <div class="kpi-card__value">${vacantes}</div>
-      <div class="kpi-card__delta neu">En tiendas filtradas</div>
-      <div class="kpi-card__icon">👤</div>
+    <div class="kpi-card rojo ${ACTIVE_KPI==='subdotada' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('subdotada')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('subdotada')}">
+      <div class="kpi-card__label">Sub-dotadas<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas con menos Activos que su estructura TREO: les falta gente. Clic para filtrarlas."></span></div>
+      <div class="kpi-card__value">${subdot}</div>
+      <div class="kpi-card__delta neg">Activos &lt; TREO</div>
+      <div class="kpi-card__icon">🔻</div>
+    </div>
+    <div class="kpi-card naranja ${ACTIVE_KPI==='sobredotada' ? 'active' : ''}" role="button" tabindex="0" onclick="setKpiFilter('sobredotada')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiFilter('sobredotada')}">
+      <div class="kpi-card__label">Sobre-dotadas<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas con más Activos que su estructura TREO: se puede liberar/reubicar. Clic para filtrarlas. Posición neta de la plaza: ${neto>=0?'+':''}${neto}."></span></div>
+      <div class="kpi-card__value">${sobredot}</div>
+      <div class="kpi-card__delta neu">Activos &gt; TREO</div>
+      <div class="kpi-card__icon">🔺</div>
     </div>`;
 }
 
@@ -795,6 +859,80 @@ function renderAll(){
   renderTabla();
   renderRankAsesor(VIEW, 'rank-subir',  'Subir',  '#B85000');
   renderRankAsesor(VIEW, 'rank-bajar',  'Bajar',  '#C0393B');
+  renderBrecha(VIEW);
+  renderAntiguedad(VIEW);
+  renderConcepto(VIEW);
+  renderTotales(VIEW);
+}
+
+// ─────────────────────────────────────────────────────────
+// Top tiendas con mayor brecha (|Activos − TREO|)
+function renderBrecha(data){
+  const el=document.getElementById('rank-brecha'); if(!el) return;
+  const arr=data.map(r=>({r, g:(Number(r.empleados)||0)-(Number(r.est_final)||0)}))
+    .filter(x=>x.g!==0).sort((a,b)=>Math.abs(b.g)-Math.abs(a.g)).slice(0,12);
+  if(!arr.length){ el.innerHTML=`<div class="state-box" style="padding:20px 0"><div style="font-size:1.5rem">✅</div><div style="font-size:12px;font-weight:600">Sin brechas: Activos = TREO</div></div>`; return; }
+  el.innerHTML=arr.map(x=>{
+    const falta=x.g<0; const col=falta?'#C0393B':'#B85000';
+    return `<div class="d7-row" data-cr="${esc(x.r.cr||'')}" data-tienda="${esc(x.r.tienda||'')}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 6px;border-bottom:1px solid var(--color-border);cursor:pointer">
+      <div style="min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${trunc(x.r.tienda,26)}</div>
+        <div style="font-size:10px;color:var(--color-gray)">Activos ${x.r.empleados||0} · TREO ${x.r.est_final||0}</div></div>
+      <div style="font-weight:800;color:${col};white-space:nowrap">${falta?'▼ faltan ':'▲ sobran '}${Math.abs(x.g)}</div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.d7-row').forEach(tr=>tr.addEventListener('click',()=>openTiendaModalD7(tr.dataset.cr,tr.dataset.tienda)));
+}
+
+// ─────────────────────────────────────────────────────────
+// Distribución por antigüedad (barras)
+function renderAntiguedad(data){
+  const el=document.getElementById('dist-antiguedad'); if(!el) return;
+  const order=[['Madura','#138c3e'],['Reciente','#1565C0'],['Nueva','#C0393B']];
+  const counts={}; data.forEach(r=>{const a=(r.antiguedad||'').trim()||'—'; counts[a]=(counts[a]||0)+1;});
+  const total=data.length||1;
+  const rows=order.filter(([k])=>counts[k]).map(([k,c])=>{
+    const n=counts[k]||0, w=(n/total*100).toFixed(0);
+    return `<div class="dbar-row"><div class="dbar-lbl">${k}</div><div class="dbar-bg"><div class="dbar-fill" data-w="${w}%" style="background:${c}"></div></div><div class="dbar-val">${n}</div></div>`;
+  }).join('');
+  el.innerHTML=rows||'<div class="state-box">Sin datos</div>';
+  requestAnimationFrame(()=>el.querySelectorAll('.dbar-fill').forEach((b,i)=>setTimeout(()=>b.style.width=b.dataset.w,i*60)));
+}
+
+// ─────────────────────────────────────────────────────────
+// Mix por concepto (barras)
+function renderConcepto(data){
+  const el=document.getElementById('dist-concepto'); if(!el) return;
+  const counts={}; data.forEach(r=>{const c=(r.concepto||'').trim()||'Sin concepto'; counts[c]=(counts[c]||0)+1;});
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const total=data.length||1, max=sorted[0]?.[1]||1;
+  const palette=['#F71926','#B85000','#138c3e','#1565C0','#7B1FA2','#B8860B','#C0393B','#0F766E'];
+  const rows=sorted.map(([k,n],i)=>{
+    const w=(n/max*100).toFixed(0);
+    return `<div class="dbar-row"><div class="dbar-lbl" title="${esc(k)}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(k)}</div><div class="dbar-bg"><div class="dbar-fill" data-w="${w}%" style="background:${palette[i%palette.length]}"></div></div><div class="dbar-val">${n}</div></div>`;
+  }).join('');
+  el.innerHTML=rows||'<div class="state-box">Sin datos</div>';
+  requestAnimationFrame(()=>el.querySelectorAll('.dbar-fill').forEach((b,i)=>setTimeout(()=>b.style.width=b.dataset.w,i*40)));
+}
+
+// ─────────────────────────────────────────────────────────
+// Totales de estructura (SAP / TREO / Activos)
+function renderTotales(data){
+  const sap=data.reduce((s,r)=>s+(Number(r.est_sap)||0),0);
+  const treo=data.reduce((s,r)=>s+(Number(r.est_final)||0),0);
+  const act=data.reduce((s,r)=>s+(Number(r.empleados)||0),0);
+  const set=(id,v)=>{const e=document.getElementById(id); if(e) e.textContent=v;};
+  set('tot-sap',sap); set('tot-treo',treo); set('tot-act',act);
+  const bar=document.getElementById('tot-bar');
+  if(bar){
+    const cob=treo>0?Math.min(100,Math.round(act/treo*100)):0;
+    const col=cob>=98?'#138c3e':cob>=90?'#B8860B':'#C0393B';
+    bar.innerHTML=`<div style="font-size:11px;color:var(--color-gray);font-weight:700;margin-bottom:5px">Cobertura: Activos ÷ TREO</div>
+      <div class="dbar-bg" style="height:14px;border-radius:7px;position:relative">
+        <div class="dbar-fill" data-w="${cob}%" style="background:${col};height:100%;border-radius:7px"></div>
+      </div>
+      <div style="text-align:right;font-weight:800;color:${col};margin-top:4px">${cob}%</div>`;
+    requestAnimationFrame(()=>{const f=bar.querySelector('.dbar-fill'); if(f) setTimeout(()=>f.style.width=f.dataset.w,80);});
+  }
 }
 
 // ─────────────────────────────────────────────────────────
