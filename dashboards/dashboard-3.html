@@ -247,14 +247,14 @@
   /* ── Buscador de Detalle por Tienda ── */
   .detalle-search{position:relative;margin:4px 0 14px;max-width:340px}
   .detalle-search__icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.6;pointer-events:none}
-  #detalle-buscar{
+  .detalle-search input{
     width:100%;box-sizing:border-box;padding:11px 16px 11px 38px;
     border:1px solid var(--color-border);border-radius:12px;
     background:var(--color-bg);color:var(--color-ink,#181112);
     font-size:14px;font-weight:600;transition:border-color .2s,box-shadow .2s,background .2s;
   }
-  #detalle-buscar::placeholder{color:var(--color-gray);font-weight:500}
-  #detalle-buscar:focus{outline:none;border-color:var(--hb-red,#F71926);background:#fff;box-shadow:0 0 0 3px rgba(247,25,38,.14)}
+  .detalle-search input::placeholder{color:var(--color-gray);font-weight:500}
+  .detalle-search input:focus{outline:none;border-color:var(--hb-red,#F71926);background:#fff;box-shadow:0 0 0 3px rgba(247,25,38,.14)}
 
   /* ── MODAL DETALLE POR ASESOR ── */
   .am-overlay{
@@ -1123,6 +1123,20 @@ function renderTablaAT(){
 }
 
 // ── MODAL DETALLE POR ASESOR ──────────────────────────────
+// Filtra por nombre de tienda las filas de una tabla dentro de un modal (.am-table-block).
+function filterModalRows(inp){
+  const q = String(inp.value||'').trim().toLowerCase();
+  const block = inp.closest('.am-table-block');
+  if(!block) return;
+  let shown = 0;
+  block.querySelectorAll('tbody tr[data-f]').forEach(tr=>{
+    const ok = !q || tr.dataset.f.includes(q);
+    tr.style.display = ok ? '' : 'none';
+    if(ok) shown++;
+  });
+  const cnt = block.querySelector('.am-filter-count'); if(cnt) cnt.textContent = shown;
+  const empty = block.querySelector('.am-empty-msg'); if(empty) empty.style.display = shown===0 ? '' : 'none';
+}
 let MODAL_CHARTS = [];
 function closeAsesorModal(){
   MODAL_CHARTS.forEach(c=>{ try{c.destroy();}catch(e){} });
@@ -1149,7 +1163,7 @@ function openAsesorModal(asesorName){
 
   const detRows = tiendas.map(t=>{
     const c = isCritica(t.estatus)?'var(--semaforo-rojo)':isIncompleta(t.estatus)?'#B8960C':'var(--semaforo-verde)';
-    return `<tr${isCritica(t.estatus)?' style="background:#FFF5F5"':''}>
+    return `<tr data-f="${String(t.tienda||'').toLowerCase().replace(/"/g,'&quot;')}"${isCritica(t.estatus)?' style="background:#FFF5F5"':''}>
       <td style="font-weight:600">${t.tienda}</td>
       <td style="color:var(--color-gray)">${t.esquema||'—'}</td>
       <td class="text-center" style="color:${c};font-weight:600">${t.estatus||'—'}</td>
@@ -1179,14 +1193,21 @@ function openAsesorModal(asesorName){
         <div class="am-chart-wrap"><canvas id="am-chart-aus"></canvas></div>
       </div>
     </div>
-    <div class="am-table-title">Detalle por Tienda (${tiendas.length})</div>
+    <div class="am-table-block">
+    <div class="am-table-title">Detalle por Tienda (<span class="am-filter-count">${tiendas.length}</span>)</div>
+    <div class="detalle-search" style="max-width:300px;margin:0 0 12px">
+      <span class="detalle-search__icon">🔍</span>
+      <input type="text" placeholder="Buscar tienda…" oninput="filterModalRows(this)" autocomplete="off">
+    </div>
     <div class="tbl-wrap" style="max-height:300px;overflow:auto"><table class="tbl">
       <thead><tr>
         <th>Tienda</th><th>Esquema</th><th class="text-center">Estatus</th>
         <th class="text-center">Ausentismos</th><th class="text-center">Vacantes</th><th class="text-right">Aprov. %</th>
       </tr></thead>
       <tbody>${detRows||'<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--color-gray)">Sin tiendas.</td></tr>'}</tbody>
-    </table></div>`;
+    </table></div>
+    <div class="am-empty-msg" style="display:none;text-align:center;color:var(--color-gray);padding:14px">Sin tiendas que coincidan con la búsqueda.</div>
+    </div>`;
 
   ov.classList.add('open');
 
