@@ -989,6 +989,8 @@ function render(data){
             <div style="position:relative;height:12px;background:var(--color-border);border-radius:6px">
               <div style="height:100%;width:${barW}%;background:${color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)'};border-radius:6px;transition:width .8s ease"></div>
               <div title="Meta 95%" style="position:absolute;top:-3px;bottom:-3px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
+              <div title="Meta 95%" style="position:absolute;left:95%;top:-13px;transform:translateX(-50%);font-size:11px;line-height:1">🏁</div>
+              <div title="${p.plaza}: ${p.aprov.toFixed(2)}%" style="position:absolute;left:${barW}%;top:50%;transform:translate(-50%,-50%);font-size:15px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.28));transition:left .8s ease;z-index:2">🛒</div>
             </div>
           </div>
           <div style="text-align:right;white-space:nowrap">
@@ -1049,6 +1051,8 @@ function renderEcAt(){
         <div style="position:relative;height:12px;background:var(--color-border);border-radius:6px">
           <div style="height:100%;width:${barW}%;background:${barColor};border-radius:6px;transition:width .8s ease"></div>
           <div title="Meta 95%" style="position:absolute;top:-3px;bottom:-3px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
+          <div title="Meta 95%" style="position:absolute;left:95%;top:-13px;transform:translateX(-50%);font-size:11px;line-height:1">🏁</div>
+          <div title="${at.asesor}: ${v.toFixed(2)}%" style="position:absolute;left:${barW}%;top:50%;transform:translate(-50%,-50%);font-size:15px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.28));transition:left .8s ease;z-index:2">🛒</div>
         </div>
       </div>
       <div style="text-align:right;white-space:nowrap">
