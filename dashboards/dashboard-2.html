@@ -200,6 +200,15 @@
     .compromiso-table tr:nth-child(even) td { background:#fafafa; }
     .compromiso-table .num { text-align:center; font-weight:900; }
     .compromiso-table .pill { display:inline-flex; min-width:30px; justify-content:center; border-radius:8px; padding:2px 8px; color:#fff; font-weight:900; }
+
+    .denom-kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
+    .denom-kpi{ background:var(--color-bg,#FBF6F2); border:1px solid var(--color-border,#EEE3DC); border-radius:14px; padding:14px 16px; }
+    .denom-kpi__val{ font-family:var(--font-display); font-size:1.7rem; font-weight:900; line-height:1; }
+    .denom-kpi__lbl{ font-size:11px; font-weight:700; letter-spacing:.04em; color:var(--color-gray,#9a8c84); margin-top:5px; text-transform:uppercase; }
+    .denom-pill{ display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:999px; font-weight:800; font-size:12px; }
+    .denom-pill.up{ background:#e8f8f0; color:#138c3e; }
+    .denom-pill.down{ background:#fdeaea; color:#C0393B; }
+    .denom-pill.lateral{ background:#eef1f5; color:#5a6472; }
     .compromiso-table .pill.good { background:#19ad63; }
     .compromiso-table .pill.mid { background:#ffd044; color:#1a1a2e; }
     .compromiso-table .pill.warn { background:#ff7a22; }
@@ -358,6 +367,16 @@
 
   <!-- Se eliminaron las gráficas superiores pequeñas para dejar el dashboard más limpio.
        El análisis principal se conserva en los rankings y en el detalle completo. -->
+
+  <!-- DENOMINACIONES (cambios de puesto: ascensos/descensos) -->
+  <section class="panel bajas-detail-panel panel--accent-red" id="denom-section" style="display:none">
+    <div class="panel__header">
+      <div class="panel__title">🔁 Denominaciones · Cambios de Puesto<span class="info-tip" tabindex="0" data-tip="Movimientos de puesto (ascensos y descensos) registrados en la pestaña Denominaciones_Dashboard_2_Diario, agrupados por Asesor. Solo se cuentan filas que coinciden con el formato esperado."></span></div>
+      <span class="panel__badge orange" id="denom-count">— movimientos</span>
+    </div>
+    <div class="denom-kpis" id="denom-kpis"></div>
+    <div id="tabla-denominaciones"><div class="state-box"><div class="spinner"></div></div></div>
+  </section>
 
   <section class="bajas-analisis-grid">
     <article class="bajas-panel compromiso-panel">
@@ -1210,6 +1229,121 @@ function renderPlazas(data, cols) {
   }
 }
 
+// ─────────────────────────────────────────────────────────
+// DENOMINACIONES (cambios de puesto: ascensos / descensos)
+// La pestaña puede traer filas de otro origen pegadas por error (distinto
+// número de columnas / esquema). Solo se procesan filas que calcen con el
+// formato esperado de Denominaciones; el resto se descarta en silencio.
+const ALIASES_DENOM = {
+  asesor:    ['Asesor'],
+  medida:    ['Denominación Medida','Denominacion Medida'],
+  motivo:    ['Denominación Motivo','Denominacion Motivo'],
+  empleado:  ['Nombre del empleado'],
+  fecha:     ['F. Crea.','F.Crea','F. Crea'],
+  // La columna 'Denominación Posición Anterior/Actual' suele venir vacía; el dato real
+  // del cambio de puesto está en 'Denominación Función Anterior/Actual' (Func.Ant/Func.Act).
+  posAnt:    ['Denominación Función Anterior','Denominacion Funcion Anterior','Denominación Posición Anterior'],
+  posAct:    ['Denominación Función Actual','Denominacion Funcion Actual','Denominación Posición Actual'],
+  uOrgAct:   ['Denominación  U.Org.Act','Denominación U.Org.Act','Denominacion U.Org.Act','Denominación U.Org. Actual'],
+};
+function jerarquiaPuesto(desc){
+  const d=String(desc||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if(d.includes('LIDER'))return 3;
+  if(d.includes('ENCARGADO'))return 2;
+  if(d.includes('AYUDANTE')||d.includes('AYUDANTA'))return 1;
+  return 0;
+}
+// Una fila es válida si tiene Asesor, Nombre del empleado y la "Denominación Medida"
+// es texto (no un nombre de región/plaza, que es lo que aparece en las filas mezcladas).
+function denomRowValida(row, cols){
+  const asesor = val(row, cols, 'asesor', '').trim();
+  const empleado = val(row, cols, 'empleado', '').trim();
+  const medida = val(row, cols, 'medida', '').trim();
+  if(!asesor || !empleado || !medida) return false;
+  // Las filas mezcladas traen nombres de región/plaza (p.ej. "BAJA") en motivo con
+  // numero "36" o "1"/"29" en la columna Med., y el campo 'medida' termina siendo
+  // un nombre propio en vez de un tipo de movimiento — se descartan si no contienen
+  // ninguna palabra esperada de cambio de puesto.
+  const m = medida.toUpperCase();
+  return m.includes('CAMBIO') || m.includes('PUESTO') || m.includes('AYUDANTE') || m.includes('ENCARGADO') || m.includes('LIDER') || m.includes('PROMOCION') || m.includes('ASCENSO');
+}
+let BASE_DENOM_DATA = [];
+async function loadDenominaciones(){
+  const section = document.getElementById('denom-section');
+  try {
+    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2denom);
+    if(!raw || !raw.length) return;
+    const cols = buildColsGeneric(raw, ALIASES_DENOM);
+    const rows = raw.filter(r => denomRowValida(r, cols)).map(r => {
+      const posAntDesc = val(r, cols, 'posAnt','');
+      const posActDesc = val(r, cols, 'posAct','');
+      const jAnt = jerarquiaPuesto(posAntDesc), jAct = jerarquiaPuesto(posActDesc);
+      let direccion = 'lateral';
+      if(jAnt && jAct){ direccion = jAct>jAnt ? 'up' : jAct<jAnt ? 'down' : 'lateral'; }
+      else if(/AUMENTO|INCREMENTO|PROMOCION|ASCENSO/i.test(val(r,cols,'motivo',''))) direccion='up';
+      else if(/DISMINUCION|DEGRADACION|REDUCCION/i.test(val(r,cols,'motivo',''))) direccion='down';
+      return {
+        asesor: val(r,cols,'asesor','Sin asesor').trim(),
+        medida: val(r,cols,'medida','').trim(),
+        motivo: val(r,cols,'motivo','').trim(),
+        empleado: val(r,cols,'empleado','').trim(),
+        fecha: val(r,cols,'fecha','').trim(),
+        posAnt: posAntDesc.trim(),
+        posAct: posActDesc.trim(),
+        tienda: val(r,cols,'uOrgAct','').trim(),
+        direccion,
+      };
+    });
+    if(!rows.length) return;
+    BASE_DENOM_DATA = rows;
+    if(section) section.style.display = '';
+    renderDenominaciones(rows);
+  } catch(e){ /* sección opcional: si falla, se mantiene oculta sin afectar el resto */ }
+}
+function renderDenominaciones(rows){
+  const subieron = rows.filter(r=>r.direccion==='up').length;
+  const bajaron  = rows.filter(r=>r.direccion==='down').length;
+  const laterales= rows.filter(r=>r.direccion==='lateral').length;
+  const porAsesor = countBy(rows, r=>r.asesor);
+  const atTop = topEntries(porAsesor,1)[0];
+
+  document.getElementById('denom-count').textContent = `${rows.length} movimiento${rows.length===1?'':'s'}`;
+  document.getElementById('denom-kpis').innerHTML = `
+    <div class="denom-kpi"><div class="denom-kpi__val">${rows.length}</div><div class="denom-kpi__lbl">Total movimientos</div></div>
+    <div class="denom-kpi"><div class="denom-kpi__val" style="color:#138c3e">${subieron}</div><div class="denom-kpi__lbl">▲ Ascensos</div></div>
+    <div class="denom-kpi"><div class="denom-kpi__val" style="color:#C0393B">${bajaron}</div><div class="denom-kpi__lbl">▼ Descensos</div></div>
+    <div class="denom-kpi"><div class="denom-kpi__val" style="color:#5a6472">${laterales}</div><div class="denom-kpi__lbl">↔ Laterales</div></div>
+    <div class="denom-kpi"><div class="denom-kpi__val" style="font-size:1.05rem">${atTop?OXXO.truncate(atTop.label,20):'—'}</div><div class="denom-kpi__lbl">AT con más movimientos${atTop?` (${atTop.total})`:''}</div></div>`;
+
+  const sorted = rows.slice().sort((a,b)=> (a.fecha<b.fecha?1:-1));
+  const trs = sorted.map(r=>{
+    const pillClass = r.direccion==='up'?'up':r.direccion==='down'?'down':'lateral';
+    const pillIcon = r.direccion==='up'?'▲':r.direccion==='down'?'▼':'↔';
+    const pillTxt = r.direccion==='up'?'Ascenso':r.direccion==='down'?'Descenso':'Lateral';
+    return `<tr>
+      <td style="font-weight:600">${OXXO.truncate(r.asesor,26)}</td>
+      <td>${OXXO.truncate(r.empleado,28)}</td>
+      <td class="text-center"><span class="denom-pill ${pillClass}">${pillIcon} ${pillTxt}</span></td>
+      <td style="font-size:12px;color:var(--color-gray)">${OXXO.truncate(r.posAnt||'—',22)} → <strong>${OXXO.truncate(r.posAct||'—',22)}</strong></td>
+      <td style="font-size:12px;color:var(--color-gray)">${OXXO.truncate(r.tienda||'—',24)}</td>
+      <td style="font-size:12px;color:var(--color-gray);text-align:center;white-space:nowrap">${r.fecha||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tabla-denominaciones').innerHTML = `
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr>
+        <th>Asesor</th><th>Empleado</th><th class="text-center">Movimiento</th><th>Puesto Ant. → Actual</th><th>Tienda</th><th class="text-center">Fecha</th>
+      </tr></thead>
+      <tbody>${trs || '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--color-gray)">Sin denominaciones registradas.</td></tr>'}</tbody>
+    </table></div>`;
+}
+function buildColsGeneric(data, aliases){
+  const sample = data.find(r => Object.values(r).some(v => String(v||'').trim() !== '')) || data[0] || {};
+  const cols = {}; Object.entries(aliases).forEach(([k,v]) => cols[k] = findRealKey(sample, v));
+  return cols;
+}
+
 async function initDashboard(){
   const raw = await OXXO.fetchSheetData(TAB);
   if(raw === null){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar con Google Sheets.')); return; }
@@ -1226,6 +1360,7 @@ async function initDashboard(){
   SELECTED_ASESORES = defaultAsesorSelection(BASE_BAJAS_DATA, BAJAS_COLS);
   setFilterBar(BASE_BAJAS_DATA, BAJAS_COLS);
   renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
+  loadDenominaciones();
 }
 window.addEventListener('oxxo-theme-change', () => {
   if (BASE_BAJAS_DATA.length && BAJAS_COLS) renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
