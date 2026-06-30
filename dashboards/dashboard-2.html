@@ -1274,6 +1274,8 @@ async function loadDenominaciones(){
     const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2denom);
     if(!raw || !raw.length) return;
     const cols = buildColsGeneric(raw, ALIASES_DENOM);
+    const asesorCatalog = await OXXO.loadAsesorCatalog();
+    raw.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey: cols.asesor, tiendaKey: cols.uOrgAct }));
     const rows = raw.filter(r => denomRowValida(r, cols)).map(r => {
       const posAntDesc = val(r, cols, 'posAnt','');
       const posActDesc = val(r, cols, 'posAct','');
@@ -1304,7 +1306,7 @@ function renderDenominaciones(rows){
   const subieron = rows.filter(r=>r.direccion==='up').length;
   const bajaron  = rows.filter(r=>r.direccion==='down').length;
   const laterales= rows.filter(r=>r.direccion==='lateral').length;
-  const porAsesor = countBy(rows, r=>r.asesor);
+  const porAsesor = countBy(rows.filter(r=>!/sin asesor/i.test(r.asesor)), r=>r.asesor);
   const atTop = topEntries(porAsesor,1)[0];
 
   document.getElementById('denom-count').textContent = `${rows.length} movimiento${rows.length===1?'':'s'}`;
