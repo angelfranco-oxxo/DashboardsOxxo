@@ -215,7 +215,10 @@
     .denom-kpi__val{ font-family:var(--font-display); font-size:1.7rem; font-weight:900; line-height:1; color:#2c1a52; }
     .denom-kpi__lbl{ font-size:11px; font-weight:700; letter-spacing:.04em; color:#8b7fa8; margin-top:5px; text-transform:uppercase; }
     #tabla-denominaciones{ padding-bottom:18px; }
+    #tabla-denominaciones .tbl-wrap{ overflow-x:auto !important; overflow-y:visible !important; }
+    #tabla-denominaciones .tbl{ table-layout:fixed; width:100%; }
     #tabla-denominaciones .tbl thead th{ background:#2c1a52; }
+    #tabla-denominaciones .tbl td{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .denom-pill{ display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:999px; font-weight:800; font-size:12px; }
     .denom-pill.up{ background:#e8f8f0; color:#138c3e; }
     .denom-pill.down{ background:#fdeaea; color:#C0393B; }
@@ -1261,6 +1264,7 @@ const ALIASES_DENOM = {
   posAct:    ['Denominación Función Actual','Denominacion Funcion Actual','Denominación Posición Actual'],
   uOrgAct:   ['Denominación  U.Org.Act','Denominación U.Org.Act','Denominacion U.Org.Act','Denominación U.Org. Actual'],
 };
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function jerarquiaPuesto(desc){
   const d=String(desc||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   if(d.includes('LIDER'))return 3;
@@ -1337,18 +1341,23 @@ function renderDenominaciones(rows){
     const pillClass = r.direccion==='up'?'up':r.direccion==='down'?'down':'lateral';
     const pillIcon = r.direccion==='up'?'▲':r.direccion==='down'?'▼':'↔';
     const pillTxt = r.direccion==='up'?'Ascenso':r.direccion==='down'?'Descenso':'Lateral';
+    const movTxt = `${r.posAnt||'—'} → ${r.posAct||'—'}`;
     return `<tr>
-      <td style="font-weight:600">${OXXO.truncate(r.asesor,26)}</td>
-      <td>${OXXO.truncate(r.empleado,28)}</td>
+      <td style="font-weight:600" title="${esc(r.asesor)}">${OXXO.truncate(r.asesor,22)}</td>
+      <td title="${esc(r.empleado)}">${OXXO.truncate(r.empleado,24)}</td>
       <td class="text-center"><span class="denom-pill ${pillClass}">${pillIcon} ${pillTxt}</span></td>
-      <td style="font-size:12px;color:var(--color-gray)">${OXXO.truncate(r.posAnt||'—',22)} → <strong>${OXXO.truncate(r.posAct||'—',22)}</strong></td>
-      <td style="font-size:12px;color:var(--color-gray)">${OXXO.truncate(r.tienda||'—',24)}</td>
+      <td style="font-size:12px;color:var(--color-gray)" title="${esc(movTxt)}">${OXXO.truncate(r.posAnt||'—',18)} → <strong>${OXXO.truncate(r.posAct||'—',18)}</strong></td>
+      <td style="font-size:12px;color:var(--color-gray)" title="${esc(r.tienda)}">${OXXO.truncate(r.tienda||'—',20)}</td>
       <td style="font-size:12px;color:var(--color-gray);text-align:center;white-space:nowrap">${r.fecha||'—'}</td>
     </tr>`;
   }).join('');
 
   document.getElementById('tabla-denominaciones').innerHTML = `
     <div class="tbl-wrap"><table class="tbl">
+      <colgroup>
+        <col style="width:17%"><col style="width:18%"><col style="width:12%">
+        <col style="width:28%"><col style="width:17%"><col style="width:8%">
+      </colgroup>
       <thead><tr>
         <th>Asesor</th><th>Empleado</th><th class="text-center">Movimiento</th><th>Puesto Ant. → Actual</th><th>Tienda</th><th class="text-center">Fecha</th>
       </tr></thead>
