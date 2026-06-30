@@ -644,7 +644,7 @@ function setFilterBar(data, cols){
   }).join('');
 
   document.getElementById('filter-bar').innerHTML = asesorBox + selects +
-    `<div class="filter-box"><label class="filter-title">Filtros</label><button class="reset-filters" id="reset-filters">✕ Limpiar</button></div>`;
+    `<div class="filter-box"><label class="filter-title">Filtros</label><button class="reset-filters" id="reset-filters">✕ Limpiar</button><button class="reset-filters" type="button" id="download-base">Descargar base</button></div>`;
 
   document.querySelectorAll('.filter-select').forEach(select => {
     select.addEventListener('change', () => {
@@ -697,6 +697,10 @@ function setFilterBar(data, cols){
     });
     _asesorDocClickBound = true;
   }
+
+  document.getElementById('download-base')?.addEventListener('click', event => {
+    OXXO.handleDownloadButton(event.currentTarget, () => OXXO.downloadSheetTab(TAB, 'dashboard-2-bajas.csv'));
+  });
 
   const resetBtn = document.getElementById('reset-filters');
   if (resetBtn) {

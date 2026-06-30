@@ -58,6 +58,78 @@ async function fetchSheetData(tabName) {
 // FUNCIÓN: Parser CSV robusto
 // Maneja comas dentro de comillas y caracteres especiales
 // ─────────────────────────────────────────────────────────────
+
+function downloadBlob(content, filename, mimeType = 'text/csv;charset=utf-8') {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 800);
+}
+
+function timestampForFile() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes());
+}
+
+function safeFileName(value) {
+  return String(value || 'dashboard')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'dashboard';
+}
+
+async function downloadSheetTab(tabName, filename) {
+  const name = filename || (safeFileName(tabName) + '-' + timestampForFile() + '.csv');
+  const response = await fetch(buildSheetURL(tabName), { cache: 'no-store' });
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  const csv = await response.text();
+  downloadBlob(csv, name.endsWith('.csv') ? name : name + '.csv');
+}
+
+function escapeCSVValue(value) {
+  const text = String(value ?? '');
+  return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+}
+
+function rowsToCSV(rows, columns) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const headers = columns && columns.length ? columns : Array.from(safeRows.reduce((set, row) => {
+    Object.keys(row || {}).forEach(key => set.add(key));
+    return set;
+  }, new Set()));
+  const lines = [headers.map(escapeCSVValue).join(',')];
+  safeRows.forEach(row => {
+    lines.push(headers.map(header => escapeCSVValue(row?.[header])).join(','));
+  });
+  return '\uFEFF' + lines.join('\n');
+}
+
+function downloadRowsAsCSV(rows, filename, columns) {
+  downloadBlob(rowsToCSV(rows, columns), filename || ('datos-' + timestampForFile() + '.csv'));
+}
+
+async function handleDownloadButton(button, task) {
+  if (!button || typeof task !== 'function') return;
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Descargando...';
+  try {
+    await task();
+    button.textContent = 'Descargado';
+    setTimeout(() => { button.textContent = original; button.disabled = false; }, 1100);
+  } catch (error) {
+    console.error('[OXXO] Error descargando base:', error);
+    button.textContent = 'Error al descargar';
+    setTimeout(() => { button.textContent = original; button.disabled = false; }, 1800);
+  }
+}
 function parseCSV(text) {
   const lines = parseCSVRecords(text.trim());
   if (lines.length < 2) return [];
@@ -845,6 +917,12 @@ function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) 
 window.OXXO = {
   SHEETS_CONFIG,
   fetchSheetData,
+  buildSheetURL,
+  downloadBlob,
+  downloadSheetTab,
+  rowsToCSV,
+  downloadRowsAsCSV,
+  handleDownloadButton,
   loadAsesorCatalog,
   resolveAsesor,
   applyAsesorCatalog,
