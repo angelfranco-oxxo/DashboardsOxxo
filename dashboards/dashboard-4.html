@@ -286,6 +286,7 @@ const C = {
   nombre:   "Nombre del empleado o candidato",
   tipo:     "Textos homologados",
   tienda:   "Texto breve de unidad organizativa",
+  cr:       "ID Tienda",
   puesto:   "Denominación función",
   horas:    "Cantidad",
   importe:  "Importe",
@@ -539,6 +540,8 @@ async function initDashboard() {
   const data = await OXXO.fetchSheetData(TAB);
   if(data===null){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(data.length===0){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
+  data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
   BASE_DATA = data;
 
   // Badge semana

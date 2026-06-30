@@ -225,6 +225,7 @@ const C = {
   estatus:    "Estatus",
   funcion:    "Función",
   tienda:     "Tienda",
+  cr:         "ID Tienda",
   tipo:       "Denominación",          // tipo de ausentismo
   dias:       "Días presenc./abs.",
   horas:      "Horas de presencia",
@@ -464,6 +465,8 @@ async function initDashboard() {
   const data = await OXXO.fetchSheetData(TAB);
   if(data===null){['kpi-section','ranking-asesores','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(data.length===0){['kpi-section','ranking-asesores','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
+  data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
   BASE_DATA = data;
 
   // Semana badge

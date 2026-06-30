@@ -796,6 +796,7 @@ async function initDashboard(){
 
   const map = buildMap(rawData);
   console.log('Mapa de columnas:', JSON.stringify(map));
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
 
   // Normalizar datos (aprov y vacante ya vienen en unidades de % en el sheet, ej. "90.9%" = 90.9)
   const data = rawData.map(r=>({
@@ -818,6 +819,9 @@ async function initDashboard(){
     at:        String(gv(r,map,'at','')).trim(),
     plazaAt:   String(gv(r,map,'plaza_at', gv(r,map,'col_plaza',''))).trim(),
   }));
+  data.forEach(r => {
+    r.asesor = OXXO.resolveAsesor(asesorCatalog, { tienda:r.tienda, asesor:r.asesor }).toUpperCase();
+  });
 
   ALL_DATA = data;
   SEMANAS = [...new Set(data.map(r=>r.semana).filter(Boolean))].sort();
@@ -861,6 +865,9 @@ async function initDashboard(){
         ausRestEC: gn(r,md,'ausRestEC'),
         ausRestTC: gn(r,md,'ausRestTC'),
       })).filter(r=>r.tienda);
+    DETALLE_DATA.forEach(r => {
+      r.asesor = OXXO.resolveAsesor(asesorCatalog, { tienda:r.tienda, asesor:r.asesor }).toUpperCase();
+    });
   } catch(e){ DETALLE_DATA = []; }
 
   populateFilters(data);

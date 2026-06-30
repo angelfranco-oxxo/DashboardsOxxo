@@ -1048,7 +1048,11 @@ async function init(){
     return;
   }
 
-  ALL = coerceTreoRows(rows).map(normalizeRow).filter(r => r.tienda || r.asesor);
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
+  ALL = coerceTreoRows(rows)
+    .map(normalizeRow)
+    .map(r => ({ ...r, asesor: OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }) }))
+    .filter(r => r.tienda || r.asesor);
 
   // Poblar selector de asesor
   const asesores = [...new Set(ALL.map(r=>r.asesor).filter(Boolean))].sort();

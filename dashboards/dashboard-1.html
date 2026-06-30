@@ -1995,6 +1995,7 @@ const ALIASES = {
   plaza:    ['Plaza','PLAZA'],
   asesor:   ['Asesor','ASESOR','Asesor AT'],
   tienda:   ['Unidad org/','Unidad org.','Unidad org','Tienda','TIENDA','Unidad Organizativa'],
+  cr:       ['CR TIENDA','CR Tienda','CR','ID Tienda','ID tienda','Id tienda','ID_TIENDA'],
   idPos:    ['ID posiciones','ID Posiciones','ID posicion','ID posición','Id posiciones','ID POSICIONES'],
   puesto:   ['Descripción de Posición','Descripcion de Posicion','Descripción Posición','Descripcion Posicion','Puesto','PUESTO'],
   status:   ['Status ocupación','Status ocupacion','Estatus ocupación','Estatus ocupacion','Status','Estatus'],
@@ -2739,6 +2740,7 @@ async function initDashboard(){
   if(rawData.length===0){['kpi-section','tabla-detalle','ranking-container','semaforo-table'].forEach(id=>OXXO.showEmpty(id));return;}
 
   colMap=buildMap(rawData);
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
 
   // Normalizar datos
   allData=rawData.map(r=>{
@@ -2747,10 +2749,14 @@ async function initDashboard(){
     const mesInfo = normalizeMesColumn(gv(r,colMap,'mes',''));
     const plaza = String(gv(r,colMap,'plaza','')).trim();
     const puesto = String(gv(r,colMap,'puesto','')).trim();
+    const tienda = String(gv(r,colMap,'tienda','Sin tienda')).trim();
+    const cr = String(gv(r,colMap,'cr','')).trim();
+    const asesorOriginal = String(gv(r,colMap,'asesor','Sin asesor')).trim();
     return {
       plaza,
-      asesor: String(gv(r,colMap,'asesor','Sin asesor')).trim(),
-      tienda: String(gv(r,colMap,'tienda','Sin tienda')).trim(),
+      asesor: OXXO.resolveAsesor(asesorCatalog, { cr, tienda, asesor: asesorOriginal }),
+      tienda,
+      cr,
       idPos:  String(gv(r,colMap,'idPos','')).trim(),
       puesto,
       status: String(gv(r,colMap,'status','')).trim(),

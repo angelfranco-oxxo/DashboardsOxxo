@@ -469,7 +469,15 @@ async function initDashboard() {
     return;
   }
 
-  state.rows = data.rows || [];
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
+  state.rows = (data.rows || []).map((row) => ({
+    ...row,
+    asesor: OXXO.resolveAsesor(asesorCatalog, {
+      cr: row.cr || row.id_tienda || row.idTienda || row.id,
+      tienda: row.tienda,
+      asesor: row.asesor,
+    }),
+  }));
   populateFilters(state.rows);
   document.getElementById('clear-filters').addEventListener('click', () => {
     state.activeKpi = 'all';

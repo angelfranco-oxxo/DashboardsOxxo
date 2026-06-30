@@ -15,6 +15,7 @@ const SHEETS_CONFIG = {
 
   // Nombre de la pestaña de Configuración global
   CONFIG_SHEET: "Configuracion",
+  CATALOG_SHEET: "Catalogo_Asesores",
 
   // Nombres exactos de cada pestaña en Google Sheets
   TABS: {
@@ -756,10 +757,99 @@ if (document.readyState === 'loading') {
 } else {
   initThemeToggle();
 }
+
+// Catalogo compartido para corregir Asesor por CR/Tienda
+let asesorCatalogPromise = null;
+function stripAccents(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function normalizeCatalogCr(value) {
+  return stripAccents(value).toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+function normalizeCatalogTienda(value) {
+  return stripAccents(value)
+    .toUpperCase()
+    .replace(/^OXXO\s+/, '')
+    .replace(/^TIENDA\s+/, '')
+    .replace(/[^A-Z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+function validCatalogRow(asesor, tienda, cr) {
+  const crKey = normalizeCatalogCr(cr);
+  const asesorKey = normalizeCatalogTienda(asesor);
+  const tiendaKey = normalizeCatalogTienda(tienda);
+  return asesorKey && tiendaKey && /^[A-Z0-9]{4,8}$/.test(crKey)
+    && !asesorKey.startsWith('ASESORES')
+    && asesorKey !== 'ASESOR'
+    && tiendaKey !== 'TIENDA';
+}
+function parseAsesorCatalogCSV(csv) {
+  const records = parseCSVRecords(String(csv || '').trim());
+  const rows = [];
+  records.forEach(record => {
+    const cells = splitCSVRow(record).map(c => String(c || '').trim().replace(/^"|"$/g, ''));
+    if (cells.length < 3) return;
+    const [asesor, tienda, cr] = cells;
+    if (!validCatalogRow(asesor, tienda, cr)) return;
+    rows.push({ asesor, tienda, cr });
+  });
+  return rows;
+}
+function buildAsesorCatalog(rows) {
+  const byCr = new Map();
+  const byTienda = new Map();
+  rows.forEach(row => {
+    const item = { asesor: String(row.asesor || '').trim(), tienda: String(row.tienda || '').trim(), cr: String(row.cr || '').trim() };
+    const crKey = normalizeCatalogCr(item.cr);
+    const tiendaKey = normalizeCatalogTienda(item.tienda);
+    if (crKey) byCr.set(crKey, item);
+    if (tiendaKey) byTienda.set(tiendaKey, item);
+  });
+  return { loaded: true, rows, byCr, byTienda };
+}
+async function loadAsesorCatalog() {
+  if (asesorCatalogPromise) return asesorCatalogPromise;
+  asesorCatalogPromise = (async () => {
+    try {
+      const url = buildSheetURL(SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores') + '&range=A2%3AC';
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const rows = parseAsesorCatalogCSV(await response.text());
+      const catalog = buildAsesorCatalog(rows);
+      if (!rows.length) console.warn('[OXXO] Catalogo_Asesores no devolvio filas validas.');
+      return catalog;
+    } catch (error) {
+      console.warn('[OXXO] No se pudo cargar Catalogo_Asesores:', error);
+      return { loaded: false, rows: [], byCr: new Map(), byTienda: new Map() };
+    }
+  })();
+  return asesorCatalogPromise;
+}
+function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
+  const fallback = String(asesor || '').trim();
+  if (!catalog || !catalog.byCr || !catalog.byTienda) return fallback;
+  const crKey = normalizeCatalogCr(cr);
+  const tiendaKey = normalizeCatalogTienda(tienda);
+  const hit = (crKey && catalog.byCr.get(crKey)) || (tiendaKey && catalog.byTienda.get(tiendaKey));
+  return hit?.asesor || fallback;
+}
+function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) {
+  if (!row || !asesorKey) return row;
+  const corrected = resolveAsesor(catalog, { cr: crKey ? row[crKey] : '', tienda: tiendaKey ? row[tiendaKey] : '', asesor: row[asesorKey] });
+  if (corrected) row[asesorKey] = corrected;
+  return row;
+}
+
 // Exportar para uso global (disponible en todos los dashboards)
 window.OXXO = {
   SHEETS_CONFIG,
   fetchSheetData,
+  loadAsesorCatalog,
+  resolveAsesor,
+  applyAsesorCatalog,
+  normalizeCatalogCr,
+  normalizeCatalogTienda,
   loadSystemConfig,
   showLoading,
   showError,
