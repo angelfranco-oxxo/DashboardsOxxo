@@ -216,6 +216,7 @@
     font-size:15px;
     font-weight:600;
   }
+  .hero-download-link{ text-decoration:none !important; cursor:pointer; }
   .hero-badge{
     position:relative;
     z-index:1;
@@ -1852,6 +1853,7 @@
         <p>Posiciones abiertas por tienda, asesor y puesto · Plaza Oaxaca</p>
       </div>
       <span class="hero-badge">⟳ Diario · Plaza Oaxaca</span>
+      <span id="hero-download" style="display:none"></span>
     </div>
     <div class="vac-filters">
       <div class="vac-fbox">
@@ -2735,6 +2737,7 @@ function renderD1Donut(labels, values){
 }
 
 async function initDashboard(){
+  OXXO.renderDownloadButton('hero-download','d1');
   const rawData=await OXXO.fetchSheetData(TAB);
   if(rawData===null){['kpi-section','tabla-detalle','ranking-container','semaforo-table'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(rawData.length===0){['kpi-section','tabla-detalle','ranking-container','semaforo-table'].forEach(id=>OXXO.showEmpty(id));return;}

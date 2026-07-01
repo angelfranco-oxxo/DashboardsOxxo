@@ -241,6 +241,11 @@ async function loadSystemConfig() {
 
   const idxId    = headers.findIndex(h => norm(h) === 'dashboard_id');
   const idxFecha = headers.findIndex(h => norm(h) === 'ultima_actualizacion');
+  // Columna opcional con el link de un archivo descargable (Google Drive u otro) por dashboard.
+  // Si se agrega esta columna en la pestaña Configuracion, cada dashboard muestra un botón
+  // "Descargar" que apunta a ese link. Sin esta columna (o vacía), el botón no aparece.
+  const idxArchivoUrl    = headers.findIndex(h => ['archivourl','linkdescarga','urlarchivo','archivo','linkarchivo'].includes(norm(h).replace(/[^a-z0-9]/g,'')));
+  const idxArchivoNombre = headers.findIndex(h => ['archivonombre','nombrearchivo','etiquetaarchivo'].includes(norm(h).replace(/[^a-z0-9]/g,'')));
 
   const config = {};
   for (let i = headerLineIdx + 1; i < lines.length; i++) {
@@ -258,6 +263,8 @@ async function loadSystemConfig() {
       row[headers[idxFecha]] = fechaNorm;
       row['ultima_actualizacion'] = fechaNorm;
     }
+    if (idxArchivoUrl !== -1) row['archivo_url'] = (vals[idxArchivoUrl] || '').trim();
+    if (idxArchivoNombre !== -1) row['archivo_nombre'] = (vals[idxArchivoNombre] || '').trim();
     config[id] = row;
   }
 
@@ -842,10 +849,37 @@ function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) 
   return row;
 }
 
+function escapeAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Botón de descarga de archivo por dashboard
+// Lee la columna 'archivo_url' (y opcionalmente 'archivo_nombre') de la fila
+// correspondiente en la pestaña Configuracion. Si el admin sube un archivo (p.ej.
+// a Google Drive con acceso "cualquiera con el link") y pega ese link en el Sheet,
+// el botón aparece automáticamente — sin tocar código. Si no hay link, no se muestra nada.
+async function renderDownloadButton(elId, dashboardId, badgeClass = 'hero-badge') {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  try {
+    const config = await loadSystemConfig();
+    const data = config[dashboardId];
+    const url = data && data.archivo_url;
+    if (!url) return;
+    const label = data.archivo_nombre ? data.archivo_nombre : 'Descargar archivo';
+    el.innerHTML = `<a class="${escapeAttr(badgeClass)} hero-download-link" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">⬇ ${escapeAttr(label)}</a>`;
+    el.style.display = '';
+  } catch (e) {
+    // Silencioso: si falla la carga de configuración, simplemente no se muestra el botón.
+  }
+}
+
 // Exportar para uso global (disponible en todos los dashboards)
 window.OXXO = {
   SHEETS_CONFIG,
   fetchSheetData,
+  renderDownloadButton,
   loadAsesorCatalog,
   resolveAsesor,
   applyAsesorCatalog,

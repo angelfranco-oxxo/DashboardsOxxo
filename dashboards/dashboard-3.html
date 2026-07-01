@@ -226,6 +226,7 @@
     border-left:3px solid var(--hb-red,#F71926) !important;
     box-shadow:0 26px 60px rgba(0,0,0,.34) !important;
   }
+  .hero-download-link{ text-decoration:none !important; cursor:pointer; }
   body .hero h1{ color:#fff !important; letter-spacing:-.5px !important; }
   body .hero p{ color:rgba(255,255,255,.6) !important; }
   body .hero-badge{
@@ -480,6 +481,7 @@
       </div>
       <div class="hero-right">
         <span class="hero-badge">⟳ Semanal · Plaza Oaxaca</span>
+        <span id="hero-download" style="display:none"></span>
         <span class="hero-date" id="hero-date" style="display:none"></span>
       </div>
     </div>
@@ -790,6 +792,7 @@ function renderEstatusDistribution(completas, incompletas, criticas, total){
 const PLAZAS_FOCO = ['OAXACA','TUXTLA','ISTMO','VILLAHERMOSA','CHONTALPA'];
 
 async function initDashboard(){
+  OXXO.renderDownloadButton('hero-download','d3');
   const rawData = await OXXO.fetchSheetData(TAB);
   if(rawData===null){['kpi-section','plazas-row','tabla-at'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(rawData.length===0){['kpi-section','plazas-row','tabla-at'].forEach(id=>OXXO.showEmpty(id));return;}
