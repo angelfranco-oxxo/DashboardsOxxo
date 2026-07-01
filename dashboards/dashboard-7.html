@@ -190,7 +190,32 @@
 
   @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.row-main{grid-template-columns:1fr}.row2,.row3{grid-template-columns:1fr 1fr}.side-panel{grid-template-rows:auto}}
   @media(max-width:600px){.kpis{grid-template-columns:1fr 1fr !important}.row-main,.row2,.row3{grid-template-columns:1fr !important}}
-  </style>
+  
+  /* D7 equal main panels */
+  .row-main{
+    align-items:stretch !important;
+  }
+  .row-main > .detail-card,
+  .row-main > .side-panel{
+    min-height:620px !important;
+    height:100% !important;
+  }
+  .row-main > .side-panel > .card{
+    min-height:620px !important;
+    height:100% !important;
+  }
+  .row-main > .detail-card .tbl-wrap{
+    min-height:0 !important;
+  }
+  @media(max-width:1100px){
+    .row-main > .detail-card,
+    .row-main > .side-panel,
+    .row-main > .side-panel > .card{
+      min-height:0 !important;
+      height:auto !important;
+    }
+  }
+</style>
   <link rel="stylesheet" href="../css/dashboard-skin.css"/>
   <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
   <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
