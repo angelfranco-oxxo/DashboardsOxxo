@@ -491,6 +491,9 @@ async function initDashboard() {
     });
     renderAll();
   });
+  document.getElementById('download-base')?.addEventListener('click', event => {
+    OXXO.handleDownloadButton(event.currentTarget, () => OXXO.downloadRowsAsCSV(state.rows, 'dashboard-5-vacaciones.csv'));
+  });
   document.getElementById('snapshot-date').textContent = data.snapshot_date;
   renderAll();
   OXXO.updateFooterTime('load-time');
