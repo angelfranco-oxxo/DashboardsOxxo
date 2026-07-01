@@ -194,3 +194,59 @@
   .vac-filters { grid-template-columns: 1fr !important; padding: 14px !important; }
   .vac-fbox:has(.filtro-btn + .filtro-btn) { grid-template-columns: 1fr !important; min-width: 0 !important; }
 }
+
+
+/* Dashboard-specific spacing fixes */
+body.dashboard-1-page .hero {
+  min-height: 182px !important;
+  padding-bottom: 74px !important;
+  margin-bottom: 78px !important;
+}
+
+body.dashboard-1-page .vac-filters {
+  bottom: -48px !important;
+}
+
+body.dashboard-5-page .dashboard-hero {
+  min-height: 208px !important;
+  padding-bottom: 88px !important;
+  margin-bottom: 86px !important;
+}
+
+body.dashboard-5-page .dashboard-hero h1 {
+  position: relative !important;
+  z-index: 3 !important;
+}
+
+body.dashboard-5-page .vac-filters {
+  bottom: -58px !important;
+  grid-template-columns: repeat(5, minmax(140px, 1fr)) !important;
+}
+
+body.dashboard-5-page .vac-filter-status {
+  grid-column: 1 / -1 !important;
+  color: #8b6a5f !important;
+  -webkit-text-fill-color: #8b6a5f !important;
+  background: rgba(255,255,255,.52) !important;
+  border: 1px solid rgba(120,47,39,.08) !important;
+  border-radius: 10px !important;
+  padding: 10px 12px !important;
+  margin-top: 0 !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+}
+
+@media (max-width: 1180px) {
+  body.dashboard-1-page .hero,
+  body.dashboard-5-page .dashboard-hero {
+    min-height: 0 !important;
+    padding-bottom: 24px !important;
+    margin-bottom: 18px !important;
+  }
+
+  body.dashboard-1-page .vac-filters,
+  body.dashboard-5-page .vac-filters {
+    bottom: auto !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
