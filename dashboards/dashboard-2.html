@@ -228,6 +228,30 @@
     .denom-pill.up{ background:#e8f8f0; color:#138c3e; }
     .denom-pill.down{ background:#fdeaea; color:#C0393B; }
     .denom-pill.lateral{ background:#eef1f5; color:#5a6472; }
+
+    /* Tabla de detalle: encabezados ordenables + fila clicable */
+    #tabla-detalle .data-table thead th{ cursor:pointer; user-select:none; white-space:nowrap; }
+    #tabla-detalle .data-table thead th:hover{ background:#3a1517; }
+    #tabla-detalle .data-table tbody tr{ cursor:pointer; }
+
+    /* Modal detalle de baja */
+    .baja-overlay{ position:fixed; inset:0; z-index:1000; background:rgba(30,16,12,.55); backdrop-filter:blur(3px); display:none; align-items:center; justify-content:center; padding:28px 16px; overflow-y:auto; }
+    .baja-overlay.open{ display:flex; }
+    .baja-modal{ position:relative; width:min(620px,100%); background:#fff; border-radius:20px; box-shadow:0 30px 80px rgba(30,16,12,.4); padding:26px 28px; animation:bajaIn .22s ease; }
+    @keyframes bajaIn{ from{opacity:0; transform:translateY(10px) scale(.98)} to{opacity:1; transform:none} }
+    .baja-close{ position:absolute; top:14px; right:16px; border:0; background:#f5f0ea; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px; color:#8a7a72; }
+    .baja-close:hover{ background:#c0181f; color:#fff; }
+    .baja-eyebrow{ font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#a6968d; }
+    .baja-title{ font-family:var(--font-display); font-size:1.5rem; font-weight:800; margin:2px 0 16px; }
+    .baja-kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px; }
+    .baja-kpi{ background:#faf6f2; border:1px solid #ede4dc; border-radius:14px; padding:12px 8px; text-align:center; }
+    .baja-kpi .v{ font-family:var(--font-display); font-size:1.15rem; font-weight:800; line-height:1.1; }
+    .baja-kpi .l{ font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#a6968d; margin-top:6px; }
+    .baja-tbl{ width:100%; border-collapse:collapse; }
+    .baja-tbl td{ padding:9px 4px; border-bottom:1px solid #f0e9e2; font-size:13px; }
+    .baja-tbl td:first-child{ font-weight:600; color:#8a7a72; width:42%; }
+    .baja-tbl td:last-child{ text-align:right; font-weight:600; }
+    .baja-tbl tr:last-child td{ border-bottom:none; }
     .compromiso-table .pill.good { background:#19ad63; }
     .compromiso-table .pill.mid { background:#ffd044; color:#1a1a2e; }
     .compromiso-table .pill.warn { background:#ff7a22; }
@@ -450,6 +474,16 @@
     <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
   </div>
 </main>
+
+<!-- Modal detalle de baja -->
+<div class="baja-overlay" id="baja-modal" onclick="if(event.target===this)closeBajaModal()">
+  <div class="baja-modal">
+    <button class="baja-close" onclick="closeBajaModal()" aria-label="Cerrar">✕</button>
+    <div class="baja-eyebrow">Detalle de la baja</div>
+    <h3 class="baja-title" id="baja-title">—</h3>
+    <div id="baja-body"></div>
+  </div>
+</div>
 
 <script src="../js/core.js"></script>
 <script>
@@ -941,16 +975,94 @@ function renderCompromiso(data, cols){
     </table>`;
 }
 
-function renderDetail(data, cols){
-  const columns = [
-    ['mes','Mes'], ['semana','Semana'], ['asesor','Asesor'], ['tienda','Tienda'], ['empleado','Colaborador'], ['puesto','Puesto'], ['motivo','Motivo'], ['detalle','Detalle baja'], ['temporalidad','Temporalidad'], ['rotTemp','Rot. Temp.'], ['genero','Género'], ['personal','No. personal']
-  ].filter(([k]) => cols[k] || k==='temporalidad' || k==='mes');
-  const rows = data.map(r => '<tr>' + columns.map(([k]) => {
-    let v = k==='puesto' ? normalizePuesto(val(r,cols,k)) : k==='motivo' ? normalizeMotivo(val(r,cols,k)) : k==='temporalidad' ? getTemporalidad(r,cols) : k==='mes' ? monthLabel(monthKeyFromRow(r,cols)) : val(r,cols,k,'—');
-    return `<td>${OXXO.truncate(String(v||'—'), 38)}</td>`;
-  }).join('') + '</tr>').join('');
-  document.getElementById('tabla-detalle').innerHTML = `<div class="table-wrapper"><table class="data-table"><thead><tr>${columns.map(([,label])=>`<th>${label}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+// Tabla de detalle de bajas: columnas reducidas (lo esencial para escanear rápido).
+// El resto de los campos se muestran en la ventana emergente al hacer clic en una fila,
+// sin repetir lo que ya se ve en la tabla.
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+const DET_MAIN_COLS = [
+  ['mes','Mes'], ['asesor','Asesor'], ['tienda','Tienda'], ['empleado','Colaborador'], ['puesto','Puesto'], ['motivo','Motivo'], ['genero','Género']
+];
+let DET_DATA = [], DET_COLS = null;
+let DET_SORT = { col:'mes', dir:'desc' };
+function detValue(r, cols, key){
+  if(key==='mes') return monthKeyFromRow(r,cols) || '';
+  if(key==='puesto') return normalizePuesto(val(r,cols,key));
+  if(key==='motivo') return normalizeMotivo(val(r,cols,key));
+  if(key==='temporalidad') return getTemporalidad(r,cols);
+  return val(r,cols,key,'');
 }
+function detDisplay(r, cols, key){
+  if(key==='mes') return monthLabel(monthKeyFromRow(r,cols));
+  return detValue(r,cols,key) || '—';
+}
+function renderDetail(data, cols){
+  DET_DATA = data; DET_COLS = cols;
+  DET_DATA.forEach((r,i)=>{ r.__detIdx = i; });
+  renderDetailTable();
+}
+function renderDetailTable(){
+  const data = DET_DATA, cols = DET_COLS;
+  const sorted = data.slice().sort((a,b)=>{
+    const va = detValue(a,cols,DET_SORT.col), vb = detValue(b,cols,DET_SORT.col);
+    const na = Number(va), nb = Number(vb);
+    const bothNum = va!=='' && vb!=='' && !isNaN(na) && !isNaN(nb);
+    const cmp = bothNum ? (na-nb) : String(va).localeCompare(String(vb), 'es');
+    return DET_SORT.dir==='asc' ? cmp : -cmp;
+  });
+  const arrow = col => DET_SORT.col!==col ? '<span style="opacity:.35;margin-left:4px">⇅</span>' : (DET_SORT.dir==='asc'?'<span style="margin-left:4px">↑</span>':'<span style="margin-left:4px">↓</span>');
+  const thead = `<tr>${DET_MAIN_COLS.map(([k,label])=>`<th data-col="${k}">${label}${arrow(k)}</th>`).join('')}</tr>`;
+  const rows = sorted.map(r => `<tr class="det-row" data-idx="${r.__detIdx}">` + DET_MAIN_COLS.map(([k]) => {
+    const v = detDisplay(r,cols,k);
+    return `<td title="${escHtml(v)}">${OXXO.truncate(String(v||'—'), 32)}</td>`;
+  }).join('') + '</tr>').join('');
+  document.getElementById('tabla-detalle').innerHTML = `<div class="table-wrapper"><table class="data-table" id="tbl-detalle-bajas"><thead>${thead}</thead><tbody>${rows}</tbody></table></div>`;
+
+  document.querySelectorAll('#tbl-detalle-bajas thead th[data-col]').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const col = th.dataset.col;
+      if(DET_SORT.col===col) DET_SORT.dir = DET_SORT.dir==='asc'?'desc':'asc';
+      else { DET_SORT.col = col; DET_SORT.dir='asc'; }
+      renderDetailTable();
+    });
+  });
+  document.querySelectorAll('#tbl-detalle-bajas tbody tr.det-row').forEach(tr=>{
+    tr.addEventListener('click', ()=> openBajaModal(Number(tr.dataset.idx)));
+  });
+}
+
+// ── MODAL DETALLE DE BAJA ─────────────────────────────────
+function closeBajaModal(){ document.getElementById('baja-modal')?.classList.remove('open'); }
+function openBajaModal(idx){
+  const r = DET_DATA.find(x=>x.__detIdx===idx);
+  if(!r) return;
+  const cols = DET_COLS;
+  const kv = (l,v) => { v = String(v==null?'':v).trim(); return v ? `<tr><td>${l}</td><td>${escHtml(v)}</td></tr>` : ''; };
+
+  document.getElementById('baja-title').textContent = val(r,cols,'empleado','Colaborador');
+  document.getElementById('baja-body').innerHTML = `
+    <div class="baja-kpis">
+      <div class="baja-kpi"><div class="v">${escHtml(val(r,cols,'asesor','—'))}</div><div class="l">Asesor</div></div>
+      <div class="baja-kpi"><div class="v">${escHtml(val(r,cols,'tienda','—'))}</div><div class="l">Tienda</div></div>
+      <div class="baja-kpi"><div class="v">${escHtml(normalizeMotivo(val(r,cols,'motivo')))}</div><div class="l">Motivo</div></div>
+    </div>
+    <table class="baja-tbl"><tbody>
+      ${kv('Puesto', normalizePuesto(val(r,cols,'puesto')))}
+      ${kv('Detalle de baja', val(r,cols,'detalle'))}
+      ${kv('Mes', monthLabel(monthKeyFromRow(r,cols)))}
+      ${kv('Semana', val(r,cols,'semana'))}
+      ${kv('Plaza', val(r,cols,'plaza'))}
+      ${kv('Región', val(r,cols,'region'))}
+      ${kv('Temporalidad', getTemporalidad(r,cols))}
+      ${kv('Rot. Temprana', val(r,cols,'rotTemp'))}
+      ${kv('Género', val(r,cols,'genero'))}
+      ${kv('Edad', val(r,cols,'edad'))}
+      ${kv('Antigüedad (días)', val(r,cols,'antiguedad'))}
+      ${kv('Fecha', val(r,cols,'fecha'))}
+      ${kv('No. Personal', val(r,cols,'personal'))}
+    </tbody></table>`;
+  document.getElementById('baja-modal').classList.add('open');
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeBajaModal(); });
 const AGE_GROUPS = [
   {label:'18-25', min:18, max:25},
   {label:'26-35', min:26, max:35},
