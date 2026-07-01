@@ -943,7 +943,7 @@ function renderCompromiso(data, cols){
 
 function renderDetail(data, cols){
   const columns = [
-    ['mes','Mes'], ['semana','Semana'], ['plaza','Plaza'], ['asesor','Asesor'], ['tienda','Tienda'], ['empleado','Colaborador'], ['puesto','Puesto'], ['motivo','Motivo'], ['detalle','Detalle baja'], ['temporalidad','Temporalidad'], ['rotTemp','Rot. Temp.'], ['genero','Género'], ['personal','No. personal']
+    ['mes','Mes'], ['semana','Semana'], ['asesor','Asesor'], ['tienda','Tienda'], ['empleado','Colaborador'], ['puesto','Puesto'], ['motivo','Motivo'], ['detalle','Detalle baja'], ['temporalidad','Temporalidad'], ['rotTemp','Rot. Temp.'], ['genero','Género'], ['personal','No. personal']
   ].filter(([k]) => cols[k] || k==='temporalidad' || k==='mes');
   const rows = data.map(r => '<tr>' + columns.map(([k]) => {
     let v = k==='puesto' ? normalizePuesto(val(r,cols,k)) : k==='motivo' ? normalizeMotivo(val(r,cols,k)) : k==='temporalidad' ? getTemporalidad(r,cols) : k==='mes' ? monthLabel(monthKeyFromRow(r,cols)) : val(r,cols,k,'—');
