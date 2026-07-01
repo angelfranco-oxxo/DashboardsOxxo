@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 .page{max-width:1500px;margin:0 auto;padding:18px 20px 36px}
+.hero-download-link{ text-decoration:none !important; cursor:pointer; }
 
 /* KPI grid — igual que D1 */
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
@@ -176,6 +177,7 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
         <p>Análisis de gasto por asesor, tipo de TE y tienda · Plaza Oaxaca</p>
       </div>
       <span class="hero-badge" id="semana-badge">⟳ Semanal · Plaza Oaxaca</span>
+      <span id="hero-download" style="display:none"></span>
     </div>
     <div class="vac-filters">
       <div class="vac-fbox">
@@ -538,6 +540,7 @@ function limpiarFiltros(){
 document.getElementById('clear-filter').onclick = ()=>setFilter(null);
 
 async function initDashboard() {
+  OXXO.renderDownloadButton('hero-download','s4');
   const data = await OXXO.fetchSheetData(TAB);
   if(data===null){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(data.length===0){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}

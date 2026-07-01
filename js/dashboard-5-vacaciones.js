@@ -454,6 +454,7 @@ function renderAll() {
 }
 
 async function initDashboard() {
+  if (window.OXXO && OXXO.renderDownloadButton) OXXO.renderDownloadButton('hero-download','s5','dashboard-hero__badge');
   let data = window.VACACIONES_DASHBOARD_5;
   try {
     if (!data) {
