@@ -625,6 +625,7 @@ const C = {
 const ALIASES = {
   asesor:    ['Asesor','Asesor ','ASESOR'],
   tienda:    ['Tienda','Tienda ','TIENDA'],
+  cr:        ['CR TIENDA','CR Tienda','Cr Tienda','CR','ID Tienda','ID TIENDA'],
   esquema:   ['Esquema','ESQUEMA'],
   estructura:['Promedio activo mensual num','Estructura_diaria','Estructura Diaria','Estructura diaria','Estructura','ESTRUCTURA'],
   ausent:    ['aus no justificado','Ausentismos','AUSENTISMOS','AUSENTISMOS '],
@@ -643,6 +644,7 @@ const ALIASES = {
 const ALIASES_DET = {
   asesor:    ['Asesor','Asesor ','ASESOR'],
   tienda:    ['Tienda','Tienda ','TIENDA'],
+  cr:        ['CR TIENDA','CR Tienda','Cr Tienda','CR','ID Tienda','ID TIENDA'],
   estructura:['Estructura Diaria','Estructura diaria','Estructura_diaria','Estructura'],
   ausent:    ['AUSENTISMOS','AUSENTISMOS ','Ausentismos','aus no justificado'],
   vacante:   ['Vacante','Vacantes','% Vacantes'],
@@ -809,6 +811,7 @@ async function initDashboard(){
     // (p.ej. 'Jordan Vazquez Toala' y 'JORDAN VAZQUEZ TOALA'); normalizar evita duplicados.
     asesor:    String(gv(r,map,'asesor','Sin asesor')).trim().toUpperCase(),
     tienda:    String(gv(r,map,'tienda','Sin tienda')).trim(),
+    cr:        String(gv(r,map,'cr','')).trim(),
     esquema:   String(gv(r,map,'esquema','')).trim(),
     estructura:gn(r,map,'estructura'),
     ausent:    gn(r,map,'ausent'),
@@ -825,7 +828,7 @@ async function initDashboard(){
     plazaAt:   String(gv(r,map,'plaza_at', gv(r,map,'col_plaza',''))).trim(),
   }));
   data.forEach(r => {
-    r.asesor = OXXO.resolveAsesor(asesorCatalog, { tienda:r.tienda, asesor:r.asesor }).toUpperCase();
+    r.asesor = OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }).toUpperCase();
   });
 
   ALL_DATA = data;
@@ -841,6 +844,7 @@ async function initDashboard(){
       .map(r=>({
         asesor:   String(gv(r,md,'asesor','')).trim(),
         tienda:   String(gv(r,md,'tienda','')).trim(),
+        cr:       String(gv(r,md,'cr', gv(r,map,'cr',''))).trim(),
         estructura:gn(r,md,'estructura'),
         ausent:   gn(r,md,'ausent'),
         vacante:  gn(r,md,'vacante'),
@@ -871,7 +875,7 @@ async function initDashboard(){
         ausRestTC: gn(r,md,'ausRestTC'),
       })).filter(r=>r.tienda);
     DETALLE_DATA.forEach(r => {
-      r.asesor = OXXO.resolveAsesor(asesorCatalog, { tienda:r.tienda, asesor:r.asesor }).toUpperCase();
+      r.asesor = OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }).toUpperCase();
     });
   } catch(e){ DETALLE_DATA = []; }
 
