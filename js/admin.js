@@ -1,9 +1,9 @@
 (function(){
   const ADMIN_CONFIG_KEY = 'oxxo_admin_apps_script_url';
   const dashboards = [
-    { key:'d1', label:'Dashboard 1 - Vacantes diarias', tab:OXXO.SHEETS_CONFIG.TABS.d1, required:['Plaza','Asesor','Unidad org','ID posiciones','Descripción de Posición','Status ocupación','Fecha','Días Vacantes','Mes'] },
+    { key:'d1', label:'Dashboard 1 - Vacantes diarias', tab:OXXO.SHEETS_CONFIG.TABS.d1, required:['Plaza','Asesor','Unidad org','ID posiciones','Descripcion de Posicion','Status ocupacion','Fecha','Dias Vacantes','Mes'] },
     { key:'d2', label:'Dashboard 2 - Bajas diarias', tab:OXXO.SHEETS_CONFIG.TABS.d2, required:['Asesor','Plaza','Temporalidad','Puesto','Mes','Semana','Rot_Temp','Fecha'] },
-    { key:'d2denom', label:'Dashboard 2 - Denominaciones', tab:OXXO.SHEETS_CONFIG.TABS.d2denom, required:['Asesor','Nombre del empleado','Denominación Posición Anterior','Denominación Posición Actual','F.Crea'] },
+    { key:'d2denom', label:'Dashboard 2 - Denominaciones', tab:OXXO.SHEETS_CONFIG.TABS.d2denom, required:['Asesor','Nombre del empleado','Denominacion Posicion Anterior','Denominacion Posicion Actual','F.Crea'] },
     { key:'d3', label:'Dashboard 3 - Estructura', tab:OXXO.SHEETS_CONFIG.TABS.d3, required:['Asesor','Tienda','CR TIENDA','Plaza','% Aprovechamiento','Clas Aprov','Mes Semana'] },
     { key:'s4', label:'Dashboard 4 - Tiempo extra', tab:OXXO.SHEETS_CONFIG.TABS.s4, required:['Plaza','Asesor','Nombre del empleado o candidato','Textos homologados','Texto breve de unidad organizativa','Cantidad','Importe','Semana'] },
     { key:'s5', label:'Dashboard 5 - Vacaciones', tab:OXXO.SHEETS_CONFIG.TABS.s5, required:['Asesor','Empleado','Puesto','Fecha_Inicio','Fecha_Fin','Dias','Semana'] },
@@ -12,13 +12,59 @@
     { key:'catalog', label:'Catalogo de asesores', tab:OXXO.SHEETS_CONFIG.CATALOG_SHEET, required:['ASESOR','TIENDA','CR TIENDA'] },
   ];
 
-  const state = { workbook:null, sheetName:'', rows:[], validation:null };
+  const columnAliases = {
+    'Plaza':['plaza','nombre plaza'],
+    'Asesor':['asesor','at','asesor at','nombre asesor'],
+    'Unidad org':['unidad org','unidad organizativa','texto breve de unidad organizativa','tienda','nombre tienda'],
+    'ID posiciones':['id posiciones','id posicion','id position','posicion','id puesto'],
+    'Descripcion de Posicion':['descripcion de posicion','descripci n de posicion','denominacion posicion','puesto','descripcion puesto','denominacion posicion actual'],
+    'Status ocupacion':['status ocupacion','estatus ocupacion','status de ocupacion','estado ocupacion'],
+    'Fecha':['fecha','f.crea','f crea','fecha crea','fecha creacion'],
+    'Dias Vacantes':['dias vacantes','dias vacante','dias','dias de vacante','antiguedad'],
+    'Mes':['mes','periodo','mes semana'],
+    'Temporalidad':['temporalidad','tipo temporalidad'],
+    'Semana':['semana','sem','mes semana'],
+    'Rot_Temp':['rot temp','rot_temp','rotacion temporal','rot. temp.'],
+    'Puesto':['puesto','descripcion de posicion','denominacion posicion','posicion'],
+    'Nombre del empleado':['nombre del empleado','empleado','nombre empleado','nombre del empleado o candidato'],
+    'Denominacion Posicion Anterior':['denominacion posicion anterior','puesto anterior','posicion anterior'],
+    'Denominacion Posicion Actual':['denominacion posicion actual','puesto actual','posicion actual'],
+    'F.Crea':['f.crea','f crea','fecha crea','fecha'],
+    'Tienda':['tienda','unidad org','texto breve de unidad organizativa','nombre tienda'],
+    'CR TIENDA':['cr tienda','cr','id tienda','crtienda'],
+    '% Aprovechamiento':['% aprovechamiento','aprovechamiento','aprov %','aprovechamiento de estructura de plaza'],
+    'Clas Aprov':['clas aprov','clasificacion aprovechamiento','estatus','clasificacion'],
+    'Mes Semana':['mes semana','semana','mes'],
+    'Nombre del empleado o candidato':['nombre del empleado o candidato','nombre del empleado','empleado'],
+    'Textos homologados':['textos homologados','texto homologado','concepto'],
+    'Cantidad':['cantidad','horas'],
+    'Importe':['importe','gasto','gasto $'],
+    'Fecha_Inicio':['fecha_inicio','fecha inicio','inicio'],
+    'Fecha_Fin':['fecha_fin','fecha fin','fin'],
+    'Tipo_Ausentismo':['tipo_ausentismo','tipo ausentismo','ausentismo'],
+    'CR':['cr','cr tienda','id tienda'],
+    'SAP':['sap','est sap','plantilla sap'],
+    'TREO':['treo','est treo','estructura treo'],
+    'Activos':['activos','empleados','personal activo'],
+    'Vacantes':['vacantes','vacantes totales'],
+    'Movimiento':['movimiento','estatus movimiento'],
+    'ASESOR':['asesor','at'],
+    'TIENDA':['tienda','unidad org'],
+  };
+
+  const state = { workbook:null, sheetName:'', rows:[], validation:null, headerRow:0 };
   const $ = id => document.getElementById(id);
 
   function norm(value){
     return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9%]+/g,'').trim();
   }
+  function aliasesFor(column){
+    return [column, ...(columnAliases[column] || [])].map(norm);
+  }
   function dashboard(){ return dashboards.find(d => d.key === $('dashboard-select').value) || dashboards[0]; }
+  function escapeHtml(value){
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  }
   function setStatus(items){
     $('status-list').innerHTML = items.map(item => `
       <div class="status-item ${item.type}">
@@ -27,20 +73,50 @@
         <span class="status-badge">${escapeHtml(item.badge || '')}</span>
       </div>`).join('');
   }
-  function escapeHtml(value){
-    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  }
   function getHeaders(rows){
     const set = new Set();
     rows.forEach(row => Object.keys(row || {}).forEach(key => set.add(key)));
     return [...set];
+  }
+  function findHeaderRow(matrix, dash){
+    const limit = Math.min(matrix.length, 20);
+    let best = { index:0, score:-1 };
+    for (let i = 0; i < limit; i++) {
+      const cells = (matrix[i] || []).map(norm).filter(Boolean);
+      const score = dash.required.reduce((total, col) => total + (aliasesFor(col).some(alias => cells.includes(alias)) ? 1 : 0), 0);
+      if (score > best.score) best = { index:i, score };
+    }
+    return best;
+  }
+  function rowsFromMatrix(matrix, dash){
+    if (!matrix.length) return { rows:[], headers:[], headerRow:0, score:0 };
+    const headerInfo = findHeaderRow(matrix, dash);
+    const sourceHeaders = (matrix[headerInfo.index] || []).map((value, index) => String(value || `Columna ${index + 1}`).trim());
+    const sourceMap = new Map();
+    sourceHeaders.forEach((header, index) => {
+      const key = norm(header);
+      if (key && !sourceMap.has(key)) sourceMap.set(key, index);
+    });
+    const matched = {};
+    dash.required.forEach(col => {
+      const foundAlias = aliasesFor(col).find(alias => sourceMap.has(alias));
+      if (foundAlias) matched[col] = sourceMap.get(foundAlias);
+    });
+    const rows = matrix.slice(headerInfo.index + 1).map(line => {
+      const row = {};
+      dash.required.forEach(col => {
+        if (matched[col] !== undefined) row[col] = line[matched[col]] ?? '';
+      });
+      return row;
+    }).filter(row => Object.values(row).some(v => String(v ?? '').trim() !== ''));
+    return { rows, headers:dash.required, headerRow:headerInfo.index + 1, score:headerInfo.score };
   }
   function validateRows(){
     const dash = dashboard();
     const rows = state.rows || [];
     const headers = getHeaders(rows);
     const normalizedHeaders = new Map(headers.map(h => [norm(h), h]));
-    const missing = dash.required.filter(col => !normalizedHeaders.has(norm(col)));
+    const missing = dash.required.filter(col => !aliasesFor(col).some(alias => normalizedHeaders.has(alias)));
     const nonEmpty = rows.filter(row => Object.values(row || {}).some(v => String(v ?? '').trim() !== ''));
     const items = [
       { type: rows.length ? 'ok' : 'bad', title:'Archivo leido', text: rows.length ? `${rows.length} filas detectadas en "${state.sheetName}".` : 'No se detectaron filas utiles.', badge: rows.length ? 'OK' : 'Revisar' },
@@ -53,7 +129,7 @@
     $('download-csv-btn').disabled = !rows.length;
     $('publish-btn').disabled = !state.validation.ok;
     $('admin-guidance').textContent = state.validation.ok
-      ? `Listo para ${dash.tab}. Revisa la vista previa y publica o descarga CSV.`
+      ? `Listo para ${dash.tab}. Encabezados detectados en la fila ${state.headerRow || 1}; se publicaran solo las columnas necesarias.`
       : 'Corrige las columnas faltantes antes de publicar.';
     renderPreview(nonEmpty.slice(0, 80), headers);
   }
@@ -79,8 +155,12 @@
   }
   function loadCurrentSheet(){
     if (!state.workbook || !state.sheetName) return;
+    const dash = dashboard();
     const sheet = state.workbook.Sheets[state.sheetName];
-    state.rows = XLSX.utils.sheet_to_json(sheet, { defval:'', raw:false });
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'', raw:false });
+    const parsed = rowsFromMatrix(matrix, dash);
+    state.rows = parsed.rows;
+    state.headerRow = parsed.headerRow;
     validateRows();
   }
   async function handleFile(file){
@@ -128,7 +208,7 @@
     ['dragleave','drop'].forEach(ev => $('drop-zone').addEventListener(ev, event => { event.preventDefault(); $('drop-zone').classList.remove('drag'); }));
     $('drop-zone').addEventListener('drop', event => handleFile(event.dataTransfer.files[0]));
     $('sheet-select').addEventListener('change', event => { state.sheetName = event.target.value; loadCurrentSheet(); });
-    $('dashboard-select').addEventListener('change', validateRows);
+    $('dashboard-select').addEventListener('change', loadCurrentSheet);
     $('download-csv-btn').addEventListener('click', downloadCsv);
     $('publish-btn').addEventListener('click', publish);
     $('save-config-btn').addEventListener('click', () => { localStorage.setItem(ADMIN_CONFIG_KEY, $('apps-script-url').value.trim()); alert('URL guardada en este navegador.'); });
