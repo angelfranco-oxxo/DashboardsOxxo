@@ -453,6 +453,95 @@
     }
   </style>
   <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
+  <style id="d3-dashboard2-header-final">
+    body .page{padding-top:18px !important;}
+    body .hero{
+      min-height:150px !important;
+      padding:30px 34px 64px !important;
+      margin-bottom:78px !important;
+      border:1px solid rgba(255,255,255,.38) !important;
+      border-left:0 !important;
+      border-radius:18px !important;
+      background:
+        radial-gradient(circle at 78% 12%, rgba(255,255,255,.10), transparent 28%),
+        linear-gradient(135deg,#f42d34 0%,#d71927 48%,#9b1119 100%) !important;
+      box-shadow:0 24px 56px rgba(128,31,20,.24) !important;
+      overflow:visible !important;
+    }
+    body .hero::after{
+      content:"" !important;
+      position:absolute !important;
+      right:78px !important;
+      bottom:0 !important;
+      width:125px !important;
+      height:94px !important;
+      border-radius:0 !important;
+      background:rgba(255,255,255,.10) !important;
+      clip-path:polygon(18% 0,100% 0,78% 100%,42% 100%) !important;
+      pointer-events:none !important;
+    }
+    body .hero h1{font-size:2.25rem !important;line-height:1 !important;color:#fff !important;letter-spacing:0 !important;}
+    body .hero p{color:rgba(255,255,255,.88) !important;font-size:14px !important;font-weight:800 !important;}
+    body .hero-badge{
+      background:rgba(255,255,255,.14) !important;
+      border:1px solid rgba(255,255,255,.38) !important;
+      color:#fff !important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.14) !important;
+      text-transform:none !important;
+      letter-spacing:.02em !important;
+      padding:9px 18px !important;
+    }
+    body .hero-date{color:rgba(255,255,255,.78) !important;font-weight:700 !important;}
+    body .vac-filters{
+      position:absolute !important;
+      left:24px !important;
+      right:24px !important;
+      bottom:-46px !important;
+      z-index:50 !important;
+      display:grid !important;
+      grid-template-columns:minmax(240px,1fr) minmax(240px,1fr) minmax(360px,.85fr) !important;
+      gap:14px !important;
+      padding:17px 18px !important;
+      border-radius:14px !important;
+      border:1px solid rgba(120,47,39,.12) !important;
+      background:rgba(255,255,255,.96) !important;
+      box-shadow:0 18px 45px rgba(89,36,24,.22), inset 0 1px 0 rgba(255,255,255,.92) !important;
+      -webkit-backdrop-filter:blur(18px) !important;
+      backdrop-filter:blur(18px) !important;
+    }
+    body .vac-fbox > label{color:#8b6a5f !important;font-size:10px !important;font-weight:900 !important;letter-spacing:.09em !important;}
+    body .hero .filtro-select,
+    body .hero .filtro-btn{
+      height:42px !important;
+      min-height:42px !important;
+      border-radius:9px !important;
+      background:rgba(255,255,255,.98) !important;
+      border:1px solid rgba(72,45,40,.18) !important;
+      color:#241413 !important;
+      -webkit-text-fill-color:#241413 !important;
+      box-shadow:0 4px 12px rgba(90,42,24,.07) !important;
+      font-weight:900 !important;
+      padding:10px 13px !important;
+    }
+    body .hero .filtro-btn.download-filter{
+      background:linear-gradient(135deg,#f32932,#c91421) !important;
+      color:#fff !important;
+      -webkit-text-fill-color:#fff !important;
+      border-color:rgba(160,12,22,.16) !important;
+      box-shadow:0 12px 24px rgba(201,20,33,.24) !important;
+    }
+    body .vac-actions{display:grid !important;grid-template-columns:1fr 1.15fr !important;gap:10px !important;}
+    @media(max-width:1180px){
+      body .hero{padding-bottom:24px !important;margin-bottom:18px !important;}
+      body .vac-filters{position:relative !important;left:auto !important;right:auto !important;bottom:auto !important;grid-template-columns:repeat(2,minmax(0,1fr)) !important;margin-top:16px !important;}
+    }
+    @media(max-width:640px){
+      body .hero{padding:22px 18px !important;}
+      body .vac-filters{grid-template-columns:1fr !important;}
+      body .vac-actions{grid-template-columns:1fr !important;}
+    }
+  </style>
+
 </head>
 <body>
 
