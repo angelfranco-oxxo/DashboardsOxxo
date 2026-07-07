@@ -598,7 +598,7 @@
         <div class="smart-filter" id="asesor-filter">
           <button class="smart-filter__button" type="button" id="asesor-button">
             <span class="smart-filter__label" id="asesor-label">Todos los asesores</span>
-            <span class="smart-filter__chev">?</span>
+            <span class="smart-filter__chev">v</span>
           </button>
           <div class="smart-filter__menu" id="asesor-menu">
             <input class="smart-filter__search" id="asesor-search" type="search" placeholder="Buscar asesor..." autocomplete="off">
@@ -1499,6 +1499,7 @@ function bindAsesorChecklist(){
   button?.addEventListener('click', e => { e.stopPropagation(); filter.classList.toggle('open'); if(filter.classList.contains('open')) search?.focus(); });
   search?.addEventListener('input', e => renderAsesorOptions(e.target.value));
   list?.addEventListener('click', e => {
+    e.stopPropagation();
     const btn = e.target.closest('[data-asesor]'); if(!btn) return;
     const value = btn.dataset.asesor;
     if(!value){ setSelectedAsesores(null); return; }
