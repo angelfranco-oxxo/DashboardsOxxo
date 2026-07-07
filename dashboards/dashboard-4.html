@@ -362,8 +362,12 @@ const TIPO_DOBLE  = "Tiempo Extra Doble";
 const TIPO_TRIPLE = "Tiempo Extra Triple";
 const isDes = t => t && (t.startsWith("Día Des"));
 
-function fmt$(n){ return '$'+OXXO.formatNum((parseFloat(n)||0).toFixed(2)); }
-function fmtH(n){ return OXXO.formatNum((parseFloat(n)||0).toFixed(2)); }
+// Algunas filas de 'Importe' vienen con separador de miles (ej. "1,333.78"). parseFloat
+// nativo se detiene en la coma y regresa 1 en vez de 1333.78, descuadrando las sumas.
+// numParse quita comas de separador de miles antes de convertir a número.
+function numParse(v){ const n = parseFloat(String(v??'').replace(/,/g,'')); return isNaN(n) ? 0 : n; }
+function fmt$(n){ return '$'+OXXO.formatNum(numParse(n).toFixed(2)); }
+function fmtH(n){ return OXXO.formatNum(numParse(n).toFixed(2)); }
 function pct(part,total){ return total>0?((part/total)*100).toFixed(2)+'%':'0%'; }
 function semanaRank(value){
   const v = String(value || '').trim();
@@ -413,8 +417,8 @@ function aggregateByAsesor(data) {
   data.forEach(r => {
     const a = r[C.asesor] || 'Sin Asignar';
     if (!map[a]) map[a] = { asesor:a, hTot:0, gTot:0, hDoble:0, gDoble:0, hTriple:0, gTriple:0, hDesc:0, gDesc:0 };
-    const h = parseFloat(r[C.horas])||0;
-    const g = parseFloat(r[C.importe])||0;
+    const h = numParse(r[C.horas])||0;
+    const g = numParse(r[C.importe])||0;
     const t = r[C.tipo]||'';
     map[a].hTot += h; map[a].gTot += g;
     if(t===TIPO_DOBLE)       { map[a].hDoble+=h; map[a].gDoble+=g; }
@@ -442,16 +446,16 @@ function renderAll() {
   const data = filteredData();
   const byAsesor = aggregateByAsesor(data);
   const scopedBase = baseForCurrentScope();
-  const totalBase = scopedBase.reduce((s,r)=>s+(parseFloat(r[C.horas])||0),0);
+  const totalBase = scopedBase.reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
 
-  const totalHoras  = data.reduce((s,r)=>s+(parseFloat(r[C.horas])||0),0);
-  const totalGasto  = data.reduce((s,r)=>s+(parseFloat(r[C.importe])||0),0);
-  const totalHDoble = data.filter(r=>r[C.tipo]===TIPO_DOBLE).reduce((s,r)=>s+(parseFloat(r[C.horas])||0),0);
-  const totalHTriple= data.filter(r=>r[C.tipo]===TIPO_TRIPLE).reduce((s,r)=>s+(parseFloat(r[C.horas])||0),0);
-  const totalHDesc  = data.filter(r=>isDes(r[C.tipo])).reduce((s,r)=>s+(parseFloat(r[C.horas])||0),0);
-  const totalGDoble = data.filter(r=>r[C.tipo]===TIPO_DOBLE).reduce((s,r)=>s+(parseFloat(r[C.importe])||0),0);
-  const totalGTriple= data.filter(r=>r[C.tipo]===TIPO_TRIPLE).reduce((s,r)=>s+(parseFloat(r[C.importe])||0),0);
-  const totalGDesc  = data.filter(r=>isDes(r[C.tipo])).reduce((s,r)=>s+(parseFloat(r[C.importe])||0),0);
+  const totalHoras  = data.reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
+  const totalGasto  = data.reduce((s,r)=>s+(numParse(r[C.importe])||0),0);
+  const totalHDoble = data.filter(r=>r[C.tipo]===TIPO_DOBLE).reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
+  const totalHTriple= data.filter(r=>r[C.tipo]===TIPO_TRIPLE).reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
+  const totalHDesc  = data.filter(r=>isDes(r[C.tipo])).reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
+  const totalGDoble = data.filter(r=>r[C.tipo]===TIPO_DOBLE).reduce((s,r)=>s+(numParse(r[C.importe])||0),0);
+  const totalGTriple= data.filter(r=>r[C.tipo]===TIPO_TRIPLE).reduce((s,r)=>s+(numParse(r[C.importe])||0),0);
+  const totalGDesc  = data.filter(r=>isDes(r[C.tipo])).reduce((s,r)=>s+(numParse(r[C.importe])||0),0);
   const totalEmps   = new Set(data.map(r=>r[C.nombre])).size;
   const totalTiendas= new Set(data.map(r=>r[C.tienda])).size;
   const costoXHora  = totalHoras > 0 ? totalGasto/totalHoras : 0;
@@ -552,7 +556,7 @@ function renderAll() {
 
   // ── Bar Tiendas ──
   const byTienda={};
-  data.forEach(r=>{const t=r[C.tienda]||'Sin tienda';if(!byTienda[t])byTienda[t]=0;byTienda[t]+=(parseFloat(r[C.importe])||0);});
+  data.forEach(r=>{const t=r[C.tienda]||'Sin tienda';if(!byTienda[t])byTienda[t]=0;byTienda[t]+=(numParse(r[C.importe])||0);});
   const top10t=Object.entries(byTienda).sort((a,b)=>b[1]-a[1]).slice(0,10);
   if(chartTiendas) chartTiendas.destroy();
   chartTiendas = new Chart(document.getElementById('chart-tiendas').getContext('2d'),{
@@ -614,8 +618,8 @@ function closeAsesorDetail(){ document.getElementById('te-asesor-modal')?.classL
 function openAsesorDetail(asesor){
   const rows = filteredData().filter(r => (r[C.asesor] || 'Sin Asignar') === asesor);
   if (!rows.length) return;
-  const totalHoras = rows.reduce((sum,r)=>sum+(parseFloat(r[C.horas])||0),0);
-  const totalGasto = rows.reduce((sum,r)=>sum+(parseFloat(r[C.importe])||0),0);
+  const totalHoras = rows.reduce((sum,r)=>sum+(numParse(r[C.horas])||0),0);
+  const totalGasto = rows.reduce((sum,r)=>sum+(numParse(r[C.importe])||0),0);
   const tiendas = new Set(rows.map(r=>r[C.tienda]).filter(Boolean));
   const empleados = new Set(rows.map(r=>r[C.nombre]).filter(Boolean));
   const byTipo = [
@@ -624,15 +628,15 @@ function openAsesorDetail(asesor){
     ['TE triple', rows.filter(r=>r[C.tipo]===TIPO_TRIPLE)]
   ].map(([label, list])=>({
     label,
-    horas:list.reduce((sum,r)=>sum+(parseFloat(r[C.horas])||0),0),
-    gasto:list.reduce((sum,r)=>sum+(parseFloat(r[C.importe])||0),0)
+    horas:list.reduce((sum,r)=>sum+(numParse(r[C.horas])||0),0),
+    gasto:list.reduce((sum,r)=>sum+(numParse(r[C.importe])||0),0)
   }));
   const byStore = {};
   rows.forEach(r=>{
     const tienda = r[C.tienda] || 'Sin tienda';
     if(!byStore[tienda]) byStore[tienda] = { tienda, horas:0, gasto:0, registros:0 };
-    byStore[tienda].horas += parseFloat(r[C.horas]) || 0;
-    byStore[tienda].gasto += parseFloat(r[C.importe]) || 0;
+    byStore[tienda].horas += numParse(r[C.horas]) || 0;
+    byStore[tienda].gasto += numParse(r[C.importe]) || 0;
     byStore[tienda].registros += 1;
   });
   const stores = Object.values(byStore).sort((a,b)=>b.gasto-a.gasto).slice(0,8);
