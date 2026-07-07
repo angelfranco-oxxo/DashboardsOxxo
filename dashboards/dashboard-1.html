@@ -2772,7 +2772,8 @@ async function initDashboard(){
       diasRaw: String(gv(r,colMap,'dias','')).trim(),
       tipo:   tipoPuesto(puesto),
     };
-  }).filter(r=>r.tienda && r.tienda !== 'Sin tienda');
+  }).filter(r=>r.tienda && r.tienda !== 'Sin tienda')
+    .filter(r=>cleanKey(r.asesor)!=='timoteoantonioperez');
 
   poblarFiltros();
   refreshDashboard();

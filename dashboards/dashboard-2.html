@@ -1058,7 +1058,6 @@ const COMPROMISOS_AT = [
   {id:'mirna', nombre:'Mirna M.L.', full:'Mirna Martinez Lorenzo', comp:4},
   {id:'reyna', nombre:'Reyna A. R.G.', full:'Reyna Alicia Reyes Garcia', comp:7},
   {id:'sofia', nombre:'Sofia C. J.G.', full:'Sofia Caridad Jimenez Gomez', comp:8},
-  {id:'timoteo', nombre:'Timoteo A.P.', full:'Timoteo Antonio Perez', comp:8},
 ];
 
 function asesorId(nombre){
@@ -1073,7 +1072,6 @@ function asesorId(nombre){
   if(n.includes('MIRNA')) return 'mirna';
   if(n.includes('REYNA')) return 'reyna';
   if(n.includes('SOFIA')) return 'sofia';
-  if(n.includes('TIMOTEO')) return 'timoteo';
   return 'otro';
 }
 
@@ -1550,7 +1548,7 @@ async function loadDenominaciones(){
     const cols = buildColsGeneric(raw, ALIASES_DENOM);
     const asesorCatalog = await OXXO.loadAsesorCatalog();
     raw.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey: cols.asesor, tiendaKey: cols.uOrgAct }));
-    const rows = raw.filter(r => denomRowValida(r, cols)).map(r => {
+    const rows = raw.filter(r => denomRowValida(r, cols) && cleanKey(val(r,cols,'asesor',''))!=='timoteoantonioperez').map(r => {
       const posAntDesc = val(r, cols, 'posAnt','');
       const posActDesc = val(r, cols, 'posAct','');
       const jAnt = jerarquiaPuesto(posAntDesc), jAct = jerarquiaPuesto(posActDesc);
@@ -1633,7 +1631,8 @@ async function initDashboard(){
   const cols = buildCols(raw);
   const asesorCatalog = await OXXO.loadAsesorCatalog();
   raw.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey: cols.asesor, tiendaKey: cols.tienda, crKey: cols.cr }));
-  const data = filterData(raw, cols);
+  const rawSinTimoteo = raw.filter(row => cleanKey(val(row, cols, 'asesor', '')) !== 'timoteoantonioperez');
+  const data = filterData(rawSinTimoteo, cols);
   if(!data.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }
 
   BASE_BAJAS_DATA = data;
