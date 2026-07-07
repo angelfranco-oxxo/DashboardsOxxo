@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
@@ -216,16 +216,17 @@
   /* ── Hero ejecutivo sobrio (degradado vino → negro, rojo OXXO solo como acento) ──
      Se usa 'body .hero' para superar en especificidad la regla agrupada del skin
      (.hero,.dashboard-hero{background:rojo !important}) que carga después. */
-  .hero{ flex-direction:column !important;align-items:stretch !important;gap:20px; }
+  .hero{ flex-direction:column !important;align-items:stretch !important;gap:20px;position:relative !important;overflow:visible !important;margin-bottom:70px !important;min-height:138px !important;padding:26px 34px 58px !important;border-radius:16px !important; }
   body .hero{
     background:
-      radial-gradient(120% 160% at 100% 0%, rgba(247,25,38,.32) 0%, rgba(247,25,38,0) 46%),
+      radial-gradient(circle at 80% 10%, rgba(255,255,255,.08), transparent 28%),
       repeating-linear-gradient(-45deg, transparent, transparent 46px, rgba(255,255,255,0.025) 46px, rgba(255,255,255,0.025) 47px),
       linear-gradient(135deg, #2b0e0e 0%, #1b1012 55%, #120c0d 100%) !important;
     border:0 !important;
     border-left:3px solid var(--hb-red,#F71926) !important;
     box-shadow:0 26px 60px rgba(0,0,0,.34) !important;
   }
+  body .hero::after{content:"";position:absolute;right:70px;bottom:0;width:120px;height:92px;background:rgba(255,255,255,.08);clip-path:polygon(18% 0,100% 0,78% 100%,42% 100%);pointer-events:none;}
   .hero-download-link{ text-decoration:none !important; cursor:pointer; }
   body .hero h1{ color:#fff !important; letter-spacing:-.5px !important; }
   body .hero p{ color:rgba(255,255,255,.6) !important; }
@@ -236,16 +237,17 @@
   }
   body .hero-date{ color:rgba(255,255,255,.5) !important; }
   .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
-  .vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px 18px;align-items:end}
+  .vac-filters{position:absolute !important;z-index:45 !important;left:24px !important;right:24px !important;bottom:-44px !important;display:grid !important;grid-template-columns:minmax(220px,1.2fr) minmax(220px,1.2fr) minmax(320px,.9fr) !important;gap:14px !important;align-items:end !important;padding:16px 18px !important;border-radius:12px !important;border:1px solid rgba(120,47,39,.12) !important;background:rgba(255,255,255,.94) !important;box-shadow:0 18px 45px rgba(89,36,24,.20), inset 0 1px 0 rgba(255,255,255,.88) !important;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);overflow:visible !important;}
   .vac-fbox{display:flex;flex-direction:column;gap:8px;min-width:0}
-  .vac-fbox > label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.92);display:flex;align-items:center;gap:6px}
+  .vac-fbox > label{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#8b6a5f !important;display:flex;align-items:center;gap:6px;margin-left:2px;}
+  .vac-actions{display:grid;grid-template-columns:1fr 1.15fr;gap:10px;align-items:center;}
   .hero .filtro-select,.hero .filtro-btn{
-    width:100%;box-sizing:border-box;
-    background:rgba(255,255,255,0.97) !important;
-    border:1px solid rgba(255,255,255,0.6) !important;
-    color:#181112 !important;-webkit-text-fill-color:#181112 !important;font-weight:700;font-size:14px;
-    border-radius:14px !important;padding:12px 16px !important;
-    box-shadow:0 6px 18px rgba(60,20,15,0.16);
+    width:100%;height:40px;min-height:40px;box-sizing:border-box;
+    background:rgba(255,255,255,.96) !important;
+    border:1px solid rgba(72,45,40,.16) !important;
+    color:#241413 !important;-webkit-text-fill-color:#241413 !important;font-weight:800;font-size:14px;
+    border-radius:8px !important;padding:9px 12px !important;
+    box-shadow:0 3px 10px rgba(90,42,24,.06) !important;
     transition:transform .15s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease;
     cursor:pointer;
   }
@@ -254,15 +256,14 @@
     background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%23b3261e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
     background-repeat:no-repeat !important;background-position:right 14px center !important;padding-right:40px !important;
   }
-  .hero .filtro-select:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(60,20,15,0.22)}
-  .hero .filtro-select:focus{outline:none;border-color:var(--hb-red,#F71926) !important;box-shadow:0 0 0 3px rgba(247,25,38,.20)}
+  .hero .filtro-select:hover,.hero .filtro-select:focus,.hero .filtro-btn:hover{background:#fff !important;border-color:rgba(217,31,45,.34) !important;box-shadow:0 0 0 3px rgba(217,31,45,.08),0 8px 18px rgba(90,42,24,.08) !important;}
+  .hero .filtro-select:focus{outline:none;}
   .hero .filtro-select option{color:#1a1a1a;background:#fff}
-  .hero .filtro-btn{
-    background:rgba(255,255,255,0.14) !important;border:1px solid rgba(255,255,255,0.6) !important;
-    color:#fff !important;-webkit-text-fill-color:#fff !important;font-weight:800;box-shadow:none;
-    display:flex;align-items:center;justify-content:center;gap:6px;
-  }
-  .hero .filtro-btn:hover{background:#fff !important;color:var(--hb-red) !important;-webkit-text-fill-color:var(--hb-red) !important;border-color:#fff !important;transform:translateY(-1px);box-shadow:0 10px 24px rgba(60,20,15,0.22)}
+  .hero .filtro-btn{display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;}
+  .hero .filtro-btn.download-filter{background:linear-gradient(135deg,#f32932,#c91421) !important;color:#fff !important;-webkit-text-fill-color:#fff !important;border-color:rgba(160,12,22,.16) !important;box-shadow:0 10px 22px rgba(201,20,33,.22) !important;}
+  .hero .filtro-btn.download-filter:hover{transform:translateY(-1px) !important;box-shadow:0 14px 28px rgba(201,20,33,.28) !important;}
+  @media(max-width:1180px){.hero{padding-bottom:24px !important;margin-bottom:18px !important}.vac-filters{position:relative !important;left:auto !important;right:auto !important;bottom:auto !important;grid-template-columns:repeat(2,minmax(0,1fr)) !important;margin-top:14px !important}.vac-actions{grid-template-columns:1fr 1fr}}
+  @media(max-width:640px){.hero{padding:22px 18px !important}.hero h1{font-size:1.8rem !important}.vac-filters{grid-template-columns:1fr !important;padding:14px !important}.vac-actions{grid-template-columns:1fr}}
   .hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
 
   /* ── Buscador de Detalle por Tienda ── */
@@ -451,6 +452,112 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
+  <style id="d3-dashboard2-header-final">
+    body .page{padding-top:18px !important;}
+    body .hero{
+      min-height:150px !important;
+      padding:30px 34px 64px !important;
+      margin-bottom:78px !important;
+      border:1px solid rgba(255,255,255,.38) !important;
+      border-left:0 !important;
+      border-radius:18px !important;
+      background:
+        radial-gradient(circle at 78% 12%, rgba(255,255,255,.10), transparent 28%),
+        linear-gradient(135deg,#f42d34 0%,#d71927 48%,#9b1119 100%) !important;
+      box-shadow:0 24px 56px rgba(128,31,20,.24) !important;
+      overflow:visible !important;
+    }
+    body .hero::after{
+      content:"" !important;
+      position:absolute !important;
+      right:78px !important;
+      bottom:0 !important;
+      width:125px !important;
+      height:94px !important;
+      border-radius:0 !important;
+      background:rgba(255,255,255,.10) !important;
+      clip-path:polygon(18% 0,100% 0,78% 100%,42% 100%) !important;
+      pointer-events:none !important;
+    }
+    body .hero h1{font-size:2.25rem !important;line-height:1 !important;color:#fff !important;letter-spacing:0 !important;}
+    body .hero p{color:rgba(255,255,255,.88) !important;font-size:14px !important;font-weight:800 !important;}
+    body .hero-badge{
+      background:rgba(255,255,255,.14) !important;
+      border:1px solid rgba(255,255,255,.38) !important;
+      color:#fff !important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.14) !important;
+      text-transform:none !important;
+      letter-spacing:.02em !important;
+      padding:9px 18px !important;
+    }
+    body .hero-date{color:rgba(255,255,255,.78) !important;font-weight:700 !important;}
+    body .vac-filters{
+      position:absolute !important;
+      left:24px !important;
+      right:24px !important;
+      bottom:-46px !important;
+      z-index:50 !important;
+      display:grid !important;
+      grid-template-columns:minmax(240px,1fr) minmax(240px,1fr) minmax(360px,.85fr) !important;
+      gap:14px !important;
+      padding:17px 18px !important;
+      border-radius:14px !important;
+      border:1px solid rgba(120,47,39,.12) !important;
+      background:rgba(255,255,255,.96) !important;
+      box-shadow:0 18px 45px rgba(89,36,24,.22), inset 0 1px 0 rgba(255,255,255,.92) !important;
+      -webkit-backdrop-filter:blur(18px) !important;
+      backdrop-filter:blur(18px) !important;
+    }
+    body .vac-fbox > label{color:#8b6a5f !important;font-size:10px !important;font-weight:900 !important;letter-spacing:.09em !important;}
+    body .hero .filtro-select,
+    body .hero .filtro-btn{
+      height:42px !important;
+      min-height:42px !important;
+      border-radius:9px !important;
+      background:rgba(255,255,255,.98) !important;
+      border:1px solid rgba(72,45,40,.18) !important;
+      color:#241413 !important;
+      -webkit-text-fill-color:#241413 !important;
+      box-shadow:0 4px 12px rgba(90,42,24,.07) !important;
+      font-weight:900 !important;
+      padding:10px 13px !important;
+    }
+
+    body .hero .smart-filter{position:relative;width:100%;}
+    body .hero .smart-filter__button{width:100%;height:42px;min-height:42px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:9px !important;background:rgba(255,255,255,.98) !important;border:1px solid rgba(72,45,40,.18) !important;color:#241413 !important;box-shadow:0 4px 12px rgba(90,42,24,.07) !important;font-weight:900 !important;padding:10px 13px !important;cursor:pointer;}
+    body .hero .smart-filter__label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    body .hero .smart-filter__chev{color:#7d655f;font-size:12px;flex:0 0 auto;}
+    body .hero .smart-filter__menu{display:none;position:absolute;z-index:80;left:0;right:0;top:calc(100% + 10px);border-radius:14px;border:1px solid rgba(120,47,39,.14);background:rgba(255,255,255,.98);box-shadow:0 20px 44px rgba(60,20,15,.22);overflow:hidden;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);}
+    body .hero .smart-filter.open .smart-filter__menu{display:block;}
+    body .hero .smart-filter__search{width:calc(100% - 16px);margin:8px;padding:10px 12px;border-radius:10px;border:1px solid rgba(217,31,45,.24);font-weight:800;color:#241413;outline:none;}
+    body .hero .smart-filter__list{max-height:252px;overflow:auto;padding:6px 8px 10px;scrollbar-width:thin;}
+    body .hero .smart-filter__option{width:100%;display:flex;align-items:center;gap:10px;text-align:left;border:0;border-radius:12px;background:transparent;padding:10px 9px;color:#241413;font-weight:850;cursor:pointer;}
+    body .hero .smart-filter__option:hover{background:rgba(246,183,60,.16);}
+    body .hero .smart-filter__option.is-active{background:rgba(217,31,45,.10);color:#b5121c;}
+    body .hero .smart-filter__check{width:15px;height:15px;border-radius:5px;border:1px solid rgba(217,31,45,.32);background:#fff;display:grid;place-items:center;flex:0 0 auto;font-size:10px;color:#fff;}
+    body .hero .smart-filter__option.is-active .smart-filter__check{background:#d91f2d;border-color:#d91f2d;}
+    body .hero .smart-filter__option.is-active .smart-filter__check::before{content:"?";}
+    body .hero .smart-filter__empty{padding:16px;color:#8b6a5f;font-size:12px;font-weight:800;text-align:center;}
+    body .hero .filtro-btn.download-filter{
+      background:linear-gradient(135deg,#f32932,#c91421) !important;
+      color:#fff !important;
+      -webkit-text-fill-color:#fff !important;
+      border-color:rgba(160,12,22,.16) !important;
+      box-shadow:0 12px 24px rgba(201,20,33,.24) !important;
+    }
+    body .vac-actions{display:grid !important;grid-template-columns:1fr 1.15fr !important;gap:10px !important;}
+    @media(max-width:1180px){
+      body .hero{padding-bottom:24px !important;margin-bottom:18px !important;}
+      body .vac-filters{position:relative !important;left:auto !important;right:auto !important;bottom:auto !important;grid-template-columns:repeat(2,minmax(0,1fr)) !important;margin-top:16px !important;}
+    }
+    @media(max-width:640px){
+      body .hero{padding:22px 18px !important;}
+      body .vac-filters{grid-template-columns:1fr !important;}
+      body .vac-actions{grid-template-columns:1fr !important;}
+    }
+  </style>
+
 </head>
 <body>
 
@@ -487,10 +594,18 @@
     </div>
     <div class="vac-filters">
       <div class="vac-fbox">
-        <label>👤 Asesor</label>
-        <select class="filtro-select" id="filtro-asesor" onchange="applyFilters()">
-          <option value="">Todos los asesores</option>
-        </select>
+        <label>Asesor</label>
+        <div class="smart-filter" id="asesor-filter">
+          <button class="smart-filter__button" type="button" id="asesor-button">
+            <span class="smart-filter__label" id="asesor-label">Todos los asesores</span>
+            <span class="smart-filter__chev">v</span>
+          </button>
+          <div class="smart-filter__menu" id="asesor-menu">
+            <input class="smart-filter__search" id="asesor-search" type="search" placeholder="Buscar asesor..." autocomplete="off">
+            <div class="smart-filter__list" id="asesor-options"></div>
+          </div>
+          <input type="hidden" id="filtro-asesor" value="">
+        </div>
       </div>
       <div class="vac-fbox">
         <label>🏷️ Estatus</label>
@@ -501,10 +616,12 @@
           <option value="critica">Tienda Crítica</option>
         </select>
       </div>
-      <div class="vac-fbox">
+      <div class="vac-fbox vac-fbox--actions">
         <label>Acciones</label>
-        <button class="filtro-btn" onclick="limpiarFiltros()">✕ Limpiar filtros</button>
-        <button class="filtro-btn" type="button" onclick="OXXO.handleDownloadButton(this, () => OXXO.downloadSheetTab(TAB, 'dashboard-3-estructura.csv'))">Descargar base</button>
+        <div class="vac-actions">
+          <button class="filtro-btn" onclick="limpiarFiltros()">✕ Limpiar filtros</button>
+          <button class="filtro-btn download-filter" type="button" onclick="OXXO.handleDownloadButton(this, () => OXXO.downloadSheetTab(TAB, 'dashboard-3-estructura.csv'))">Descargar base</button>
+        </div>
       </div>
     </div>
   </div>
@@ -624,6 +741,7 @@ const C = {
 const ALIASES = {
   asesor:    ['Asesor','Asesor ','ASESOR'],
   tienda:    ['Tienda','Tienda ','TIENDA'],
+  cr:        ['CR TIENDA','CR Tienda','Cr Tienda','CR','ID Tienda','ID TIENDA'],
   esquema:   ['Esquema','ESQUEMA'],
   estructura:['Promedio activo mensual num','Estructura_diaria','Estructura Diaria','Estructura diaria','Estructura','ESTRUCTURA'],
   ausent:    ['aus no justificado','Ausentismos','AUSENTISMOS','AUSENTISMOS '],
@@ -642,6 +760,7 @@ const ALIASES = {
 const ALIASES_DET = {
   asesor:    ['Asesor','Asesor ','ASESOR'],
   tienda:    ['Tienda','Tienda ','TIENDA'],
+  cr:        ['CR TIENDA','CR Tienda','Cr Tienda','CR','ID Tienda','ID TIENDA'],
   estructura:['Estructura Diaria','Estructura diaria','Estructura_diaria','Estructura'],
   ausent:    ['AUSENTISMOS','AUSENTISMOS ','Ausentismos','aus no justificado'],
   vacante:   ['Vacante','Vacantes','% Vacantes'],
@@ -808,6 +927,7 @@ async function initDashboard(){
     // (p.ej. 'Jordan Vazquez Toala' y 'JORDAN VAZQUEZ TOALA'); normalizar evita duplicados.
     asesor:    String(gv(r,map,'asesor','Sin asesor')).trim().toUpperCase(),
     tienda:    String(gv(r,map,'tienda','Sin tienda')).trim(),
+    cr:        String(gv(r,map,'cr','')).trim(),
     esquema:   String(gv(r,map,'esquema','')).trim(),
     estructura:gn(r,map,'estructura'),
     ausent:    gn(r,map,'ausent'),
@@ -824,7 +944,7 @@ async function initDashboard(){
     plazaAt:   String(gv(r,map,'plaza_at', gv(r,map,'col_plaza',''))).trim(),
   }));
   data.forEach(r => {
-    r.asesor = OXXO.resolveAsesor(asesorCatalog, { tienda:r.tienda, asesor:r.asesor }).toUpperCase();
+    r.asesor = OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }).toUpperCase();
   });
 
   ALL_DATA = data;
@@ -840,6 +960,7 @@ async function initDashboard(){
       .map(r=>({
         asesor:   String(gv(r,md,'asesor','')).trim(),
         tienda:   String(gv(r,md,'tienda','')).trim(),
+        cr:       String(gv(r,md,'cr', gv(r,map,'cr',''))).trim(),
         estructura:gn(r,md,'estructura'),
         ausent:   gn(r,md,'ausent'),
         vacante:  gn(r,md,'vacante'),
@@ -870,7 +991,7 @@ async function initDashboard(){
         ausRestTC: gn(r,md,'ausRestTC'),
       })).filter(r=>r.tienda);
     DETALLE_DATA.forEach(r => {
-      r.asesor = OXXO.resolveAsesor(asesorCatalog, { tienda:r.tienda, asesor:r.asesor }).toUpperCase();
+      r.asesor = OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }).toUpperCase();
     });
   } catch(e){ DETALLE_DATA = []; }
 
@@ -1323,6 +1444,8 @@ let DETALLE_DATA = [];
 let SEMANAS = [];
 let ACTIVE_SEMANA = '';
 let filtersReady = false;
+let selectedAsesorValues = null;
+let asesorOptionsData = [];
 function uniqueSorted(data, key){
   return [...new Set(data.map(r=>String(r[key]||'').trim()).filter(Boolean))].sort();
 }
@@ -1332,6 +1455,62 @@ function fillSelect(id, values){
   sel.innerHTML = ''; sel.appendChild(first);
   values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
 }
+function escHtml(v){ return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function selectedAsesores(){ return selectedAsesorValues ? [...selectedAsesorValues] : []; }
+function setSelectedAsesores(values=null, shouldApply=true){
+  selectedAsesorValues = values === null ? null : [...new Set((values||[]).filter(Boolean))];
+  const input = document.getElementById('filtro-asesor');
+  if(input) input.value = (selectedAsesorValues || []).join('|');
+  updateAsesorLabel();
+  renderAsesorOptions(document.getElementById('asesor-search')?.value || '');
+  if(shouldApply) applyFilters();
+}
+function updateAsesorLabel(){
+  const label = document.getElementById('asesor-label'); if(!label) return;
+  const total = asesorOptionsData.length;
+  const n = selectedAsesorValues ? selectedAsesorValues.length : total;
+  if(!selectedAsesorValues || n === total) label.textContent = 'Todos los asesores';
+  else if(n === 0) label.textContent = 'Ningun asesor';
+  else if(n === 1) label.textContent = selectedAsesorValues[0];
+  else label.textContent = n + ' asesores seleccionados';
+}
+function renderAsesorOptions(query=''){
+  const wrap = document.getElementById('asesor-options'); if(!wrap) return;
+  const q = String(query||'').trim().toLowerCase();
+  const filtered = asesorOptionsData.filter(v => !q || v.toLowerCase().includes(q));
+  const allActive = !selectedAsesorValues || selectedAsesorValues.length === asesorOptionsData.length;
+  const rows = [{ value:'', label:'Todos los asesores', isAll:true }, ...filtered.map(v => ({ value:v, label:v }))].map(opt => {
+    const active = opt.isAll ? allActive : (!selectedAsesorValues || selectedAsesorValues.includes(opt.value));
+    return '<button type="button" class="smart-filter__option '+(active?'is-active':'')+'" data-asesor="'+escHtml(opt.value)+'"><span class="smart-filter__check"></span><span>'+escHtml(opt.label)+'</span></button>';
+  }).join('');
+  wrap.innerHTML = rows || '<div class="smart-filter__empty">Sin resultados</div>';
+}
+function buildAsesorChecklist(data){
+  asesorOptionsData = uniqueSorted(data,'asesor');
+  setSelectedAsesores(null, false);
+}
+function bindAsesorChecklist(){
+  const filter = document.getElementById('asesor-filter');
+  const button = document.getElementById('asesor-button');
+  const list = document.getElementById('asesor-options');
+  const search = document.getElementById('asesor-search');
+  if(!filter || filter.dataset.bound === '1') return;
+  filter.dataset.bound = '1';
+  button?.addEventListener('click', e => { e.stopPropagation(); filter.classList.toggle('open'); if(filter.classList.contains('open')) search?.focus(); });
+  search?.addEventListener('input', e => renderAsesorOptions(e.target.value));
+  list?.addEventListener('click', e => {
+    e.stopPropagation();
+    const btn = e.target.closest('[data-asesor]'); if(!btn) return;
+    const value = btn.dataset.asesor;
+    if(!value){ setSelectedAsesores(null); return; }
+    let current = selectedAsesorValues ? [...selectedAsesorValues] : [...asesorOptionsData];
+    current = current.includes(value) ? current.filter(v => v !== value) : [...current, value];
+    if(current.length === asesorOptionsData.length) setSelectedAsesores(null);
+    else setSelectedAsesores(current);
+  });
+  document.addEventListener('click', e => { if(!filter.contains(e.target)) filter.classList.remove('open'); });
+}
+
 function populateFilters(data){
   if(filtersReady) return;
   const semSel = document.getElementById('filtro-semana');
@@ -1340,23 +1519,25 @@ function populateFilters(data){
     SEMANAS.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; semSel.appendChild(o); });
     semSel.value = ACTIVE_SEMANA;
   }
-  fillSelect('filtro-asesor', uniqueSorted(data,'asesor'));
+  buildAsesorChecklist(data);
+  bindAsesorChecklist();
   filtersReady = true;
 }
 function applyFilters(){
   // El filtro de Semana-Mes se removio (la base tiene una sola fecha); se mantiene la variable
   // por compatibilidad pero sin filtrar por semana.
   const sem = document.getElementById('filtro-semana')?.value || '';
-  const a = document.getElementById('filtro-asesor').value;
+  const selectedA = selectedAsesorValues ? new Set(selectedAsesorValues) : null;
+  const a = selectedAsesores();
   const s = document.getElementById('filtro-estatus').value;
   let d = ALL_DATA;
   if(sem) d = d.filter(r=>r.semana===sem);
-  if(a) d = d.filter(r=>r.asesor===a);
+  if(selectedA) d = d.filter(r=>selectedA.has(r.asesor));
   if(s==='completo')   d = d.filter(r=>isCompleta(r.estatus));
   if(s==='incompleto') d = d.filter(r=>isIncompleta(r.estatus));
   if(s==='critica')    d = d.filter(r=>isCritica(r.estatus));
   render(d);
-  renderDetalle(a, s);
+  renderDetalle(selectedAsesorValues ? a : '', s);
 }
 
 // Detalle por Tienda — filtra la base "Plaza Oaxaca" por Asesor y Estatus activos.
@@ -1378,7 +1559,10 @@ function renderDetalle(asesorSel, estatusSel){
   const norm = s => cleanKey(s);
   const hasAsesor = DETALLE_DATA.some(r=>r.asesor);
   let d = DETALLE_DATA;
-  if(asesorSel && hasAsesor) d = d.filter(r=>norm(r.asesor)===norm(asesorSel));
+  if(asesorSel && hasAsesor){
+    if(Array.isArray(asesorSel)){ const set = new Set(asesorSel.map(norm)); d = d.filter(r=>set.has(norm(r.asesor))); }
+    else d = d.filter(r=>norm(r.asesor)===norm(asesorSel));
+  }
   if(estatusSel==='completo')   d = d.filter(r=>isCompleta(r.estatus));
   if(estatusSel==='incompleto') d = d.filter(r=>isIncompleta(r.estatus));
   if(estatusSel==='critica')    d = d.filter(r=>isCritica(r.estatus));
@@ -1567,7 +1751,8 @@ function setKpiEstatus(value){
   applyFilters();
 }
 function limpiarFiltros(){
-  ['filtro-asesor','filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  setSelectedAsesores(null, false);
+  ['filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   const semSel = document.getElementById('filtro-semana');
   if(semSel) semSel.value = ACTIVE_SEMANA;
   applyFilters();

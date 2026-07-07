@@ -190,9 +190,35 @@
 
   @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.row-main{grid-template-columns:1fr}.row2,.row3{grid-template-columns:1fr 1fr}.side-panel{grid-template-rows:auto}}
   @media(max-width:600px){.kpis{grid-template-columns:1fr 1fr !important}.row-main,.row2,.row3{grid-template-columns:1fr !important}}
-  </style>
+  
+  /* D7 equal main panels */
+  .row-main{
+    align-items:stretch !important;
+  }
+  .row-main > .detail-card,
+  .row-main > .side-panel{
+    min-height:620px !important;
+    height:100% !important;
+  }
+  .row-main > .side-panel > .card{
+    min-height:620px !important;
+    height:100% !important;
+  }
+  .row-main > .detail-card .tbl-wrap{
+    min-height:0 !important;
+  }
+  @media(max-width:1100px){
+    .row-main > .detail-card,
+    .row-main > .side-panel,
+    .row-main > .side-panel > .card{
+      min-height:0 !important;
+      height:auto !important;
+    }
+  }
+</style>
   <link rel="stylesheet" href="../css/dashboard-skin.css"/>
   <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
+  <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
 </head>
 <body>
 <nav class="topbar">
@@ -282,8 +308,8 @@
               <th data-col="tienda">Tienda</th>
               <th data-col="asesor">Asesor</th>
               <th data-col="mov" style="text-align:center">Movimiento</th>
-              <th data-col="est_sap" style="text-align:center">SAP</th>
               <th data-col="est_final" style="text-align:center">TREO</th>
+              <th data-col="est_sap" style="text-align:center">SAP</th>
               <th data-col="empleados" style="text-align:center">Activos</th>
               <th data-col="vacantes" style="text-align:center">Vacantes</th>
             </tr>
@@ -802,9 +828,9 @@ function renderTabla(){
       <td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${trunc(r.tienda,28)} <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
       <td style="font-size:11px;color:var(--color-gray);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${trunc(r.asesor,24)}</td>
       <td style="text-align:center">${movPill(r.mov)}</td>
-      <td style="text-align:center;font-weight:800;font-size:15px;color:var(--color-dark)">${r.est_sap||'—'}</td>
-      <td style="text-align:center;font-weight:800;font-size:15px;color:var(--color-dark)">${r.est_final||'—'}</td>
-      <td style="text-align:center;font-weight:800;font-size:15px;color:${actColor}" title="${actTip}">${r.empleados||'—'}</td>
+      <td style="text-align:center;font-weight:800;font-size:15px;color:var(--color-dark)">${r.est_final||'--'}</td>
+      <td style="text-align:center;font-weight:800;font-size:15px;color:var(--color-dark)">${r.est_sap||'--'}</td>
+      <td style="text-align:center;font-weight:800;font-size:15px;color:${actColor}" title="${actTip}">${r.empleados||'--'}</td>
       <td style="text-align:center;font-weight:${vac>0?700:400};color:${vacColor}">${r.vacantes||0}</td>
     </tr>`;
   }).join('');
@@ -831,7 +857,7 @@ function changePage(delta){
 // ─────────────────────────────────────────────────────────
 // Exportar la tabla filtrada (VIEW) a CSV
 function exportCSV(){
-  const cols=[['Tienda','tienda'],['Asesor','asesor'],['Movimiento','mov'],['SAP','est_sap'],['TREO','est_final'],['Activos','empleados'],['Vacantes','vacantes'],['Dif','dif']];
+  const cols=[['Tienda','tienda'],['Asesor','asesor'],['Movimiento','mov'],['TREO','est_final'],['SAP','est_sap'],['Activos','empleados'],['Vacantes','vacantes'],['Dif','dif']];
   const q=v=>{ const s=String(v==null?'':v); return /[",\n;]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
   const lines=[cols.map(c=>c[0]).join(',')];
   VIEW.forEach(r=>lines.push(cols.map(c=>q(r[c[1]])).join(',')));

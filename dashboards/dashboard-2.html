@@ -216,9 +216,16 @@
     .denom-kpi__val{ font-family:var(--font-display); font-size:1.7rem; font-weight:900; line-height:1; color:#2c1a52; }
     .denom-kpi__lbl{ font-size:11px; font-weight:700; letter-spacing:.04em; color:#8b7fa8; margin-top:5px; text-transform:uppercase; }
     #tabla-denominaciones{ padding-bottom:18px; }
-    #tabla-denominaciones .tbl-wrap{ overflow-x:auto !important; overflow-y:visible !important; }
+    .denom-toolbar{ display:flex; justify-content:flex-end; align-items:center; gap:10px; margin:0 0 12px; }
+    .denom-toolbar label{ font-size:11px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; color:#7d6f9b; }
+    .denom-sort{ min-width:230px; border:1px solid #e1d8f2; background:#fff; color:#2c1a52; border-radius:999px; padding:9px 14px; font-size:12px; font-weight:850; box-shadow:0 8px 18px rgba(56,30,110,.07); }
+    .denom-sort:focus{ outline:none; border-color:#6d4bc8; box-shadow:0 0 0 3px rgba(109,75,200,.14); }
+    #tabla-denominaciones .tbl-wrap{ max-height:520px; overflow:auto !important; border-radius:14px; scrollbar-width:thin; scrollbar-color:#F71926 rgba(44,26,82,.08); }
+    #tabla-denominaciones .tbl-wrap::-webkit-scrollbar{ width:6px; height:6px; }
+    #tabla-denominaciones .tbl-wrap::-webkit-scrollbar-track{ background:rgba(44,26,82,.08); border-radius:999px; }
+    #tabla-denominaciones .tbl-wrap::-webkit-scrollbar-thumb{ background:#F71926; border-radius:999px; }
     #tabla-denominaciones .tbl{ table-layout:fixed; width:100%; border-collapse:separate !important; border-spacing:0 !important; }
-    #tabla-denominaciones .tbl thead th{ background:#2c1a52 !important; padding:13px 16px !important; height:auto !important; }
+    #tabla-denominaciones .tbl thead th{ background:#2c1a52 !important; padding:13px 16px !important; height:auto !important; position:sticky; top:0; z-index:2; }
     #tabla-denominaciones .tbl td{
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
       padding:14px 16px !important; line-height:1.4; vertical-align:middle;
@@ -1054,6 +1061,7 @@ const COMPROMISOS_AT = [
   {id:'jordan', nombre:'Jordan V.T.', full:'Jordan Vazquez Toala', comp:4},
   {id:'jorge', nombre:'Jorge A. P.L.', full:'Jorge Adrian Posadas Lopez', comp:4},
   {id:'laura', nombre:'Laura A. M.M.', full:'Laura Alejandra Moreno Mayoral', comp:4},
+  {id:'luis', nombre:'Luis J. R.C.', full:'Luis Javier Ramos Cruz', comp:4},
   {id:'marisela', nombre:'Marisela M.S.', full:'Marisela Muñoz Sarabia', comp:4},
   {id:'mirna', nombre:'Mirna M.L.', full:'Mirna Martinez Lorenzo', comp:4},
   {id:'reyna', nombre:'Reyna A. R.G.', full:'Reyna Alicia Reyes Garcia', comp:7},
@@ -1068,6 +1076,7 @@ function asesorId(nombre){
   if(n.includes('JORDAN')) return 'jordan';
   if(n.includes('JORGE')) return 'jorge';
   if(n.includes('LAURA')) return 'laura';
+  if(n.includes('LUIS')) return 'luis';
   if(n.includes('MARISELA')) return 'marisela';
   if(n.includes('MIRNA')) return 'mirna';
   if(n.includes('REYNA')) return 'reyna';
@@ -1540,6 +1549,7 @@ function denomRowValida(row, cols){
   return m.includes('CAMBIO') || m.includes('PUESTO') || m.includes('AYUDANTE') || m.includes('ENCARGADO') || m.includes('LIDER') || m.includes('PROMOCION') || m.includes('ASCENSO');
 }
 let BASE_DENOM_DATA = [];
+let DENOM_SORT = 'fecha-desc';
 async function loadDenominaciones(){
   const section = document.getElementById('denom-section');
   try {
@@ -1574,6 +1584,29 @@ async function loadDenominaciones(){
     renderDenominaciones(rows);
   } catch(e){ /* sección opcional: si falla, se mantiene oculta sin afectar el resto */ }
 }
+function denomDateRank(value){
+  const raw = String(value || '').trim();
+  const m = raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+  if (m) {
+    const y = Number(m[3].length === 2 ? '20' + m[3] : m[3]);
+    return new Date(y, Number(m[2]) - 1, Number(m[1])).getTime();
+  }
+  const t = Date.parse(raw);
+  return Number.isNaN(t) ? 0 : t;
+}
+function sortDenominaciones(rows){
+  const txt = key => (a,b)=>String(a[key] || '').localeCompare(String(b[key] || ''), 'es-MX', { sensitivity:'base' });
+  const dateDesc = (a,b)=>denomDateRank(b.fecha) - denomDateRank(a.fecha);
+  const rank = { up:1, down:2, lateral:3 };
+  const list = rows.slice();
+  if (DENOM_SORT === 'asesor-asc') return list.sort((a,b)=>txt('asesor')(a,b) || dateDesc(a,b));
+  if (DENOM_SORT === 'empleado-asc') return list.sort((a,b)=>txt('empleado')(a,b) || dateDesc(a,b));
+  if (DENOM_SORT === 'tienda-asc') return list.sort((a,b)=>txt('tienda')(a,b) || dateDesc(a,b));
+  if (DENOM_SORT === 'movimiento-asc') return list.sort((a,b)=>(rank[a.direccion]||9)-(rank[b.direccion]||9) || dateDesc(a,b));
+  if (DENOM_SORT === 'fecha-asc') return list.sort((a,b)=>denomDateRank(a.fecha)-denomDateRank(b.fecha));
+  return list.sort(dateDesc);
+}
+function setDenomSort(value){ DENOM_SORT = value || 'fecha-desc'; renderDenominaciones(BASE_DENOM_DATA); }
 function renderDenominaciones(rows){
   const subieron = rows.filter(r=>r.direccion==='up').length;
   const bajaron  = rows.filter(r=>r.direccion==='down').length;
@@ -1589,7 +1622,7 @@ function renderDenominaciones(rows){
     <div class="denom-kpi"><div class="denom-kpi__val" style="color:#5a6472">${laterales}</div><div class="denom-kpi__lbl">↔ Laterales</div></div>
     <div class="denom-kpi"><div class="denom-kpi__val" style="font-size:1.05rem">${atTop?OXXO.truncate(atTop.label,20):'—'}</div><div class="denom-kpi__lbl">AT con más movimientos${atTop?` (${atTop.total})`:''}</div></div>`;
 
-  const sorted = rows.slice().sort((a,b)=> (a.fecha<b.fecha?1:-1));
+  const sorted = sortDenominaciones(rows);
   const trs = sorted.map(r=>{
     const pillClass = r.direccion==='up'?'up':r.direccion==='down'?'down':'lateral';
     const pillIcon = r.direccion==='up'?'▲':r.direccion==='down'?'▼':'↔';
@@ -1606,6 +1639,17 @@ function renderDenominaciones(rows){
   }).join('');
 
   document.getElementById('tabla-denominaciones').innerHTML = `
+    <div class="denom-toolbar">
+      <label for="denom-sort">Ordenar por</label>
+      <select class="denom-sort" id="denom-sort" onchange="setDenomSort(this.value)">
+        <option value="fecha-desc" ${DENOM_SORT==='fecha-desc'?'selected':''}>Fecha reciente primero</option>
+        <option value="fecha-asc" ${DENOM_SORT==='fecha-asc'?'selected':''}>Fecha antigua primero</option>
+        <option value="empleado-asc" ${DENOM_SORT==='empleado-asc'?'selected':''}>Empleado A-Z</option>
+        <option value="asesor-asc" ${DENOM_SORT==='asesor-asc'?'selected':''}>Asesor A-Z</option>
+        <option value="tienda-asc" ${DENOM_SORT==='tienda-asc'?'selected':''}>Tienda A-Z</option>
+        <option value="movimiento-asc" ${DENOM_SORT==='movimiento-asc'?'selected':''}>Movimiento</option>
+      </select>
+    </div>
     <div class="tbl-wrap"><table class="tbl">
       <colgroup>
         <col style="width:17%"><col style="width:18%"><col style="width:12%">

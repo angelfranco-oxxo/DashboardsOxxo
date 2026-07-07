@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Admin - Dashboards Ats</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/favicon.png" />
+  <link rel="stylesheet" href="css/global.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body{background:linear-gradient(135deg,#fff8ef 0%,#fff 48%,#ffeceb 100%);color:#211312}
+    .admin-shell{max-width:1440px;margin:0 auto;padding:24px}
+    .admin-hero{background:linear-gradient(120deg,#f71926 0%,#c91822 56%,#8c1017 100%);border:1px solid rgba(255,255,255,.45);border-radius:24px;padding:30px;box-shadow:0 24px 70px rgba(126,30,20,.2);color:#fff;position:relative;overflow:hidden}
+    .admin-hero::after{content:"";position:absolute;right:28px;bottom:-52px;width:230px;height:160px;background:rgba(255,255,255,.1);transform:skewX(-14deg);border-radius:24px}
+    .admin-hero__top{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+    .admin-eyebrow{font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#ffd7d5}
+    .admin-title{font-family:var(--font-display);font-size:clamp(2.6rem,5vw,4.6rem);line-height:.95;margin:8px 0 10px;color:#fff}
+    .admin-sub{max-width:760px;font-size:15px;font-weight:650;color:rgba(255,255,255,.88)}
+    .admin-pill{border:1px solid rgba(255,255,255,.42);background:rgba(255,255,255,.14);border-radius:999px;padding:10px 16px;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+    .admin-grid{display:grid;grid-template-columns:370px 1fr;gap:18px;margin-top:18px}
+    .admin-card{background:rgba(255,255,255,.9);border:1px solid rgba(220,80,55,.18);border-radius:20px;box-shadow:0 18px 50px rgba(90,36,20,.09);padding:20px}
+    .admin-card h2{font-family:var(--font-display);font-size:1.45rem;color:#211312;margin-bottom:12px}
+    .admin-label{display:block;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#9b6b60;margin:14px 0 7px}
+    .admin-select,.admin-input{width:100%;border:1px solid #eadbd5;border-radius:14px;background:#fff;padding:12px 13px;font:700 14px var(--font-body);color:#211312}
+    .admin-input:focus,.admin-select:focus{outline:none;border-color:#f71926;box-shadow:0 0 0 3px rgba(247,25,38,.12)}
+    .drop-zone{border:2px dashed #f0b7af;border-radius:18px;background:#fff7f3;padding:24px;text-align:center;transition:.18s ease;cursor:pointer}
+    .drop-zone.drag{border-color:#f71926;background:#fff0ef;transform:translateY(-1px)}
+    .drop-zone strong{display:block;font-family:var(--font-display);font-size:1.35rem;color:#f71926}
+    .drop-zone span{display:block;margin-top:5px;color:#7a4a42;font-size:13px;font-weight:650}
+    .admin-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    .admin-btn{border:0;border-radius:14px;padding:11px 16px;font-weight:900;cursor:pointer;transition:.18s ease}
+    .admin-btn.primary{background:#f71926;color:#fff;box-shadow:0 12px 26px rgba(247,25,38,.22)}
+    .admin-btn.secondary{background:#fff;color:#f71926;border:1px solid #ffd2d0}
+    .admin-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+    .status-list{display:grid;gap:10px}
+    .status-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid #efe2dc;border-radius:14px;background:#fff;padding:12px}
+    .status-dot{width:11px;height:11px;border-radius:50%;background:#c8b7af}
+    .status-item.ok .status-dot{background:#1fbf67}.status-item.warn .status-dot{background:#f2a52b}.status-item.bad .status-dot{background:#f71926}
+    .status-title{font-weight:900;color:#211312}.status-sub{font-size:12px;color:#7a4a42;font-weight:650}
+    .status-badge{font-size:11px;font-weight:900;border-radius:999px;padding:5px 9px;background:#fff2f1;color:#f71926}
+    .preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .preview-meta{font-size:12px;font-weight:800;color:#7a4a42}
+    .table-wrap{max-height:420px;overflow:auto;border:1px solid #efded7;border-radius:16px;background:#fff}
+    .preview-table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
+    .preview-table th{position:sticky;top:0;background:#321415;color:#fff;text-align:left;padding:10px;white-space:nowrap;z-index:1}
+    .preview-table td{padding:9px 10px;border-bottom:1px solid #f1e6e1;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis;color:#211312}
+    .preview-table tr:nth-child(even) td{background:#fffaf6}
+    .helper-box{border:1px solid #eadbd5;border-radius:16px;background:#fff;padding:14px;margin-top:14px;color:#4c312d;font-size:13px;font-weight:650}
+    .hidden{display:none!important}
+    @media(max-width:980px){.admin-grid{grid-template-columns:1fr}.admin-shell{padding:16px}.admin-hero{padding:24px}}
+  </style>
+</head>
+<body>
+  <nav class="topbar">
+    <a class="topbar__brand" href="index.html">
+      <div class="topbar__logo"><img src="assets/oxxo-logo-original.png" alt="OXXO" style="width:100%;height:100%;object-fit:contain"></div>
+      <div><div class="topbar__title">Panel Admin</div><div class="topbar__subtitle">Carga y validacion de bases</div></div>
+    </a>
+    <div class="topbar__meta"><a href="index.html" class="topbar__back">Inicio</a></div>
+  </nav>
+  <main class="admin-shell">
+    <section class="admin-hero">
+      <div class="admin-hero__top">
+        <div>
+          <div class="admin-eyebrow">Operacion guiada</div>
+          <h1 class="admin-title">Administrador de bases</h1>
+          <p class="admin-sub">Carga un Excel, valida columnas obligatorias y prepara los datos para el dashboard correcto. Pensado para que cualquier persona pueda actualizar sin tocar pestanas manualmente.</p>
+        </div>
+        <div class="admin-pill">Plaza Oaxaca - Google Sheets</div>
+      </div>
+    </section>
+    <section class="admin-grid">
+      <aside class="admin-card">
+        <h2>1. Selecciona base</h2>
+        <label class="admin-label" for="dashboard-select">Dashboard destino</label>
+        <select class="admin-select" id="dashboard-select"></select>
+        <label class="admin-label" for="sheet-select">Hoja del Excel</label>
+        <select class="admin-select" id="sheet-select" disabled><option value="">Sube un Excel primero</option></select>
+        <label class="admin-label">Archivo</label>
+        <div class="drop-zone" id="drop-zone">
+          <strong>Subir Excel</strong>
+          <span>Arrastra el archivo aqui o haz clic para seleccionar</span>
+          <input class="hidden" type="file" id="file-input" accept=".xlsx,.xls,.csv" />
+        </div>
+        <label class="admin-label" for="apps-script-url">URL de publicacion</label>
+        <input class="admin-input" id="apps-script-url" placeholder="Pega aqui el URL de Apps Script" />
+        <div class="helper-box">Sin URL, el panel valida y descarga CSV. Con URL de Apps Script, podra publicar directo al Google Sheet.</div>
+        <div class="admin-actions">
+          <button class="admin-btn secondary" id="save-config-btn">Guardar URL</button>
+          <button class="admin-btn secondary" id="download-csv-btn" disabled>Descargar CSV</button>
+          <button class="admin-btn primary" id="publish-btn" disabled>Publicar en Sheets</button>
+        </div>
+      </aside>
+      <section class="admin-card">
+        <div class="preview-head"><h2>2. Validacion</h2><div class="preview-meta" id="file-meta">Sin archivo cargado</div></div>
+        <div class="status-list" id="status-list"></div>
+        <div class="helper-box" id="admin-guidance">Selecciona el dashboard y sube un Excel. El panel revisara columnas, filas vacias y datos clave antes de publicar.</div>
+      </section>
+    </section>
+    <section class="admin-card" style="margin-top:18px">
+      <div class="preview-head"><h2>3. Vista previa</h2><div class="preview-meta" id="preview-meta">0 filas</div></div>
+      <div class="table-wrap">
+        <table class="preview-table" id="preview-table">
+          <tbody><tr><td style="padding:28px;text-align:center;color:#7a4a42">Aun no hay datos para mostrar.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="js/core.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

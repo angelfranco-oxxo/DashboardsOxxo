@@ -149,8 +149,39 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
 .kpi-filter-hint{font-size:9px;color:#ccc;margin-top:5px;font-weight:600;letter-spacing:.04em}
 .kpi-card.kpi-active .kpi-filter-hint,.kpi-card.kpi-active-red .kpi-filter-hint,
 .kpi-card.kpi-active-blue .kpi-filter-hint{color:#888}
+
+.te-table tfoot td{color:#FFF8EE !important;background:#341414 !important;border-color:rgba(255,255,255,.14) !important}
+.te-table tfoot td:first-child{color:#FFD25A !important}
+.te-table tfoot td.num,.te-table tfoot td.money{color:#FFF8EE !important;text-shadow:0 1px 0 rgba(0,0,0,.18)}
+.detail-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.table-sort-select{min-width:210px;border:1px solid rgba(217,43,43,.18);background:rgba(255,255,255,.78);border-radius:999px;padding:8px 14px;font-size:12px;font-weight:800;color:var(--color-dark);box-shadow:0 10px 24px rgba(80,35,25,.08)}
+.table-sort-select:focus{outline:none;border-color:#F04444;box-shadow:0 0 0 3px rgba(240,68,68,.12)}
+.asesor-detail-link{font:inherit;font-weight:800;color:var(--color-dark);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;background:transparent;border:0;padding:0;text-align:left}
+.asesor-detail-link::after{content:"Ver";font-size:9px;font-weight:900;color:#E71F2D;background:#FFE8E8;border:1px solid rgba(231,31,45,.16);border-radius:999px;padding:2px 7px;opacity:0;transform:translateX(-2px);transition:.16s ease}
+.te-table tbody tr:hover .asesor-detail-link::after{opacity:1;transform:translateX(0)}
+.te-modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(30,16,12,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:28px 16px;overflow-y:auto}
+.te-modal-overlay.open{display:flex}
+.te-modal{width:min(860px,100%);background:var(--color-surface,#fff);border:1px solid rgba(255,160,140,.35);border-radius:22px;box-shadow:0 32px 90px rgba(30,16,12,.38);padding:24px;animation:teModalIn .2s ease}
+@keyframes teModalIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.te-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--color-border);padding-bottom:14px;margin-bottom:16px}
+.te-modal-eyebrow{font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#E71F2D}
+.te-modal-title{font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--color-dark);margin-top:4px;line-height:1}
+.te-modal-close{border:0;background:#FFE8E8;color:#E71F2D;border-radius:999px;width:34px;height:34px;font-size:20px;font-weight:900;cursor:pointer}
+.te-modal-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.te-modal-kpi{border:1px solid var(--color-border);border-radius:16px;padding:12px;background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,248,238,.72));box-shadow:0 14px 30px rgba(80,35,25,.06)}
+.te-modal-kpi span{display:block;font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#9A6E62;margin-bottom:4px}
+.te-modal-kpi strong{font-family:var(--font-display);font-size:22px;color:var(--color-dark)}
+.te-modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.te-modal-block{border:1px solid var(--color-border);border-radius:16px;padding:14px;background:rgba(255,255,255,.68)}
+.te-modal-block h3{font-family:var(--font-display);font-size:15px;margin:0 0 10px;color:var(--color-dark)}
+.te-modal-list{display:flex;flex-direction:column;gap:8px}
+.te-modal-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;font-size:12px;font-weight:700;color:var(--color-dark)}
+.te-modal-row small{display:block;color:#8A6A62;font-weight:700;margin-top:2px}
+.te-modal-pill{font-weight:900;color:#E71F2D;background:#FFF0F0;border:1px solid rgba(231,31,45,.14);border-radius:999px;padding:5px 10px;white-space:nowrap}
+@media(max-width:760px){.te-modal-kpis{grid-template-columns:repeat(2,1fr)}.te-modal-grid{grid-template-columns:1fr}.table-sort-select{width:100%}}
 </style>
 <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
+  <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
 </head>
 <body>
 <nav class="topbar">
@@ -180,6 +211,12 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
       <span id="hero-download" style="display:none"></span>
     </div>
     <div class="vac-filters">
+      <div class="vac-fbox">
+        <label>Semana</label>
+        <select class="filtro-select" id="filtro-semana" onchange="applyDropdownFilters()">
+          <option value="">Todas las semanas</option>
+        </select>
+      </div>
       <div class="vac-fbox">
         <label>Asesor</label>
         <select class="filtro-select" id="filtro-asesor" onchange="applyDropdownFilters()">
@@ -264,7 +301,17 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
   <div class="card te-detail">
     <div class="card-head">
       <div class="card-title">📋 Detalle de Gasto en Tiempo Extra por Asesor<span class="info-tip" tabindex="0" data-tip="Tabla agregada por Asesor con horas y gasto desglosado por tipo de TE, con los filtros activos aplicados."></span></div>
-      <span class="card-badge" id="table-badge">— registros</span>
+      <div class="detail-toolbar">
+        <select class="table-sort-select" id="tabla-orden" onchange="setTableSort(this.value)">
+          <option value="gasto-desc">Mayor gasto total</option>
+          <option value="horas-desc">Mayor horas total</option>
+          <option value="asesor-asc">Asesor A-Z</option>
+          <option value="doble-desc">Mayor TE doble</option>
+          <option value="triple-desc">Mayor TE triple</option>
+          <option value="descanso-desc">Mayor dia descanso</option>
+        </select>
+        <span class="card-badge" id="table-badge">registros</span>
+      </div>
     </div>
     <div class="te-table-wrap">
       <table class="te-table" id="tabla-detalle">
@@ -277,6 +324,19 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
     <div class="dash-footer__update"><div class="dash-footer__update-dot"></div>
       Datos cargados: <span id="load-time">—</span></div>
     <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
+  </div>
+</div>
+
+<div class="te-modal-overlay" id="te-asesor-modal" onclick="if(event.target===this)closeAsesorDetail()">
+  <div class="te-modal" role="dialog" aria-modal="true" aria-labelledby="te-modal-title">
+    <div class="te-modal-head">
+      <div>
+        <div class="te-modal-eyebrow">Detalle por asesor</div>
+        <div class="te-modal-title" id="te-modal-title">Asesor</div>
+      </div>
+      <button class="te-modal-close" type="button" onclick="closeAsesorDetail()" aria-label="Cerrar">x</button>
+    </div>
+    <div id="te-modal-body"></div>
   </div>
 </div>
 
@@ -309,10 +369,47 @@ function numParse(v){ const n = parseFloat(String(v??'').replace(/,/g,'')); retu
 function fmt$(n){ return '$'+OXXO.formatNum(numParse(n).toFixed(2)); }
 function fmtH(n){ return OXXO.formatNum(numParse(n).toFixed(2)); }
 function pct(part,total){ return total>0?((part/total)*100).toFixed(2)+'%':'0%'; }
+function semanaRank(value){
+  const v = String(value || '').trim();
+  const sem = v.match(/(?:sem|semana)\s*(\d{1,2})/i);
+  if (sem) return Number(sem[1]);
+  if (/^\d{1,2}$/.test(v)) return Number(v);
+  const nums = v.match(/\d+/g);
+  return nums ? Number(nums[nums.length - 1]) : -1;
+}
+function semanaLabel(value){ return value ? 'Sem ' + value : 'Todas las semanas'; }
+function sortSemanas(values){
+  return [...values].sort((a,b)=>{
+    const rb = semanaRank(b), ra = semanaRank(a);
+    if (rb !== ra) return rb - ra;
+    return String(b).localeCompare(String(a), 'es-MX', { numeric:true, sensitivity:'base' });
+  });
+}
+function baseForCurrentScope(){
+  let data = BASE_DATA;
+  if (DROP_SEMANA) data = data.filter(r => String(r[C.semana] || '') === DROP_SEMANA);
+  if (DROP_ASESOR) data = data.filter(r => r[C.asesor] === DROP_ASESOR);
+  if (DROP_TIENDA) data = data.filter(r => r[C.tienda] === DROP_TIENDA);
+  return data;
+}
+function selectedSemanaLabel(){ return DROP_SEMANA || 'Todas'; }
+function escHtml(value){
+  return String(value ?? '').replace(/[&<>'\"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[ch]));
+}
+function sortAsesorRows(rows){
+  const list = [...rows];
+  const byName = (a,b)=>String(a.asesor).localeCompare(String(b.asesor),'es-MX',{sensitivity:'base'});
+  if (TABLE_SORT === 'asesor-asc') return list.sort(byName);
+  const metric = {'horas-desc':'hTot','doble-desc':'hDoble','triple-desc':'hTriple','descanso-desc':'hDesc','gasto-desc':'gTot'}[TABLE_SORT] || 'gTot';
+  return list.sort((a,b)=>(b[metric]-a[metric]) || byName(a,b));
+}
+function setTableSort(value){ TABLE_SORT = value || 'gasto-desc'; renderAll(); }
 
 let BASE_DATA = [];
 let ACTIVE_FILTER = null; // null | 'doble' | 'triple' | 'descanso'
-let DROP_ASESOR = '', DROP_TIPO = '', DROP_TIENDA = '';
+let DROP_ASESOR = '', DROP_TIPO = '', DROP_TIENDA = '', DROP_SEMANA = '';
+let DEFAULT_SEMANA = '';
+let TABLE_SORT = 'gasto-desc';
 let chartAsesores = null, chartTiendas = null, chartDona = null;
 
 function aggregateByAsesor(data) {
@@ -333,6 +430,7 @@ function aggregateByAsesor(data) {
 
 function filteredData() {
   let data = BASE_DATA;
+  if (DROP_SEMANA) data = data.filter(r => String(r[C.semana] || '') === DROP_SEMANA);
   if (DROP_ASESOR) data = data.filter(r => r[C.asesor] === DROP_ASESOR);
   if (DROP_TIENDA) data = data.filter(r => r[C.tienda] === DROP_TIENDA);
   if (DROP_TIPO || ACTIVE_FILTER) {
@@ -347,7 +445,8 @@ function filteredData() {
 function renderAll() {
   const data = filteredData();
   const byAsesor = aggregateByAsesor(data);
-  const totalBase = BASE_DATA.reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
+  const scopedBase = baseForCurrentScope();
+  const totalBase = scopedBase.reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
 
   const totalHoras  = data.reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
   const totalGasto  = data.reduce((s,r)=>s+(numParse(r[C.importe])||0),0);
@@ -360,14 +459,15 @@ function renderAll() {
   const totalEmps   = new Set(data.map(r=>r[C.nombre])).size;
   const totalTiendas= new Set(data.map(r=>r[C.tienda])).size;
   const costoXHora  = totalHoras > 0 ? totalGasto/totalHoras : 0;
-  const semana      = BASE_DATA[0]?.[C.semana]||'—';
+  const semana      = selectedSemanaLabel();
+  document.getElementById('semana-badge').textContent = DROP_SEMANA ? 'Sem ' + DROP_SEMANA + ' - Plaza Oaxaca' : 'Todas las semanas - Plaza Oaxaca';
 
   // ── KPIs (kpi-card skin style) ──
   document.getElementById('kpi-section').innerHTML = `
     <div class="kpi-card" id="kpi-all" onclick="setFilter(null)" title="Ver todo" style="border-top:3px solid #FFD200">
       <div class="kpi-card__label">Total Horas TE<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de la columna 'Cantidad' de todas las filas de Dashboard_4_Semanal con los filtros activos (incluye doble, triple y día descanso)."></span></div>
       <div class="kpi-card__value">${fmtH(totalHoras)}</div>
-      <div class="kpi-card__sub">horas · Sem ${semana}</div>
+      <div class="kpi-card__sub">${semana === 'Todas' ? 'horas - Todas las semanas' : 'horas - Sem ' + semana}</div>
       <div class="kpi-filter-hint">▶ Ver todo</div>
     </div>
     <div class="kpi-card" id="kpi-gasto" onclick="setFilter(null)" title="Ver todo" style="border-top:3px solid #FF6B00">
@@ -470,11 +570,12 @@ function renderAll() {
 
   // ── Grouped table ──
   let sHDesc=0,sGDesc=0,sHDoble=0,sGDoble=0,sHTriple=0,sGTriple=0,sHTot=0,sGTot=0;
-  const tableRows = byAsesor.map(r=>{
+  const tableData = sortAsesorRows(byAsesor);
+  const tableRows = tableData.map(r=>{
     sHDesc+=r.hDesc;sGDesc+=r.gDesc;sHDoble+=r.hDoble;sGDoble+=r.gDoble;
     sHTriple+=r.hTriple;sGTriple+=r.gTriple;sHTot+=r.hTot;sGTot+=r.gTot;
     return `<tr>
-      <td>${r.asesor}</td>
+      <td><button type="button" class="asesor-detail-link" data-asesor="${escHtml(r.asesor)}">${escHtml(r.asesor)}</button></td>
       <td class="num">${fmtH(r.hDesc)}</td><td class="money">${fmt$(r.gDesc)}</td>
       <td class="num">${fmtH(r.hDoble)}</td><td class="money">${fmt$(r.gDoble)}</td>
       <td class="num">${fmtH(r.hTriple)}</td><td class="money">${fmt$(r.gTriple)}</td>
@@ -507,6 +608,61 @@ function renderAll() {
       <td class="num">${fmtH(sHTot)}</td><td class="money">${fmt$(sGTot)}</td>
     </tr></tfoot>`;
   document.getElementById('table-badge').textContent = `${byAsesor.length} asesores`;
+  document.querySelectorAll('.asesor-detail-link').forEach(btn=>{
+    btn.addEventListener('click', () => openAsesorDetail(btn.dataset.asesor));
+  });
+}
+
+function closeAsesorDetail(){ document.getElementById('te-asesor-modal')?.classList.remove('open'); }
+
+function openAsesorDetail(asesor){
+  const rows = filteredData().filter(r => (r[C.asesor] || 'Sin Asignar') === asesor);
+  if (!rows.length) return;
+  const totalHoras = rows.reduce((sum,r)=>sum+(numParse(r[C.horas])||0),0);
+  const totalGasto = rows.reduce((sum,r)=>sum+(numParse(r[C.importe])||0),0);
+  const tiendas = new Set(rows.map(r=>r[C.tienda]).filter(Boolean));
+  const empleados = new Set(rows.map(r=>r[C.nombre]).filter(Boolean));
+  const byTipo = [
+    ['Dia descanso', rows.filter(r=>isDes(r[C.tipo]))],
+    ['TE doble', rows.filter(r=>r[C.tipo]===TIPO_DOBLE)],
+    ['TE triple', rows.filter(r=>r[C.tipo]===TIPO_TRIPLE)]
+  ].map(([label, list])=>({
+    label,
+    horas:list.reduce((sum,r)=>sum+(numParse(r[C.horas])||0),0),
+    gasto:list.reduce((sum,r)=>sum+(numParse(r[C.importe])||0),0)
+  }));
+  const byStore = {};
+  rows.forEach(r=>{
+    const tienda = r[C.tienda] || 'Sin tienda';
+    if(!byStore[tienda]) byStore[tienda] = { tienda, horas:0, gasto:0, registros:0 };
+    byStore[tienda].horas += numParse(r[C.horas]) || 0;
+    byStore[tienda].gasto += numParse(r[C.importe]) || 0;
+    byStore[tienda].registros += 1;
+  });
+  const stores = Object.values(byStore).sort((a,b)=>b.gasto-a.gasto).slice(0,8);
+  document.getElementById('te-modal-title').textContent = asesor;
+  document.getElementById('te-modal-body').innerHTML = `
+    <div class="te-modal-kpis">
+      <div class="te-modal-kpi"><span>Horas totales</span><strong>${fmtH(totalHoras)}</strong></div>
+      <div class="te-modal-kpi"><span>Gasto total</span><strong>${fmt$(totalGasto)}</strong></div>
+      <div class="te-modal-kpi"><span>Tiendas</span><strong>${tiendas.size}</strong></div>
+      <div class="te-modal-kpi"><span>Empleados</span><strong>${empleados.size}</strong></div>
+    </div>
+    <div class="te-modal-grid">
+      <div class="te-modal-block">
+        <h3>Desglose por tipo</h3>
+        <div class="te-modal-list">
+          ${byTipo.map(t=>`<div class="te-modal-row"><div>${t.label}<small>${fmtH(t.horas)} horas</small></div><span class="te-modal-pill">${fmt$(t.gasto)}</span></div>`).join('')}
+        </div>
+      </div>
+      <div class="te-modal-block">
+        <h3>Tiendas con mayor gasto</h3>
+        <div class="te-modal-list">
+          ${stores.map(t=>`<div class="te-modal-row"><div>${escHtml(t.tienda)}<small>${fmtH(t.horas)} horas - ${t.registros} registros</small></div><span class="te-modal-pill">${fmt$(t.gasto)}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('te-asesor-modal').classList.add('open');
 }
 
 function updateKpiActive(){
@@ -529,6 +685,7 @@ function updateKpiActive(){
 
 function setFilter(f){ ACTIVE_FILTER=f; DROP_TIPO=''; document.getElementById('filtro-tipo').value=''; renderAll(); }
 function applyDropdownFilters(){
+  DROP_SEMANA = document.getElementById('filtro-semana').value;
   DROP_ASESOR = document.getElementById('filtro-asesor').value;
   DROP_TIPO   = document.getElementById('filtro-tipo').value;
   DROP_TIENDA = document.getElementById('filtro-tienda').value;
@@ -536,8 +693,9 @@ function applyDropdownFilters(){
   renderAll();
 }
 function limpiarFiltros(){
-  ACTIVE_FILTER=null; DROP_ASESOR=''; DROP_TIPO=''; DROP_TIENDA='';
+  ACTIVE_FILTER=null; DROP_ASESOR=''; DROP_TIPO=''; DROP_TIENDA=''; DROP_SEMANA=DEFAULT_SEMANA;
   ['filtro-asesor','filtro-tipo','filtro-tienda'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('filtro-semana').value = DEFAULT_SEMANA;
   renderAll();
 }
 
@@ -551,12 +709,15 @@ async function initDashboard() {
   const asesorCatalog = await OXXO.loadAsesorCatalog();
   data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
   BASE_DATA = data;
-
-  // Badge semana
-  const sem = data[0]?.[C.semana]||'—';
-  document.getElementById('semana-badge').textContent = `⟳ Sem ${sem} · Plaza Oaxaca`;
-
   // Populate dropdowns
+  const semanas = sortSemanas([...new Set(data.map(r=>String(r[C.semana] || '').trim()).filter(Boolean))]);
+  DEFAULT_SEMANA = semanas[0] || '';
+  DROP_SEMANA = DEFAULT_SEMANA;
+  const selSemana = document.getElementById('filtro-semana');
+  semanas.forEach(s=>{ const o=document.createElement('option');o.value=s;o.textContent=semanaLabel(s);selSemana.appendChild(o); });
+  selSemana.value = DEFAULT_SEMANA;
+  document.getElementById('semana-badge').textContent = DEFAULT_SEMANA ? 'Sem ' + DEFAULT_SEMANA + ' - Plaza Oaxaca' : 'Semanal - Plaza Oaxaca';
+
   const asesores = [...new Set(data.map(r=>r[C.asesor]).filter(Boolean))].sort();
   const tiendas  = [...new Set(data.map(r=>r[C.tienda]).filter(Boolean))].sort();
   const selAsesor = document.getElementById('filtro-asesor');
