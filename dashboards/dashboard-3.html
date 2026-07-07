@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
@@ -216,16 +216,17 @@
   /* ── Hero ejecutivo sobrio (degradado vino → negro, rojo OXXO solo como acento) ──
      Se usa 'body .hero' para superar en especificidad la regla agrupada del skin
      (.hero,.dashboard-hero{background:rojo !important}) que carga después. */
-  .hero{ flex-direction:column !important;align-items:stretch !important;gap:20px; }
+  .hero{ flex-direction:column !important;align-items:stretch !important;gap:20px;position:relative !important;overflow:visible !important;margin-bottom:70px !important;min-height:138px !important;padding:26px 34px 58px !important;border-radius:16px !important; }
   body .hero{
     background:
-      radial-gradient(120% 160% at 100% 0%, rgba(247,25,38,.32) 0%, rgba(247,25,38,0) 46%),
+      radial-gradient(circle at 80% 10%, rgba(255,255,255,.08), transparent 28%),
       repeating-linear-gradient(-45deg, transparent, transparent 46px, rgba(255,255,255,0.025) 46px, rgba(255,255,255,0.025) 47px),
       linear-gradient(135deg, #2b0e0e 0%, #1b1012 55%, #120c0d 100%) !important;
     border:0 !important;
     border-left:3px solid var(--hb-red,#F71926) !important;
     box-shadow:0 26px 60px rgba(0,0,0,.34) !important;
   }
+  body .hero::after{content:"";position:absolute;right:70px;bottom:0;width:120px;height:92px;background:rgba(255,255,255,.08);clip-path:polygon(18% 0,100% 0,78% 100%,42% 100%);pointer-events:none;}
   .hero-download-link{ text-decoration:none !important; cursor:pointer; }
   body .hero h1{ color:#fff !important; letter-spacing:-.5px !important; }
   body .hero p{ color:rgba(255,255,255,.6) !important; }
@@ -236,16 +237,17 @@
   }
   body .hero-date{ color:rgba(255,255,255,.5) !important; }
   .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
-  .vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px 18px;align-items:end}
+  .vac-filters{position:absolute !important;z-index:45 !important;left:24px !important;right:24px !important;bottom:-44px !important;display:grid !important;grid-template-columns:minmax(220px,1.2fr) minmax(220px,1.2fr) minmax(320px,.9fr) !important;gap:14px !important;align-items:end !important;padding:16px 18px !important;border-radius:12px !important;border:1px solid rgba(120,47,39,.12) !important;background:rgba(255,255,255,.94) !important;box-shadow:0 18px 45px rgba(89,36,24,.20), inset 0 1px 0 rgba(255,255,255,.88) !important;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);overflow:visible !important;}
   .vac-fbox{display:flex;flex-direction:column;gap:8px;min-width:0}
-  .vac-fbox > label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.92);display:flex;align-items:center;gap:6px}
+  .vac-fbox > label{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#8b6a5f !important;display:flex;align-items:center;gap:6px;margin-left:2px;}
+  .vac-actions{display:grid;grid-template-columns:1fr 1.15fr;gap:10px;align-items:center;}
   .hero .filtro-select,.hero .filtro-btn{
-    width:100%;box-sizing:border-box;
-    background:rgba(255,255,255,0.97) !important;
-    border:1px solid rgba(255,255,255,0.6) !important;
-    color:#181112 !important;-webkit-text-fill-color:#181112 !important;font-weight:700;font-size:14px;
-    border-radius:14px !important;padding:12px 16px !important;
-    box-shadow:0 6px 18px rgba(60,20,15,0.16);
+    width:100%;height:40px;min-height:40px;box-sizing:border-box;
+    background:rgba(255,255,255,.96) !important;
+    border:1px solid rgba(72,45,40,.16) !important;
+    color:#241413 !important;-webkit-text-fill-color:#241413 !important;font-weight:800;font-size:14px;
+    border-radius:8px !important;padding:9px 12px !important;
+    box-shadow:0 3px 10px rgba(90,42,24,.06) !important;
     transition:transform .15s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease;
     cursor:pointer;
   }
@@ -254,15 +256,14 @@
     background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%23b3261e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
     background-repeat:no-repeat !important;background-position:right 14px center !important;padding-right:40px !important;
   }
-  .hero .filtro-select:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(60,20,15,0.22)}
-  .hero .filtro-select:focus{outline:none;border-color:var(--hb-red,#F71926) !important;box-shadow:0 0 0 3px rgba(247,25,38,.20)}
+  .hero .filtro-select:hover,.hero .filtro-select:focus,.hero .filtro-btn:hover{background:#fff !important;border-color:rgba(217,31,45,.34) !important;box-shadow:0 0 0 3px rgba(217,31,45,.08),0 8px 18px rgba(90,42,24,.08) !important;}
+  .hero .filtro-select:focus{outline:none;}
   .hero .filtro-select option{color:#1a1a1a;background:#fff}
-  .hero .filtro-btn{
-    background:rgba(255,255,255,0.14) !important;border:1px solid rgba(255,255,255,0.6) !important;
-    color:#fff !important;-webkit-text-fill-color:#fff !important;font-weight:800;box-shadow:none;
-    display:flex;align-items:center;justify-content:center;gap:6px;
-  }
-  .hero .filtro-btn:hover{background:#fff !important;color:var(--hb-red) !important;-webkit-text-fill-color:var(--hb-red) !important;border-color:#fff !important;transform:translateY(-1px);box-shadow:0 10px 24px rgba(60,20,15,0.22)}
+  .hero .filtro-btn{display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;}
+  .hero .filtro-btn.download-filter{background:linear-gradient(135deg,#f32932,#c91421) !important;color:#fff !important;-webkit-text-fill-color:#fff !important;border-color:rgba(160,12,22,.16) !important;box-shadow:0 10px 22px rgba(201,20,33,.22) !important;}
+  .hero .filtro-btn.download-filter:hover{transform:translateY(-1px) !important;box-shadow:0 14px 28px rgba(201,20,33,.28) !important;}
+  @media(max-width:1180px){.hero{padding-bottom:24px !important;margin-bottom:18px !important}.vac-filters{position:relative !important;left:auto !important;right:auto !important;bottom:auto !important;grid-template-columns:repeat(2,minmax(0,1fr)) !important;margin-top:14px !important}.vac-actions{grid-template-columns:1fr 1fr}}
+  @media(max-width:640px){.hero{padding:22px 18px !important}.hero h1{font-size:1.8rem !important}.vac-filters{grid-template-columns:1fr !important;padding:14px !important}.vac-actions{grid-template-columns:1fr}}
   .hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
 
   /* ── Buscador de Detalle por Tienda ── */
@@ -502,10 +503,12 @@
           <option value="critica">Tienda Crítica</option>
         </select>
       </div>
-      <div class="vac-fbox">
+      <div class="vac-fbox vac-fbox--actions">
         <label>Acciones</label>
-        <button class="filtro-btn" onclick="limpiarFiltros()">✕ Limpiar filtros</button>
-        <button class="filtro-btn" type="button" onclick="OXXO.handleDownloadButton(this, () => OXXO.downloadSheetTab(TAB, 'dashboard-3-estructura.csv'))">Descargar base</button>
+        <div class="vac-actions">
+          <button class="filtro-btn" onclick="limpiarFiltros()">✕ Limpiar filtros</button>
+          <button class="filtro-btn download-filter" type="button" onclick="OXXO.handleDownloadButton(this, () => OXXO.downloadSheetTab(TAB, 'dashboard-3-estructura.csv'))">Descargar base</button>
+        </div>
       </div>
     </div>
   </div>
