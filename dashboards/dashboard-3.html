@@ -523,6 +523,22 @@
       font-weight:900 !important;
       padding:10px 13px !important;
     }
+
+    body .hero .smart-filter{position:relative;width:100%;}
+    body .hero .smart-filter__button{width:100%;height:42px;min-height:42px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:9px !important;background:rgba(255,255,255,.98) !important;border:1px solid rgba(72,45,40,.18) !important;color:#241413 !important;box-shadow:0 4px 12px rgba(90,42,24,.07) !important;font-weight:900 !important;padding:10px 13px !important;cursor:pointer;}
+    body .hero .smart-filter__label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    body .hero .smart-filter__chev{color:#7d655f;font-size:12px;flex:0 0 auto;}
+    body .hero .smart-filter__menu{display:none;position:absolute;z-index:80;left:0;right:0;top:calc(100% + 10px);border-radius:14px;border:1px solid rgba(120,47,39,.14);background:rgba(255,255,255,.98);box-shadow:0 20px 44px rgba(60,20,15,.22);overflow:hidden;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);}
+    body .hero .smart-filter.open .smart-filter__menu{display:block;}
+    body .hero .smart-filter__search{width:calc(100% - 16px);margin:8px;padding:10px 12px;border-radius:10px;border:1px solid rgba(217,31,45,.24);font-weight:800;color:#241413;outline:none;}
+    body .hero .smart-filter__list{max-height:252px;overflow:auto;padding:6px 8px 10px;scrollbar-width:thin;}
+    body .hero .smart-filter__option{width:100%;display:flex;align-items:center;gap:10px;text-align:left;border:0;border-radius:12px;background:transparent;padding:10px 9px;color:#241413;font-weight:850;cursor:pointer;}
+    body .hero .smart-filter__option:hover{background:rgba(246,183,60,.16);}
+    body .hero .smart-filter__option.is-active{background:rgba(217,31,45,.10);color:#b5121c;}
+    body .hero .smart-filter__check{width:15px;height:15px;border-radius:5px;border:1px solid rgba(217,31,45,.32);background:#fff;display:grid;place-items:center;flex:0 0 auto;font-size:10px;color:#fff;}
+    body .hero .smart-filter__option.is-active .smart-filter__check{background:#d91f2d;border-color:#d91f2d;}
+    body .hero .smart-filter__option.is-active .smart-filter__check::before{content:"?";}
+    body .hero .smart-filter__empty{padding:16px;color:#8b6a5f;font-size:12px;font-weight:800;text-align:center;}
     body .hero .filtro-btn.download-filter{
       background:linear-gradient(135deg,#f32932,#c91421) !important;
       color:#fff !important;
@@ -578,10 +594,18 @@
     </div>
     <div class="vac-filters">
       <div class="vac-fbox">
-        <label>👤 Asesor</label>
-        <select class="filtro-select" id="filtro-asesor" onchange="applyFilters()">
-          <option value="">Todos los asesores</option>
-        </select>
+        <label>Asesor</label>
+        <div class="smart-filter" id="asesor-filter">
+          <button class="smart-filter__button" type="button" id="asesor-button">
+            <span class="smart-filter__label" id="asesor-label">Todos los asesores</span>
+            <span class="smart-filter__chev">?</span>
+          </button>
+          <div class="smart-filter__menu" id="asesor-menu">
+            <input class="smart-filter__search" id="asesor-search" type="search" placeholder="Buscar asesor..." autocomplete="off">
+            <div class="smart-filter__list" id="asesor-options"></div>
+          </div>
+          <input type="hidden" id="filtro-asesor" value="">
+        </div>
       </div>
       <div class="vac-fbox">
         <label>🏷️ Estatus</label>
@@ -1420,6 +1444,8 @@ let DETALLE_DATA = [];
 let SEMANAS = [];
 let ACTIVE_SEMANA = '';
 let filtersReady = false;
+let selectedAsesorValues = null;
+let asesorOptionsData = [];
 function uniqueSorted(data, key){
   return [...new Set(data.map(r=>String(r[key]||'').trim()).filter(Boolean))].sort();
 }
@@ -1429,6 +1455,61 @@ function fillSelect(id, values){
   sel.innerHTML = ''; sel.appendChild(first);
   values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
 }
+function escHtml(v){ return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function selectedAsesores(){ return selectedAsesorValues ? [...selectedAsesorValues] : []; }
+function setSelectedAsesores(values=null, shouldApply=true){
+  selectedAsesorValues = values === null ? null : [...new Set((values||[]).filter(Boolean))];
+  const input = document.getElementById('filtro-asesor');
+  if(input) input.value = (selectedAsesorValues || []).join('|');
+  updateAsesorLabel();
+  renderAsesorOptions(document.getElementById('asesor-search')?.value || '');
+  if(shouldApply) applyFilters();
+}
+function updateAsesorLabel(){
+  const label = document.getElementById('asesor-label'); if(!label) return;
+  const total = asesorOptionsData.length;
+  const n = selectedAsesorValues ? selectedAsesorValues.length : total;
+  if(!selectedAsesorValues || n === total) label.textContent = 'Todos los asesores';
+  else if(n === 0) label.textContent = 'Ningun asesor';
+  else if(n === 1) label.textContent = selectedAsesorValues[0];
+  else label.textContent = n + ' asesores seleccionados';
+}
+function renderAsesorOptions(query=''){
+  const wrap = document.getElementById('asesor-options'); if(!wrap) return;
+  const q = String(query||'').trim().toLowerCase();
+  const filtered = asesorOptionsData.filter(v => !q || v.toLowerCase().includes(q));
+  const allActive = !selectedAsesorValues || selectedAsesorValues.length === asesorOptionsData.length;
+  const rows = [{ value:'', label:'Todos los asesores', isAll:true }, ...filtered.map(v => ({ value:v, label:v }))].map(opt => {
+    const active = opt.isAll ? allActive : (!selectedAsesorValues || selectedAsesorValues.includes(opt.value));
+    return '<button type="button" class="smart-filter__option '+(active?'is-active':'')+'" data-asesor="'+escHtml(opt.value)+'"><span class="smart-filter__check"></span><span>'+escHtml(opt.label)+'</span></button>';
+  }).join('');
+  wrap.innerHTML = rows || '<div class="smart-filter__empty">Sin resultados</div>';
+}
+function buildAsesorChecklist(data){
+  asesorOptionsData = uniqueSorted(data,'asesor');
+  setSelectedAsesores(null, false);
+}
+function bindAsesorChecklist(){
+  const filter = document.getElementById('asesor-filter');
+  const button = document.getElementById('asesor-button');
+  const list = document.getElementById('asesor-options');
+  const search = document.getElementById('asesor-search');
+  if(!filter || filter.dataset.bound === '1') return;
+  filter.dataset.bound = '1';
+  button?.addEventListener('click', e => { e.stopPropagation(); filter.classList.toggle('open'); if(filter.classList.contains('open')) search?.focus(); });
+  search?.addEventListener('input', e => renderAsesorOptions(e.target.value));
+  list?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-asesor]'); if(!btn) return;
+    const value = btn.dataset.asesor;
+    if(!value){ setSelectedAsesores(null); return; }
+    let current = selectedAsesorValues ? [...selectedAsesorValues] : [...asesorOptionsData];
+    current = current.includes(value) ? current.filter(v => v !== value) : [...current, value];
+    if(current.length === asesorOptionsData.length) setSelectedAsesores(null);
+    else setSelectedAsesores(current);
+  });
+  document.addEventListener('click', e => { if(!filter.contains(e.target)) filter.classList.remove('open'); });
+}
+
 function populateFilters(data){
   if(filtersReady) return;
   const semSel = document.getElementById('filtro-semana');
@@ -1437,23 +1518,25 @@ function populateFilters(data){
     SEMANAS.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; semSel.appendChild(o); });
     semSel.value = ACTIVE_SEMANA;
   }
-  fillSelect('filtro-asesor', uniqueSorted(data,'asesor'));
+  buildAsesorChecklist(data);
+  bindAsesorChecklist();
   filtersReady = true;
 }
 function applyFilters(){
   // El filtro de Semana-Mes se removio (la base tiene una sola fecha); se mantiene la variable
   // por compatibilidad pero sin filtrar por semana.
   const sem = document.getElementById('filtro-semana')?.value || '';
-  const a = document.getElementById('filtro-asesor').value;
+  const selectedA = selectedAsesorValues ? new Set(selectedAsesorValues) : null;
+  const a = selectedAsesores();
   const s = document.getElementById('filtro-estatus').value;
   let d = ALL_DATA;
   if(sem) d = d.filter(r=>r.semana===sem);
-  if(a) d = d.filter(r=>r.asesor===a);
+  if(selectedA) d = d.filter(r=>selectedA.has(r.asesor));
   if(s==='completo')   d = d.filter(r=>isCompleta(r.estatus));
   if(s==='incompleto') d = d.filter(r=>isIncompleta(r.estatus));
   if(s==='critica')    d = d.filter(r=>isCritica(r.estatus));
   render(d);
-  renderDetalle(a, s);
+  renderDetalle(selectedAsesorValues ? a : '', s);
 }
 
 // Detalle por Tienda — filtra la base "Plaza Oaxaca" por Asesor y Estatus activos.
@@ -1475,7 +1558,10 @@ function renderDetalle(asesorSel, estatusSel){
   const norm = s => cleanKey(s);
   const hasAsesor = DETALLE_DATA.some(r=>r.asesor);
   let d = DETALLE_DATA;
-  if(asesorSel && hasAsesor) d = d.filter(r=>norm(r.asesor)===norm(asesorSel));
+  if(asesorSel && hasAsesor){
+    if(Array.isArray(asesorSel)){ const set = new Set(asesorSel.map(norm)); d = d.filter(r=>set.has(norm(r.asesor))); }
+    else d = d.filter(r=>norm(r.asesor)===norm(asesorSel));
+  }
   if(estatusSel==='completo')   d = d.filter(r=>isCompleta(r.estatus));
   if(estatusSel==='incompleto') d = d.filter(r=>isIncompleta(r.estatus));
   if(estatusSel==='critica')    d = d.filter(r=>isCritica(r.estatus));
@@ -1664,7 +1750,8 @@ function setKpiEstatus(value){
   applyFilters();
 }
 function limpiarFiltros(){
-  ['filtro-asesor','filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  setSelectedAsesores(null, false);
+  ['filtro-estatus'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   const semSel = document.getElementById('filtro-semana');
   if(semSel) semSel.value = ACTIVE_SEMANA;
   applyFilters();
