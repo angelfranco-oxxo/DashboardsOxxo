@@ -2268,6 +2268,8 @@ const DIAS_OPTS=[
   {value:'3',label:'Más de 3 días'},
   {value:'1',label:'Más de 1 día'},
 ];
+const DEFAULT_DIAS_VALUES=['30','21','15','7','3','1'];
+function defaultDiasSelection(){ return [...DEFAULT_DIAS_VALUES]; }
 let selectedDiasValues=[];
 function selectedDias(){ return [...selectedDiasValues]; }
 function setSelectedDias(values=[]){
@@ -2417,7 +2419,7 @@ function limpiarFiltros(){
   setSelectedTiendas();
   document.getElementById('tienda-search').value='';
   renderTiendaOptions();
-  setSelectedDias([]);
+  setSelectedDias(defaultDiasSelection());
   document.getElementById('filtro-mes').value='';
   activePuesto = '';
   refreshDashboard();
@@ -2504,7 +2506,7 @@ function poblarFiltros(){
     });
   });
 
-  setSelectedDias([]);
+  setSelectedDias(defaultDiasSelection());
   document.getElementById('dias-button').addEventListener('click', () => {
     const box=document.getElementById('dias-filter');
     const willOpen=!box.classList.contains('open');
