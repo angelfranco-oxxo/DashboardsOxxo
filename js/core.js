@@ -11,7 +11,7 @@
 const SHEETS_CONFIG = {
   // ID de tu Google Sheets
   // Ejemplo: https://docs.google.com/spreadsheets/d/ESTE_ES_EL_ID/edit
-  SPREADSHEET_ID: "1MORN0KOO54i_-f2TS31g1u69BZ_7OaMx",
+  SPREADSHEET_ID: "1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A",
 
   // Nombre de la pestaña de Configuración global
   CONFIG_SHEET: "Configuracion",

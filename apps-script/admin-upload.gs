@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DashboardsOxxo Admin Upload
  *
  * Flujo recomendado:
@@ -11,7 +11,7 @@
  *
  * Despues de eso, admin.html publica directo sin pedir URL.
  */
-const SPREADSHEET_ID = '1MORN0KOO54i_-f2TS31g1u69BZ_7OaMx';
+const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
 const ALLOWED_SHEETS = [
   'Dashboard_1_Diario',
   'Dashboard_2_Diario',
