@@ -1,222 +1,101 @@
 (function(){
-  const ADMIN_CONFIG_KEY = 'oxxo_admin_apps_script_url';
-  const dashboards = [
-    { key:'d1', label:'Dashboard 1 - Vacantes diarias', tab:OXXO.SHEETS_CONFIG.TABS.d1, required:['Plaza','Asesor','Unidad org','ID posiciones','Descripcion de Posicion','Status ocupacion','Fecha','Dias Vacantes','Mes'] },
-    { key:'d2', label:'Dashboard 2 - Bajas diarias', tab:OXXO.SHEETS_CONFIG.TABS.d2, required:['Asesor','Plaza','Temporalidad','Puesto','Mes','Semana','Rot_Temp','Fecha'] },
-    { key:'d2denom', label:'Dashboard 2 - Denominaciones', tab:OXXO.SHEETS_CONFIG.TABS.d2denom, required:['Asesor','Nombre del empleado','Denominacion Posicion Anterior','Denominacion Posicion Actual','F.Crea'] },
-    { key:'d3', label:'Dashboard 3 - Estructura', tab:OXXO.SHEETS_CONFIG.TABS.d3, required:['Asesor','Tienda','CR TIENDA','Plaza','% Aprovechamiento','Clas Aprov','Mes Semana'] },
-    { key:'s4', label:'Dashboard 4 - Tiempo extra', tab:OXXO.SHEETS_CONFIG.TABS.s4, required:['Plaza','Asesor','Nombre del empleado o candidato','Textos homologados','Texto breve de unidad organizativa','Cantidad','Importe','Semana'] },
-    { key:'s5', label:'Dashboard 5 - Vacaciones', tab:OXXO.SHEETS_CONFIG.TABS.s5, required:['Asesor','Empleado','Puesto','Fecha_Inicio','Fecha_Fin','Dias','Semana'] },
-    { key:'s6', label:'Dashboard 6 - Ausentismos', tab:OXXO.SHEETS_CONFIG.TABS.s6, required:['Asesor','Empleado','Puesto','Tipo_Ausentismo','Fecha','Semana','Dias'] },
-    { key:'s7', label:'Dashboard 7 - TREO', tab:OXXO.SHEETS_CONFIG.TABS.s7, required:['Plaza','CR','Tienda','Asesor','SAP','TREO','Activos','Vacantes','Movimiento'] },
-    { key:'catalog', label:'Catalogo de asesores', tab:OXXO.SHEETS_CONFIG.CATALOG_SHEET, required:['ASESOR','TIENDA','CR TIENDA'] },
+  const ADMIN_CONFIG_KEY='oxxo_admin_apps_script_url';
+  const PLAZA_TARGET='OAXACA';
+
+  const dashboards=[
+    {key:'d1',label:'Dashboard 1 - Vacantes diarias',tab:OXXO.SHEETS_CONFIG.TABS.d1,preferredSheets:['Estructura','Dashboard_1_Diario'],output:['Plaza','Asesor','Unidad org','CR TIENDA','ID posiciones','Descripcion de Posicion','Status ocupacion','Fecha','Dias Vacantes','Mes'],required:['Plaza','Asesor','Unidad org','ID posiciones','Descripcion de Posicion','Status ocupacion'],filter:r=>containsOaxaca(r.Plaza)&&isVacancyRow(r),derive:deriveD1,notes:'Estructura cruda. Mes y Dias Vacantes se derivan del texto vacante desde cuando no vengan en el archivo.'},
+    {key:'d2',label:'Dashboard 2 - Bajas diarias',tab:OXXO.SHEETS_CONFIG.TABS.d2,preferredSheets:['Bajas'],output:['Plaza','Asesor','Nombre del empleado','No Personal','Fecha','Mes','Semana','Temporalidad','Rot_Temp','Puesto','Tienda','Motivo','Detalle','Edad','Genero'],required:['Plaza','Asesor','Nombre del empleado','Fecha','Semana','Temporalidad','Rot_Temp','Puesto','Tienda'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD2,notes:'Base principal de bajas. El mes se calcula con F. Validez/Fecha.'},
+    {key:'d2denom',label:'Dashboard 2 - Movimientos ABC',tab:OXXO.SHEETS_CONFIG.TABS.d2denom,preferredSheets:['ABC'],output:['Plaza','Asesor','Denominacion Medida','Denominacion Motivo','Nombre del empleado','F.Crea','Denominacion Posicion Anterior','Denominacion Posicion Actual','Denominacion Funcion Anterior','Denominacion Funcion Actual','Denominacion U.Org. Actual'],required:['Plaza','Asesor','Denominacion Medida','Nombre del empleado','F.Crea','Denominacion Funcion Anterior','Denominacion Funcion Actual'],filter:r=>containsOaxaca(r.Plaza)&&/cambio\s+de\s+puesto/i.test(String(r['Denominacion Medida']||'')),derive:r=>r,notes:'Detalle ABC: solo CAMBIO DE PUESTO. Ascenso/descenso lo calcula el dashboard.'},
+    {key:'d3',label:'Dashboard 3 - Estructura',tab:OXXO.SHEETS_CONFIG.TABS.d3,preferredSheets:['Medicion'],output:['Plaza','CR TIENDA','UO','Asesor','Tienda','Esquema','Estructura Diaria','AUSENTISMOS','Vacante','LIDER','ENCARGADO','AYUDANTE','Vacantes','Aprovechamiento Estructura','Aprovechamiento Binario','Estatus Con impacto Ausentismo','EC SIN AUSENTISMO','FECHA'],required:['Plaza','CR TIENDA','Asesor','Tienda','Estructura Diaria','Aprovechamiento Estructura','Estatus Con impacto Ausentismo','FECHA'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD3,notes:'Regla D3: Aprovechamiento Estructura >= 95% cuenta como 100%, menor a 95% cuenta como 0%.'},
+    {key:'s4',label:'Dashboard 4 - Tiempo extra',tab:OXXO.SHEETS_CONFIG.TABS.s4,preferredSheets:['Base de datos TE'],output:['Zona','Region','Plaza','Asesor','Numero de personal','Nombre del empleado o candidato','Esquema','Textos homologados','Texto breve de unidad organizativa','Cr de Tienda','Cantidad','Importe','Ano','Mes','Semana'],required:['Plaza','Asesor','Nombre del empleado o candidato','Textos homologados','Texto breve de unidad organizativa','Cantidad','Importe','Semana'],filter:r=>containsOaxaca(r.Plaza),derive:r=>r,notes:'Base limpia de tiempo extra. Usar Cantidad como horas e Importe como gasto.'},
+    {key:'s5',label:'Dashboard 5 - Vacaciones',tab:OXXO.SHEETS_CONFIG.TABS.s5,preferredSheets:['Vacaciones Op'],output:['Region','Plaza','Asesor','Tienda','Puesto','Posicion','Area','No. De Empleado','Nombre','Fecha_Inicio','Fecha_Fin','Periodo_Anterior','Periodo_Actual','Dias_Restantes','Bucket_Ant','Bucket_Act','Tipo de Conting.'],required:['Plaza','Asesor','Tienda','Puesto','No. De Empleado','Nombre','Dias_Restantes'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD5,notes:'Vacaciones Op. El indicador principal es Total dias restantes.'},
+    {key:'s6',label:'Dashboard 6 - Ausentismos',tab:OXXO.SHEETS_CONFIG.TABS.s6,preferredSheets:['Absentismos'],output:['Zona','Region','Plaza','Asesor','N de personal','Nombre del empleado o candidato','Estatus','Esquema','Puesto','Cr de Tienda','Tienda','Tipo_Ausentismo','Denominacion','Inicio de validez','Fin de validez','Dias','Horas','Absentismos solo en la semana','Inicio de semana','Fin de semana','Ano','Mes','Semana'],required:['Plaza','Asesor','N de personal','Nombre del empleado o candidato','Tienda','Tipo_Ausentismo','Denominacion','Absentismos solo en la semana','Semana'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD6,notes:'Absentismos. La metrica principal es Absentismos solo en la semana.'},
+    {key:'s7',label:'Dashboard 7 - TREO',tab:OXXO.SHEETS_CONFIG.TABS.s7,preferredSheets:['Liberacion','LiberaciÃ³n'],output:['Plaza','CR Reg','CR','Tienda','ID Tienda','Asesor','Accionable sugerido TREO','Estructura Propuesta TREO P2 Jun - Ago','Estructura SAP','Empleados Activos','Vacantes','Dif SAP vs Est Optima Final','Movimiento Inicial','Turnos','Antiguedad'],required:['Plaza','CR','Tienda','Asesor','Estructura Propuesta TREO P2 Jun - Ago','Estructura SAP','Empleados Activos','Vacantes','Movimiento Inicial'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD7,notes:'Usa el primer bloque operativo: TREO=L, SAP=M, Activos=N, Vacantes=O, Movimiento=Q.'},
+    {key:'catalog',label:'Catalogo de asesores',tab:OXXO.SHEETS_CONFIG.CATALOG_SHEET,preferredSheets:['Catalogo_Asesores','Catalogo asesores','Hoja1','ASESORES ACTJUNJUL'],output:['ASESOR','TIENDA','CR TIENDA'],required:['ASESOR','TIENDA','CR TIENDA'],filter:r=>Boolean(r.ASESOR&&(r.TIENDA||r['CR TIENDA'])),derive:deriveCatalog,notes:'Catalogo compartido para corregir asesor por CR/Tienda. Acepta archivos con titulo arriba y encabezados ASESOR, TIENDA, CR TIENDA.'}
   ];
 
-  const columnAliases = {
-    'Plaza':['plaza','nombre plaza'],
-    'Asesor':['asesor','at','asesor at','nombre asesor'],
-    'Unidad org':['unidad org','unidad organizativa','texto breve de unidad organizativa','tienda','nombre tienda'],
-    'ID posiciones':['id posiciones','id posicion','id position','posicion','id puesto'],
-    'Descripcion de Posicion':['descripcion de posicion','descripci n de posicion','denominacion posicion','puesto','descripcion puesto','denominacion posicion actual'],
-    'Status ocupacion':['status ocupacion','estatus ocupacion','status de ocupacion','estado ocupacion'],
-    'Fecha':['fecha','f.crea','f crea','fecha crea','fecha creacion'],
-    'Dias Vacantes':['dias vacantes','dias vacante','dias','dias de vacante','antiguedad'],
-    'Mes':['mes','periodo','mes semana'],
-    'Temporalidad':['temporalidad','tipo temporalidad'],
-    'Semana':['semana','sem','mes semana'],
-    'Rot_Temp':['rot temp','rot_temp','rotacion temporal','rot. temp.'],
-    'Puesto':['puesto','descripcion de posicion','denominacion posicion','posicion'],
-    'Nombre del empleado':['nombre del empleado','empleado','nombre empleado','nombre del empleado o candidato'],
-    'Denominacion Posicion Anterior':['denominacion posicion anterior','puesto anterior','posicion anterior'],
-    'Denominacion Posicion Actual':['denominacion posicion actual','puesto actual','posicion actual'],
-    'F.Crea':['f.crea','f crea','fecha crea','fecha'],
-    'Tienda':['tienda','unidad org','texto breve de unidad organizativa','nombre tienda'],
-    'CR TIENDA':['cr tienda','cr','id tienda','crtienda'],
-    '% Aprovechamiento':['% aprovechamiento','aprovechamiento','aprov %','aprovechamiento de estructura de plaza'],
-    'Clas Aprov':['clas aprov','clasificacion aprovechamiento','estatus','clasificacion'],
-    'Mes Semana':['mes semana','semana','mes'],
-    'Nombre del empleado o candidato':['nombre del empleado o candidato','nombre del empleado','empleado'],
-    'Textos homologados':['textos homologados','texto homologado','concepto'],
-    'Cantidad':['cantidad','horas'],
-    'Importe':['importe','gasto','gasto $'],
-    'Fecha_Inicio':['fecha_inicio','fecha inicio','inicio'],
-    'Fecha_Fin':['fecha_fin','fecha fin','fin'],
-    'Tipo_Ausentismo':['tipo_ausentismo','tipo ausentismo','ausentismo'],
-    'CR':['cr','cr tienda','id tienda'],
-    'SAP':['sap','est sap','plantilla sap'],
-    'TREO':['treo','est treo','estructura treo'],
-    'Activos':['activos','empleados','personal activo'],
-    'Vacantes':['vacantes','vacantes totales'],
-    'Movimiento':['movimiento','estatus movimiento'],
-    'ASESOR':['asesor','at'],
-    'TIENDA':['tienda','unidad org'],
+  const columnAliases={
+    'Plaza':['plaza','plazas','nombre plaza'],'Asesor':['asesor','at','at ro','at/ro','asesor at','nombre asesor','responsable'],'Unidad org':['unidad org','unidad org.','unidad org/','unidad organizativa','texto breve de unidad organizativa','tienda','nombre tienda'],'CR TIENDA':['cr tienda','cr de tienda','cr','id tienda','crtienda'],'ID posiciones':['id posiciones','id posicion','id position','posicion','id puesto'],'Descripcion de Posicion':['descripcion de posicion','denominacion posicion','puesto','descripcion puesto','puestos homologados'],'Status ocupacion':['status ocupacion','estatus ocupacion','status de ocupacion','estado ocupacion'],'Fecha':['fecha','f. validez','f validez','f.crea','f crea','fecha crea','fecha creacion','status ocupacion'],'Dias Vacantes':['dias vacantes','dias vacante','dias','dias de vacante','antiguedad'],'Mes':['mes','periodo','mes semana'],'Semana':['semana','sem','mes semana','semana de baja'],'Temporalidad':['temporalidad','tipo temporalidad'],'Rot_Temp':['rot temp','rot_temp','rotacion temporal','rot. temprana','rot temprana'],'Puesto':['puesto','puestos homologados','descripcion de posicion','denominacion posicion','posicion','funcion','denominacion funcion actual'],'Nombre del empleado':['nombre del empleado','empleado','nombre empleado','nombre del empleado o candidato'],'No Personal':['n pers','nÃ‚Â° pers.','no personal','numero personal','numero de personal','n de personal'],'Motivo':['motivo','denominacion motivo'],'Detalle':['detalle de baja','detalle baja','comentarios'],'Edad':['edad'],'Genero':['genero','sexo'],
+    'Denominacion Medida':['denominacion medida','medida','med.'],'Denominacion Motivo':['denominacion motivo','motivo'],'Denominacion Posicion Anterior':['denominacion posicion anterior','puesto anterior','posicion anterior'],'Denominacion Posicion Actual':['denominacion posicion actual','puesto actual','posicion actual'],'Denominacion Funcion Anterior':['denominacion funcion anterior','funcion anterior'],'Denominacion Funcion Actual':['denominacion funcion actual','funcion actual'],'Denominacion U.Org. Actual':['denominacion u org actual','denominacion u org act','denominacion u organ actual'],'F.Crea':['f.crea','f crea','fecha crea','fecha','f. crea.'],
+    'Tienda':['tienda','unidad org','unidad org.','texto breve de unidad organizativa','denominacion u org actual','nombre tienda'],'UO':['uo','un.org.','unidad organizativa'],'Estructura Diaria':['estructura diaria','estructura_diaria','estructura'],'AUSENTISMOS':['ausentismos','aus no justificado'],'Vacante':['vacante','% vacantes'],'LIDER':['lider'],'ENCARGADO':['encargado'],'AYUDANTE':['ayudante'],'Vacantes':['vacantes','vacantes totales'],'Aprovechamiento Estructura':['aprovechamiento estructura','aprovechamiento de estructura','% aprovechamiento','aprovechamiento'],'Estatus Con impacto Ausentismo':['estatus con impacto ausentismo','estatus','clas aprov','clasificacion aprovechamiento'],'EC SIN AUSENTISMO':['ec sin ausentismo'],'FECHA':['fecha','corte'],
+    'Zona':['zona'],'Region':['region','regiÃƒÂ³n'],'Numero de personal':['numero de personal','n de personal','no personal','nÃ‚Â° de personal'],'Nombre del empleado o candidato':['nombre del empleado o candidato','nombre del empleado','empleado','nombre'],'Esquema':['esquema'],'Textos homologados':['textos homologados','texto homologado','concepto'],'Texto breve de unidad organizativa':['texto breve de unidad organizativa','tienda'],'Cr de Tienda':['cr de tienda','cr tienda','cr'],'Cantidad':['cantidad','horas'],'Importe':['importe','gasto','gasto $'],'Ano':['ano','aÃƒÂ±o'],
+    'Area':['area de personal'],'No. De Empleado':['no. de empleado','no de empleado','numero empleado','n empleado'],'Nombre':['nombre','nombre empleado'],'Fecha_Inicio':['fechas de aniversario inicio','fecha_inicio','fecha inicio','inicio'],'Fecha_Fin':['fechas de aniversario fin','fecha_fin','fecha fin','fin'],'Periodo_Anterior':['dias restantes per ant','periodo anterior'],'Periodo_Actual':['dias restantes per act','periodo actual'],'Dias_Restantes':['total dias restantes','total dÃƒÂ­as restantes','dias restantes'],'Total dias restantes':['total dias restantes','total dÃƒÂ­as restantes'],'Bucket_Ant':['meses para disfrutar vacaciones de per ant','meses para disfrutar vacaciones de per. ant.'],'Bucket_Act':['meses para disfrutar vacaciones de per act','meses para disfrutar vacaciones de per. act'],'Tipo de Conting.':['tipo de conting','tipo de conting.'],'Posicion':['posicion','posiciÃƒÂ³n'],
+    'N de personal':['n de personal','nÃ‚Â° de personal','numero de personal'],'Estatus':['estatus'],'Tipo_Ausentismo':['texto infotipo','tipo ausentismo','ausentismo'],'Denominacion':['denominacion'],'Inicio de validez':['inicio de validez'],'Fin de validez':['fin de validez'],'Dias':['dias presenc abs','dÃƒÂ­as presenc./abs.','dias'],'Horas':['horas de presencia','horas'],'Absentismos solo en la semana':['absentismos solo en la semana'],'Inicio de semana':['inicio de semana'],'Fin de semana':['fin de semana'],
+    'CR Reg':['cr reg'],'ID Tienda':['id tienda'],'Accionable sugerido TREO':['accionable sugerido treo','racional de la estructura'],'TREO':['estructura propuesta treo p2 jun ago','treo','est treo','estructura treo'],'SAP':['estructura sap','sap','est sap','plantilla sap'],'Activos':['empleados activos','activos','empleados','personal activo'],'DIF':['dif sap vs est optima final','dif'],'Movimiento':['movimiento inicial','movimiento','estatus movimiento'],'Turnos':['turnos'],'Antiguedad':['antiguedad','antigÃƒÂ¼edad'],'ASESOR':['asesor','at'],'TIENDA':['tienda','unidad org']
   };
 
-  const state = { workbook:null, sheetName:'', rows:[], validation:null, headerRow:0 };
-  const $ = id => document.getElementById(id);
+  const state={workbook:null,sheetName:'',rows:[],validation:null,headerRow:0,sourceRows:0,sourceHeaders:[]};
+  const $=id=>document.getElementById(id);
 
-  function norm(value){
-    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9%]+/g,'').trim();
+  function norm(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9%]+/g,' ').trim().replace(/\s+/g,'');}
+  function normLoose(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+  function aliasesFor(column){return [column,...(columnAliases[column]||[])].map(norm);}
+  function dashboard(){return dashboards.find(d=>d.key===$('dashboard-select').value)||dashboards[0];}
+  function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+  function setStatus(items){$('status-list').innerHTML=items.map(item=>`<div class="status-item ${item.type}"><span class="status-dot"></span><div><div class="status-title">${escapeHtml(item.title)}</div><div class="status-sub">${escapeHtml(item.text)}</div></div><span class="status-badge">${escapeHtml(item.badge||'')}</span></div>`).join('');}
+  function getHeaders(rows){const set=new Set();rows.forEach(row=>Object.keys(row||{}).forEach(key=>set.add(key)));return [...set];}
+  function containsOaxaca(value){return normLoose(value).includes('oaxaca');}
+  function toNumber(value){const n=Number(String(value??'').replace(/[$,%]/g,'').replace(/,/g,'').trim());return Number.isFinite(n)?n:0;}
+  function pctValue(value){const n=toNumber(value);if(!n)return 0;return n<=1?n*100:n;}
+  function parseDate(value){
+    if(value instanceof Date&&!isNaN(value))return value;
+    const raw=String(value??'').trim();if(!raw||/^n\/?a$/i.test(raw))return null;
+    if(/^\d+(\.\d+)?$/.test(raw)){const serial=Number(raw);if(serial>25000&&serial<80000)return new Date(Date.UTC(1899,11,30)+serial*86400000);}
+    const embedded=raw.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
+    const clean=(embedded?embedded[0]:raw.replace(/\s+\d{1,2}:\d{2}(:\d{2})?.*$/,'')).replace(/[.]/g,'/').replace(/-/g,'/');
+    const parts=clean.split('/').map(p=>p.trim()).filter(Boolean);
+    if(parts.length>=3){let day,month,year;if(parts[0].length===4){year=Number(parts[0]);month=Number(parts[1]);day=Number(parts[2]);}else{day=Number(parts[0]);month=Number(parts[1]);year=Number(parts[2]);}if(year<100)year+=2000;const d=new Date(year,month-1,day);if(!isNaN(d))return d;}
+    const d=new Date(raw);return isNaN(d)?null:d;
   }
-  function aliasesFor(column){
-    return [column, ...(columnAliases[column] || [])].map(norm);
+  function isoDate(date){return date?`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`:'';}
+  function monthKey(date){if(!date)return '';const abbr=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][date.getMonth()];return `${abbr}-${String(date.getFullYear()).slice(-2)}`;}
+  function daysBetween(start,end){if(!start||!end)return '';const a=new Date(start.getFullYear(),start.getMonth(),start.getDate()).getTime();const b=new Date(end.getFullYear(),end.getMonth(),end.getDate()).getTime();return Math.max(0,Math.floor((b-a)/86400000));}
+  function extractStatusDate(value){const m=String(value??'').match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);return m?parseDate(m[0]):null;}
+  function isVacancyRow(row){const status=normLoose(row['Status ocupacion']);return status.includes('vacante')||status.includes('no ocupado');}
+
+  function deriveD1(row){const fecha=parseDate(row.Fecha)||extractStatusDate(row['Status ocupacion']);const today=new Date();return {...row,Fecha:isoDate(fecha),'Dias Vacantes':row['Dias Vacantes']||daysBetween(fecha,today),Mes:row.Mes||monthKey(fecha)};}
+  function deriveD2(row){const fecha=parseDate(row.Fecha);return {...row,Fecha:isoDate(fecha),Mes:row.Mes||monthKey(fecha)};}
+  function deriveD3(row){const raw=pctValue(row['Aprovechamiento Estructura']);return {...row,'Aprovechamiento Estructura':raw,'Aprovechamiento Binario':raw>=95?100:0};}
+  function deriveD5(row){return {...row,Fecha_Inicio:isoDate(parseDate(row.Fecha_Inicio)),Fecha_Fin:isoDate(parseDate(row.Fecha_Fin)),Periodo_Anterior:row.Periodo_Anterior||0,Periodo_Actual:row.Periodo_Actual||0,Dias_Restantes:row.Dias_Restantes||row['Total dias restantes']||0};}
+  function deriveD6(row){return {...row,'Inicio de validez':isoDate(parseDate(row['Inicio de validez'])),'Fin de validez':isoDate(parseDate(row['Fin de validez'])),'Inicio de semana':isoDate(parseDate(row['Inicio de semana'])),'Fin de semana':isoDate(parseDate(row['Fin de semana'])),Dias:row.Dias||row['Absentismos solo en la semana']||0};}
+  function deriveD7(row){return {...row,'Estructura Propuesta TREO P2 Jun - Ago':row['Estructura Propuesta TREO P2 Jun - Ago']||row.TREO,'Estructura SAP':row['Estructura SAP']||row.SAP,'Empleados Activos':row['Empleados Activos']||row.Activos,'Dif SAP vs Est Optima Final':row['Dif SAP vs Est Optima Final']||row.DIF,'Movimiento Inicial':row['Movimiento Inicial']||row.Movimiento};}
+  function deriveCatalog(row){return {...row,ASESOR:String(row.ASESOR||'').trim(),TIENDA:String(row.TIENDA||'').trim(),'CR TIENDA':String(row['CR TIENDA']||'').trim().toUpperCase()};}
+
+  function findHeaderRow(matrix,dash){const limit=Math.min(matrix.length,40);let best={index:0,score:-1};for(let i=0;i<limit;i++){const cells=(matrix[i]||[]).map(norm).filter(Boolean);const score=dash.required.reduce((total,col)=>total+(aliasesFor(col).some(alias=>cells.includes(alias))?1:0),0)+Math.min(cells.length,12)/100;if(score>best.score)best={index:i,score};}return best;}
+  function buildSourceMap(sourceHeaders){const sourceMap=new Map();sourceHeaders.forEach((header,index)=>{const key=norm(header);if(key&&!sourceMap.has(key))sourceMap.set(key,index);});return sourceMap;}
+  function matchColumns(sourceMap,dash){const matched={};dash.output.forEach(col=>{const exact=aliasesFor(col).find(alias=>sourceMap.has(alias));if(exact)matched[col]=sourceMap.get(exact);});return matched;}
+  function rowsFromMatrix(matrix,dash){
+    if(!matrix.length)return{rows:[],headers:[],headerRow:0,sourceRows:0,sourceHeaders:[]};
+    const headerInfo=findHeaderRow(matrix,dash);
+    const sourceHeaders=(matrix[headerInfo.index]||[]).map((value,index)=>String(value||`Columna ${index+1}`).trim());
+    const matched=matchColumns(buildSourceMap(sourceHeaders),dash);
+    const rawRows=matrix.slice(headerInfo.index+1).map(line=>{const row={};dash.output.forEach(col=>{row[col]=matched[col]!==undefined?(line[matched[col]]??''):'';});return row;}).filter(row=>Object.values(row).some(v=>String(v??'').trim()!==''));
+    const filtered=rawRows.map(row=>dash.derive?dash.derive(row):row).filter(row=>!dash.filter||dash.filter(row)).map(row=>{const cleaned={};dash.output.forEach(col=>{cleaned[col]=row[col]??'';});return cleaned;});
+    return{rows:filtered,headers:dash.output,headerRow:headerInfo.index+1,sourceRows:rawRows.length,sourceHeaders};
   }
-  function dashboard(){ return dashboards.find(d => d.key === $('dashboard-select').value) || dashboards[0]; }
-  function escapeHtml(value){
-    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  }
-  function setStatus(items){
-    $('status-list').innerHTML = items.map(item => `
-      <div class="status-item ${item.type}">
-        <span class="status-dot"></span>
-        <div><div class="status-title">${escapeHtml(item.title)}</div><div class="status-sub">${escapeHtml(item.text)}</div></div>
-        <span class="status-badge">${escapeHtml(item.badge || '')}</span>
-      </div>`).join('');
-  }
-  function getHeaders(rows){
-    const set = new Set();
-    rows.forEach(row => Object.keys(row || {}).forEach(key => set.add(key)));
-    return [...set];
-  }
-  function findHeaderRow(matrix, dash){
-    const limit = Math.min(matrix.length, 20);
-    let best = { index:0, score:-1 };
-    for (let i = 0; i < limit; i++) {
-      const cells = (matrix[i] || []).map(norm).filter(Boolean);
-      const score = dash.required.reduce((total, col) => total + (aliasesFor(col).some(alias => cells.includes(alias)) ? 1 : 0), 0);
-      if (score > best.score) best = { index:i, score };
-    }
-    return best;
-  }
-  function rowsFromMatrix(matrix, dash){
-    if (!matrix.length) return { rows:[], headers:[], headerRow:0, score:0 };
-    const headerInfo = findHeaderRow(matrix, dash);
-    const sourceHeaders = (matrix[headerInfo.index] || []).map((value, index) => String(value || `Columna ${index + 1}`).trim());
-    const sourceMap = new Map();
-    sourceHeaders.forEach((header, index) => {
-      const key = norm(header);
-      if (key && !sourceMap.has(key)) sourceMap.set(key, index);
-    });
-    const matched = {};
-    dash.required.forEach(col => {
-      const foundAlias = aliasesFor(col).find(alias => sourceMap.has(alias));
-      if (foundAlias) matched[col] = sourceMap.get(foundAlias);
-    });
-    const rows = matrix.slice(headerInfo.index + 1).map(line => {
-      const row = {};
-      dash.required.forEach(col => {
-        if (matched[col] !== undefined) row[col] = line[matched[col]] ?? '';
-      });
-      return row;
-    }).filter(row => Object.values(row).some(v => String(v ?? '').trim() !== ''));
-    return { rows, headers:dash.required, headerRow:headerInfo.index + 1, score:headerInfo.score };
-  }
+  function evaluateSheet(name,dash){const sheet=state.workbook.Sheets[name];const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});const parsed=rowsFromMatrix(matrix,dash);const missing=dash.required.filter(col=>!parsed.rows.some(row=>String(row[col]??'').trim()!==''));const preference=(dash.preferredSheets||[]).some(s=>norm(s)===norm(name))?1000:0;return{name,parsed,missing,score:preference+parsed.rows.length-missing.length*100};}
+  function autoSelectSheet(){if(!state.workbook)return;const dash=dashboard();const evaluations=state.workbook.SheetNames.map(name=>evaluateSheet(name,dash)).sort((a,b)=>b.score-a.score);const best=evaluations[0];if(best&&best.name&&$('sheet-select').value!==best.name){$('sheet-select').value=best.name;state.sheetName=best.name;}}
+
   function validateRows(){
-    const dash = dashboard();
-    const rows = state.rows || [];
-    const headers = getHeaders(rows);
-    const normalizedHeaders = new Map(headers.map(h => [norm(h), h]));
-    const missing = dash.required.filter(col => !aliasesFor(col).some(alias => normalizedHeaders.has(alias)));
-    const nonEmpty = rows.filter(row => Object.values(row || {}).some(v => String(v ?? '').trim() !== ''));
-    const items = [
-      { type: rows.length ? 'ok' : 'bad', title:'Archivo leido', text: rows.length ? `${rows.length} filas detectadas en "${state.sheetName}".` : 'No se detectaron filas utiles.', badge: rows.length ? 'OK' : 'Revisar' },
-      { type: missing.length ? 'bad' : 'ok', title:'Columnas obligatorias', text: missing.length ? `Faltan: ${missing.join(', ')}` : `Todas las columnas requeridas para ${dash.label}.`, badge: missing.length ? missing.length + ' faltan' : 'OK' },
-      { type: nonEmpty.length === rows.length ? 'ok' : 'warn', title:'Filas vacias', text: nonEmpty.length === rows.length ? 'No se detectaron filas completamente vacias.' : `${rows.length - nonEmpty.length} filas vacias o incompletas detectadas.`, badge: nonEmpty.length + ' utiles' },
-      { type:'warn', title:'Publicacion', text:'GitHub Pages no escribe en Sheets por si solo. Para publicar directo se necesita URL de Apps Script; si no, descarga el CSV validado.', badge:'Modo seguro' },
-    ];
-    state.validation = { ok: rows.length > 0 && missing.length === 0, missing, headers, rows: nonEmpty };
-    setStatus(items);
-    $('download-csv-btn').disabled = !rows.length;
-    $('publish-btn').disabled = !state.validation.ok;
-    $('admin-guidance').textContent = state.validation.ok
-      ? `Listo para ${dash.tab}. Encabezados detectados en la fila ${state.headerRow || 1}; se publicaran solo las columnas necesarias.`
-      : 'Corrige las columnas faltantes antes de publicar.';
-    renderPreview(nonEmpty.slice(0, 80), headers);
+    const dash=dashboard(),rows=state.rows||[],headers=getHeaders(rows),missing=dash.required.filter(col=>!rows.some(row=>String(row[col]??'').trim()!=='')),nonEmpty=rows.filter(row=>Object.values(row||{}).some(v=>String(v??'').trim()!==''));
+    setStatus([
+      {type:rows.length?'ok':'bad',title:'Archivo leido',text:rows.length?`${rows.length} filas Oaxaca listas desde "${state.sheetName}".`:`No se detectaron filas utiles para ${PLAZA_TARGET}.`,badge:rows.length?'OK':'Revisar'},
+      {type:missing.length?'bad':'ok',title:'Columnas obligatorias',text:missing.length?`Faltan o vienen vacias: ${missing.join(', ')}`:`Columnas criticas OK para ${dash.label}.`,badge:missing.length?missing.length+' faltan':'OK'},
+      {type:state.sourceRows===rows.length?'ok':'warn',title:'Filtro Oaxaca',text:state.sourceRows===rows.length?'Todas las filas utiles corresponden al filtro esperado.':`${state.sourceRows} filas leidas; ${rows.length} quedaron despues de filtros/reglas.`,badge:`${rows.length} utiles`},
+      {type:'warn',title:'Regla aplicada',text:dash.notes||'Se normalizaron columnas al formato del dashboard.',badge:'Auto'}
+    ]);
+    state.validation={ok:rows.length>0&&missing.length===0,missing,headers,rows:nonEmpty};
+    $('download-csv-btn').disabled=!rows.length;$('publish-btn').disabled=!state.validation.ok;
+    $('admin-guidance').textContent=state.validation.ok?`Listo para publicar en ${dash.tab}. Encabezados detectados en fila ${state.headerRow}; se enviaran ${dash.output.length} columnas normalizadas.`:'Revisa la hoja seleccionada o el dashboard destino: faltan columnas criticas o no hay filas Oaxaca.';
+    renderPreview(nonEmpty.slice(0,80),dash.output);
   }
-  function renderPreview(rows, headers){
-    $('preview-meta').textContent = `${rows.length} filas en vista previa`;
-    if (!rows.length || !headers.length) {
-      $('preview-table').innerHTML = '<tbody><tr><td style="padding:28px;text-align:center;color:#7a4a42">Aun no hay datos para mostrar.</td></tr></tbody>';
-      return;
-    }
-    const selectedHeaders = headers.slice(0, 14);
-    $('preview-table').innerHTML = `
-      <thead><tr>${selectedHeaders.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
-      <tbody>${rows.map(row => `<tr>${selectedHeaders.map(h => `<td title="${escapeHtml(row[h])}">${escapeHtml(row[h])}</td>`).join('')}</tr>`).join('')}</tbody>`;
-  }
-  function fillDashboardSelect(){
-    $('dashboard-select').innerHTML = dashboards.map(d => `<option value="${d.key}">${d.label}</option>`).join('');
-  }
-  function fillSheets(){
-    const names = state.workbook ? state.workbook.SheetNames : [];
-    $('sheet-select').disabled = !names.length;
-    $('sheet-select').innerHTML = names.length ? names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('') : '<option value="">Sube un Excel primero</option>';
-    state.sheetName = names[0] || '';
-  }
-  function loadCurrentSheet(){
-    if (!state.workbook || !state.sheetName) return;
-    const dash = dashboard();
-    const sheet = state.workbook.Sheets[state.sheetName];
-    const matrix = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'', raw:false });
-    const parsed = rowsFromMatrix(matrix, dash);
-    state.rows = parsed.rows;
-    state.headerRow = parsed.headerRow;
-    validateRows();
-  }
-  async function handleFile(file){
-    if (!file) return;
-    const buffer = await file.arrayBuffer();
-    state.workbook = XLSX.read(buffer, { type:'array' });
-    $('file-meta').textContent = `${file.name} - ${(file.size/1024/1024).toFixed(2)} MB`;
-    fillSheets();
-    loadCurrentSheet();
-  }
-  function downloadCsv(){
-    if (!state.rows.length) return;
-    const dash = dashboard();
-    const headers = getHeaders(state.rows);
-    OXXO.downloadRowsAsCSV(state.rows, `${dash.key}-${dash.tab}.csv`, headers);
-  }
-  async function publish(){
-    const url = $('apps-script-url').value.trim();
-    if (!url) { alert('Pega primero la URL de Apps Script.'); return; }
-    if (!state.validation?.ok) { alert('La base aun tiene errores de validacion.'); return; }
-    const dash = dashboard();
-    $('publish-btn').disabled = true;
-    $('publish-btn').textContent = 'Publicando...';
-    try {
-      const response = await fetch(url, {
-        method:'POST',
-        mode:'cors',
-        headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-        body: JSON.stringify({ targetSheet:dash.tab, rows:state.validation.rows, source:'DashboardsOxxo Admin' })
-      });
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      alert('Base publicada correctamente.');
-    } catch (error) {
-      alert('No se pudo publicar. Descarga el CSV o revisa la URL de Apps Script.');
-      console.error(error);
-    } finally {
-      $('publish-btn').disabled = false;
-      $('publish-btn').textContent = 'Publicar en Sheets';
-    }
-  }
-  function bind(){
-    $('drop-zone').addEventListener('click', () => $('file-input').click());
-    $('file-input').addEventListener('change', event => handleFile(event.target.files[0]));
-    ['dragenter','dragover'].forEach(ev => $('drop-zone').addEventListener(ev, event => { event.preventDefault(); $('drop-zone').classList.add('drag'); }));
-    ['dragleave','drop'].forEach(ev => $('drop-zone').addEventListener(ev, event => { event.preventDefault(); $('drop-zone').classList.remove('drag'); }));
-    $('drop-zone').addEventListener('drop', event => handleFile(event.dataTransfer.files[0]));
-    $('sheet-select').addEventListener('change', event => { state.sheetName = event.target.value; loadCurrentSheet(); });
-    $('dashboard-select').addEventListener('change', loadCurrentSheet);
-    $('download-csv-btn').addEventListener('click', downloadCsv);
-    $('publish-btn').addEventListener('click', publish);
-    $('save-config-btn').addEventListener('click', () => { localStorage.setItem(ADMIN_CONFIG_KEY, $('apps-script-url').value.trim()); alert('URL guardada en este navegador.'); });
-  }
-  document.addEventListener('DOMContentLoaded', () => {
-    fillDashboardSelect();
-    $('apps-script-url').value = localStorage.getItem(ADMIN_CONFIG_KEY) || '';
-    setStatus([{ type:'warn', title:'Esperando archivo', text:'Selecciona un dashboard y sube un Excel para iniciar la validacion.', badge:'Pendiente' }]);
-    bind();
-  });
+  function renderPreview(rows,headers){$('preview-meta').textContent=`${rows.length} filas en vista previa`;if(!rows.length||!headers.length){$('preview-table').innerHTML='<tbody><tr><td style="padding:28px;text-align:center;color:#7a4a42">Aun no hay datos para mostrar.</td></tr></tbody>';return;}const selectedHeaders=headers.slice(0,16);$('preview-table').innerHTML=`<thead><tr>${selectedHeaders.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${selectedHeaders.map(h=>`<td title="${escapeHtml(row[h])}">${escapeHtml(row[h])}</td>`).join('')}</tr>`).join('')}</tbody>`;}
+  function fillDashboardSelect(){$('dashboard-select').innerHTML=dashboards.map(d=>`<option value="${d.key}">${d.label}</option>`).join('');}
+  function fillSheets(){const names=state.workbook?state.workbook.SheetNames:[];$('sheet-select').disabled=!names.length;$('sheet-select').innerHTML=names.length?names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join(''):'<option value="">Sube un Excel primero</option>';state.sheetName=names[0]||'';autoSelectSheet();}
+  function loadCurrentSheet(){if(!state.workbook||!state.sheetName)return;const dash=dashboard(),sheet=state.workbook.Sheets[state.sheetName],matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});const parsed=rowsFromMatrix(matrix,dash);state.rows=parsed.rows;state.headerRow=parsed.headerRow;state.sourceRows=parsed.sourceRows;state.sourceHeaders=parsed.sourceHeaders;validateRows();}
+  async function handleFile(file){if(!file)return;const buffer=await file.arrayBuffer();state.workbook=XLSX.read(buffer,{type:'array',cellDates:true});$('file-meta').textContent=`${file.name} - ${(file.size/1024/1024).toFixed(2)} MB`;fillSheets();loadCurrentSheet();}
+  function downloadCsv(){if(!state.rows.length)return;const dash=dashboard();OXXO.downloadRowsAsCSV(state.rows,`${dash.key}-${dash.tab}.csv`,dash.output);}
+  async function publish(){const url=$('apps-script-url').value.trim();if(!url){alert('Pega primero la URL de Apps Script.');return;}if(!state.validation?.ok){alert('La base aun tiene errores de validacion.');return;}const dash=dashboard();$('publish-btn').disabled=true;$('publish-btn').textContent='Publicando...';try{const response=await fetch(url,{method:'POST',mode:'cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({targetSheet:dash.tab,rows:state.validation.rows,source:'DashboardsOxxo Admin'})});if(!response.ok)throw new Error('HTTP '+response.status);alert('Base publicada correctamente.');}catch(error){alert('No se pudo publicar. Descarga el CSV o revisa la URL de Apps Script.');console.error(error);}finally{$('publish-btn').disabled=false;$('publish-btn').textContent='Publicar en Sheets';}}
+  function bind(){$('drop-zone').addEventListener('click',()=>$('file-input').click());$('file-input').addEventListener('change',event=>handleFile(event.target.files[0]));['dragenter','dragover'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.add('drag');}));['dragleave','drop'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.remove('drag');}));$('drop-zone').addEventListener('drop',event=>handleFile(event.dataTransfer.files[0]));$('sheet-select').addEventListener('change',event=>{state.sheetName=event.target.value;loadCurrentSheet();});$('dashboard-select').addEventListener('change',()=>{autoSelectSheet();loadCurrentSheet();});$('download-csv-btn').addEventListener('click',downloadCsv);$('publish-btn').addEventListener('click',publish);$('save-config-btn').addEventListener('click',()=>{localStorage.setItem(ADMIN_CONFIG_KEY,$('apps-script-url').value.trim());alert('URL guardada en este navegador.');});}
+  document.addEventListener('DOMContentLoaded',()=>{fillDashboardSelect();$('apps-script-url').value=localStorage.getItem(ADMIN_CONFIG_KEY)||'';setStatus([{type:'warn',title:'Esperando archivo',text:'Selecciona el dashboard y sube un Excel para iniciar validacion.',badge:'Pendiente'}]);bind();});
 })();
