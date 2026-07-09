@@ -17,6 +17,10 @@ const SHEETS_CONFIG = {
   CONFIG_SHEET: "Configuracion",
   CATALOG_SHEET: "Catalogo_Asesores",
 
+  // URL del Web App de Apps Script para publicar desde admin.html.
+  // Cuando se configure una vez, el panel admin la usara automaticamente.
+  ADMIN_UPLOAD_URL: "",
+
   // Nombres exactos de cada pestaña en Google Sheets
   TABS: {
     d1: "Dashboard_1_Diario",   // Vacantes: Plaza,Asesor,Unidad org/,Descripción de Posición,Status ocupación,Fecha,Dias Vacantes

@@ -47,7 +47,7 @@
     .preview-table th{position:sticky;top:0;background:#321415;color:#fff;text-align:left;padding:10px;white-space:nowrap;z-index:1}
     .preview-table td{padding:9px 10px;border-bottom:1px solid #f1e6e1;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis;color:#211312}
     .preview-table tr:nth-child(even) td{background:#fffaf6}
-    .helper-box{border:1px solid #eadbd5;border-radius:16px;background:#fff;padding:14px;margin-top:14px;color:#4c312d;font-size:13px;font-weight:650}
+    .helper-box{border:1px solid #eadbd5;border-radius:16px;background:#fff;padding:14px;margin-top:14px;color:#4c312d;font-size:13px;font-weight:650}.admin-publish-state{margin-top:10px;border-radius:14px;padding:10px 12px;font-size:12px;font-weight:900;background:#fff2f1;color:#f71926}.admin-publish-state.ready{background:#e9f8ef;color:#14894a}
     .hidden{display:none!important}
     @media(max-width:980px){.admin-grid{grid-template-columns:1fr}.admin-shell{padding:16px}.admin-hero{padding:24px}}
   </style>
@@ -84,9 +84,10 @@
           <span>Arrastra el archivo aqui o haz clic para seleccionar</span>
           <input class="hidden" type="file" id="file-input" accept=".xlsx,.xls,.csv" />
         </div>
-        <label class="admin-label" for="apps-script-url">URL de publicacion</label>
-        <input class="admin-input" id="apps-script-url" placeholder="Pega aqui el URL de Apps Script" />
-        <div class="helper-box">Sin URL, el panel valida y descarga CSV. Con URL de Apps Script, podra publicar directo al Google Sheet.</div>
+        <label class="admin-label" for="apps-script-url">Publicacion automatica</label>
+        <input class="admin-input" id="apps-script-url" placeholder="URL de Apps Script configurada automaticamente" />
+        <div class="admin-publish-state" id="publish-state">Publicacion no configurada</div>
+        <div class="helper-box">Si la URL esta configurada en el sistema, cualquier persona podra publicar sin pegar nada. Este campo queda solo como respaldo.</div>
         <div class="admin-actions">
           <button class="admin-btn secondary" id="save-config-btn">Guardar URL</button>
           <button class="admin-btn secondary" id="download-csv-btn" disabled>Descargar CSV</button>
