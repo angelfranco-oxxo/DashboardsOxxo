@@ -1,5 +1,6 @@
 (function(){
   const ADMIN_CONFIG_KEY='oxxo_admin_apps_script_url';
+  let adminPassword='';
   const PLAZA_TARGET='OAXACA';
   const DEFAULT_UPLOAD_URL=(window.OXXO&&OXXO.SHEETS_CONFIG&&OXXO.SHEETS_CONFIG.ADMIN_UPLOAD_URL)||'';
 
@@ -33,6 +34,36 @@
   function aliasesFor(column){return [column,...(columnAliases[column]||[])].map(norm);}
   function dashboard(){return dashboards.find(d=>d.key===$('dashboard-select').value)||dashboards[0];}
   function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+  async function authenticateAdmin(password){
+    const url=publishUrl();
+    if(!url)throw new Error('Falta configurar Apps Script.');
+    const response=await fetch(url,{method:'POST',mode:'cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'auth',adminPassword:password})});
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const result=await response.json().catch(()=>({ok:false,error:'Respuesta invalida'}));
+    if(result.ok===false)throw new Error(result.error||'Contrasena incorrecta.');
+    return true;
+  }
+  function initAdminLock(){
+    const lock=$('admin-lock'),form=$('admin-lock-form'),input=$('admin-password'),error=$('admin-lock-error');
+    if(!lock||!form||!input)return;
+    lock.classList.remove('hidden');
+    setTimeout(()=>input.focus(),80);
+    form.addEventListener('submit',async event=>{
+      event.preventDefault();
+      const password=input.value;
+      if(error)error.textContent='Validando...';
+      try{
+        await authenticateAdmin(password);
+        adminPassword=password;
+        input.value='';
+        if(error)error.textContent='';
+        lock.classList.add('hidden');
+      }catch(err){
+        if(error)error.textContent=err.message||'Contrasena incorrecta. Intenta de nuevo.';
+        input.select();
+      }
+    });
+  }
   function setStatus(items){$('status-list').innerHTML=items.map(item=>`<div class="status-item ${item.type}"><span class="status-dot"></span><div><div class="status-title">${escapeHtml(item.title)}</div><div class="status-sub">${escapeHtml(item.text)}</div></div><span class="status-badge">${escapeHtml(item.badge||'')}</span></div>`).join('');}
   function getHeaders(rows){const set=new Set();rows.forEach(row=>Object.keys(row||{}).forEach(key=>set.add(key)));return [...set];}
   function containsOaxaca(value){return normLoose(value).includes('oaxaca');}
@@ -106,7 +137,7 @@
   function publishUrl(){return $('apps-script-url').value.trim()||DEFAULT_UPLOAD_URL;}
   function updatePublishState(){const el=$('publish-state');if(!el)return;const ready=Boolean(publishUrl());el.textContent=ready?'Publicacion directa lista':'Falta configurar Apps Script una sola vez';el.classList.toggle('ready',ready);}
   function urlFromQuery(){try{return new URLSearchParams(location.search).get('uploadUrl')||'';}catch(_){return ''}}
-  async function publish(){const url=publishUrl();if(!url){alert('Falta configurar Apps Script una sola vez. Mientras tanto puedes descargar CSV.');return;}if(!state.validation?.ok){alert('La base aun tiene errores de validacion.');return;}const dash=dashboard(),period=periodInfo(dash,state.validation.rows);$('publish-btn').disabled=true;$('publish-btn').textContent='Publicando...';try{const payload={targetSheet:dash.tab,rows:state.validation.rows,source:'DashboardsOxxo Admin',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};const response=await fetch(url,{method:'POST',mode:'cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});if(!response.ok)throw new Error('HTTP '+response.status);const result=await response.json().catch(()=>({ok:true}));if(result.ok===false)throw new Error(result.error||'Apps Script rechazo la publicacion');alert(`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestana reemplazada completa'}.`);}catch(error){alert('No se pudo publicar. Descarga el CSV o revisa la URL de Apps Script.');console.error(error);}finally{$('publish-btn').disabled=false;$('publish-btn').textContent='Publicar en Sheets';}}
+  async function publish(){const url=publishUrl();if(!url){alert('Falta configurar Apps Script una sola vez. Mientras tanto puedes descargar CSV.');return;}if(!state.validation?.ok){alert('La base aun tiene errores de validacion.');return;}const dash=dashboard(),period=periodInfo(dash,state.validation.rows);$('publish-btn').disabled=true;$('publish-btn').textContent='Publicando...';try{const payload={adminPassword,targetSheet:dash.tab,rows:state.validation.rows,source:'DashboardsOxxo Admin',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};const response=await fetch(url,{method:'POST',mode:'cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});if(!response.ok)throw new Error('HTTP '+response.status);const result=await response.json().catch(()=>({ok:true}));if(result.ok===false)throw new Error(result.error||'Apps Script rechazo la publicacion');alert(`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestana reemplazada completa'}.`);}catch(error){alert('No se pudo publicar. Descarga el CSV o revisa la URL de Apps Script.');console.error(error);}finally{$('publish-btn').disabled=false;$('publish-btn').textContent='Publicar en Sheets';}}
   function bind(){$('drop-zone').addEventListener('click',()=>$('file-input').click());$('file-input').addEventListener('change',event=>handleFile(event.target.files[0]));['dragenter','dragover'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.add('drag');}));['dragleave','drop'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.remove('drag');}));$('drop-zone').addEventListener('drop',event=>handleFile(event.dataTransfer.files[0]));$('sheet-select').addEventListener('change',event=>{state.sheetName=event.target.value;loadCurrentSheet();});$('dashboard-select').addEventListener('change',()=>{autoSelectSheet();loadCurrentSheet();});$('apps-script-url').addEventListener('input',updatePublishState);$('download-csv-btn').addEventListener('click',downloadCsv);$('publish-btn').addEventListener('click',publish);$('save-config-btn').addEventListener('click',()=>{const url=$('apps-script-url').value.trim();if(!url){alert('No hay URL para guardar.');return;}localStorage.setItem(ADMIN_CONFIG_KEY,url);updatePublishState();alert('URL guardada en este navegador.');});}
-  document.addEventListener('DOMContentLoaded',()=>{fillDashboardSelect();const queryUrl=urlFromQuery();const saved=localStorage.getItem(ADMIN_CONFIG_KEY)||'';$('apps-script-url').value=queryUrl||saved||DEFAULT_UPLOAD_URL;if(queryUrl)localStorage.setItem(ADMIN_CONFIG_KEY,queryUrl);updatePublishState();setStatus([{type:'warn',title:'Esperando archivo',text:'Selecciona el dashboard y sube un Excel para iniciar validacion.',badge:'Pendiente'}]);bind();});
+  document.addEventListener('DOMContentLoaded',()=>{initAdminLock();fillDashboardSelect();const queryUrl=urlFromQuery();const saved=localStorage.getItem(ADMIN_CONFIG_KEY)||'';$('apps-script-url').value=queryUrl||saved||DEFAULT_UPLOAD_URL;if(queryUrl)localStorage.setItem(ADMIN_CONFIG_KEY,queryUrl);updatePublishState();setStatus([{type:'warn',title:'Esperando archivo',text:'Selecciona el dashboard y sube un Excel para iniciar validacion.',badge:'Pendiente'}]);bind();});
 })();

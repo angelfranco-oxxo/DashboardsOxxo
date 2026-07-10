@@ -12,6 +12,7 @@
  * Despues de eso, admin.html publica directo sin pedir URL.
  */
 const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
+const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const ALLOWED_SHEETS = [
   'Dashboard_1_Diario',
   'Dashboard_2_Diario',
@@ -31,6 +32,13 @@ function doGet() {
 function doPost(e) {
   try {
     const payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (String(payload.action || '') === 'auth') {
+      assertAuthorized(payload);
+      return jsonResponse({ ok: true, authenticated: true });
+    }
+
+    assertAuthorized(payload);
+
     const targetSheet = String(payload.targetSheet || '').trim();
     const rows = Array.isArray(payload.rows) ? payload.rows : [];
     const updateMode = String(payload.updateMode || 'replaceAll').trim();
@@ -78,6 +86,12 @@ function doPost(e) {
   }
 }
 
+function assertAuthorized(payload) {
+  const configured = PropertiesService.getScriptProperties().getProperty(ADMIN_PASSWORD_PROPERTY) || '';
+  if (!configured) throw new Error('ADMIN_PASSWORD no configurado en Script Properties');
+  const received = String((payload && payload.adminPassword) || '');
+  if (received !== configured) throw new Error('No autorizado');
+}
 function replaceAll(sheet, rows, headers) {
   const values = rowsToValues(rows, headers);
   sheet.clearContents();
