@@ -2117,14 +2117,14 @@ function tipoPuesto(desc){
 // Semáforo días
 function colorDias(d){if(d>=15)return'rojo';if(d>=7)return'amarillo';return'verde';}
 // Vacante de tienda nueva = sin valor en 'Días Vacantes' (celda vacía). 'Mes finalizado' no cuenta.
-function esTiendaNueva(r){ return r && !String(r.diasRaw||'').trim(); }
+function esTiendaNueva(r){ return r && Number(r.dias||0) > 100; }
 function diasBadge(r){
   // Acepta el registro (para leer 'diasRaw') o un número suelto por compatibilidad.
   const raw = (r && typeof r==='object') ? String(r.diasRaw||'').trim() : '';
   const d   = (r && typeof r==='object') ? (r.dias||0) : (Number(r)||0);
   if(r && typeof r==='object'){
-    if(!raw) return '<span class="dias-badge nueva" title="Sin fecha de vacante: tienda nueva">Tienda nueva</span>';
     if(/finaliz/i.test(raw)) return '<span class="dias-badge finalizado" title="Mes ya finalizado">Mes finalizado</span>';
+    if(esTiendaNueva(r)) return '<span class="dias-badge nueva" title="Mas de 100 dias vacantes: tienda nueva">Tienda nueva</span>';
   }
   if(!d||d===0)return'<span style="color:var(--color-gray);font-size:11px">—</span>';
   const c=d>=15?'critico':d>=7?'medio':'normal';
@@ -2295,7 +2295,8 @@ function renderDiasOptions(){
 // Una vacante pasa el filtro si coincide con ALGUNA de las antigüedades elegidas (unión).
 function diasMatch(r){
   if(!selectedDiasValues.length) return true;
-  return selectedDiasValues.some(v=> v==='nuevas' ? esTiendaNueva(r) : (r.dias>=Number(v)) );
+  if(esTiendaNueva(r)) return selectedDiasValues.includes('nuevas');
+  return selectedDiasValues.some(v=> v==='nuevas' ? false : (r.dias>=Number(v)) );
 }
 
 function selectedTiendas(){
