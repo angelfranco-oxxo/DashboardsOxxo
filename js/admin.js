@@ -56,7 +56,7 @@
 
   function dateFromText(value){const m=String(value||'').match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);return m?parseDate(m[0]):null;}
   function monthFromSourceName(){return monthKey(dateFromText(state.fileName)||dateFromText(state.sheetName));}
-  function deriveD1(row){const fecha=parseDate(row.Fecha)||extractStatusDate(row['Status ocupacion']);const today=new Date();return {...row,Fecha:isoDate(fecha),'Dias Vacantes':row['Dias Vacantes']||daysBetween(fecha,today),Mes:monthFromSourceName()||row.Mes||monthKey(fecha)};}
+  function deriveD1(row){const fecha=parseDate(row.Fecha)||extractStatusDate(row['Status ocupacion']);const today=new Date();const sourceMonth=monthFromSourceName();return {...row,Fecha:isoDate(fecha),'Dias Vacantes':row['Dias Vacantes']||daysBetween(fecha,today),Mes:sourceMonth||monthKey(parseDate(row.Mes))||monthKey(fecha)};}
   function deriveD2(row){const fecha=parseDate(row.Fecha);return {...row,Fecha:isoDate(fecha),Mes:row.Mes||monthKey(fecha)};}
   function deriveD2Denom(row){const fecha=parseDate(row['F.Crea']);return {...row,'F.Crea':isoDate(fecha),Mes:row.Mes||monthKey(fecha)};}
   function deriveD3(row){const raw=pctValue(row['Aprovechamiento Estructura']);return {...row,'Aprovechamiento Estructura':raw,'Aprovechamiento Binario':raw>=95?100:0};}

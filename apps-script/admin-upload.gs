@@ -91,14 +91,23 @@ function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues) {
   const currentValues = sheet.getDataRange().getValues();
   const existingHeaders = currentValues.length ? currentValues[0].map(String) : [];
   const periodKey = normalizeHeader(periodColumn);
-  const periodSet = new Set(periodValues.map(normalizeCell));
+  const periodSet = new Set(periodValues.map(function(value) {
+    return normalizePeriodValue(value, periodColumn);
+  }).filter(Boolean));
   const keptRows = [];
+
+  rows.forEach(function(row) {
+    row[periodColumn] = normalizePeriodValue(row[periodColumn], periodColumn);
+  });
 
   for (let i = 1; i < currentValues.length; i++) {
     const projected = projectRowToHeaders(existingHeaders, currentValues[i], newHeaders);
     const periodHeader = findHeaderByKey(newHeaders, periodKey) || periodColumn;
-    const currentPeriod = normalizeCell(projected[periodHeader]);
-    if (currentPeriod && !periodSet.has(currentPeriod)) keptRows.push(projected);
+    const currentPeriod = normalizePeriodValue(projected[periodHeader], periodColumn);
+    if (currentPeriod && !periodSet.has(currentPeriod)) {
+      projected[periodHeader] = currentPeriod;
+      keptRows.push(projected);
+    }
   }
 
   const finalRows = keptRows.concat(rows);
@@ -192,6 +201,29 @@ function normalizeCell(value) {
   return String(value == null ? '' : value).trim();
 }
 
+function normalizePeriodValue(value, periodColumn) {
+  const raw = normalizeCell(value);
+  if (normalizeHeader(periodColumn) !== 'mes' || !raw) return raw;
+
+  const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value)) {
+    return monthNames[value.getMonth()] + '-' + String(value.getFullYear()).slice(-2);
+  }
+
+  const compact = raw.toLowerCase().replace(/[.\/]/g, '-').replace(/\s+/g, '-');
+  const named = compact.match(/^(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)-?(\d{2}|\d{4})$/);
+  if (named) return named[1] + '-' + named[2].slice(-2);
+
+  const numeric = raw.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2}|\d{4})$/);
+  if (numeric) {
+    const month = Number(numeric[2]);
+    if (month >= 1 && month <= 12) return monthNames[month - 1] + '-' + numeric[3].slice(-2);
+  }
+
+  const parsed = new Date(raw);
+  if (!isNaN(parsed)) return monthNames[parsed.getMonth()] + '-' + String(parsed.getFullYear()).slice(-2);
+  return raw;
+}
 function jsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
