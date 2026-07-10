@@ -90,29 +90,28 @@ function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues) {
 
   const currentValues = sheet.getDataRange().getValues();
   const existingHeaders = currentValues.length ? currentValues[0].map(String) : [];
-  const headers = mergeHeaders(existingHeaders, newHeaders);
-  const periodIndex = findHeaderIndex(headers, periodColumn);
-  if (periodIndex === -1) throw new Error('No se encontro la columna de periodo: ' + periodColumn);
-
-  const periodSet = new Set(periodValues);
+  const periodKey = normalizeHeader(periodColumn);
+  const periodSet = new Set(periodValues.map(normalizeCell));
   const keptRows = [];
+
   for (let i = 1; i < currentValues.length; i++) {
-    const mapped = rowArrayToObject(existingHeaders, currentValues[i]);
-    const currentPeriod = normalizeCell(mapped[headers[periodIndex]]);
-    if (!periodSet.has(currentPeriod)) keptRows.push(mapped);
+    const projected = projectRowToHeaders(existingHeaders, currentValues[i], newHeaders);
+    const periodHeader = findHeaderByKey(newHeaders, periodKey) || periodColumn;
+    const currentPeriod = normalizeCell(projected[periodHeader]);
+    if (currentPeriod && !periodSet.has(currentPeriod)) keptRows.push(projected);
   }
 
   const finalRows = keptRows.concat(rows);
-  const values = rowsToValues(finalRows, headers);
+  const values = rowsToValues(finalRows, newHeaders);
   sheet.clearContents();
-  sheet.getRange(1, 1, values.length, headers.length).setValues(values);
+  sheet.getRange(1, 1, values.length, newHeaders.length).setValues(values);
   return {
     mode: 'replacePeriod',
     periodColumn: periodColumn,
     periodValues: periodValues,
     rows: rows.length,
     keptRows: keptRows.length,
-    columns: headers.length
+    columns: newHeaders.length
   };
 }
 
@@ -151,6 +150,27 @@ function rowArrayToObject(headers, values) {
   return row;
 }
 
+function projectRowToHeaders(existingHeaders, values, targetHeaders) {
+  const source = rowArrayToObject(existingHeaders, values);
+  const byKey = {};
+  Object.keys(source).forEach(function(header) {
+    byKey[normalizeHeader(header)] = source[header];
+  });
+  const row = {};
+  targetHeaders.forEach(function(header) {
+    const key = normalizeHeader(header);
+    row[header] = byKey[key] == null ? '' : byKey[key];
+  });
+  return row;
+}
+
+function findHeaderByKey(headers, key) {
+  for (let i = 0; i < headers.length; i++) {
+    if (normalizeHeader(headers[i]) === key) return headers[i];
+  }
+  return '';
+}
+
 function rowsToValues(rows, headers) {
   return [headers].concat(rows.map(function(row) {
     return headers.map(function(header) {
@@ -160,7 +180,12 @@ function rowsToValues(rows, headers) {
 }
 
 function normalizeHeader(value) {
-  return String(value || '').toLowerCase().replace(/\s+/g, '').trim();
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9%]+/g, '')
+    .trim();
 }
 
 function normalizeCell(value) {
