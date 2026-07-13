@@ -129,6 +129,38 @@
         <div class="helper-box" id="admin-guidance">Selecciona el dashboard y sube un Excel. El panel revisara columnas, filas vacias y datos clave antes de publicar.</div>
       </section>
     </section>
+    <section class="admin-card hidden" id="manual-entry-section" style="margin-top:18px">
+      <h2>Captura manual de bajas</h2>
+      <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Ingresa cada baja una por una. Se acumulan en la tabla y se publican todas juntas.</p>
+      <form id="manual-entry-form">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">
+          <div><label class="admin-label">Plaza *</label><input class="admin-input" id="me-plaza" placeholder="OAXACA / PUEBLA…" required /></div>
+          <div><label class="admin-label">Asesor *</label><input class="admin-input" id="me-asesor" required /></div>
+          <div><label class="admin-label">Nombre empleado *</label><input class="admin-input" id="me-nombre" required /></div>
+          <div><label class="admin-label">No. Personal</label><input class="admin-input" id="me-npers" /></div>
+          <div><label class="admin-label">Fecha *</label><input class="admin-input" id="me-fecha" type="date" required /></div>
+          <div><label class="admin-label">Semana *</label><input class="admin-input" id="me-semana" placeholder="ej. 28" required /></div>
+          <div><label class="admin-label">Temporalidad *</label><select class="admin-select" id="me-temporalidad" required><option value="">--</option><option>Fija</option><option>Temporal</option></select></div>
+          <div><label class="admin-label">Rot_Temp</label><input class="admin-input" id="me-rottemp" /></div>
+          <div><label class="admin-label">Puesto *</label><input class="admin-input" id="me-puesto" required /></div>
+          <div><label class="admin-label">Tienda *</label><input class="admin-input" id="me-tienda" required /></div>
+          <div><label class="admin-label">Motivo</label><input class="admin-input" id="me-motivo" /></div>
+          <div><label class="admin-label">Detalle</label><input class="admin-input" id="me-detalle" /></div>
+          <div><label class="admin-label">Edad</label><input class="admin-input" id="me-edad" type="number" min="0" max="99" /></div>
+          <div><label class="admin-label">Genero</label><select class="admin-select" id="me-genero"><option value="">--</option><option>Masculino</option><option>Femenino</option></select></div>
+        </div>
+        <div class="admin-actions">
+          <button class="admin-btn primary" type="submit">+ Agregar fila</button>
+          <button class="admin-btn secondary" type="button" id="manual-clear-btn">Limpiar tabla</button>
+          <button class="admin-btn secondary" type="button" id="manual-publish-btn" disabled>Publicar (0 filas)</button>
+        </div>
+      </form>
+      <div class="table-wrap" style="margin-top:16px">
+        <table class="preview-table" id="manual-table">
+          <tbody><tr><td style="padding:28px;text-align:center;color:#7a4a42">Agrega filas con el formulario de arriba.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
     <section class="admin-card" style="margin-top:18px">
       <div class="preview-head"><h2>3. Vista previa</h2><div class="preview-meta" id="preview-meta">0 filas</div></div>
       <div class="table-wrap">
