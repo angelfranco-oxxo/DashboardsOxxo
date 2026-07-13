@@ -877,8 +877,14 @@ function parseAsesorCatalogCSV(csv) {
     const cells = splitCSVRow(record).map(c => String(c || '').trim().replace(/^"|"$/g, ''));
     if (cells.length < 3) return;
     const [asesor, tienda, cr] = cells;
-    if (!validCatalogRow(asesor, tienda, cr)) return;
-    rows.push({ asesor, tienda, cr });
+    if (validCatalogRow(asesor, tienda, cr)) { rows.push({ asesor, tienda, cr }); return; }
+    // Recuperacion: si una fila trae varios CR pegados en una sola celda (ej. por saltos de
+    // linea dentro de la celda en el sheet), se rescatan como CR "huerfanos" (sin tienda/asesor
+    // asociado) para que el filtro de tiendas validas los siga reconociendo.
+    const crTokens = String(cr || '').trim().split(/\s+/).filter(t => /^[A-Z0-9]{4,8}$/i.test(t));
+    if (crTokens.length > 1) {
+      crTokens.forEach(token => rows.push({ asesor: '', tienda: '', cr: token }));
+    }
   });
   return rows;
 }
