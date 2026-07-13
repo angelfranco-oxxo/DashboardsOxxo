@@ -147,6 +147,25 @@
         <button class="admin-btn primary" type="button" id="manual-publish-btn">Publicar</button>
       </div>
     </section>
+    <section class="admin-card hidden" id="manual-entry-d3-section" style="margin-top:18px">
+      <h2>Aprovechamiento otras plazas · Captura mensual</h2>
+      <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Ingresa el porcentaje de aprovechamiento de estructura de cada plaza (0–100). Al publicar se ordenan automáticamente y aparecen en el ranking del Dashboard 3.</p>
+      <div class="table-wrap" style="margin-bottom:16px;max-height:none">
+        <table class="preview-table" id="manual-input-d3">
+          <thead><tr><th>Plaza</th><th>Aprovechamiento (%)</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:800">OAXACA</td><td><input class="admin-input" style="padding:8px 12px;width:140px" type="number" min="0" max="100" step="0.01" placeholder="ej. 83.5" data-plaza="OAXACA" /></td></tr>
+            <tr><td style="font-weight:800">TUXTLA</td><td><input class="admin-input" style="padding:8px 12px;width:140px" type="number" min="0" max="100" step="0.01" placeholder="ej. 79.2" data-plaza="TUXTLA" /></td></tr>
+            <tr><td style="font-weight:800">ISTMO</td><td><input class="admin-input" style="padding:8px 12px;width:140px" type="number" min="0" max="100" step="0.01" placeholder="ej. 91.0" data-plaza="ISTMO" /></td></tr>
+            <tr><td style="font-weight:800">VILLAHERMOSA</td><td><input class="admin-input" style="padding:8px 12px;width:140px" type="number" min="0" max="100" step="0.01" placeholder="ej. 75.8" data-plaza="VILLAHERMOSA" /></td></tr>
+            <tr><td style="font-weight:800">CHONTALPA</td><td><input class="admin-input" style="padding:8px 12px;width:140px" type="number" min="0" max="100" step="0.01" placeholder="ej. 88.4" data-plaza="CHONTALPA" /></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-actions">
+        <button class="admin-btn primary" type="button" id="manual-publish-d3-btn">Publicar</button>
+      </div>
+    </section>
     <section class="admin-card" style="margin-top:18px">
       <div class="preview-head"><h2>3. Vista previa</h2><div class="preview-meta" id="preview-meta">0 filas</div></div>
       <div class="table-wrap">
