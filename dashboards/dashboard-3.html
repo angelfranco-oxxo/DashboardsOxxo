@@ -1109,10 +1109,10 @@ function render(data){
     .map(([plaza, v]) => ({ plaza, aprov: v.n>0 ? v.sum/v.n : 0 }))
     .sort((a,b) => b.aprov - a.aprov);
 
-  // Auto-calcular OAXACA desde los datos cargados (% tiendas con aprov >= 95%)
-  if(data.length > 0 && !plazaData.find(p => p.plaza.toUpperCase() === 'OAXACA')) {
-    const aprovOaxaca = data.reduce((s,r) => s + (r.aprov || 0), 0) / data.length;
-    if(aprovOaxaca > 0) plazaData.push({ plaza: 'OAXACA', aprov: aprovOaxaca });
+  // Auto-calcular OAXACA como EC% (Equipo Completo / Total) desde los datos cargados
+  if(total > 0 && !plazaData.find(p => p.plaza.toUpperCase() === 'OAXACA')) {
+    const ecOaxaca = completas / total * 100;
+    if(ecOaxaca > 0) plazaData.push({ plaza: 'OAXACA', aprov: ecOaxaca });
   }
 
   // Agregar otras plazas desde la hoja manual (sin sobreescribir OAXACA)
