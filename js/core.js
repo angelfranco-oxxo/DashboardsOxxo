@@ -19,7 +19,7 @@ const SHEETS_CONFIG = {
 
   // URL del Web App de Apps Script para publicar desde admin.html.
   // Cuando se configure una vez, el panel admin la usara automaticamente.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxdBsO7FTL9JhS9kV3oMIqtE_WzySz63p7LToFL21NvXRCUBCavjsqkFsPpIgm957fV/exec",
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbz-RKBVB1CzkmWKdVVvGwSHGTzMUzc-YfFfAznzzhORJL3G9AaHH9UnFQYr2Zwk7o3C/exec",
 
   // Nombres exactos de cada pestaña en Google Sheets
   TABS: {
