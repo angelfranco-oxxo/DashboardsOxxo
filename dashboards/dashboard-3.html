@@ -948,11 +948,14 @@ async function initDashboard(){
     r.asesor = OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }).toUpperCase();
   });
 
-  // Filtrar solo tiendas válidas según el catálogo (255 tiendas autorizadas)
-  const dataFiltrada = data.filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda));
-  if(dataFiltrada.length !== data.length) {
-    console.log(`[D3] Tiendas filtradas por catálogo: ${data.length} → ${dataFiltrada.length}`);
+  // Filtro por catálogo temporalmente deshabilitado: detectamos que algunos nombres de
+  // tienda del Excel de Estructura no matchean el catálogo (distinto formato) y se estaban
+  // excluyendo tiendas válidas por error. Se re-habilitará al corregir la normalización.
+  const excluidas = data.filter(r => !OXXO.isTiendaValid(asesorCatalog, r.tienda));
+  if(excluidas.length) {
+    console.warn(`[D3] Tiendas no encontradas en catálogo (${excluidas.length}):`, excluidas.map(r=>r.tienda));
   }
+  const dataFiltrada = data;
 
   ALL_DATA = dataFiltrada;
   const rawD3Plazas = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3plazas);
