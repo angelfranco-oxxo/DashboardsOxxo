@@ -669,7 +669,7 @@
   <!-- DETALLE POR TIENDA (base "Plaza Oaxaca") -->
   <div class="card d3-fullcard" id="detalle-card" style="display:none">
     <div class="card-head">
-      <div class="card-title">Detalle por Tienda<span class="info-tip" tabindex="0" data-tip="Detalle por tienda (desde la base principal, únicamente mes actual). Se filtra por el Estatus seleccionado: al hacer clic en un KPI (ej. Equipo Completo) se muestran solo las tiendas de ese estatus. Aprovechamiento: 100% si la tienda llega a 95%, si no 0%."></span></div>
+      <div class="card-title">Detalle por Tienda<span class="info-tip" tabindex="0" data-tip="Detalle por tienda (desde la base principal, únicamente mes actual). Se filtra por el Estatus seleccionado: al hacer clic en un KPI (ej. Equipo Completo) se muestran solo las tiendas de ese estatus. Aprovechamiento: 100% si la tienda llega a 92.5%, si no 0%."></span></div>
       <span class="card-badge" id="detalle-count">— tiendas</span>
     </div>
     <div class="detalle-search">
@@ -933,9 +933,9 @@ async function initDashboard(){
     estructura:gn(r,map,'estructura'),
     ausent:    gn(r,map,'ausent'),
     vacante:   gn(r,map,'vacante'),
-    // Aprovechamiento Estructura se evalua por umbral: >=95% cuenta como 100%, en caso
+    // Aprovechamiento Estructura se evalua por umbral: >=92.5% cuenta como 100%, en caso
     // contrario 0%. Asi el promedio general y por AT reflejan el % de tiendas que cumplen.
-    aprov:     gn(r,map,'aprov') >= 95 ? 100 : 0,
+    aprov:     gn(r,map,'aprov') >= 92.5 ? 100 : 0,
     estatus:   String(gv(r,map,'estatus','')).trim(),
     col_plaza: String(gv(r,map,'col_plaza','')).trim(),
     semana:    String(gv(r,map,'semana','')).trim(),
@@ -979,7 +979,7 @@ async function initDashboard(){
         estatus:  String(gv(r,md,'estatus','')).trim(),
         ecSinAus: String(gv(r,md,'ecSinAus','')).trim(),
         // Aprovechamiento por tienda (valor crudo de 'Aprovechamiento Estructura'); el umbral
-        // 95% (100/0) se aplica al mostrar/ordenar en la tabla de detalle.
+        // 92.5% (100/0) se aplica al mostrar/ordenar en la tabla de detalle.
         aprov:    gn(r,map,'aprov'),
         diasEC:   gn(r,md,'diasEC'),
         diasTC:   gn(r,md,'diasTC'),
@@ -1144,7 +1144,7 @@ function render(data){
         const dash=(len*v/100).toFixed(1);
         const ang=Math.PI*(1 - v/100);
         const nx=(cx+(r-10)*Math.cos(ang)).toFixed(1), ny=(cy-(r-10)*Math.sin(ang)).toFixed(1);
-        const ma=Math.PI*(1 - 95/100);
+        const ma=Math.PI*(1 - 92.5/100);
         const m1x=(cx+(r-14)*Math.cos(ma)).toFixed(1), m1y=(cy-(r-14)*Math.sin(ma)).toFixed(1);
         const m2x=(cx+(r+7)*Math.cos(ma)).toFixed(1),  m2y=(cy-(r+7)*Math.sin(ma)).toFixed(1);
         const fx=(cx+(r+11)*Math.cos(ma)).toFixed(1),  fy=(cy-(r+11)*Math.sin(ma)).toFixed(1);
@@ -1166,7 +1166,7 @@ function render(data){
           <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:14px 20px;width:100%">${gauges}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;color:var(--color-gray)">
-          <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>🏁 Meta 95%
+          <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>🏁 Meta 92.5%
         </div>`;
     }
   } else {
@@ -1345,7 +1345,7 @@ function amDetRowsHTML(){
       <td class="text-center" style="color:${c};font-weight:600">${t.estatus||'—'}</td>
       <td class="text-center">${t.ausent??'—'}</td>
       <td class="text-center">${t.vacante!=null?t.vacante:'—'}</td>
-      <td class="text-right" style="font-weight:700;color:${(t.aprov||0)>=95?'var(--semaforo-verde)':'var(--semaforo-rojo)'}">${(t.aprov||0)>=95?100:0}%</td>
+      <td class="text-right" style="font-weight:700;color:${(t.aprov||0)>=92.5?'var(--semaforo-verde)':'var(--semaforo-rojo)'}">${(t.aprov||0)>=92.5?100:0}%</td>
     </tr>`;
   }).join('');
   return rows || '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--color-gray)">Sin tiendas.</td></tr>';
@@ -1409,7 +1409,7 @@ function openAsesorModal(asesorName){
       ${kpi('Equipo Completo', at.completas, 'var(--semaforo-verde)')}
       ${kpi('Equipo Incompleto', at.incompletas, '#B8960C')}
       ${kpi('Tienda Crítica', at.criticas, at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)')}
-      ${kpi('% Tiendas >=95%', aprovPct+'%')}
+      ${kpi('% Tiendas >=92.5%', aprovPct+'%')}
       ${kpi('Aprovechamiento por AT', ecAtPct)}
       ${kpi('Ausent. Prom.', promAus)}
     </div>
@@ -1593,7 +1593,7 @@ function renderDetalle(asesorSel, estatusSel){
   const q = String(DET_SEARCH||'').trim().toLowerCase();
   if(q) d = d.filter(r=>String(r.tienda||'').toLowerCase().includes(q));
 
-  const aprovTienda = r => (r.aprov>=95 ? 100 : 0);
+  const aprovTienda = r => (r.aprov>=92.5 ? 100 : 0);
   const vacTot = r => (r.vacLider||0)+(r.vacEnc||0)+(r.vacAyu||0);
   const strCols = { tienda:1, asesor:1, estatus:1, ecSinAus:1 };
   d = d.slice().sort((a,b)=>{
@@ -1673,7 +1673,7 @@ function openTiendaModal(tiendaName){
     <div class="am-kpi__val" style="${color?`color:${color}`:''}">${val}</div>
     <div class="am-kpi__lbl">${label}</div></div>`;
 
-  const apr = t.aprov>=95 ? 100 : 0;
+  const apr = t.aprov>=92.5 ? 100 : 0;
   const dias = v => { const n=Number(v); return isFinite(n) ? (Math.round(n*10)/10).toString() : '—'; };
   const sec = ti => `<tr><td colspan="2" style="background:var(--color-bg);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--color-gray);padding:9px 12px">${ti}</td></tr>`;
   const kv  = (l,v,st) => `<tr><td style="font-weight:600">${l}</td><td class="text-right" style="${st||''}">${v}</td></tr>`;
