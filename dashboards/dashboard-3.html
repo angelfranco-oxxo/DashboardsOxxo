@@ -818,6 +818,9 @@ function buildMap(data){
 }
 function gv(row,map,k,fb=''){const key=map[k];const v=key?row[key]:undefined;return(v===undefined||v===null||String(v).trim()==='')?fb:v;}
 function gn(row,map,k){const v=String(gv(row,map,k,0)).replace(/[,%]/g,'').trim();const n=Number(v);return isNaN(n)?0:n;}
+// Corrige columnas de % que vienen con doble escala (ej. celda formateada como porcentaje
+// pero con el valor ya multiplicado por 100 en el sheet, dando 9341% en vez de 93.41%).
+function normalizePct(v){ return (v>150) ? v/100 : v; }
 
 function ecColorHex(pct){ if(pct>=0.95)return'#1DB954'; if(pct>=0.80)return'#B8960C'; return'#D92B2B'; }
 function ecColor(pct){if(pct>=0.95)return'verde';if(pct>=0.80)return'amarillo';return'rojo';}
@@ -935,12 +938,12 @@ async function initDashboard(){
     vacante:   gn(r,map,'vacante'),
     // Aprovechamiento Estructura se evalua por umbral: >=92.5% cuenta como 100%, en caso
     // contrario 0%. Asi el promedio general y por AT reflejan el % de tiendas que cumplen.
-    aprov:     gn(r,map,'aprov') >= 92.5 ? 100 : 0,
+    aprov:     normalizePct(gn(r,map,'aprov')) >= 92.5 ? 100 : 0,
     estatus:   String(gv(r,map,'estatus','')).trim(),
     col_plaza: String(gv(r,map,'col_plaza','')).trim(),
     semana:    String(gv(r,map,'semana','')).trim(),
-    ecPorAt:   gn(r,map,'ec_por_at'),
-    aprovPlaza:gn(r,map,'aprov_plaza'),
+    ecPorAt:   normalizePct(gn(r,map,'ec_por_at')),
+    aprovPlaza:normalizePct(gn(r,map,'aprov_plaza')),
     at:        String(gv(r,map,'at','')).trim(),
     plazaAt:   String(gv(r,map,'plaza_at', gv(r,map,'col_plaza',''))).trim(),
   }));
@@ -983,7 +986,7 @@ async function initDashboard(){
         ecSinAus: String(gv(r,md,'ecSinAus','')).trim(),
         // Aprovechamiento por tienda (valor crudo de 'Aprovechamiento Estructura'); el umbral
         // 92.5% (100/0) se aplica al mostrar/ordenar en la tabla de detalle.
-        aprov:    gn(r,map,'aprov'),
+        aprov:    normalizePct(gn(r,map,'aprov')),
         diasEC:   gn(r,md,'diasEC'),
         diasTC:   gn(r,md,'diasTC'),
         esquema:  String(gv(r,md,'esquema','')).trim(),
@@ -992,7 +995,7 @@ async function initDashboard(){
         totalIncid: gn(r,md,'totalIncid'),
         fechaRescEC:String(gv(r,md,'fechaRescEC','')).trim(),
         fechaRescTC:String(gv(r,md,'fechaRescTC','')).trim(),
-        aprovSinAus:gn(r,md,'aprovSinAus'),
+        aprovSinAus:normalizePct(gn(r,md,'aprovSinAus')),
         ventaMesAnt:gn(r,md,'ventaMesAnt'),
         tienda25:  String(gv(r,md,'tienda25','')).trim(),
         tiendaBatting:String(gv(r,md,'tiendaBatting','')).trim(),
