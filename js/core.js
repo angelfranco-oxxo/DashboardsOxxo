@@ -885,14 +885,23 @@ function parseAsesorCatalogCSV(csv) {
 function buildAsesorCatalog(rows) {
   const byCr = new Map();
   const byTienda = new Map();
+  const validTiendas = new Set();
   rows.forEach(row => {
     const item = { asesor: String(row.asesor || '').trim(), tienda: String(row.tienda || '').trim(), cr: String(row.cr || '').trim() };
     const crKey = normalizeCatalogCr(item.cr);
     const tiendaKey = normalizeCatalogTienda(item.tienda);
     if (crKey) byCr.set(crKey, item);
-    if (tiendaKey) byTienda.set(tiendaKey, item);
+    if (tiendaKey) { byTienda.set(tiendaKey, item); validTiendas.add(tiendaKey); }
   });
-  return { loaded: true, rows, byCr, byTienda };
+  return { loaded: true, rows, byCr, byTienda, validTiendas };
+}
+function isTiendaValid(catalog, tienda) {
+  if (!catalog || !catalog.loaded || !catalog.validTiendas || !catalog.validTiendas.size) return true;
+  return catalog.validTiendas.has(normalizeCatalogTienda(tienda));
+}
+function filterValidTiendas(rows, catalog, tiendaKey) {
+  if (!Array.isArray(rows) || !tiendaKey) return rows;
+  return rows.filter(row => isTiendaValid(catalog, row[tiendaKey]));
 }
 async function loadAsesorCatalog() {
   if (asesorCatalogPromise) return asesorCatalogPromise;
@@ -967,6 +976,8 @@ window.OXXO = {
   loadAsesorCatalog,
   resolveAsesor,
   applyAsesorCatalog,
+  isTiendaValid,
+  filterValidTiendas,
   normalizeCatalogCr,
   normalizeCatalogTienda,
   loadSystemConfig,

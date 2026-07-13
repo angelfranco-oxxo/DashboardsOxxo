@@ -2777,7 +2777,8 @@ async function initDashboard(){
       tipo:   tipoPuesto(puesto),
     };
   }).filter(r=>r.tienda && r.tienda !== 'Sin tienda')
-    .filter(r=>cleanKey(r.asesor)!=='timoteoantonioperez');
+    .filter(r=>cleanKey(r.asesor)!=='timoteoantonioperez')
+    .filter(r=>OXXO.isTiendaValid(asesorCatalog, r.tienda));
 
   poblarFiltros();
   refreshDashboard();
