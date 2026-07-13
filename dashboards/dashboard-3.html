@@ -1008,11 +1008,8 @@ function render(data){
   const completas  = data.filter(r=>isCompleta(r.estatus)).length;
   const incompletas= data.filter(r=>isIncompleta(r.estatus)).length;
   const criticas   = data.filter(r=>isCritica(r.estatus)).length;
-  // Aprovechamiento General: promedio de '% Aprovechamiento' de las tiendas de la selección
-  // actual (Plaza Oaxaca). Cambia con el filtro de Semana-Mes (y demás filtros) porque se
-  // recalcula sobre los datos filtrados de cada mes.
-  const aprovVals = data.map(r=>r.aprov).filter(v=>!isNaN(v));
-  const aprovProm = aprovVals.length > 0 ? (aprovVals.reduce((a,b)=>a+b,0)/aprovVals.length)/100 : 0;
+  // Aprovechamiento General = Equipo Completo / Total (EC%)
+  const aprovProm = total > 0 ? completas / total : 0;
   const semana     = data.find(r=>r.semana)?.semana || ACTIVE_SEMANA;
 
   // Actualizar semana en hero
@@ -1023,7 +1020,7 @@ function render(data){
   // ── KPIs ────────────────────────────────────────────────
   document.getElementById('kpi-section').innerHTML=`
     <div class="kpi-card ${ecColor(aprovProm)}">
-      <div class="kpi-card__label">Aprovechamiento General<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Promedio de la columna '% Aprovechamiento' de todas las tiendas filtradas, en la semana seleccionada."></span></div>
+      <div class="kpi-card__label">Aprovechamiento General<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Equipo Completo ÷ Total tiendas (EC%). Tiendas con estructura completa sobre el total de tiendas filtradas."></span></div>
       <div class="kpi-card__value">${(aprovProm*100).toFixed(2)}%</div>
       <div class="kpi-card__delta ${aprovProm>=0.95?'pos':aprovProm>=0.80?'neu':'neg'}">Plaza Oaxaca</div>
       <div class="kpi-card__icon">📊</div>
