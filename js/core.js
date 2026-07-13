@@ -895,13 +895,17 @@ function buildAsesorCatalog(rows) {
   });
   return { loaded: true, rows, byCr, byTienda, validTiendas };
 }
-function isTiendaValid(catalog, tienda) {
+function isTiendaValid(catalog, tienda, cr='') {
   if (!catalog || !catalog.loaded || !catalog.validTiendas || !catalog.validTiendas.size) return true;
+  // CR es la clave confiable (única, sin truncamientos ni variaciones de nombre). Se usa
+  // como primer criterio; el nombre de tienda es solo respaldo si no hay CR disponible.
+  const crKey = normalizeCatalogCr(cr);
+  if (crKey) return catalog.byCr.has(crKey);
   return catalog.validTiendas.has(normalizeCatalogTienda(tienda));
 }
-function filterValidTiendas(rows, catalog, tiendaKey) {
+function filterValidTiendas(rows, catalog, tiendaKey, crKey) {
   if (!Array.isArray(rows) || !tiendaKey) return rows;
-  return rows.filter(row => isTiendaValid(catalog, row[tiendaKey]));
+  return rows.filter(row => isTiendaValid(catalog, row[tiendaKey], crKey ? row[crKey] : ''));
 }
 async function loadAsesorCatalog() {
   if (asesorCatalogPromise) return asesorCatalogPromise;
