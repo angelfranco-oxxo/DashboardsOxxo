@@ -885,14 +885,19 @@ function parseAsesorCatalogCSV(csv) {
 function buildAsesorCatalog(rows) {
   const byCr = new Map();
   const byTienda = new Map();
+  const validTiendas = new Set();
   rows.forEach(row => {
     const item = { asesor: String(row.asesor || '').trim(), tienda: String(row.tienda || '').trim(), cr: String(row.cr || '').trim() };
     const crKey = normalizeCatalogCr(item.cr);
     const tiendaKey = normalizeCatalogTienda(item.tienda);
     if (crKey) byCr.set(crKey, item);
-    if (tiendaKey) byTienda.set(tiendaKey, item);
+    if (tiendaKey) { byTienda.set(tiendaKey, item); validTiendas.add(tiendaKey); }
   });
-  return { loaded: true, rows, byCr, byTienda };
+  return { loaded: true, rows, byCr, byTienda, validTiendas };
+}
+function isTiendaValid(catalog, tienda) {
+  if (!catalog || !catalog.loaded || !catalog.validTiendas || !catalog.validTiendas.size) return true;
+  return catalog.validTiendas.has(normalizeCatalogTienda(tienda));
 }
 async function loadAsesorCatalog() {
   if (asesorCatalogPromise) return asesorCatalogPromise;
@@ -967,6 +972,7 @@ window.OXXO = {
   loadAsesorCatalog,
   resolveAsesor,
   applyAsesorCatalog,
+  isTiendaValid,
   normalizeCatalogCr,
   normalizeCatalogTienda,
   loadSystemConfig,

@@ -948,10 +948,16 @@ async function initDashboard(){
     r.asesor = OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }).toUpperCase();
   });
 
-  ALL_DATA = data;
+  // Filtrar solo tiendas válidas según el catálogo (255 tiendas autorizadas)
+  const dataFiltrada = data.filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda));
+  if(dataFiltrada.length !== data.length) {
+    console.log(`[D3] Tiendas filtradas por catálogo: ${data.length} → ${dataFiltrada.length}`);
+  }
+
+  ALL_DATA = dataFiltrada;
   const rawD3Plazas = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3plazas);
   if(rawD3Plazas && rawD3Plazas.length) OTRAS_PLAZAS_D3 = rawD3Plazas;
-  SEMANAS = [...new Set(data.map(r=>r.semana).filter(Boolean))].sort();
+  SEMANAS = [...new Set(dataFiltrada.map(r=>r.semana).filter(Boolean))].sort();
   ACTIVE_SEMANA = SEMANAS[SEMANAS.length-1] || '';
 
   // Detalle por tienda: se arma desde la MISMA base principal (rawData), filtrando solo el
@@ -996,9 +1002,10 @@ async function initDashboard(){
     DETALLE_DATA.forEach(r => {
       r.asesor = OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }).toUpperCase();
     });
+    DETALLE_DATA = DETALLE_DATA.filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda));
   } catch(e){ DETALLE_DATA = []; }
 
-  populateFilters(data);
+  populateFilters(dataFiltrada);
   applyFilters();
   OXXO.updateFooterTime('load-time');
 }
