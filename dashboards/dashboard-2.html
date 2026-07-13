@@ -735,6 +735,7 @@ function monthLabel(key){
 }
 let BASE_BAJAS_DATA = [];
 let BAJAS_COLS = {};
+let OTRAS_PLAZAS_DATA = [];
 let FILTER_STATE = {};
 let SELECTED_ASESORES = null; // array de asesores seleccionados (multi-select)
 
@@ -1440,6 +1441,18 @@ function renderPlazas(data, cols) {
       .slice(0, 8);
   }
 
+  // Agregar otras plazas cargadas desde Dashboard_2_Otras_Plazas
+  if(OTRAS_PLAZAS_DATA.length) {
+    OTRAS_PLAZAS_DATA.forEach(r => {
+      const plaza = String(r['Plazas'] || r['PLAZAS'] || '').trim();
+      const bajas = Number(String(r['Bajas Plaza'] || r['Bajas_Plaza'] || '').replace(/[^0-9.-]/g, ''));
+      if(plaza && !isNaN(bajas) && bajas > 0 && !plazasData.find(p => p.plaza === plaza)) {
+        plazasData.push({ plaza, bajas });
+      }
+    });
+    plazasData.sort((a, b) => b.bajas - a.bajas);
+  }
+
   if(!plazasData.length) {
     document.getElementById('tabla-plazas').innerHTML = '<div style="font-size:12px;color:var(--color-gray);padding:16px">No se encontraron columnas de plazas en los datos.</div>';
     return;
@@ -1681,6 +1694,8 @@ async function initDashboard(){
 
   BASE_BAJAS_DATA = data;
   BAJAS_COLS = cols;
+  const rawOtras = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2otras);
+  if(rawOtras && rawOtras.length) OTRAS_PLAZAS_DATA = rawOtras;
   FILTER_STATE = defaultFilterState(BASE_BAJAS_DATA, BAJAS_COLS);
   SELECTED_ASESORES = defaultAsesorSelection(BASE_BAJAS_DATA, BAJAS_COLS);
   setFilterBar(BASE_BAJAS_DATA, BAJAS_COLS);
