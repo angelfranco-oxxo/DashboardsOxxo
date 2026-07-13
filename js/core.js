@@ -899,6 +899,10 @@ function isTiendaValid(catalog, tienda) {
   if (!catalog || !catalog.loaded || !catalog.validTiendas || !catalog.validTiendas.size) return true;
   return catalog.validTiendas.has(normalizeCatalogTienda(tienda));
 }
+function filterValidTiendas(rows, catalog, tiendaKey) {
+  if (!Array.isArray(rows) || !tiendaKey) return rows;
+  return rows.filter(row => isTiendaValid(catalog, row[tiendaKey]));
+}
 async function loadAsesorCatalog() {
   if (asesorCatalogPromise) return asesorCatalogPromise;
   asesorCatalogPromise = (async () => {
@@ -973,6 +977,7 @@ window.OXXO = {
   resolveAsesor,
   applyAsesorCatalog,
   isTiendaValid,
+  filterValidTiendas,
   normalizeCatalogCr,
   normalizeCatalogTienda,
   loadSystemConfig,

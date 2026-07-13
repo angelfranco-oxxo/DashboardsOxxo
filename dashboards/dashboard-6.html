@@ -467,11 +467,12 @@ function limpiarFiltros(){
 
 async function initDashboard() {
   OXXO.renderDownloadButton('hero-download','s6');
-  const data = await OXXO.fetchSheetData(TAB);
+  let data = await OXXO.fetchSheetData(TAB);
   if(data===null){['kpi-section','ranking-asesores','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(data.length===0){['kpi-section','ranking-asesores','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
   const asesorCatalog = await OXXO.loadAsesorCatalog();
   data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
+  data = OXXO.filterValidTiendas(data, asesorCatalog, C.tienda);
   BASE_DATA = data;
 
   // Semana badge
