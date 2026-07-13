@@ -19,7 +19,7 @@ const SHEETS_CONFIG = {
 
   // URL del Web App de Apps Script para publicar desde admin.html.
   // Cuando se configure una vez, el panel admin la usara automaticamente.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxdBsO7FTL9JhS9kV3oMIqtE_WzySz63p7LToFL21NvXRCUBCavjsqkFsPpIgm957fV/exec",
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbz-RKBVB1CzkmWKdVVvGwSHGTzMUzc-YfFfAznzzhORJL3G9AaHH9UnFQYr2Zwk7o3C/exec",
 
   // Nombres exactos de cada pestaña en Google Sheets
   TABS: {
@@ -28,6 +28,7 @@ const SHEETS_CONFIG = {
     d2otras: "Dashboard_2_Otras_Plazas", // Bajas de otras plazas para comparativo regional
     d2denom: "Denominaciones_Dashboard_2_Diario", // Denominaciones (cambios de puesto): Asesor,Denominación Medida,Denominación Motivo,Nombre del empleado,F.Crea,Denominación Posición Anterior,Denominación Posición Actual
     d3: "Dashboard_3_Diario",   // Estructura: Plaza,Asesor,Estructuras_Asignadas,Estructuras_Activas,Pct_Aprovechamiento,Semana
+    d3plazas: "Dashboard_3_Otras_Plazas", // Aprovechamiento por plaza para ranking comparativo
     s4: "Dashboard_4_Semanal",  // Tiempo Extra: Plaza,Asesor,Semana,Gasto_TE_total,Horas_TE_total,Gasto_TE_doble,Gasto_TE_triple,Gasto_dia_descanso,Fecha
     s5: "Dashboard_5_Semanal",  // Vacaciones: Asesor,Plaza,Empleado,Puesto,Fecha_Inicio,Fecha_Fin,Dias,Semana
     s6: "Dashboard_6_Semanal",  // Ausentismos: Asesor,Plaza,Empleado,Puesto,Tipo_Ausentismo,Fecha,Semana,Dias
