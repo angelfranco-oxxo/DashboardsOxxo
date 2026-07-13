@@ -25,6 +25,7 @@ const SHEETS_CONFIG = {
   TABS: {
     d1: "Dashboard_1_Diario",   // Vacantes: Plaza,Asesor,Unidad org/,Descripción de Posición,Status ocupación,Fecha,Dias Vacantes
     d2: "Dashboard_2_Diario",   // Bajas: Asesor,Plaza,Temporalidad,Puesto,Mes,Semana,Rot_Temp,Comprometido,Real,Fecha
+    d2otras: "Dashboard_2_Otras_Plazas", // Bajas de otras plazas para comparativo regional
     d2denom: "Denominaciones_Dashboard_2_Diario", // Denominaciones (cambios de puesto): Asesor,Denominación Medida,Denominación Motivo,Nombre del empleado,F.Crea,Denominación Posición Anterior,Denominación Posición Actual
     d3: "Dashboard_3_Diario",   // Estructura: Plaza,Asesor,Estructuras_Asignadas,Estructuras_Activas,Pct_Aprovechamiento,Semana
     s4: "Dashboard_4_Semanal",  // Tiempo Extra: Plaza,Asesor,Semana,Gasto_TE_total,Horas_TE_total,Gasto_TE_doble,Gasto_TE_triple,Gasto_dia_descanso,Fecha
