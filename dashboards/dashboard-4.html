@@ -708,7 +708,7 @@ async function initDashboard() {
   if(data.length===0){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
   const asesorCatalog = await OXXO.loadAsesorCatalog();
   data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
-  BASE_DATA = OXXO.filterValidTiendas(data, asesorCatalog, C.tienda);
+  BASE_DATA = OXXO.filterValidTiendas(data, asesorCatalog, C.tienda, C.cr);
   // Populate dropdowns
   const semanas = sortSemanas([...new Set(data.map(r=>String(r[C.semana] || '').trim()).filter(Boolean))]);
   DEFAULT_SEMANA = semanas[0] || '';

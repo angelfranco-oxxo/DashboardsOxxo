@@ -1688,7 +1688,7 @@ async function initDashboard(){
   const cols = buildCols(raw);
   const asesorCatalog = await OXXO.loadAsesorCatalog();
   raw.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey: cols.asesor, tiendaKey: cols.tienda, crKey: cols.cr }));
-  const rawSinTimoteo = raw.filter(row => cleanKey(val(row, cols, 'asesor', '')) !== 'timoteoantonioperez' && OXXO.isTiendaValid(asesorCatalog, row[cols.tienda]));
+  const rawSinTimoteo = raw.filter(row => cleanKey(val(row, cols, 'asesor', '')) !== 'timoteoantonioperez' && OXXO.isTiendaValid(asesorCatalog, row[cols.tienda], row[cols.cr]));
   const data = filterData(rawSinTimoteo, cols);
   if(!data.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }
 

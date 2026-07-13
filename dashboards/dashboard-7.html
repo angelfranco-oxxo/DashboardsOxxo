@@ -1083,7 +1083,7 @@ async function init(){
     .map(normalizeRow)
     .map(r => ({ ...r, asesor: OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }) }))
     .filter(r => r.tienda || r.asesor)
-    .filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda));
+    .filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr));
 
   // Poblar selector de asesor
   const asesores = [...new Set(ALL.map(r=>r.asesor).filter(Boolean))].sort();
