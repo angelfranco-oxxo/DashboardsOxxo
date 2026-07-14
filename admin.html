@@ -165,6 +165,32 @@
         <button class="admin-btn primary" type="button" id="manual-publish-d3-btn">Publicar</button>
       </div>
     </section>
+    <section class="admin-card hidden" id="manual-entry-d2plan-section" style="margin-top:18px">
+      <h2>Plan de Acción · Análisis de Bajas (captura mensual)</h2>
+      <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Captura el plan de acción del mes (hallazgo, acción propuesta, responsable, plazo, indicador de éxito y prioridad). Se muestra en la página "Análisis de Bajas" del Dashboard 2. Agrega o quita filas según necesites.</p>
+      <div class="table-wrap" style="margin-bottom:16px;max-height:none">
+        <table class="preview-table" id="manual-input-d2plan">
+          <thead><tr><th style="min-width:220px">Hallazgo</th><th style="min-width:220px">Acción</th><th>Responsable</th><th>Plazo</th><th>Indicador de éxito</th><th>Prioridad</th></tr></thead>
+          <tbody>
+            <tr class="plan-row">
+              <td><textarea class="admin-input" rows="2" data-field="Hallazgo" placeholder="Hallazgo relacionado"></textarea></td>
+              <td><textarea class="admin-input" rows="2" data-field="Accion" placeholder="Acción propuesta"></textarea></td>
+              <td><input class="admin-input" type="text" data-field="Responsable" placeholder="Responsable" /></td>
+              <td><input class="admin-input" type="text" data-field="Plazo" placeholder="Plazo" /></td>
+              <td><input class="admin-input" type="text" data-field="Indicador" placeholder="Indicador de éxito" /></td>
+              <td>
+                <select class="admin-input" data-field="Prioridad"><option value="Alta">Alta</option><option value="Media" selected>Media</option><option value="Baja">Baja</option></select>
+                <button type="button" class="admin-btn plan-row-remove" title="Eliminar fila" style="margin-top:6px;padding:4px 10px">Quitar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-actions">
+        <button class="admin-btn" type="button" id="manual-add-d2plan-row">+ Agregar fila</button>
+        <button class="admin-btn primary" type="button" id="manual-publish-d2plan-btn">Publicar</button>
+      </div>
+    </section>
     <section class="admin-card" style="margin-top:18px">
       <div class="preview-head"><h2>3. Vista previa</h2><div class="preview-meta" id="preview-meta">0 filas</div></div>
       <div class="table-wrap">
