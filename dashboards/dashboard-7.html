@@ -440,6 +440,7 @@ function normKey(s){
     .replace(/^_|_$/g, '');
 }
 
+function cleanKey(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9\/]/g,'');}
 function pickField(row, keys){
   const byNorm = {};
   Object.keys(row || {}).forEach(k => { byNorm[normKey(k)] = row[k]; });
@@ -1083,7 +1084,8 @@ async function init(){
     .map(normalizeRow)
     .map(r => ({ ...r, asesor: OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }) }))
     .filter(r => r.tienda || r.asesor)
-    .filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr));
+    .filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr))
+    .filter(r => cleanKey(r.asesor) !== 'timoteoantonioperez');
 
   // Poblar selector de asesor
   const asesores = [...new Set(ALL.map(r=>r.asesor).filter(Boolean))].sort();
