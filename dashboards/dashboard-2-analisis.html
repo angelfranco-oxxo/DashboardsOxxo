@@ -9,6 +9,7 @@
   <link rel="apple-touch-icon" href="../assets/favicon.png" />
   <link rel="stylesheet" href="../css/global.css" />
   <link rel="stylesheet" href="../css/dashboard-skin.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     .an-page { max-width: 1420px; margin: 0 auto; padding: 14px 16px 40px; }
     .an-header {
@@ -54,6 +55,8 @@
     .an-hallazgo-num { flex-shrink:0; width:24px; height:24px; border-radius:50%; background:#FDEAEA; color:#B91520; font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; }
 
     .state-box { padding:24px; text-align:center; color:var(--color-gray); }
+
+    .chart-box { position:relative; height:280px; }
   </style>
 </head>
 <body>
@@ -89,6 +92,17 @@
   <section class="an-kpis" id="kpi-section">
     <div class="kpi-card"><div class="kpi-card__label">Cargando…</div><div class="kpi-card__value"><div class="spinner"></div></div></div>
   </section>
+
+  <div class="an-grid-2">
+    <section class="an-card">
+      <h2>Bajas por rango de antigüedad<span class="info-tip" tabindex="0" data-tip="Número de bajas agrupadas por la columna 'Temporalidad' del Excel de Bajas."></span></h2>
+      <div class="chart-box"><canvas id="chart-antiguedad"></canvas></div>
+    </section>
+    <section class="an-card">
+      <h2>Distribución por detalle de baja<span class="info-tip" tabindex="0" data-tip="Distribución de la columna 'Detalle' (motivo específico de la baja) del periodo seleccionado."></span></h2>
+      <div class="chart-box"><canvas id="chart-detalle"></canvas></div>
+    </section>
+  </div>
 
   <section class="an-card">
     <h2>Distribución de bajas por rango de antigüedad<span class="info-tip" tabindex="0" data-tip="Agrupa las bajas por la columna 'Temporalidad' del Excel de Bajas. % Abandono = filas cuyo 'Detalle' es 'Abandono de Trabajo' sobre el total del rango."></span></h2>
@@ -167,6 +181,38 @@ function renderKPIs(data){
       <div class="kpi-card__value">${tiendasAfectadas}</div>
       <div class="kpi-card__delta neu">Tiendas distintas con baja</div>
     </div>`;
+}
+
+let CHART_ANTIGUEDAD = null;
+let CHART_DETALLE = null;
+const CHART_COLORS = ['#c0181f','#e42929','#f2994a','#f2c94c','#6fcf97','#56ccf2','#9b51e0','#bb6bd9','#eb5757','#2f80ed'];
+
+function renderChartAntiguedad(data){
+  const canvas = document.getElementById('chart-antiguedad');
+  if(!canvas || typeof Chart === 'undefined') return;
+  const grupos = {};
+  data.forEach(r => { const t = norm(r.temporalidad) || 'Sin dato'; grupos[t] = (grupos[t]||0) + 1; });
+  const buckets = Object.keys(grupos).sort((a,b) => ordenTemporalidad(a) - ordenTemporalidad(b));
+  if(CHART_ANTIGUEDAD) CHART_ANTIGUEDAD.destroy();
+  CHART_ANTIGUEDAD = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: { labels: buckets, datasets: [{ label: 'Bajas', data: buckets.map(b => grupos[b]), backgroundColor: '#c0181f', borderRadius: 6 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+  });
+}
+
+function renderChartDetalle(data){
+  const canvas = document.getElementById('chart-detalle');
+  if(!canvas || typeof Chart === 'undefined') return;
+  const conteo = {};
+  data.forEach(r => { const d = norm(r.detalle) || 'Sin detalle'; conteo[d] = (conteo[d]||0) + 1; });
+  const entries = Object.entries(conteo).sort((a,b) => b[1]-a[1]);
+  if(CHART_DETALLE) CHART_DETALLE.destroy();
+  CHART_DETALLE = new Chart(canvas.getContext('2d'), {
+    type: 'pie',
+    data: { labels: entries.map(([k])=>k), datasets: [{ data: entries.map(([,v])=>v), backgroundColor: entries.map((_,i)=>CHART_COLORS[i % CHART_COLORS.length]) }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ boxWidth:12, font:{ size:11 } } } } }
+  });
 }
 
 function renderAntiguedad(data){
@@ -341,6 +387,8 @@ function dataFiltrada(){
 function renderAll(){
   const data = dataFiltrada();
   renderKPIs(data);
+  renderChartAntiguedad(data);
+  renderChartDetalle(data);
   renderAntiguedad(data);
   renderCorrelacion(data);
   renderHallazgos(data);
