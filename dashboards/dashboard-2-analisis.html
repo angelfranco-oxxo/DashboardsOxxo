@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Análisis de Bajas · Dashboards Ats</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <link rel="icon" type="image/png" href="../assets/favicon.png" />
+  <link rel="apple-touch-icon" href="../assets/favicon.png" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    .an-page { max-width: 1420px; margin: 0 auto; padding: 14px 16px 40px; }
+    .an-header {
+      background: linear-gradient(135deg, #c0181f 0%, #e42929 60%, #b01218 100%);
+      border-radius: 14px; padding: 20px 26px; color: #fff;
+      display: flex; flex-direction: column; gap: 10px;
+      box-shadow: 0 4px 24px rgba(180,0,0,.18); margin-bottom: 16px;
+    }
+    .an-header__title { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+    .an-header h1 { font-family:var(--font-display); font-size:26px; font-weight:900; margin:0; letter-spacing:.4px; }
+    .an-header__meta { font-size:12px; color:rgba(255,255,255,0.8); font-weight:700; margin-top:4px; }
+    .an-back { text-decoration:none; color:#fff; background:rgba(0,0,0,.18); border:1px solid rgba(255,255,255,.3); border-radius:999px; padding:8px 16px; font-size:12px; font-weight:700; white-space:nowrap; }
+    .an-back:hover { background:rgba(0,0,0,.3); }
+    .an-mes-select { background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.32); border-radius:999px; padding:8px 16px; font-size:12px; font-weight:700; }
+    .an-mes-select option { color:#1A1A2E; }
+
+    .an-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:16px; }
+
+    .an-card { background:var(--color-card,#fff); border-radius:14px; padding:18px 20px; box-shadow:var(--shadow-card,0 2px 12px rgba(0,0,0,.06)); margin-bottom:16px; }
+    .an-card h2 { font-family:var(--font-display); font-size:16px; font-weight:800; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
+    .an-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width:980px){ .an-grid-2{ grid-template-columns:1fr; } }
+
+    .an-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .an-table th { text-align:left; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--color-gray); padding:8px 10px; border-bottom:2px solid var(--color-border); }
+    .an-table td { padding:9px 10px; border-bottom:1px solid var(--color-border); vertical-align:top; }
+    .an-table tbody tr:hover { background:var(--color-bg); }
+    .an-table .num { text-align:right; font-variant-numeric:tabular-nums; }
+
+    .an-bar-row { display:flex; align-items:center; gap:10px; padding:6px 0; }
+    .an-bar-label { width:150px; flex-shrink:0; font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .an-bar-track { flex:1; height:14px; background:var(--color-border); border-radius:7px; position:relative; overflow:hidden; }
+    .an-bar-fill { height:100%; border-radius:7px; background:linear-gradient(90deg,#e42929,#c0181f); transition:width .6s ease; }
+    .an-bar-val { width:60px; text-align:right; font-size:12px; font-weight:800; flex-shrink:0; }
+
+    .an-pill { display:inline-block; font-size:11px; font-weight:800; padding:3px 10px; border-radius:999px; }
+    .an-pill.alta { background:#FDEAEA; color:#B91520; }
+    .an-pill.media { background:#FFF3DC; color:#A95708; }
+    .an-pill.baja { background:#EAF6EC; color:#1E7B34; }
+
+    .an-hallazgo-item { display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--color-border); font-size:13px; line-height:1.5; }
+    .an-hallazgo-item:last-child { border-bottom:none; }
+    .an-hallazgo-num { flex-shrink:0; width:24px; height:24px; border-radius:50%; background:#FDEAEA; color:#B91520; font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; }
+
+    .state-box { padding:24px; text-align:center; color:var(--color-gray); }
+  </style>
+</head>
+<body>
+<nav class="topbar">
+  <div class="topbar__brand">
+    <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+    <div>
+      <div class="topbar__title">Dashboards Ats</div>
+      <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
+    </div>
+  </div>
+  <div class="topbar__meta"><a href="../index.html" class="topbar__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Inicio
+    </a>
+  </div>
+</nav>
+
+<main class="an-page">
+  <section class="an-header">
+    <div class="an-header__title">
+      <div>
+        <h1>Análisis de Bajas</h1>
+        <div class="an-header__meta">Rotación, antigüedad y hallazgos · Plaza Oaxaca</div>
+      </div>
+      <a href="dashboard-2.html" class="an-back">← Volver a Bajas Diarias</a>
+    </div>
+    <div>
+      <select class="an-mes-select" id="filtro-mes"><option value="">Todos los meses</option></select>
+    </div>
+  </section>
+
+  <section class="an-kpis" id="kpi-section">
+    <div class="kpi-card"><div class="kpi-card__label">Cargando…</div><div class="kpi-card__value"><div class="spinner"></div></div></div>
+  </section>
+
+  <section class="an-card">
+    <h2>Distribución de bajas por rango de antigüedad<span class="info-tip" tabindex="0" data-tip="Agrupa las bajas por la columna 'Temporalidad' del Excel de Bajas. % Abandono = filas cuyo 'Detalle' es 'Abandono de Trabajo' sobre el total del rango."></span></h2>
+    <div id="tabla-antiguedad"><div class="state-box"><div class="spinner"></div></div></div>
+  </section>
+
+  <div class="an-grid-2">
+    <section class="an-card">
+      <h2>Correlación Asesor × Antigüedad<span class="info-tip" tabindex="0" data-tip="Número de bajas de cada asesor por rango de antigüedad (columna Temporalidad)."></span></h2>
+      <div id="tabla-correlacion"><div class="state-box"><div class="spinner"></div></div></div>
+    </section>
+
+    <section class="an-card">
+      <h2>Hallazgos · Motivos de baja<span class="info-tip" tabindex="0" data-tip="Distribución de la columna 'Detalle' (motivo específico de la baja) y una lectura automática generada de los datos del periodo seleccionado."></span></h2>
+      <div id="hallazgos-motivos"><div class="state-box"><div class="spinner"></div></div></div>
+    </section>
+  </div>
+
+  <section class="an-card">
+    <h2>Lectura de los hallazgos</h2>
+    <div id="hallazgos-lectura"><div class="state-box"><div class="spinner"></div></div></div>
+  </section>
+
+  <section class="an-card">
+    <h2>Plan de acción<span class="info-tip" tabindex="0" data-tip="Captura manual desde el panel admin (Dashboard 2 - Plan de accion). Se actualiza cada mes."></span></h2>
+    <div id="tabla-plan"><div class="state-box"><div class="spinner"></div></div></div>
+  </section>
+</main>
+
+<script src="../js/core.js"></script>
+<script>
+let ALL_DATA = [];
+let PLAN_DATA = [];
+let ACTIVE_MES = '';
+
+function norm(s){ return String(s||'').trim(); }
+function isAbandono(r){ return norm(r.detalle).toLowerCase() === 'abandono de trabajo'; }
+function esRotTemprana(r){ return norm(r.rotTemp).toLowerCase() === 'si'; }
+
+// Orden lógico de los buckets de Temporalidad tal como vienen en el Excel de Bajas.
+const ORDEN_TEMPORALIDAD = ['0 - 45 días','46 - 90 días','3 - 6 meses','6 - 12 meses','> 1 año'];
+function ordenTemporalidad(t){ const i = ORDEN_TEMPORALIDAD.indexOf(t); return i === -1 ? 99 : i; }
+
+function pctFmt(n){ return (Number(n)||0).toFixed(1) + '%'; }
+
+function renderKPIs(data){
+  const total = data.length;
+  const abandono = data.filter(isAbandono).length;
+  const rotTemprana = data.filter(esRotTemprana).length;
+  const bajas0a45 = data.filter(r => norm(r.temporalidad) === '0 - 45 días').length;
+  const tiendasAfectadas = new Set(data.map(r => norm(r.tienda)).filter(Boolean)).size;
+
+  document.getElementById('kpi-section').innerHTML = `
+    <div class="kpi-card rojo">
+      <div class="kpi-card__label">Total Bajas</div>
+      <div class="kpi-card__value">${total}</div>
+      <div class="kpi-card__delta neu">Periodo seleccionado</div>
+    </div>
+    <div class="kpi-card naranja">
+      <div class="kpi-card__label">% Abandono de Trabajo</div>
+      <div class="kpi-card__value">${total ? pctFmt(abandono/total*100) : '0%'}</div>
+      <div class="kpi-card__delta neu">${abandono} de ${total} bajas</div>
+    </div>
+    <div class="kpi-card amarillo">
+      <div class="kpi-card__label">% Rotación Temprana</div>
+      <div class="kpi-card__value">${total ? pctFmt(rotTemprana/total*100) : '0%'}</div>
+      <div class="kpi-card__delta neu">${rotTemprana} bajas (Rot_Temp = Si)</div>
+    </div>
+    <div class="kpi-card azul">
+      <div class="kpi-card__label">% Bajas 0-45 días</div>
+      <div class="kpi-card__value">${total ? pctFmt(bajas0a45/total*100) : '0%'}</div>
+      <div class="kpi-card__delta neu">${bajas0a45} bajas muy tempranas</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__label">Tiendas Afectadas</div>
+      <div class="kpi-card__value">${tiendasAfectadas}</div>
+      <div class="kpi-card__delta neu">Tiendas distintas con baja</div>
+    </div>`;
+}
+
+function renderAntiguedad(data){
+  const el = document.getElementById('tabla-antiguedad');
+  if(!data.length){ el.innerHTML = '<div class="state-box">Sin datos para el periodo seleccionado.</div>'; return; }
+  const total = data.length;
+  const grupos = {};
+  data.forEach(r => {
+    const t = norm(r.temporalidad) || 'Sin dato';
+    if(!grupos[t]) grupos[t] = { bajas:0, abandono:0, edadSum:0, edadN:0 };
+    grupos[t].bajas++;
+    if(isAbandono(r)) grupos[t].abandono++;
+    const edad = Number(r.edad);
+    if(!isNaN(edad) && edad > 0){ grupos[t].edadSum += edad; grupos[t].edadN++; }
+  });
+  const filas = Object.entries(grupos).sort((a,b) => ordenTemporalidad(a[0]) - ordenTemporalidad(b[0]));
+  el.innerHTML = `<div class="table-wrap"><table class="an-table">
+    <thead><tr><th>Rango de antigüedad</th><th class="num">Bajas</th><th class="num">% del total</th><th class="num">% Abandono trabajo</th><th class="num">Edad promedio</th></tr></thead>
+    <tbody>${filas.map(([t,v]) => `<tr>
+      <td style="font-weight:700">${t}</td>
+      <td class="num">${v.bajas}</td>
+      <td class="num">${pctFmt(v.bajas/total*100)}</td>
+      <td class="num" style="color:${v.abandono/v.bajas>=0.7?'var(--semaforo-rojo)':'inherit'}">${pctFmt(v.abandono/v.bajas*100)}</td>
+      <td class="num">${v.edadN ? (v.edadSum/v.edadN).toFixed(1) : '—'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderCorrelacion(data){
+  const el = document.getElementById('tabla-correlacion');
+  if(!data.length){ el.innerHTML = '<div class="state-box">Sin datos para el periodo seleccionado.</div>'; return; }
+  const buckets = [...new Set(data.map(r => norm(r.temporalidad) || 'Sin dato'))].sort((a,b) => ordenTemporalidad(a) - ordenTemporalidad(b));
+  const porAsesor = {};
+  data.forEach(r => {
+    const a = norm(r.asesor) || 'Sin asesor';
+    const t = norm(r.temporalidad) || 'Sin dato';
+    if(!porAsesor[a]) porAsesor[a] = { total:0 };
+    porAsesor[a][t] = (porAsesor[a][t] || 0) + 1;
+    porAsesor[a].total++;
+  });
+  const asesores = Object.entries(porAsesor).sort((a,b) => b[1].total - a[1].total);
+  el.innerHTML = `<div class="table-wrap"><table class="an-table">
+    <thead><tr><th>Asesor</th>${buckets.map(b=>`<th class="num">${b}</th>`).join('')}<th class="num">Total</th></tr></thead>
+    <tbody>${asesores.map(([a,v]) => `<tr>
+      <td style="font-weight:700">${a}</td>
+      ${buckets.map(b => `<td class="num">${v[b]||0}</td>`).join('')}
+      <td class="num" style="font-weight:800">${v.total}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderHallazgos(data){
+  const elMotivos = document.getElementById('hallazgos-motivos');
+  const elLectura = document.getElementById('hallazgos-lectura');
+  if(!data.length){
+    elMotivos.innerHTML = '<div class="state-box">Sin datos para el periodo seleccionado.</div>';
+    elLectura.innerHTML = '<div class="state-box">Sin datos para el periodo seleccionado.</div>';
+    return;
+  }
+  const total = data.length;
+  const conteo = {};
+  data.forEach(r => { const d = norm(r.detalle) || 'Sin detalle'; conteo[d] = (conteo[d]||0) + 1; });
+  const top = Object.entries(conteo).sort((a,b) => b[1]-a[1]).slice(0,8);
+  const max = top.length ? top[0][1] : 1;
+  elMotivos.innerHTML = top.map(([motivo,n]) => `
+    <div class="an-bar-row">
+      <div class="an-bar-label" title="${motivo}">${motivo}</div>
+      <div class="an-bar-track"><div class="an-bar-fill" style="width:${(n/max*100).toFixed(1)}%"></div></div>
+      <div class="an-bar-val">${n} (${pctFmt(n/total*100)})</div>
+    </div>`).join('');
+
+  // Lectura automática generada a partir de los KPIs reales del periodo.
+  const abandono = data.filter(isAbandono).length;
+  const renuncia = data.filter(r => norm(r.motivo).toUpperCase() === 'RENUNCIA').length;
+  const acuerdo = data.filter(r => norm(r.motivo).toUpperCase() === 'ACUERDO MUTUO').length;
+  const bajas0a90 = data.filter(r => ['0 - 45 días','46 - 90 días'].includes(norm(r.temporalidad)));
+  const abandono0a90 = bajas0a90.filter(isAbandono).length;
+  const porPuesto = {};
+  data.forEach(r => { const p = norm(r.puesto) || 'Sin puesto'; porPuesto[p] = (porPuesto[p]||0) + 1; });
+  const puestoTop = Object.entries(porPuesto).sort((a,b)=>b[1]-a[1])[0];
+  const porAsesorTotal = {};
+  data.forEach(r => { const a = norm(r.asesor) || 'Sin asesor'; porAsesorTotal[a] = (porAsesorTotal[a]||0) + 1; });
+  const asesorTop = Object.entries(porAsesorTotal).sort((a,b)=>b[1]-a[1])[0];
+
+  const puntos = [];
+  puntos.push(`El ${pctFmt(abandono/total*100)} de las bajas del periodo (${abandono} de ${total}) se registran como "Abandono de Trabajo"${renuncia||acuerdo ? `, frente a ${pctFmt(renuncia/total*100)} de renuncia formal y ${pctFmt(acuerdo/total*100)} de acuerdo mutuo` : ''}.`);
+  if(bajas0a90.length) puntos.push(`El ${pctFmt(abandono0a90/bajas0a90.length*100)} de las bajas con 0-90 días de antigüedad son abandono, lo que sugiere revisar el proceso de inducción temprana.`);
+  if(puestoTop) puntos.push(`El puesto "${puestoTop[0]}" concentra ${puestoTop[1]} de las ${total} bajas (${pctFmt(puestoTop[1]/total*100)}).`);
+  if(asesorTop) puntos.push(`El asesor con más bajas en el periodo es ${asesorTop[0]}, con ${asesorTop[1]} casos (${pctFmt(asesorTop[1]/total*100)} del total).`);
+
+  elLectura.innerHTML = puntos.map((p,i) => `<div class="an-hallazgo-item"><div class="an-hallazgo-num">${i+1}</div><div>${p}</div></div>`).join('');
+}
+
+function renderPlan(rows){
+  const el = document.getElementById('tabla-plan');
+  if(!rows || !rows.length){
+    el.innerHTML = '<div class="state-box">Aún no se ha capturado el plan de acción de este mes. Se agrega desde el panel admin → "Dashboard 2 - Plan de accion".</div>';
+    return;
+  }
+  const pillClass = p => { const s = String(p||'').toLowerCase(); return s.includes('alta') ? 'alta' : s.includes('baja') ? 'baja' : 'media'; };
+  el.innerHTML = `<div class="table-wrap"><table class="an-table">
+    <thead><tr><th>Hallazgo</th><th>Acción</th><th>Responsable</th><th>Plazo</th><th>Indicador de éxito</th><th>Prioridad</th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td>${r['Hallazgo']||''}</td>
+      <td>${r['Accion']||r['Acción']||''}</td>
+      <td>${r['Responsable']||''}</td>
+      <td>${r['Plazo']||''}</td>
+      <td>${r['Indicador']||''}</td>
+      <td><span class="an-pill ${pillClass(r['Prioridad'])}">${r['Prioridad']||'Media'}</span></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function dataFiltrada(){
+  if(!ACTIVE_MES) return ALL_DATA;
+  return ALL_DATA.filter(r => r.mes === ACTIVE_MES);
+}
+
+function renderAll(){
+  const data = dataFiltrada();
+  renderKPIs(data);
+  renderAntiguedad(data);
+  renderCorrelacion(data);
+  renderHallazgos(data);
+  renderPlan(PLAN_DATA);
+}
+
+async function init(){
+  const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2);
+  if(!raw || !raw.length){
+    document.getElementById('kpi-section').innerHTML = '<div class="kpi-card rojo"><div class="kpi-card__label">Sin datos</div><div class="kpi-card__value">—</div></div>';
+    return;
+  }
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
+  raw.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:'Asesor', tiendaKey:'Tienda', crKey:'CR' }));
+
+  ALL_DATA = raw
+    .filter(r => OXXO.isTiendaValid(asesorCatalog, r['Tienda'], r['CR']))
+    .filter(r => String(r['Asesor']||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'') !== 'timoteoantonioperez')
+    .map(r => ({
+      asesor: String(r['Asesor']||'').trim(),
+      tienda: String(r['Tienda']||'').trim(),
+      temporalidad: String(r['Temporalidad']||'').trim(),
+      rotTemp: String(r['Rot_Temp']||'').trim(),
+      puesto: String(r['Puesto']||'').trim(),
+      motivo: String(r['Motivo']||'').trim(),
+      detalle: String(r['Detalle']||'').trim(),
+      edad: Number(r['Edad']) || 0,
+      genero: String(r['Genero']||'').trim(),
+      mes: String(r['Mes']||'').trim(),
+      fecha: String(r['Fecha']||'').trim(),
+    }))
+    .filter(r => r.tienda);
+
+  const meses = [...new Set(ALL_DATA.map(r => r.mes).filter(Boolean))].sort();
+  const selMes = document.getElementById('filtro-mes');
+  meses.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; selMes.appendChild(o); });
+  ACTIVE_MES = meses[meses.length - 1] || '';
+  selMes.value = ACTIVE_MES;
+  selMes.addEventListener('change', () => { ACTIVE_MES = selMes.value; renderAll(); });
+
+  const planRaw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2plan);
+  PLAN_DATA = (planRaw || []).filter(r => String(r['Hallazgo']||'').trim());
+
+  renderAll();
+  OXXO.updateFooterTime && OXXO.updateFooterTime('load-time');
+}
+
+init();
+</script>
+</body>
+</html>
