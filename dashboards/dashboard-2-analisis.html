@@ -113,7 +113,7 @@
   </section>
 
   <section class="an-card">
-    <h2>Plan de acción<span class="info-tip" tabindex="0" data-tip="Captura manual desde el panel admin (Dashboard 2 - Plan de accion). Se actualiza cada mes."></span></h2>
+    <h2>Plan de acción<span class="info-tip" tabindex="0" data-tip="Se sugiere automáticamente según los patrones detectados en los datos del periodo. Si capturas un plan manual desde el panel admin (Dashboard 2 - Plan de accion), ese reemplaza al sugerido."></span></h2>
     <div id="tabla-plan"><div class="state-box"><div class="spinner"></div></div></div>
   </section>
 </main>
@@ -260,14 +260,67 @@ function renderHallazgos(data){
   elLectura.innerHTML = puntos.map((p,i) => `<div class="an-hallazgo-item"><div class="an-hallazgo-num">${i+1}</div><div>${p}</div></div>`).join('');
 }
 
-function renderPlan(rows){
+// Genera un plan de acción sugerido a partir de reglas sobre los datos del periodo.
+// Se usa solo cuando no hay captura manual en Dashboard_2_Plan_Accion (la manual tiene prioridad).
+function generarPlanAutomatico(data){
+  if(!data.length) return [];
+  const total = data.length;
+  const plan = [];
+
+  const abandono0a90 = data.filter(r => ['0 - 45 días','46 - 90 días'].includes(norm(r.temporalidad)));
+  const abandonoEnRango = abandono0a90.filter(isAbandono).length;
+  if(abandono0a90.length && abandonoEnRango / abandono0a90.length >= 0.7){
+    plan.push({Hallazgo:`Abandono temprano (0-90 días) concentra ${pctFmt(abandonoEnRango/abandono0a90.length*100)} de esas bajas`, Accion:'Reforzar inducción y seguimiento en las primeras semanas (check-in a día 3, 15 y 45) con encargado y asesor de RH', Responsable:'Encargados de tienda + Asesor RH', Plazo:'Inmediato (mes siguiente)', Indicador:'Reducir % abandono 0-90 días por debajo del 70%', Prioridad:'Alta'});
+  }
+
+  const porPuesto = {};
+  data.forEach(r => { const p = norm(r.puesto) || 'Sin puesto'; porPuesto[p] = (porPuesto[p]||0) + 1; });
+  const puestoTop = Object.entries(porPuesto).sort((a,b)=>b[1]-a[1])[0];
+  if(puestoTop && puestoTop[1] / total >= 0.6){
+    plan.push({Hallazgo:`"${puestoTop[0]}" concentra ${pctFmt(puestoTop[1]/total*100)} de las bajas del periodo`, Accion:`Revisar proceso de selección/inducción específico para ${puestoTop[0]}`, Responsable:'Gerente RH', Plazo:'3 semanas', Indicador:'Reducir participación de este puesto en el total de bajas', Prioridad:'Media'});
+  }
+
+  const porAsesorTotal = {};
+  data.forEach(r => { const a = norm(r.asesor) || 'Sin asesor'; porAsesorTotal[a] = (porAsesorTotal[a]||0) + 1; });
+  const asesoresOrdenados = Object.entries(porAsesorTotal).filter(([a]) => a !== 'Sin asesor').sort((a,b)=>b[1]-a[1]);
+  if(asesoresOrdenados.length && asesoresOrdenados[0][1] / total >= 0.2){
+    const nombres = asesoresOrdenados.filter(([,n]) => n/total >= 0.15).map(([a]) => a).join(', ');
+    plan.push({Hallazgo:`${nombres} concentran una parte alta de las bajas del periodo`, Accion:'Revisar con estos asesores su cartera de tiendas: perfil de contratación, proceso de selección y frecuencia de seguimiento a nuevo ingreso', Responsable:'Gerente RH + Asesores', Plazo:'3 semanas', Indicador:'Igualar % de bajas de su cartera al promedio de plaza', Prioridad:'Media'});
+  }
+
+  const sinAsesor = data.filter(r => !norm(r.asesor)).length;
+  if(sinAsesor > 0){
+    plan.push({Hallazgo:`${sinAsesor} baja(s) sin asesor asignado`, Accion:'Asignar responsable de RH a todas las tiendas antes del cierre del mes; validar cobertura completa en el catálogo de asesores', Responsable:'Gerente RH', Plazo:'Inmediato', Indicador:'0 tiendas sin asesor asignado', Prioridad:'Alta'});
+  }
+
+  const porTienda = {};
+  data.forEach(r => { const t = norm(r.tienda); if(t) porTienda[t] = (porTienda[t]||0) + 1; });
+  const tiendasRecurrentes = Object.entries(porTienda).filter(([,n]) => n >= 3).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(tiendasRecurrentes.length){
+    plan.push({Hallazgo:`Tiendas con bajas recurrentes: ${tiendasRecurrentes.map(([t,n])=>`${t} (${n})`).join(', ')}`, Accion:'Visita de campo dirigida con entrevista a encargado y ayudantes activos para identificar clima laboral/condiciones operativas', Responsable:'Asesor RH asignado', Plazo:'3 semanas', Indicador:'Reducir bajas en estas tiendas al siguiente periodo', Prioridad:'Media'});
+  }
+
+  const abandonoTotal = data.filter(isAbandono).length;
+  if(abandonoTotal / total >= 0.6){
+    plan.push({Hallazgo:`El ${pctFmt(abandonoTotal/total*100)} de las bajas del periodo son "Abandono de Trabajo"`, Accion:'Estandarizar entrevista de salida/checklist de causal antes de cerrar el folio de baja, aunque sea abandono', Responsable:'Asesores de RH', Plazo:'Inmediato', Indicador:'Reducir bajas sin causa documentada', Prioridad:'Alta'});
+  }
+
+  return plan;
+}
+
+function renderPlan(rowsManual, data){
   const el = document.getElementById('tabla-plan');
+  const esAutomatico = !(rowsManual && rowsManual.length);
+  const rows = esAutomatico ? generarPlanAutomatico(data) : rowsManual;
   if(!rows || !rows.length){
-    el.innerHTML = '<div class="state-box">Aún no se ha capturado el plan de acción de este mes. Se agrega desde el panel admin → "Dashboard 2 - Plan de accion".</div>';
+    el.innerHTML = '<div class="state-box">Sin bajas suficientes en el periodo para sugerir un plan de acción.</div>';
     return;
   }
+  const aviso = esAutomatico
+    ? `<div style="font-size:12px;color:var(--color-gray);font-weight:650;margin-bottom:12px">🤖 Sugerido automáticamente a partir de los patrones del periodo. Si capturas un plan manual en el panel admin, ese reemplaza a este.</div>`
+    : `<div style="font-size:12px;color:var(--color-gray);font-weight:650;margin-bottom:12px">✍️ Plan capturado manualmente en el panel admin.</div>`;
   const pillClass = p => { const s = String(p||'').toLowerCase(); return s.includes('alta') ? 'alta' : s.includes('baja') ? 'baja' : 'media'; };
-  el.innerHTML = `<div class="table-wrap"><table class="an-table">
+  el.innerHTML = aviso + `<div class="table-wrap"><table class="an-table">
     <thead><tr><th>Hallazgo</th><th>Acción</th><th>Responsable</th><th>Plazo</th><th>Indicador de éxito</th><th>Prioridad</th></tr></thead>
     <tbody>${rows.map(r => `<tr>
       <td>${r['Hallazgo']||''}</td>
@@ -291,7 +344,7 @@ function renderAll(){
   renderAntiguedad(data);
   renderCorrelacion(data);
   renderHallazgos(data);
-  renderPlan(PLAN_DATA);
+  renderPlan(PLAN_DATA, data);
 }
 
 async function init(){
