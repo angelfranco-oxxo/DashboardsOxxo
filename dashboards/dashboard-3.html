@@ -1554,9 +1554,11 @@ function populateFilters(data){
   filtersReady = true;
 }
 function applyFilters(){
-  // El filtro de Semana-Mes se removio (la base tiene una sola fecha); se mantiene la variable
-  // por compatibilidad pero sin filtrar por semana.
-  const sem = document.getElementById('filtro-semana')?.value || '';
+  // El filtro de Semana-Mes se removio de la UI (normalmente la base trae una sola fecha),
+  // pero si el sheet llega a traer mas de una fecha a la vez (ej. una carga que no reemplazo
+  // el periodo anterior), siempre se limita a la fecha mas reciente (ACTIVE_SEMANA) para no
+  // sumar tiendas de fechas distintas.
+  const sem = document.getElementById('filtro-semana')?.value || ACTIVE_SEMANA;
   const selectedA = selectedAsesorValues ? new Set(selectedAsesorValues) : null;
   const a = selectedAsesores();
   const s = document.getElementById('filtro-estatus').value;
