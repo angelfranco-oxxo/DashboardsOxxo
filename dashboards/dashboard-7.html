@@ -1067,11 +1067,33 @@ document.querySelectorAll('#main-tbl thead th[data-col]').forEach(th=>{
   });
 });
 
+// Activos = Estructura Diaria - Vacante, tomado del Dashboard 3 (Estructura) del día más
+// reciente. Se cruza por CR de tienda para no depender de que el Excel de TREO traiga la
+// columna 'Empleados Activos' capturada a mano.
+async function buildActivosPorCR(){
+  const rows = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3);
+  if(!rows || !rows.length) return new Map();
+  const norm = v => String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const fechaKey = row => pickField(row, ['fecha','FECHA']);
+  const fechas = [...new Set(rows.map(fechaKey).filter(Boolean))].sort();
+  const ultimaFecha = fechas[fechas.length-1];
+  const map = new Map();
+  rows.forEach(row => {
+    if(ultimaFecha && fechaKey(row) !== ultimaFecha) return;
+    const cr = norm(pickField(row, ['cr tienda','cr']));
+    if(!cr) return;
+    const estructura = Number(pickField(row, ['estructura diaria'])) || 0;
+    const vacante = Number(pickField(row, ['vacante'])) || 0;
+    map.set(cr, Math.max(0, estructura - vacante));
+  });
+  return map;
+}
+
 // ─────────────────────────────────────────────────────────
 // Init
 async function init(){
   OXXO.renderDownloadButton('hero-download','s7');
-  const rows = await OXXO.fetchSheetData(SHEET_TAB);
+  const [rows, activosPorCR] = await Promise.all([OXXO.fetchSheetData(SHEET_TAB), buildActivosPorCR()]);
   if(!rows || !rows.length){
     document.getElementById('kpi-section').innerHTML = `
       <div class="kpi-card rojo">
@@ -1093,6 +1115,11 @@ async function init(){
   ALL = coerceTreoRows(rows)
     .map(normalizeRow)
     .map(r => ({ ...r, asesor: OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }) }))
+    .map(r => {
+      const crKey = String(r.cr||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+      const activosD3 = crKey ? activosPorCR.get(crKey) : undefined;
+      return activosD3 !== undefined ? { ...r, empleados: String(activosD3) } : r;
+    })
     .filter(r => r.tienda || r.asesor)
     .filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr))
     .filter(r => cleanKey(r.asesor) !== 'timoteoantonioperez');
