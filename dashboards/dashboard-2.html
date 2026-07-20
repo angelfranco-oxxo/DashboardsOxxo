@@ -768,7 +768,7 @@ function getFilterValue(row, cols, key) {
   if (key === 'puesto') return normalizePuesto(val(row, cols, 'puesto'));
   if (key === 'motivo') return normalizeMotivo(val(row, cols, 'motivo'));
   if (key === 'edadRange') { const g = ageGroup(num(val(row, cols, 'edad', ''))); return g ? g.label : ''; }
-  if (key === 'antiguedadRange') { const g = tenureGroupHeatmap(num(val(row, cols, 'antiguedad', ''))); return g ? g.label : ''; }
+  if (key === 'antiguedadRange') { const g = tenureGroupHeatmap(val(row, cols, 'temporalidad', '')); return g ? g.label : ''; }
   return String(val(row, cols, key, '') || '').trim();
 }
 
@@ -1221,22 +1221,19 @@ const AGE_GROUPS = [
   {label:'46-55', min:46, max:55},
   {label:'56+',   min:56, max:Infinity},
 ];
-const TENURE_GROUPS = [
-  {label:'0-30 días',    min:0,   max:30},
-  {label:'31-90 días',   min:31,  max:90},
-  {label:'91-180 días',  min:91,  max:180},
-  {label:'181-365 días', min:181, max:365},
-  {label:'+365 días',    min:366, max:Infinity},
-];
+// Antes se agrupaba por 'antiguedad' en días (columna que no existe en el sheet actual).
+// Ahora se usa directamente la columna 'Temporalidad' (ya viene en buckets de texto), igual
+// que en la página de Análisis de Bajas, para que ambas vistas coincidan siempre.
+const TENURE_GROUPS = ['0 - 45 días','46 - 90 días','3 - 6 meses','6 - 12 meses','> 1 año'].map(label => ({label}));
 function ageGroup(edad){
   const n = Number(edad);
   if(!Number.isFinite(n) || n <= 0) return null;
   return AGE_GROUPS.find(g => n >= g.min && n <= g.max) || null;
 }
-function tenureGroupHeatmap(dias){
-  const n = Number(dias);
-  if(!Number.isFinite(n) || n < 0) return null;
-  return TENURE_GROUPS.find(g => n >= g.min && n <= g.max) || null;
+function tenureGroupHeatmap(temporalidad){
+  const label = String(temporalidad||'').trim();
+  if(!label) return null;
+  return TENURE_GROUPS.find(g => g.label === label) || null;
 }
 function heatColor(ratio){
   const r0=[255,242,224], r1=[192,24,31];
@@ -1262,10 +1259,10 @@ function renderHeatmapBajas(data, cols){
   let any = false;
   heatmapData.forEach(row => {
     const edadRaw = val(row, cols, 'edad', '');
-    const antRaw = val(row, cols, 'antiguedad', '');
-    if(edadRaw === '' || antRaw === '') return;
+    const temporalidadRaw = val(row, cols, 'temporalidad', '');
+    if(edadRaw === '' || temporalidadRaw === '') return;
     const ag = ageGroup(num(edadRaw));
-    const tg = tenureGroupHeatmap(num(antRaw));
+    const tg = tenureGroupHeatmap(temporalidadRaw);
     if(!ag || !tg) return;
     matrix[ag.label][tg.label]++;
     any = true;
