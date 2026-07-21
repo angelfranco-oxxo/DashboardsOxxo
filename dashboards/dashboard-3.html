@@ -1135,30 +1135,33 @@ function render(data){
   if(plazaData.length > 0) {
     const plazaEl = document.getElementById('tabla-plazas');
     if(plazaEl) {
-      const gauges = plazaData.map((p) => {
+      const gauges = plazaData.map((p, i) => {
         const v = Math.max(0, Math.min(100, p.aprov));
-        const color = p.aprov >= 95 ? 'verde' : p.aprov >= 85 ? 'amarillo' : 'rojo';
-        const stroke = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)';
-        const txtColor = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)';
-        const cx=100, cy=100, r=78, len=Math.PI*r;
+        const meta = 92.5;
+        // Color alineado a la meta (92.5%): verde si cumple, ambar cerca, rojo lejos.
+        const color = p.aprov >= meta ? 'verde' : p.aprov >= 85 ? 'amarillo' : 'rojo';
+        const c = color==='verde'   ? {main:'#1DB954', dark:'#15943f', txt:'#15803D', soft:'rgba(29,185,84,.12)'}
+                : color==='amarillo'? {main:'#E8B004', dark:'#C68A00', txt:'#A87400', soft:'rgba(232,176,4,.14)'}
+                : {main:'#EF4444', dark:'#C0181F', txt:'#C0181F', soft:'rgba(239,68,68,.12)'};
+        const cx=100, cy=104, r=76, sw=15, len=Math.PI*r;
         const dash=(len*v/100).toFixed(1);
         const ang=Math.PI*(1 - v/100);
-        const nx=(cx+(r-10)*Math.cos(ang)).toFixed(1), ny=(cy-(r-10)*Math.sin(ang)).toFixed(1);
-        const ma=Math.PI*(1 - 92.5/100);
-        const m1x=(cx+(r-14)*Math.cos(ma)).toFixed(1), m1y=(cy-(r-14)*Math.sin(ma)).toFixed(1);
-        const m2x=(cx+(r+7)*Math.cos(ma)).toFixed(1),  m2y=(cy-(r+7)*Math.sin(ma)).toFixed(1);
-        const fx=(cx+(r+11)*Math.cos(ma)).toFixed(1),  fy=(cy-(r+11)*Math.sin(ma)).toFixed(1);
-        return `<div style="flex:0 1 31%;min-width:170px;max-width:270px;display:flex;flex-direction:column;align-items:center;padding:6px 4px" title="${p.plaza}: ${p.aprov.toFixed(2)}%">
-          <svg viewBox="0 0 200 120" style="width:100%;max-width:205px;overflow:visible">
-            <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="var(--color-border)" stroke-width="13" stroke-linecap="round"/>
-            <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="${stroke}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${dash} ${len.toFixed(1)}" style="transition:stroke-dasharray .9s ease"/>
-            <line x1="${m1x}" y1="${m1y}" x2="${m2x}" y2="${m2y}" stroke="var(--color-ink,#1a1a1a)" stroke-width="2" opacity=".55"/>
-            <text x="${fx}" y="${fy}" text-anchor="middle" dominant-baseline="middle" style="font-size:11px">🏁</text>
-            <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#3B1918" stroke-width="3" stroke-linecap="round" style="transition:all .9s ease"/>
-            <circle cx="${cx}" cy="${cy}" r="6" fill="#3B1918"/>
-            <text x="${cx}" y="82" text-anchor="middle" style="font-family:var(--font-display,sans-serif);font-weight:800;font-size:30px;fill:${txtColor}">${p.aprov.toFixed(1)}%</text>
+        const nx=(cx+(r-6)*Math.cos(ang)).toFixed(1), ny=(cy-(r-6)*Math.sin(ang)).toFixed(1);
+        const ma=Math.PI*(1 - meta/100);
+        const m1x=(cx+(r-sw/2-1)*Math.cos(ma)).toFixed(1), m1y=(cy-(r-sw/2-1)*Math.sin(ma)).toFixed(1);
+        const m2x=(cx+(r+sw/2+3)*Math.cos(ma)).toFixed(1), m2y=(cy-(r+sw/2+3)*Math.sin(ma)).toFixed(1);
+        const gid='pz'+i;
+        return `<div style="flex:0 1 30%;min-width:158px;max-width:240px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px 12px;border-radius:16px;background:rgba(0,0,0,.02);transition:transform .16s ease,box-shadow .16s ease" title="${p.plaza}: ${p.aprov.toFixed(2)}%" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 20px rgba(59,25,24,.10)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+          <svg viewBox="0 0 200 128" style="width:100%;max-width:188px;overflow:visible">
+            <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c.main}"/><stop offset="1" stop-color="${c.dark}"/></linearGradient></defs>
+            <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="var(--color-border)" stroke-width="${sw}" stroke-linecap="round"/>
+            <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="url(#${gid})" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash} ${len.toFixed(1)}" style="transition:stroke-dasharray 1s cubic-bezier(.4,0,.2,1)"/>
+            <line x1="${m1x}" y1="${m1y}" x2="${m2x}" y2="${m2y}" stroke="#3B1918" stroke-width="2" opacity=".5"/>
+            <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#3B1918" stroke-width="3" stroke-linecap="round" style="transition:all 1s cubic-bezier(.4,0,.2,1)"/>
+            <circle cx="${cx}" cy="${cy}" r="7" fill="#fff" stroke="#3B1918" stroke-width="2.5"/>
+            <text x="${cx}" y="92" text-anchor="middle" style="font-family:var(--font-display,sans-serif);font-weight:800;font-size:31px;fill:${c.txt}">${p.aprov.toFixed(1)}<tspan style="font-size:16px" dy="-1">%</tspan></text>
           </svg>
-          <div style="font-weight:700;font-size:13px;margin-top:-2px;text-align:center">${p.plaza}</div>
+          <div style="font-weight:800;font-size:12px;letter-spacing:.04em;color:var(--color-dark);background:${c.soft};padding:4px 14px;border-radius:999px">${p.plaza}</div>
         </div>`;
       }).join('');
       plazaEl.innerHTML = `
@@ -1195,39 +1198,43 @@ function renderEcAt(){
     el.innerHTML = '<div class="state-box">Sin datos de EC %</div>';
     return;
   }
+  // 4 niveles de color para dar gradacion (un 82% ya no se ve igual de rojo que un 60%).
+  const PAL = {
+    verde:   {bar:'#1DB954', txt:'#15803D', tint:'rgba(29,185,84,.14)'},
+    amarillo:{bar:'#E8B004', txt:'#A87400', tint:'rgba(232,176,4,.16)'},
+    naranja: {bar:'#F97316', txt:'#C2410C', tint:'rgba(249,115,22,.14)'},
+    rojo:    {bar:'#EF4444', txt:'#C0181F', tint:'rgba(239,68,68,.14)'},
+  };
   const rows = withEc.map((at,i) => {
     const v = at.ecPorAt;
-    const color = v >= 95 ? 'verde' : v >= 85 ? 'amarillo' : 'rojo';
-    const barColor = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'var(--semaforo-amarillo)':'var(--semaforo-rojo)';
-    const txtColor = color==='verde'?'var(--semaforo-verde)':color==='amarillo'?'#B8960C':'var(--semaforo-rojo)';
+    const color = v >= 95 ? 'verde' : v >= 85 ? 'amarillo' : v >= 75 ? 'naranja' : 'rojo';
+    const c = PAL[color];
     const barW = Math.min(v, 100).toFixed(1);
-    const tint = color==='verde'?'rgba(29,185,84,.12)':color==='amarillo'?'rgba(184,150,12,.14)':'rgba(217,43,43,.10)';
     const critica = v < 70;
-    const bg = critica ? 'rgba(217,43,43,.06)' : (i%2 ? 'rgba(0,0,0,.015)' : '');
-    return `<div style="flex:1;min-height:32px;display:grid;grid-template-columns:34% 48% 18%;align-items:center;padding:0 12px;${bg?`background:${bg}`:''}">
-      <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${at.asesor}">${shortName(at.asesor)}${critica?' <span style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</div>
-      <div style="padding:0 10px">
-        <div style="position:relative;height:12px;background:var(--color-border);border-radius:6px">
-          <div style="height:100%;width:${barW}%;background:${barColor};border-radius:6px;transition:width .8s ease"></div>
-          <div title="Meta 95%" style="position:absolute;top:-3px;bottom:-3px;left:95%;width:2px;background:var(--color-ink,#1a1a1a);opacity:.55"></div>
-          <div title="Meta 95%" style="position:absolute;left:95%;top:-13px;transform:translateX(-50%);font-size:11px;line-height:1">🏁</div>
-          <div title="${at.asesor}: ${v.toFixed(2)}%" style="position:absolute;left:${barW}%;top:50%;transform:translate(-50%,-50%);font-size:15px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.28));transition:left .8s ease;z-index:2">🛒</div>
-        </div>
+    return `<div class="ecat-row" style="display:grid;grid-template-columns:32px 26% 1fr 84px;align-items:center;gap:9px;padding:8px 14px;border-radius:9px;transition:background .15s ease">
+      <div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:12px;background:${c.tint};color:${c.txt}">${i+1}</div>
+      <div style="font-weight:650;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${at.asesor}">${shortName(at.asesor)}${critica?' <span title="Crítico (&lt;70%)" style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</div>
+      <div style="position:relative;height:14px;background:var(--color-border);border-radius:7px">
+        <div style="position:absolute;inset:0;width:${barW}%;background:linear-gradient(90deg,${c.bar}bb,${c.bar});border-radius:7px;box-shadow:0 1px 2px rgba(0,0,0,.10);transition:width .9s cubic-bezier(.4,0,.2,1)"></div>
+        <div title="Meta 95%" style="position:absolute;top:-3px;bottom:-3px;left:95%;width:2px;background:#3B1918;opacity:.45"></div>
+        <div title="${at.asesor}: ${v.toFixed(2)}%" style="position:absolute;left:${barW}%;top:50%;transform:translate(-50%,-50%);font-size:14px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));transition:left .9s cubic-bezier(.4,0,.2,1);z-index:2">🛒</div>
       </div>
       <div style="text-align:right;white-space:nowrap">
-        <span style="display:inline-block;font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:${txtColor};background:${tint};padding:3px 11px;border-radius:999px">${v.toFixed(2)}%</span>
+        <span style="display:inline-block;font-family:var(--font-display);font-size:1.05rem;font-weight:800;color:${c.txt};background:${c.tint};padding:3px 11px;border-radius:999px">${v.toFixed(2)}%</span>
       </div>
     </div>`;
   }).join('');
   el.innerHTML = `
-    <div style="display:grid;grid-template-columns:34% 48% 18%;padding:8px 12px;background:var(--color-bg)">
+    <style>.ecat-row:hover{background:rgba(59,25,24,.045)}</style>
+    <div style="display:grid;grid-template-columns:32px 26% 1fr 84px;gap:9px;padding:10px 14px 8px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">#</div>
       <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">AT</div>
-      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase;padding:0 10px">Avance</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">Avance</div>
       <div style="text-align:right;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--color-gray);text-transform:uppercase">EC %</div>
     </div>
-    <div style="flex:1;display:flex;flex-direction:column">${rows}</div>
-    <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:11px;color:var(--color-gray)">
-      <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>Meta 95%
+    <div style="flex:1;display:flex;flex-direction:column;gap:1px">${rows}</div>
+    <div style="display:flex;align-items:center;gap:6px;padding:10px 14px 4px;font-size:11px;color:var(--color-gray)">
+      <span style="display:inline-block;width:2px;height:12px;background:#3B1918;opacity:.45"></span>Meta 95%
     </div>`;
 }
 
