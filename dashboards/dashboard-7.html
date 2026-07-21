@@ -443,10 +443,27 @@ function normKey(s){
 function cleanKey(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9\/]/g,'');}
 function pickField(row, keys){
   const byNorm = {};
-  Object.keys(row || {}).forEach(k => { byNorm[normKey(k)] = row[k]; });
+  const rowKeys = Object.keys(row || {});
+  rowKeys.forEach(k => { byNorm[normKey(k)] = row[k]; });
   for(const key of keys){
     const v = byNorm[normKey(key)];
     if(v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+  }
+  // Respaldo: si el encabezado real viene con texto pegado antes o despues (ej. por un bug
+  // de exportacion de Google que a veces mezcla filas), buscar una columna cuyo nombre
+  // normalizado CONTENGA el alias como palabra completa (ej. 'cr' matchea
+  // 'buffer_cr_501k9_50n0m...').
+  for(const key of keys){
+    const target = normKey(key);
+    if(!target) continue;
+    const candidates = rowKeys.filter(k => {
+      const nk = normKey(k);
+      return nk === target || nk.startsWith(target + '_') || nk.endsWith('_' + target) || nk.includes('_' + target + '_');
+    });
+    for(const found of candidates){
+      const v = row[found];
+      if(v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+    }
   }
   return '';
 }
