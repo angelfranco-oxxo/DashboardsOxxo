@@ -143,10 +143,12 @@ function parseCSV(text) {
   if (lines.length < 2) return [];
 
   // Buscar la fila de encabezados: es la primera fila que tenga
-  // al menos 3 columnas con contenido (salta títulos e instrucciones)
+  // al menos 3 columnas con contenido (salta títulos, instrucciones, y la fila
+  // "sacrificio" que el Apps Script deja como fila 1 para absorber la corrupción de Google)
   let headerIndex = 0;
   for (let i = 0; i < Math.min(lines.length, 10); i++) {
     const cols = splitCSVRow(lines[i]).map(c => c.trim().replace(/^"|"$/g, ''));
+    if (cols.length && cols.every(c => c === '_buffer_' || c === '')) continue;
     const nonEmpty = cols.filter(c => c.length > 0 && c.length < 60);
     if (nonEmpty.length >= 3) {
       headerIndex = i;
