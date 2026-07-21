@@ -144,17 +144,22 @@ function parseCSV(text) {
 
   // Buscar la fila de encabezados: es la primera fila que tenga
   // al menos 3 columnas con contenido (salta títulos, instrucciones, y la fila
-  // "sacrificio" que el Apps Script deja como fila 1 para absorber la corrupción de Google)
-  let headerIndex = 0;
+  // "sacrificio" que el Apps Script deja como fila 1 para absorber la corrupción de Google).
+  // Si ninguna fila llega a 3 columnas (hojas angostas, ej. solo 2 columnas), se usa como
+  // respaldo la primera fila no vacía y no-sacrificio que se encontró.
+  let headerIndex = -1;
+  let fallbackIndex = -1;
   for (let i = 0; i < Math.min(lines.length, 10); i++) {
     const cols = splitCSVRow(lines[i]).map(c => c.trim().replace(/^"|"$/g, ''));
     if (cols.length && cols.every(c => c === '_buffer_' || c === '')) continue;
     const nonEmpty = cols.filter(c => c.length > 0 && c.length < 60);
+    if (fallbackIndex === -1 && nonEmpty.length > 0) fallbackIndex = i;
     if (nonEmpty.length >= 3) {
       headerIndex = i;
       break;
     }
   }
+  if (headerIndex === -1) headerIndex = fallbackIndex === -1 ? 0 : fallbackIndex;
 
   const headers = makeUniqueHeaders(splitCSVRow(lines[headerIndex]).map(h => h.trim().replace(/^"|"$/g, '')));
 
