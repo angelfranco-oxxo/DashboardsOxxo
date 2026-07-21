@@ -1213,7 +1213,10 @@ function renderEcAt(){
     const critica = v < 70;
     return `<div class="ecat-row" style="display:grid;grid-template-columns:32px 26% 1fr 84px;align-items:center;gap:9px;padding:8px 14px;border-radius:9px;transition:background .15s ease">
       <div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:12px;background:${c.tint};color:${c.txt}">${i+1}</div>
-      <div style="font-weight:650;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${at.asesor}">${shortName(at.asesor)}${critica?' <span title="Crítico (&lt;70%)" style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</div>
+      <div style="min-width:0" title="${at.asesor}">
+        <div style="font-weight:650;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2">${shortName(at.asesor)}${critica?' <span title="Crítico (&lt;70%)" style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</div>
+        <div style="font-size:10.5px;color:var(--color-gray);font-weight:600;line-height:1.2">${at.total} tienda${at.total===1?'':'s'}</div>
+      </div>
       <div style="position:relative;height:14px;background:var(--color-border);border-radius:7px">
         <div style="position:absolute;inset:0;width:${barW}%;background:linear-gradient(90deg,${c.bar}bb,${c.bar});border-radius:7px;box-shadow:0 1px 2px rgba(0,0,0,.10);transition:width .9s cubic-bezier(.4,0,.2,1)"></div>
         <div title="Meta 95%" style="position:absolute;top:-3px;bottom:-3px;left:95%;width:2px;background:#3B1918;opacity:.45"></div>
