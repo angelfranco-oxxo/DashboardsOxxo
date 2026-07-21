@@ -939,13 +939,13 @@ async function loadAsesorCatalog() {
   })();
   return asesorCatalogPromise;
 }
+// Desactivado a peticion del usuario: los Excel ya traen el asesor correcto en cada fila,
+// asi que ya no se corrige/reasigna por CR o Tienda contra el catalogo. Se deja la funcion
+// (en vez de borrar cada llamada en los dashboards) para poder reactivarla facil si hiciera
+// falta mas adelante. isTiendaValid()/filterValidTiendas() (otro uso del catalogo, para
+// excluir tiendas no autorizadas) NO se ve afectado por este cambio.
 function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
-  const fallback = String(asesor || '').trim();
-  if (!catalog || !catalog.byCr || !catalog.byTienda) return fallback;
-  const crKey = normalizeCatalogCr(cr);
-  const tiendaKey = normalizeCatalogTienda(tienda);
-  const hit = (crKey && catalog.byCr.get(crKey)) || (tiendaKey && catalog.byTienda.get(tiendaKey));
-  return hit?.asesor || fallback;
+  return String(asesor || '').trim();
 }
 function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) {
   if (!row || !asesorKey) return row;
