@@ -872,6 +872,7 @@ function setFilterBar(data, cols){
       if (!FILTER_STATE[key]) delete FILTER_STATE[key];
       document.querySelectorAll('.bajas-kpis .kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
       renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
+      if(key === 'mes' && BASE_DENOM_DATA.length) renderDenominaciones(filterDenomByMes(BASE_DENOM_DATA));
     });
   });
 
@@ -1536,6 +1537,7 @@ const ALIASES_DENOM = {
   motivo:    ['Denominación Motivo','Denominacion Motivo'],
   empleado:  ['Nombre del empleado'],
   fecha:     ['F. Crea.','F.Crea','F. Crea'],
+  mes:       ['Mes'],
   // La columna 'Denominación Posición Anterior/Actual' suele venir vacía; el dato real
   // del cambio de puesto está en 'Denominación Función Anterior/Actual' (Func.Ant/Func.Act).
   posAnt:    ['Denominación Función Anterior','Denominacion Funcion Anterior','Denominación Posición Anterior'],
@@ -1572,9 +1574,7 @@ async function loadDenominaciones(){
     const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2denom);
     if(!raw || !raw.length) return;
     const cols = buildColsGeneric(raw, ALIASES_DENOM);
-    const asesorCatalog = await OXXO.loadAsesorCatalog();
-    raw.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey: cols.asesor, tiendaKey: cols.uOrgAct }));
-    const rows = raw.filter(r => OXXO.isTiendaValid(asesorCatalog, r[cols.uOrgAct]) && denomRowValida(r, cols) && cleanKey(val(r,cols,'asesor',''))!=='timoteoantonioperez').map(r => {
+    const rows = raw.filter(r => denomRowValida(r, cols) && cleanKey(val(r,cols,'asesor',''))!=='timoteoantonioperez').map(r => {
       const posAntDesc = val(r, cols, 'posAnt','');
       const posActDesc = val(r, cols, 'posAct','');
       const jAnt = jerarquiaPuesto(posAntDesc), jAct = jerarquiaPuesto(posActDesc);
@@ -1592,13 +1592,18 @@ async function loadDenominaciones(){
         posAct: posActDesc.trim(),
         tienda: val(r,cols,'uOrgAct','').trim(),
         direccion,
+        mesKey: monthKeyFromRow(r, cols),
       };
     });
     if(!rows.length) return;
     BASE_DENOM_DATA = rows;
     if(section) section.style.display = '';
-    renderDenominaciones(rows);
+    renderDenominaciones(filterDenomByMes(rows));
   } catch(e){ /* sección opcional: si falla, se mantiene oculta sin afectar el resto */ }
+}
+function filterDenomByMes(rows){
+  const mes = FILTER_STATE.mes || '';
+  return mes ? rows.filter(r => r.mesKey === mes) : rows;
 }
 function denomDateRank(value){
   const raw = String(value || '').trim();
@@ -1689,9 +1694,7 @@ async function initDashboard(){
   if(raw === null){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar con Google Sheets.')); return; }
   if(!raw.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }
   const cols = buildCols(raw);
-  const asesorCatalog = await OXXO.loadAsesorCatalog();
-  raw.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey: cols.asesor, tiendaKey: cols.tienda, crKey: cols.cr }));
-  const rawSinTimoteo = raw.filter(row => cleanKey(val(row, cols, 'asesor', '')) !== 'timoteoantonioperez' && OXXO.isTiendaValid(asesorCatalog, row[cols.tienda], row[cols.cr]));
+  const rawSinTimoteo = raw.filter(row => cleanKey(val(row, cols, 'asesor', '')) !== 'timoteoantonioperez');
   const data = filterData(rawSinTimoteo, cols);
   if(!data.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }
 

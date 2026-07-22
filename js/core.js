@@ -867,7 +867,12 @@ function normalizeCatalogTienda(value) {
     .replace(/^TIENDA\s+/, '')
     .replace(/[^A-Z0-9]+/g, ' ')
     .trim()
-    .replace(/\s+/g, ' ');
+    .replace(/\s+/g, ' ')
+    // El catalogo trae el nombre de tienda con sufijo de plaza (ej. "Las Flores OAX",
+    // "Trailer Park VSA"), pero las bases operativas (Bajas, Vacantes, etc.) no lo traen
+    // (ej. "OXXO LAS FLORES"). Sin quitar el sufijo, el match por nombre fallaba y marcaba
+    // como "tienda no autorizada" a tiendas que si estan en el catalogo.
+    .replace(/\s(OAX|VSA)$/, '');
 }
 function validCatalogRow(asesor, tienda, cr) {
   const crKey = normalizeCatalogCr(cr);
