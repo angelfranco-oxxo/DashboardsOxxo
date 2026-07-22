@@ -1408,10 +1408,15 @@ function renderBajasDashboard(data, cols){
   OXXO.updateFooterTime('load-time');
 }
 
-function renderPlazas(data, cols) {
+function renderPlazas(allData, cols) {
   // Leer columnas "Plazas" y "Bajas Plaza" que vienen junto a los datos
   // Estas columnas tienen los datos en las primeras filas (ej: fila 0=Oaxaca/35, fila 1=Chontalpa/21...)
   let plazasData = [];
+
+  // El titulo del panel es "del mes actual": se restringe al mes mas reciente presente en los
+  // datos, aunque allData (BASE_BAJAS_DATA) trae el historico completo sin filtro de mes.
+  const mesActual = latestMonthKey(allData, cols);
+  const data = mesActual ? allData.filter(r => monthKeyFromRow(r, cols) === mesActual) : allData;
 
   const keyPlaza = cols.colPlazas;
   const keyBajas = cols.colBajas;
@@ -1431,9 +1436,14 @@ function renderPlazas(data, cols) {
     plazasData.sort((a,b) => b.bajas - a.bajas);
   }
 
-  // Fallback: contar por columna Plaza
+  // Fallback: contar por columna Plaza. El dato ya viene pre-filtrado a Oaxaca (filterData
+  // aplica OBJETIVO_PLAZA), pero el texto literal varia entre cargas ("Oaxaca", "OXXO OAXACA",
+  // etc.) y sin normalizar se contaban como plazas distintas y duplicadas en el ranking.
   if(!plazasData.length && cols.plaza) {
-    const byPlaza = countBy(data, r => val(r, cols, 'plaza', 'Sin plaza'));
+    const byPlaza = countBy(data, r => {
+      const raw = val(r, cols, 'plaza', 'Sin plaza');
+      return cleanText(raw).includes(OBJETIVO_PLAZA) ? 'Oaxaca' : raw;
+    });
     plazasData = Object.entries(byPlaza)
       .map(([plaza, bajas]) => ({ plaza, bajas }))
       .sort((a,b) => b.bajas - a.bajas)
