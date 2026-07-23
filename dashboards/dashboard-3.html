@@ -724,20 +724,7 @@ const TAB = OXXO.SHEETS_CONFIG.TABS.d3;
 // pestaña separada 'Detalle_Dashboard_3').
 
 // Columnas exactas del Google Sheets (pestaña Dashboard_3_Diario, ahora con corte semanal "Cobertura de Tienda")
-const C = {
-  asesor:    'Asesor',
-  tienda:    'Tienda',
-  esquema:   'Esquema',
-  estructura:'Promedio activo mensual num',
-  ausent:    'aus no justificado',
-  vacante:   '% Vacantes',
-  aprov:     '% Aprovechamiento',
-  estatus:   'Clas Aprov',
-  col_plaza: 'Plaza',
-  semana:    'Mes Semana',
-};
-
-// También acepta nombres del archivo original (detección flexible)
+// Nombres reales de columnas detectados de forma flexible (ver findRealKey/ALIASES abajo)
 const ALIASES = {
   asesor:    ['Asesor','Asesor ','ASESOR'],
   tienda:    ['Tienda','Tienda ','TIENDA'],
@@ -1170,7 +1157,7 @@ function render(data){
         </div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;color:var(--color-gray)">
           <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>🏁 Meta 92.5%
-          ${(OTRAS_PLAZAS_D3[0] && OTRAS_PLAZAS_D3[0]['Actualizado']) ? `<span style="margin-left:auto">Otras plazas actualizado: ${OTRAS_PLAZAS_D3[0]['Actualizado']}</span>` : ''}
+          ${(() => { const k = OTRAS_PLAZAS_D3.length ? findKey(OTRAS_PLAZAS_D3[0], ['Actualizado']) : null; const v = k ? String(OTRAS_PLAZAS_D3[0][k]||'').trim() : ''; return v ? `<span style="margin-left:auto">Otras plazas actualizado: ${v}</span>` : ''; })()}
         </div>`;
     }
   } else {

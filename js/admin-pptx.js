@@ -112,12 +112,15 @@
     const rows = semana ? raw.filter(r => String(r[semanaKey]||'').trim() === semana) : raw;
     const totalHoras = rows.reduce((s,r) => s + num(val(r, horasKey)), 0);
     const byTipo = { Doble: 0, Triple: 0, Descanso: 0, Sencillo: 0 };
+    // Clasificacion normalizada (sin acentos/espacios), igual que dashboard-4.html, para que
+    // la presentacion no diverja del dashboard si 'Textos homologados' trae variantes de
+    // acentos/espacios.
     rows.forEach(r => {
-      const t = String(val(r, tipoKey) || '');
+      const t = normText(val(r, tipoKey));
       const horas = num(val(r, horasKey));
-      if(t === 'Tiempo Extra Doble') byTipo.Doble += horas;
-      else if(t === 'Tiempo Extra Triple') byTipo.Triple += horas;
-      else if(t.startsWith('Día Des') || t.startsWith('Dia Des')) byTipo.Descanso += horas;
+      if(t.replace(/\s+/g,'') === 'TIEMPOEXTRADOBLE') byTipo.Doble += horas;
+      else if(t.replace(/\s+/g,'') === 'TIEMPOEXTRATRIPLE') byTipo.Triple += horas;
+      else if(t.replace(/\s+/g,'').startsWith('DIADES')) byTipo.Descanso += horas;
       else byTipo.Sencillo += horas;
     });
     return {
@@ -137,15 +140,15 @@
     const diasKey = findKey(raw[0], ['Dias_Restantes']);
     const bucketKey = findKey(raw[0], ['Bucket_Ant']);
     const totalDias = raw.reduce((s,r) => s + num(val(r, diasKey)), 0);
-    const buckets = { 'Ya vencieron sus dias': 0, '0 a 50 dias': 0, '51 a 100 dias': 0, '101 a 150 dias': 0, 'Mas de 150 dias': 0 };
+    const buckets = { 'ya vencieron sus dias': 0, '0 a 50 dias': 0, '51 a 100 dias': 0, '101 a 150 dias': 0, 'mas de 150 dias': 0 };
     raw.forEach(r => {
-      const b = String(val(r, bucketKey) || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+      const b = String(val(r, bucketKey) || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
       if(buckets[b] !== undefined) buckets[b]++;
     });
     return {
       label: 'Días Restantes de Vacaciones', value: OXXO.formatNum(Math.round(totalDias)), sub: 'Plaza Oaxaca',
       secondary: [
-        { label: 'Vencidos', value: String(buckets['Ya vencieron sus dias']) },
+        { label: 'Vencidos', value: String(buckets['ya vencieron sus dias']) },
         { label: 'Vencen 0-50 días', value: String(buckets['0 a 50 dias']) },
         { label: 'Colaboradores', value: String(raw.length) },
       ],
