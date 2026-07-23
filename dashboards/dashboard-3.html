@@ -1170,6 +1170,7 @@ function render(data){
         </div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;color:var(--color-gray)">
           <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>🏁 Meta 92.5%
+          ${(OTRAS_PLAZAS_D3[0] && OTRAS_PLAZAS_D3[0]['Actualizado']) ? `<span style="margin-left:auto">Otras plazas actualizado: ${OTRAS_PLAZAS_D3[0]['Actualizado']}</span>` : ''}
         </div>`;
     }
   } else {

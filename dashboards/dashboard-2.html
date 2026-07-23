@@ -1494,13 +1494,16 @@ function renderPlazas(allData, cols) {
     </div>`;
   }).join('');
 
+  const otrasKeyPlaza = OTRAS_PLAZAS_DATA.length ? findRealKey(OTRAS_PLAZAS_DATA[0], ['Actualizado']) : null;
+  const otrasActualizado = otrasKeyPlaza ? String(OTRAS_PLAZAS_DATA[0][otrasKeyPlaza]||'').trim() : '';
   document.getElementById('tabla-plazas').innerHTML = `
     <div class="plaza-rank-list">${rows}</div>
     <div class="plaza-rank-total">
       <span>Total acumulado</span>
       <strong>${totalBajas}</strong>
       <em>100%</em>
-    </div>`;
+    </div>
+    ${otrasActualizado ? `<div style="font-size:11px;color:var(--color-gray);margin-top:8px">Otras plazas actualizado: ${otrasActualizado}</div>` : ''}`;
 
   // Gráfica de plazas
   const canvas = document.getElementById('chart-plazas');

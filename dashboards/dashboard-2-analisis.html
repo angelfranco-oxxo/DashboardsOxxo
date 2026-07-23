@@ -362,9 +362,10 @@ function renderPlan(rowsManual, data){
     el.innerHTML = '<div class="state-box">Sin bajas suficientes en el periodo para sugerir un plan de acción.</div>';
     return;
   }
+  const actualizado = !esAutomatico ? String(rows[0]?.['Actualizado']||'').trim() : '';
   const aviso = esAutomatico
     ? `<div style="font-size:12px;color:var(--color-gray);font-weight:650;margin-bottom:12px">🤖 Sugerido automáticamente a partir de los patrones del periodo. Si capturas un plan manual en el panel admin, ese reemplaza a este.</div>`
-    : `<div style="font-size:12px;color:var(--color-gray);font-weight:650;margin-bottom:12px">✍️ Plan capturado manualmente en el panel admin.</div>`;
+    : `<div style="font-size:12px;color:var(--color-gray);font-weight:650;margin-bottom:12px">✍️ Plan capturado manualmente en el panel admin.${actualizado ? ` · Actualizado: ${actualizado}` : ''}</div>`;
   const pillClass = p => { const s = String(p||'').toLowerCase(); return s.includes('alta') ? 'alta' : s.includes('baja') ? 'baja' : 'media'; };
   el.innerHTML = aviso + `<div class="table-wrap"><table class="an-table">
     <thead><tr><th>Hallazgo</th><th>Acción</th><th>Responsable</th><th>Plazo</th><th>Indicador de éxito</th><th>Prioridad</th></tr></thead>
