@@ -886,15 +886,27 @@
   html[data-theme="dark"] main,
   html[data-theme="dark"] .main{ background: transparent !important; }
 
-  /* ── HEROES unificados al rojo identificador ── */
+  /* ── HEROES: mismo patron/estructura para todos, un acento de color por dashboard ──
+     Cada dashboard usa el mismo degradado diagonal, radio, borde y sombra; solo cambian
+     los dos tonos base (--hero-a/--hero-b). Sin variante = rojo de marca (default). */
+  .hero, .bajas-header, .dashboard-hero{
+    --hero-a: var(--hb-red);
+    --hero-b: #B40512;
+  }
+  .dashboard-hero--blue,   .hero--blue,   .bajas-header--blue  { --hero-a:#1565C0; --hero-b:#0D47A1; }
+  .dashboard-hero--purple, .hero--purple, .bajas-header--purple{ --hero-a:#7B1FA2; --hero-b:#4A148C; }
+  .dashboard-hero--orange, .hero--orange, .bajas-header--orange{ --hero-a:#F0851A; --hero-b:#C4550A; }
+  .dashboard-hero--green,  .hero--green,  .bajas-header--green { --hero-a:#1DB954; --hero-b:#0F7A34; }
+
   .hero, .bajas-header,
   .dashboard-hero,
-  .dashboard-hero--blue,
-  .dashboard-hero--purple,
-  .dashboard-hero--orange{
+  .dashboard-hero--blue, .hero--blue, .bajas-header--blue,
+  .dashboard-hero--purple, .hero--purple, .bajas-header--purple,
+  .dashboard-hero--orange, .hero--orange, .bajas-header--orange,
+  .dashboard-hero--green, .hero--green, .bajas-header--green{
     background:
       repeating-linear-gradient(-45deg, transparent, transparent 38px, rgba(255,255,255,0.07) 38px, rgba(255,255,255,0.07) 39px),
-      linear-gradient(135deg, var(--hb-red) 0%, #B40512 100%) !important;
+      linear-gradient(135deg, var(--hero-a) 0%, var(--hero-b) 100%) !important;
     border-radius: 20px !important;
     border: 1px solid var(--hb-brd) !important;
     box-shadow: var(--hb-sh) !important;
