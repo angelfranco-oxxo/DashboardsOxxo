@@ -856,10 +856,7 @@ body {
 
 .panel--accent-purple { border-top: 4px solid #8B4CF7; }
 
-html[data-theme="dark"] canvas { background: transparent !important; }
-
-.topbar .theme-toggle [data-theme-label],
-html[data-theme="dark"] .topbar .theme-toggle [data-theme-label] {
+.topbar .theme-toggle [data-theme-label] {
   color: #E30613 !important;
   text-shadow: none !important;
 }
