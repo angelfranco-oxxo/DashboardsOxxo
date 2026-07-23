@@ -1,4 +1,3 @@
-const DATA_URL = '../assets/data/vacaciones-dashboard-5.json';
 const charts = {};
 const state = {
   rows: [],
@@ -14,8 +13,8 @@ const KPI_DEFS = [
   { id: 'ant', label: 'Periodo anterior', color: 'amarillo', tip: 'Suma de "periodo_anterior": dias de vacaciones pendientes de ejercicios anteriores al actual.' },
   { id: 'act', label: 'Periodo actual', color: 'azul', tip: 'Suma de "periodo_actual": dias de vacaciones generados en el periodo en curso.' },
   { id: 'avg', label: 'Promedio', color: 'verde', tip: 'Dias restantes totales divididos entre el numero de colaboradores con saldo mayor a 0.' },
-  { id: 'vencido', label: 'Vencidos ant.', color: 'rojo', tip: 'Colaboradores cuyo periodo anterior cae en el bucket "Vencido" segun fecha de vencimiento.' },
-  { id: 'prox30', label: 'Vencen 0-30', color: 'amarillo', tip: 'Colaboradores cuyo periodo anterior vence en los proximos 0-30 dias.' },
+  { id: 'vencido', label: 'Vencidos ant.', color: 'rojo', tip: 'Colaboradores cuyo periodo anterior ya vencio (columna "Bucket_Ant" = "Ya vencieron sus dias").' },
+  { id: 'prox30', label: 'Vencen 0-50 dias', color: 'amarillo', tip: 'Colaboradores cuyo periodo anterior vence en los proximos 0 a 50 dias.' },
 ];
 
 function n(value, decimals = 0) {
@@ -56,8 +55,8 @@ function bucketMatches(row, kpiId) {
   if (kpiId === 'ant') return row.periodo_anterior > 0;
   if (kpiId === 'act') return row.periodo_actual > 0;
   if (kpiId === 'avg') return row.dias_restantes > 0;
-  if (kpiId === 'vencido') return row.vence_ant_bucket === 'Vencido';
-  if (kpiId === 'prox30') return row.vence_ant_bucket === '0-30';
+  if (kpiId === 'vencido') return row.vence_ant_bucket === 'Ya vencieron sus dias';
+  if (kpiId === 'prox30') return row.vence_ant_bucket === '0 a 50 dias';
   return true;
 }
 
@@ -87,8 +86,8 @@ function metrics(rows) {
     promedio: rows.length ? dias / rows.length : 0,
     con_pendientes: rows.filter((row) => row.dias_restantes > 0).length,
     con_periodo_anterior: rows.filter((row) => row.periodo_anterior > 0).length,
-    ant_vencido: rows.filter((row) => row.vence_ant_bucket === 'Vencido').length,
-    ant_0_30: rows.filter((row) => row.vence_ant_bucket === '0-30').length,
+    ant_vencido: rows.filter((row) => row.vence_ant_bucket === 'Ya vencieron sus dias').length,
+    ant_0_30: rows.filter((row) => row.vence_ant_bucket === '0 a 50 dias').length,
   };
 }
 
@@ -232,11 +231,11 @@ function renderVencimiento(id, rows) {
   destroyChart(id);
   const t = theme();
   const colors = {
-    Vencido: '#E30613',
-    '0-30': '#F06A24',
-    '31-60': '#F2A52B',
-    '61-90': '#FFCD56',
-    '91-180': '#198754',
+    'Ya vencieron sus dias': '#E30613',
+    '0 a 50 dias': '#F06A24',
+    '51 a 100 dias': '#F2A52B',
+    '101 a 150 dias': '#FFCD56',
+    'Mas de 150 dias': '#198754',
   };
   const ctx = canvas.getContext('2d');
   charts[id] = new Chart(ctx, {
@@ -351,12 +350,12 @@ function renderKpis(rows) {
 }
 
 function renderActions(rows) {
-  const riskRows = countBy(rows, 'vence_ant_bucket', ['Vencido', '0-30', '31-60', '61-90']);
+  const riskRows = countBy(rows, 'vence_ant_bucket', ['Ya vencieron sus dias', '0 a 50 dias', '51 a 100 dias', '101 a 150 dias']);
   const advisors = groupBy(rows, 'asesor');
   const stores = groupBy(rows, 'tienda');
   const positions = groupBy(rows, 'puesto');
-  const overdue = riskRows.find((row) => row.label === 'Vencido') || { empleados: 0, dias_restantes: 0 };
-  const next30 = riskRows.find((row) => row.label === '0-30') || { empleados: 0, dias_restantes: 0 };
+  const overdue = riskRows.find((row) => row.label === 'Ya vencieron sus dias') || { empleados: 0, dias_restantes: 0 };
+  const next30 = riskRows.find((row) => row.label === '0 a 50 dias') || { empleados: 0, dias_restantes: 0 };
   const topAdvisor = advisors[0] || { label: 'Sin dato', dias_restantes: 0, empleados: 0, periodo_anterior: 0 };
   const topStore = stores[0] || { label: 'Sin dato', dias_restantes: 0, empleados: 0 };
   const topPosition = positions[0] || { label: 'Sin dato', dias_restantes: 0, empleados: 0 };
@@ -368,7 +367,7 @@ function renderActions(rows) {
       text: `${n(overdue.dias_restantes, 1)} dias de periodo anterior ya vencido. Prioriza contacto y programacion esta semana.`,
     },
     {
-      title: `Blindar 0-30 dias: ${n(next30.empleados)} colaboradores`,
+      title: `Blindar 0-50 dias: ${n(next30.empleados)} colaboradores`,
       text: `${n(next30.dias_restantes, 1)} dias de periodo anterior por vencer. Conviene cerrar calendario antes del siguiente corte.`,
     },
     {
@@ -449,19 +448,26 @@ function renderAll() {
   renderStackedHorizontal('chart-asesores', groupBy(rows, 'asesor').slice(0, 10));
   renderStackedHorizontal('chart-plazas', groupBy(rows, 'tienda').slice(0, 10));
   renderStackedHorizontal('chart-puestos', groupBy(rows, 'puesto').slice(0, 10));
-  renderVencimiento('chart-vencimiento-ant', countBy(rows, 'vence_ant_bucket', ['Vencido', '0-30', '31-60', '61-90', '91-180']));
+  renderVencimiento('chart-vencimiento-ant', countBy(rows, 'vence_ant_bucket', ['Ya vencieron sus dias', '0 a 50 dias', '51 a 100 dias', '101 a 150 dias', 'Mas de 150 dias']));
   renderDistribution('chart-distribucion', distribution(rows));
 }
 
+function findKey(row, aliases) {
+  const clean = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const keys = Object.keys(row || {});
+  const map = new Map(keys.map((k) => [clean(k), k]));
+  for (const a of aliases) { const found = map.get(clean(a)); if (found) return found; }
+  for (const a of aliases) { const ca = clean(a); const found = keys.find((k) => clean(k).includes(ca) || ca.includes(clean(k))); if (found) return found; }
+  return null;
+}
+function stripAccents(v) { return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+
 async function initDashboard() {
   if (window.OXXO && OXXO.renderDownloadButton) OXXO.renderDownloadButton('hero-download','s5','dashboard-hero__badge');
-  let data = window.VACACIONES_DASHBOARD_5;
+  let raw;
   try {
-    if (!data) {
-      const response = await fetch(DATA_URL, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      data = await response.json();
-    }
+    raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s5);
+    if (!raw || !raw.length) throw new Error('Sin datos');
   } catch (error) {
     console.error(error);
     ['kpi-section', 'actions-list'].forEach((id) => {
@@ -470,14 +476,25 @@ async function initDashboard() {
     return;
   }
 
+  const cols = {
+    asesor: findKey(raw[0], ['Asesor']),
+    tienda: findKey(raw[0], ['Tienda']),
+    puesto: findKey(raw[0], ['Puesto']),
+    periodoAnterior: findKey(raw[0], ['Periodo_Anterior']),
+    periodoActual: findKey(raw[0], ['Periodo_Actual']),
+    diasRestantes: findKey(raw[0], ['Dias_Restantes']),
+    bucketAnt: findKey(raw[0], ['Bucket_Ant']),
+  };
+
   const asesorCatalog = await OXXO.loadAsesorCatalog();
-  state.rows = (data.rows || []).map((row) => ({
-    ...row,
-    asesor: OXXO.resolveAsesor(asesorCatalog, {
-      cr: row.cr || row.id_tienda || row.idTienda || row.id,
-      tienda: row.tienda,
-      asesor: row.asesor,
-    }),
+  state.rows = raw.map((row) => ({
+    asesor: OXXO.resolveAsesor(asesorCatalog, { asesor: row[cols.asesor], tienda: row[cols.tienda] }),
+    tienda: String(row[cols.tienda] || '').trim(),
+    puesto: String(row[cols.puesto] || '').trim(),
+    periodo_anterior: Number(row[cols.periodoAnterior]) || 0,
+    periodo_actual: Number(row[cols.periodoActual]) || 0,
+    dias_restantes: Number(row[cols.diasRestantes]) || 0,
+    vence_ant_bucket: stripAccents(row[cols.bucketAnt] || '').trim(),
   }));
   populateFilters(state.rows);
   document.getElementById('clear-filters').addEventListener('click', () => {
@@ -494,7 +511,8 @@ async function initDashboard() {
   document.getElementById('download-base')?.addEventListener('click', event => {
     OXXO.handleDownloadButton(event.currentTarget, () => OXXO.downloadRowsAsCSV(state.rows, 'dashboard-5-vacaciones.csv'));
   });
-  document.getElementById('snapshot-date').textContent = data.snapshot_date;
+  const snapshotEl = document.getElementById('snapshot-date');
+  if (snapshotEl) snapshotEl.textContent = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
   renderAll();
   OXXO.updateFooterTime('load-time');
 }
