@@ -243,7 +243,7 @@
       <div>
         <h1>TREO</h1>
       </div>
-      <span class="hero-badge">📋 TREO · Jun–Ago 2026 · Plaza Oaxaca</span>
+      <span class="hero-badge" id="hero-treo-badge">📋 TREO · Plaza Oaxaca</span>
       <span id="hero-download" style="display:none"></span>
     </div>
     <div class="vac-filters">
@@ -398,8 +398,8 @@
 
   <!-- Footer -->
   <div class="foot">
-    <div><span class="foot-dot"></span>Datos: <strong>TREO Jun–Ago 2026</strong> · SAP al 16 Jun 2026</div>
-    <div>Solo lectura · Plaza Oaxaca · 256 tiendas</div>
+    <div><span class="foot-dot"></span>Datos: <strong id="foot-treo-periodo">TREO</strong></div>
+    <div>Solo lectura · Plaza Oaxaca · <span id="foot-tienda-count">—</span> tiendas</div>
   </div>
 
 </div><!-- /page -->
@@ -441,6 +441,19 @@ function normKey(s){
 }
 
 function cleanKey(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9\/]/g,'');}
+// Deriva el periodo TREO (ej. "P2 Jun-Ago") directamente del nombre real de la columna
+// 'Estructura Propuesta TREO ...' en vez de tenerlo escrito a mano en el HTML: asi el badge
+// y el pie de pagina siguen el periodo vigente automaticamente cuando cambie el archivo,
+// sin que alguien tenga que acordarse de editar el texto.
+function derivePeriodoTreo(rows){
+  const keys = Object.keys(rows[0]||{});
+  const key = keys.find(k => normKey(k).includes('estructura_propuesta_treo'));
+  if(!key) return '';
+  const m = key.match(/\bP(\d+)?\s*([A-Za-zÀ-ÿ]+)\s*-\s*([A-Za-zÀ-ÿ]+)/);
+  if(!m) return '';
+  const cap = w => w ? w.charAt(0).toUpperCase()+w.slice(1).toLowerCase() : '';
+  return `${m[1]?'P'+m[1]+' ':''}${cap(m[2])}–${cap(m[3])}`;
+}
 function pickField(row, keys){
   const byNorm = {};
   const rowKeys = Object.keys(row || {});
@@ -1130,6 +1143,12 @@ async function init(){
     return;
   }
 
+  const periodo = derivePeriodoTreo(rows);
+  const badgeEl = document.getElementById('hero-treo-badge');
+  if(periodo && badgeEl) badgeEl.textContent = `📋 TREO · ${periodo} · Plaza Oaxaca`;
+  const footPeriodoEl = document.getElementById('foot-treo-periodo');
+  if(footPeriodoEl) footPeriodoEl.textContent = periodo ? `TREO ${periodo}` : 'TREO';
+
   const asesorCatalog = await OXXO.loadAsesorCatalog();
   ALL = coerceTreoRows(rows)
     .map(normalizeRow)
@@ -1142,6 +1161,9 @@ async function init(){
     .filter(r => r.tienda || r.asesor)
     .filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr))
     .filter(r => cleanKey(r.asesor) !== 'timoteoantonioperez');
+
+  const footTiendaCountEl = document.getElementById('foot-tienda-count');
+  if(footTiendaCountEl) footTiendaCountEl.textContent = String(ALL.length);
 
   // Poblar selector de asesor (dedupe por nombre normalizado, prefiriendo la grafía con acentos)
   const asesorPorClave = new Map();
