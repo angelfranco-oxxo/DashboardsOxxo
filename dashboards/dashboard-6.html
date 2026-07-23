@@ -221,25 +221,39 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
 const TAB = OXXO.SHEETS_CONFIG.TABS.s6;
 
 // Columnas reales del Sheet (según la base de datos AusentismosBD.xlsx)
-const C = {
-  plaza:      "Plaza",
-  asesor:     "Asesor",
-  noPersonal: "N de personal",
-  nombre:     "Nombre del empleado o candidato",
-  estatus:    "Estatus",
-  funcion:    "Puesto",
-  tienda:     "Tienda",
-  cr:         "Cr de Tienda",
-  tipo:       "Denominacion",          // tipo de ausentismo
-  dias:       "Dias",
-  horas:      "Horas",
-  ausSemana:  "Absentismos solo en la semana",
-  inicio:     "Inicio de validez",
-  fin:        "Fin de validez",
-  semana:     "Semana",
-  mes:        "Mes",
-  año:        "Ano",
+const ALIASES_D6 = {
+  plaza:      ['Plaza'],
+  asesor:     ['Asesor'],
+  noPersonal: ['N de personal','N de Personal','No de personal','N° de personal'],
+  nombre:     ['Nombre del empleado o candidato','Nombre del empleado'],
+  estatus:    ['Estatus'],
+  funcion:    ['Puesto'],
+  tienda:     ['Tienda'],
+  cr:         ['Cr de Tienda','CR de Tienda'],
+  tipo:       ['Denominacion','Denominación'],          // tipo de ausentismo
+  dias:       ['Dias','Días'],
+  horas:      ['Horas'],
+  ausSemana:  ['Absentismos solo en la semana'],
+  inicio:     ['Inicio de validez'],
+  fin:        ['Fin de validez'],
+  semana:     ['Semana'],
+  mes:        ['Mes'],
+  año:        ['Ano','Año'],
 };
+function cleanKeyD6(str){ return String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function findRealKeyD6(row, aliases){
+  const keys = Object.keys(row||{});
+  const map = new Map(keys.map(k => [cleanKeyD6(k), k]));
+  for(const a of aliases){ const found = map.get(cleanKeyD6(a)); if(found) return found; }
+  for(const a of aliases){ const ca = cleanKeyD6(a); const found = keys.find(k => cleanKeyD6(k).includes(ca) || ca.includes(cleanKeyD6(k))); if(found) return found; }
+  return null;
+}
+let C = {};
+function buildColsD6(sample){
+  const cols = {};
+  Object.entries(ALIASES_D6).forEach(([k,aliases]) => { cols[k] = findRealKeyD6(sample, aliases) || aliases[0]; });
+  return cols;
+}
 
 // Colores por tipo
 function tipoPuestoFuncion(desc){
@@ -479,9 +493,19 @@ async function initDashboard() {
   let data = await OXXO.fetchSheetData(TAB);
   if(data===null){['kpi-section','ranking-asesores','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(data.length===0){['kpi-section','ranking-asesores','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
+  C = buildColsD6(data[0]);
   const asesorCatalog = await OXXO.loadAsesorCatalog();
   data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
   data = OXXO.filterValidTiendas(data, asesorCatalog, C.tienda, C.cr);
+
+  // Quedarse solo con la semana mas reciente presente en los datos: el Sheet acumula el
+  // historico completo de semanas (periodColumn:'Semana' en admin.js reemplaza por periodo,
+  // no por semana individual mostrada aqui), asi que sin este filtro las KPIs y graficas
+  // sumaban todas las semanas juntas en vez de solo la actual.
+  const semanas = [...new Set(data.map(r => String(r[C.semana]||'').trim()).filter(Boolean))]
+    .sort((a,b) => (parseInt(a.replace(/\D+/g,''),10)||0) - (parseInt(b.replace(/\D+/g,''),10)||0));
+  const semanaActual = semanas[semanas.length - 1] || '';
+  if(semanaActual) data = data.filter(r => String(r[C.semana]||'').trim() === semanaActual);
   BASE_DATA = data;
 
   // Semana badge
