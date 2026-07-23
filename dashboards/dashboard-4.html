@@ -343,24 +343,45 @@ html:not([data-theme="dark"]) .hero .filtro-btn{
 <script src="../js/core.js"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.s4;
-const C = {
-  plaza:    "Plaza",
-  asesor:   "Asesor",
-  nombre:   "Nombre del empleado o candidato",
-  tipo:     "Textos homologados",
-  tienda:   "Texto breve de unidad organizativa",
-  cr:       "Cr de Tienda",
-  puesto:   "Esquema",
-  horas:    "Cantidad",
-  importe:  "Importe",
-  semana:   "Semana",
-  mes:      "Mes",
-  año:      "Ano",
+const ALIASES_D4 = {
+  plaza:    ['Plaza'],
+  asesor:   ['Asesor'],
+  nombre:   ['Nombre del empleado o candidato','Nombre del empleado'],
+  tipo:     ['Textos homologados'],
+  tienda:   ['Texto breve de unidad organizativa'],
+  cr:       ['Cr de Tienda','CR de Tienda'],
+  puesto:   ['Esquema'],
+  horas:    ['Cantidad'],
+  importe:  ['Importe'],
+  semana:   ['Semana'],
+  mes:      ['Mes'],
+  año:      ['Ano','Año'],
 };
+function cleanKeyD4(str){ return String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function findRealKeyD4(row, aliases){
+  const keys = Object.keys(row||{});
+  const map = new Map(keys.map(k => [cleanKeyD4(k), k]));
+  for(const a of aliases){ const found = map.get(cleanKeyD4(a)); if(found) return found; }
+  for(const a of aliases){ const ca = cleanKeyD4(a); const found = keys.find(k => cleanKeyD4(k).includes(ca) || ca.includes(cleanKeyD4(k))); if(found) return found; }
+  return null;
+}
+let C = {};
+function buildColsD4(sample){
+  const cols = {};
+  Object.entries(ALIASES_D4).forEach(([k,aliases]) => { cols[k] = findRealKeyD4(sample, aliases) || aliases[0]; });
+  return cols;
+}
 
-const TIPO_DOBLE  = "Tiempo Extra Doble";
-const TIPO_TRIPLE = "Tiempo Extra Triple";
-const isDes = t => t && (t.startsWith("Día Des"));
+// Clasificacion normalizada (sin acentos, mayusculas, espacios colapsados) en vez de match
+// exacto de texto: un espacio doble o acento distinto en 'Textos homologados' (ej. "Tiempo
+// Extra  Doble") antes dejaba esa fila fuera de las 3 categorias sin que se notara en ningun
+// KPI ni total.
+function normTipoTE(t){ return cleanKeyD4(t); }
+const TIPO_DOBLE_KEY  = normTipoTE("Tiempo Extra Doble");
+const TIPO_TRIPLE_KEY = normTipoTE("Tiempo Extra Triple");
+const isTipoDoble  = t => normTipoTE(t) === TIPO_DOBLE_KEY;
+const isTipoTriple = t => normTipoTE(t) === TIPO_TRIPLE_KEY;
+const isDes = t => normTipoTE(t).startsWith('diades');
 
 // Algunas filas de 'Importe' vienen con separador de miles (ej. "1,333.78"). parseFloat
 // nativo se detiene en la coma y regresa 1 en vez de 1333.78, descuadrando las sumas.
@@ -421,8 +442,8 @@ function aggregateByAsesor(data) {
     const g = numParse(r[C.importe])||0;
     const t = r[C.tipo]||'';
     map[a].hTot += h; map[a].gTot += g;
-    if(t===TIPO_DOBLE)       { map[a].hDoble+=h; map[a].gDoble+=g; }
-    else if(t===TIPO_TRIPLE) { map[a].hTriple+=h; map[a].gTriple+=g; }
+    if(isTipoDoble(t))       { map[a].hDoble+=h; map[a].gDoble+=g; }
+    else if(isTipoTriple(t)) { map[a].hTriple+=h; map[a].gTriple+=g; }
     else if(isDes(t))        { map[a].hDesc+=h; map[a].gDesc+=g; }
   });
   return Object.values(map).sort((a,b)=>b.gTot-a.gTot);
@@ -435,8 +456,8 @@ function filteredData() {
   if (DROP_TIENDA) data = data.filter(r => r[C.tienda] === DROP_TIENDA);
   if (DROP_TIPO || ACTIVE_FILTER) {
     const f = DROP_TIPO || ACTIVE_FILTER;
-    if(f==='doble')    data = data.filter(r=>r[C.tipo]===TIPO_DOBLE);
-    if(f==='triple')   data = data.filter(r=>r[C.tipo]===TIPO_TRIPLE);
+    if(f==='doble')    data = data.filter(r=>isTipoDoble(r[C.tipo]));
+    if(f==='triple')   data = data.filter(r=>isTipoTriple(r[C.tipo]));
     if(f==='descanso') data = data.filter(r=>isDes(r[C.tipo]));
   }
   return data;
@@ -450,11 +471,11 @@ function renderAll() {
 
   const totalHoras  = data.reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
   const totalGasto  = data.reduce((s,r)=>s+(numParse(r[C.importe])||0),0);
-  const totalHDoble = data.filter(r=>r[C.tipo]===TIPO_DOBLE).reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
-  const totalHTriple= data.filter(r=>r[C.tipo]===TIPO_TRIPLE).reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
+  const totalHDoble = data.filter(r=>isTipoDoble(r[C.tipo])).reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
+  const totalHTriple= data.filter(r=>isTipoTriple(r[C.tipo])).reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
   const totalHDesc  = data.filter(r=>isDes(r[C.tipo])).reduce((s,r)=>s+(numParse(r[C.horas])||0),0);
-  const totalGDoble = data.filter(r=>r[C.tipo]===TIPO_DOBLE).reduce((s,r)=>s+(numParse(r[C.importe])||0),0);
-  const totalGTriple= data.filter(r=>r[C.tipo]===TIPO_TRIPLE).reduce((s,r)=>s+(numParse(r[C.importe])||0),0);
+  const totalGDoble = data.filter(r=>isTipoDoble(r[C.tipo])).reduce((s,r)=>s+(numParse(r[C.importe])||0),0);
+  const totalGTriple= data.filter(r=>isTipoTriple(r[C.tipo])).reduce((s,r)=>s+(numParse(r[C.importe])||0),0);
   const totalGDesc  = data.filter(r=>isDes(r[C.tipo])).reduce((s,r)=>s+(numParse(r[C.importe])||0),0);
   const totalEmps   = new Set(data.map(r=>r[C.nombre])).size;
   const totalTiendas= new Set(data.map(r=>r[C.tienda])).size;
@@ -624,8 +645,8 @@ function openAsesorDetail(asesor){
   const empleados = new Set(rows.map(r=>r[C.nombre]).filter(Boolean));
   const byTipo = [
     ['Dia descanso', rows.filter(r=>isDes(r[C.tipo]))],
-    ['TE doble', rows.filter(r=>r[C.tipo]===TIPO_DOBLE)],
-    ['TE triple', rows.filter(r=>r[C.tipo]===TIPO_TRIPLE)]
+    ['TE doble', rows.filter(r=>isTipoDoble(r[C.tipo]))],
+    ['TE triple', rows.filter(r=>isTipoTriple(r[C.tipo]))]
   ].map(([label, list])=>({
     label,
     horas:list.reduce((sum,r)=>sum+(numParse(r[C.horas])||0),0),
@@ -706,6 +727,7 @@ async function initDashboard() {
   const data = await OXXO.fetchSheetData(TAB);
   if(data===null){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(data.length===0){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
+  C = buildColsD4(data[0]);
   const asesorCatalog = await OXXO.loadAsesorCatalog();
   data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
   BASE_DATA = OXXO.filterValidTiendas(data, asesorCatalog, C.tienda, C.cr);
