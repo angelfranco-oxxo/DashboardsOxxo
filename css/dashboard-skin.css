@@ -417,9 +417,7 @@
   .dashboard-hero--purple, .hero--purple, .bajas-header--purple,
   .dashboard-hero--orange, .hero--orange, .bajas-header--orange,
   .dashboard-hero--green, .hero--green, .bajas-header--green{
-    background:
-      repeating-linear-gradient(-45deg, transparent, transparent 38px, rgba(255,255,255,0.07) 38px, rgba(255,255,255,0.07) 39px),
-      linear-gradient(135deg, var(--hero-a) 0%, var(--hero-b) 100%) !important;
+    background: var(--hero-a) !important;
     border-radius: 20px !important;
     border: 1px solid var(--hb-brd) !important;
     box-shadow: var(--hb-sh) !important;
