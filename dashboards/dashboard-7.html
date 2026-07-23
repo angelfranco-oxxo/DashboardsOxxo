@@ -11,19 +11,9 @@
   <style>
   .page{max-width:1600px;margin:0 auto;padding:18px 20px 36px}
 
-  /* Hero ejecutivo sobrio (vino → negro, rojo solo como acento). 'body .hero' para ganar
-     especificidad sobre la regla roja del skin compartido. */
+  /* Hero unificado al rojo compartido del skin (igual que Dashboards 1-6). */
   .hero{flex-direction:column !important;align-items:stretch !important;gap:20px}
-  body .hero{
-    background:
-      radial-gradient(120% 160% at 100% 0%, rgba(247,25,38,.32) 0%, rgba(247,25,38,0) 46%),
-      repeating-linear-gradient(-45deg, transparent, transparent 46px, rgba(255,255,255,0.025) 46px, rgba(255,255,255,0.025) 47px),
-      linear-gradient(135deg, #2b0e0e 0%, #1b1012 55%, #120c0d 100%) !important;
-    border:0 !important;border-left:3px solid var(--hb-red,#F71926) !important;
-    box-shadow:0 26px 60px rgba(0,0,0,.34) !important;
-  }
-  body .hero h1{color:#fff !important;font-family:var(--font-display) !important;font-weight:800 !important;letter-spacing:-.5px !important}
-  body .hero-badge{background:rgba(247,25,38,.16) !important;color:#ff8a8a !important;border:1px solid rgba(247,25,38,.45) !important;box-shadow:none !important;backdrop-filter:blur(4px)}
+  body .hero h1{font-family:var(--font-display) !important;font-weight:800 !important;letter-spacing:-.5px !important}
   .hero-download-link{ text-decoration:none !important; cursor:pointer; }
   .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
   .vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px 18px;align-items:end}
