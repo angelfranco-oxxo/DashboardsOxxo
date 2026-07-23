@@ -55,7 +55,7 @@ function bucketMatches(row, kpiId) {
   if (kpiId === 'ant') return row.periodo_anterior > 0;
   if (kpiId === 'act') return row.periodo_actual > 0;
   if (kpiId === 'avg') return row.dias_restantes > 0;
-  if (kpiId === 'vencido') return row.vence_ant_bucket === 'Ya vencieron sus dias';
+  if (kpiId === 'vencido') return row.vence_ant_bucket === 'ya vencieron sus dias';
   if (kpiId === 'prox30') return row.vence_ant_bucket === '0 a 50 dias';
   return true;
 }
@@ -86,7 +86,7 @@ function metrics(rows) {
     promedio: rows.length ? dias / rows.length : 0,
     con_pendientes: rows.filter((row) => row.dias_restantes > 0).length,
     con_periodo_anterior: rows.filter((row) => row.periodo_anterior > 0).length,
-    ant_vencido: rows.filter((row) => row.vence_ant_bucket === 'Ya vencieron sus dias').length,
+    ant_vencido: rows.filter((row) => row.vence_ant_bucket === 'ya vencieron sus dias').length,
     ant_0_30: rows.filter((row) => row.vence_ant_bucket === '0 a 50 dias').length,
   };
 }
@@ -231,11 +231,11 @@ function renderVencimiento(id, rows) {
   destroyChart(id);
   const t = theme();
   const colors = {
-    'Ya vencieron sus dias': '#E30613',
+    'ya vencieron sus dias': '#E30613',
     '0 a 50 dias': '#F06A24',
     '51 a 100 dias': '#F2A52B',
     '101 a 150 dias': '#FFCD56',
-    'Mas de 150 dias': '#198754',
+    'mas de 150 dias': '#198754',
   };
   const ctx = canvas.getContext('2d');
   charts[id] = new Chart(ctx, {
@@ -350,11 +350,11 @@ function renderKpis(rows) {
 }
 
 function renderActions(rows) {
-  const riskRows = countBy(rows, 'vence_ant_bucket', ['Ya vencieron sus dias', '0 a 50 dias', '51 a 100 dias', '101 a 150 dias']);
+  const riskRows = countBy(rows, 'vence_ant_bucket', ['ya vencieron sus dias', '0 a 50 dias', '51 a 100 dias', '101 a 150 dias']);
   const advisors = groupBy(rows, 'asesor');
   const stores = groupBy(rows, 'tienda');
   const positions = groupBy(rows, 'puesto');
-  const overdue = riskRows.find((row) => row.label === 'Ya vencieron sus dias') || { empleados: 0, dias_restantes: 0 };
+  const overdue = riskRows.find((row) => row.label === 'ya vencieron sus dias') || { empleados: 0, dias_restantes: 0 };
   const next30 = riskRows.find((row) => row.label === '0 a 50 dias') || { empleados: 0, dias_restantes: 0 };
   const topAdvisor = advisors[0] || { label: 'Sin dato', dias_restantes: 0, empleados: 0, periodo_anterior: 0 };
   const topStore = stores[0] || { label: 'Sin dato', dias_restantes: 0, empleados: 0 };
@@ -448,7 +448,7 @@ function renderAll() {
   renderStackedHorizontal('chart-asesores', groupBy(rows, 'asesor').slice(0, 10));
   renderStackedHorizontal('chart-plazas', groupBy(rows, 'tienda').slice(0, 10));
   renderStackedHorizontal('chart-puestos', groupBy(rows, 'puesto').slice(0, 10));
-  renderVencimiento('chart-vencimiento-ant', countBy(rows, 'vence_ant_bucket', ['Ya vencieron sus dias', '0 a 50 dias', '51 a 100 dias', '101 a 150 dias', 'Mas de 150 dias']));
+  renderVencimiento('chart-vencimiento-ant', countBy(rows, 'vence_ant_bucket', ['ya vencieron sus dias', '0 a 50 dias', '51 a 100 dias', '101 a 150 dias', 'mas de 150 dias']));
   renderDistribution('chart-distribucion', distribution(rows));
 }
 
@@ -460,7 +460,7 @@ function findKey(row, aliases) {
   for (const a of aliases) { const ca = clean(a); const found = keys.find((k) => clean(k).includes(ca) || ca.includes(clean(k))); if (found) return found; }
   return null;
 }
-function stripAccents(v) { return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+function stripAccents(v) { return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
 
 async function initDashboard() {
   if (window.OXXO && OXXO.renderDownloadButton) OXXO.renderDownloadButton('hero-download','s5','dashboard-hero__badge');
