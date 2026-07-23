@@ -11,8 +11,8 @@
   overflow: visible !important;
   background:
     radial-gradient(circle at 80% 10%, rgba(255,255,255,.08), transparent 28%),
-    linear-gradient(135deg, #e92a31 0%, #c91421 48%, #9d1018 100%) !important;
-  box-shadow: 0 22px 52px rgba(125, 25, 18, .20) !important;
+    linear-gradient(135deg, var(--hero-a, #e92a31) 0%, var(--hero-b, #9d1018) 100%) !important;
+  box-shadow: 0 22px 52px rgba(0, 0, 0, .18) !important;
 }
 
 .hero::after,
