@@ -530,12 +530,6 @@ function repairMojibake(s){
     return /�/.test(fixed) ? str : fixed;
   } catch (e) { return str; }
 }
-function normalizeMovement(value){
-  const v = String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-  if(v.includes('subir') || v === 'alta' || v === 'incrementar') return 'Subir';
-  if(v.includes('bajar') || v.includes('liberar') || v === 'baja') return 'Bajar';
-  return 'Alineada';
-}
 
 function normalizeRow(row){
   const estSap = pickField(row, ['est_sap','est sap','est. sap','estructura sap','sap']);
@@ -554,7 +548,11 @@ function normalizeRow(row){
     empleados: pickField(row, ['empleados','empleados activos','plantilla','plantilla sap']),
     vacantes: pickField(row, ['vacantes','vacante']),
     dif: difCalc,
-    mov: normalizeMovement(pickField(row, ['mov','movimiento inicial','movimiento','estatus','status'])),
+    // 'mov' se deriva del calculo numerico exacto (Dif SAP vs Est Optima Final), no del texto
+    // libre 'Movimiento Inicial': verificado que ese texto no coincide con el numero en 54 de
+    // 256 tiendas (21%), lo que hacia que la tabla/filtro/recomendaciones de accion
+    // contradijeran los KPIs y la grafica de Alineacion Global (que ya usaban el numero).
+    mov: (Number(difCalc)||0) === 0 ? 'Alineada' : (Number(difCalc)||0) > 0 ? 'Subir' : 'Bajar',
     est_final: estFinal,
     turnos: pickField(row, ['turnos','turno']),
     antiguedad: pickField(row, ['antiguedad','antigüedad']) || 'Madura',
