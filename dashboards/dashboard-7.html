@@ -398,7 +398,7 @@
 
   <!-- Footer -->
   <div class="foot">
-    <div><span class="foot-dot"></span>Datos: <strong id="foot-treo-periodo">TREO</strong></div>
+    <div><span class="foot-dot"></span>Datos: <strong id="foot-treo-periodo">TREO</strong> · Datos cargados: <strong id="load-time">—</strong></div>
     <div>Solo lectura · Plaza Oaxaca · <span id="foot-tienda-count">—</span> tiendas</div>
   </div>
 
@@ -1179,6 +1179,7 @@ async function init(){
 
   filtrar();
   renderAll();
+  OXXO.updateFooterTime('load-time');
 }
 
 document.addEventListener('DOMContentLoaded', init);
