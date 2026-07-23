@@ -2105,7 +2105,7 @@
 
     .executive-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+      grid-template-columns: 1fr;
       gap: 18px;
       align-items: stretch;
     }
@@ -2118,13 +2118,12 @@
 
     .exec-metric-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       grid-auto-rows: 1fr;
       gap: 14px;
     }
 
-    .exec-metric,
-    .exec-panel {
+    .exec-metric {
       border-radius: 20px;
       border: 1px solid rgba(130,54,38,0.12);
       background: linear-gradient(145deg, rgba(255,255,255,0.82), rgba(255,250,245,0.62));
@@ -2177,79 +2176,6 @@
       font-weight: 800;
       color: #f71926;
       line-height: 1.32;
-    }
-
-    .exec-panel {
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .exec-panel__title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 10px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid rgba(130,54,38,0.12);
-      font-family: var(--font-display);
-      font-size: 1.05rem;
-      font-weight: 900;
-      color: #211510;
-    }
-
-    .priority-list {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      flex: 1;
-    }
-
-    .priority-item {
-      display: grid;
-      grid-template-columns: 30px 1fr;
-      align-items: center;
-      gap: 10px;
-      padding: 9px 10px;
-      min-height: 72px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.58);
-      border: 1px solid rgba(130,54,38,0.10);
-    }
-
-    .priority-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      background: rgba(247,25,38,0.09);
-      color: #f71926;
-      font-weight: 900;
-    }
-
-    .priority-main strong {
-      display: block;
-      color: #211510;
-      font-size: 13px;
-      line-height: 1.1;
-    }
-
-    .priority-main span {
-      display: block;
-      margin-top: 3px;
-      color: #78655d;
-      font-size: 12px;
-      line-height: 1.25;
-    }
-
-    .priority-link {
-      grid-column: 2;
-      color: #f71926;
-      font-size: 12px;
-      font-weight: 900;
-      text-decoration: none;
     }
 
     .data-health {
@@ -2335,10 +2261,6 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .priority-list {
-        grid-template-columns: 1fr;
-      }
-
       .exec-action-strip {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
@@ -2362,14 +2284,6 @@
       .data-health,
       .exec-action-strip {
         grid-template-columns: 1fr;
-      }
-
-      .priority-item {
-        grid-template-columns: 34px 1fr;
-      }
-
-      .priority-link {
-        grid-column: 2;
       }
     }
   </style>
@@ -2493,47 +2407,6 @@
           </div>
         </div>
 
-      </div>
-
-      <div class="exec-panel">
-        <div class="exec-panel__title">
-          Prioridades de seguimiento
-          <span class="executive-chip" style="padding:7px 10px;font-size:10px">Atencion</span>
-        </div>
-        <div class="priority-list">
-          <div class="priority-item">
-            <div class="priority-icon">V</div>
-            <div class="priority-main">
-              <strong>Vacantes y cobertura</strong>
-              <span>Revisar tiendas con mayor antiguedad y puestos criticos.</span>
-            </div>
-            <a class="priority-link" href="dashboards/dashboard-1.html">Abrir</a>
-          </div>
-          <div class="priority-item">
-            <div class="priority-icon">B</div>
-            <div class="priority-main">
-              <strong>Bajas del mes</strong>
-              <span>Identificar asesor, tienda y puesto con mayor concentracion.</span>
-            </div>
-            <a class="priority-link" href="dashboards/dashboard-2.html">Abrir</a>
-          </div>
-          <div class="priority-item">
-            <div class="priority-icon">E</div>
-            <div class="priority-main">
-              <strong>Estructura y TREO</strong>
-              <span>Validar tiendas incompletas, criticas y movimientos pendientes.</span>
-            </div>
-            <a class="priority-link" href="dashboards/dashboard-3.html">Abrir</a>
-          </div>
-          <div class="priority-item">
-            <div class="priority-icon">A</div>
-            <div class="priority-main">
-              <strong>Ausentismo y tiempo extra</strong>
-              <span>Cruzar sobrecarga operativa contra ausencias recurrentes.</span>
-            </div>
-            <a class="priority-link" href="dashboards/dashboard-4.html">Abrir</a>
-          </div>
-        </div>
       </div>
     </div>
   </div>
