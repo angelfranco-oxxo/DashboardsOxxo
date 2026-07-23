@@ -86,11 +86,20 @@
     return { label: 'Alineación Global TREO', value: pct.toFixed(1) + '%', sub: 'Plaza Oaxaca' };
   }
 
+  async function kpiD5(){
+    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s5);
+    if(!raw || !raw.length) return null;
+    const diasKey = findKey(raw[0], ['Dias_Restantes']);
+    const totalDias = raw.reduce((s,r) => s + num(val(r, diasKey)), 0);
+    return { label: 'Días Restantes de Vacaciones', value: OXXO.formatNum(Math.round(totalDias)), sub: 'Plaza Oaxaca' };
+  }
+
   const DASHBOARDS = [
     { name: 'Dashboard 1 · Vacantes', fn: kpiD1 },
     { name: 'Dashboard 2 · Bajas', fn: kpiD2 },
     { name: 'Dashboard 3 · Aprovechamiento', fn: kpiD3 },
     { name: 'Dashboard 4 · Tiempo Extra', fn: kpiD4 },
+    { name: 'Dashboard 5 · Vacaciones', fn: kpiD5 },
     { name: 'Dashboard 6 · Ausentismos', fn: kpiD6 },
     { name: 'Dashboard 7 · TREO', fn: kpiD7 },
   ];
@@ -140,11 +149,6 @@
           slide.addText('Sin datos disponibles', { x: 0.5, y: 2.3, w: 9, h: 0.6, fontSize: 22, color: GRAY, align: 'center', fontFace: 'Arial' });
         }
       });
-
-      const d5Slide = pptx.addSlide();
-      d5Slide.background = { color: 'FFF8EF' };
-      d5Slide.addText('Dashboard 5 · Vacaciones', { x: 0.5, y: 0.4, w: 9, h: 0.6, fontSize: 22, bold: true, color: DARK, fontFace: 'Arial' });
-      d5Slide.addText('Este dashboard usa datos offline (no conectados a Google Sheets).\nConsúltalo directamente en el Dashboard 5.', { x: 0.5, y: 2.1, w: 9, h: 1, fontSize: 16, color: GRAY, align: 'center', fontFace: 'Arial' });
 
       const fileName = `Presentacion-Ejecutiva-Oaxaca-${today.toISOString().slice(0,10)}.pptx`;
       await pptx.writeFile({ fileName });
