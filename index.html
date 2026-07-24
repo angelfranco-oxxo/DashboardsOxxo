@@ -2286,6 +2286,98 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* ══ Acabado premium ══ */
+
+    /* Iconos monolinea en lugar de emojis: consistentes en todos los sistemas
+       y alineados a la paleta de marca. */
+    .db-card__icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: #e30613;
+      fill: none;
+      stroke-width: 1.9;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* El numero de fondo vivia sobre la flecha roja del footer y se leia como
+       suciedad. Se mueve al costado derecho, a la altura de la descripcion. */
+    .db-card::after {
+      top: 50% !important;
+      bottom: auto !important;
+      right: 18px !important;
+      transform: translateY(-52%) !important;
+      font-size: clamp(3.2rem, 4vw, 4.6rem) !important;
+      color: rgba(247,25,38,0.062) !important;
+    }
+
+    /* Reserva dos lineas de titulo para que las descripciones de todas las
+       tarjetas de una fila arranquen a la misma altura. */
+    .db-card__title {
+      min-height: 1.96em;
+    }
+
+    /* Numeracion continua 01..07 en lugar de reiniciar en cada seccion. */
+    .dashboards-grid { counter-reset: none !important; }
+    .dashboards-section { counter-reset: dashboard-card; }
+
+    /* "Sin fecha registrada" no es una alerta: el rojo se reserva para eso. */
+    .db-card__update strong.is-empty {
+      color: var(--glass-muted) !important;
+      font-weight: 700;
+    }
+
+    .exec-metric__note.is-neutral {
+      color: #6f8f77 !important;
+    }
+
+    /* Velo superior del hero: difumina el remate de la imagen por detras del
+       header en lugar de dejarlo cortado a media letra. */
+    .hero::after {
+      display: block !important;
+      content: '';
+      position: absolute;
+      inset: 0 0 auto;
+      height: clamp(190px, 19vh, 280px);
+      background: linear-gradient(180deg, rgba(126,0,7,0.94) 0%, rgba(126,0,7,0.74) 34%, rgba(126,0,7,0.30) 66%, rgba(126,0,7,0) 100%);
+      animation: none !important;
+      transform: none !important;
+      mix-blend-mode: normal !important;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* La seccion semanal tiene 4 tarjetas: en 3 columnas quedaba una huerfana. */
+    #grid-semanales {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    /* Jerarquia tipografica: menos pesos extremos en las etiquetas pequenas. */
+    .db-card__freq,
+    .exec-metric__label,
+    .exec-metric__note,
+    .health-pill span,
+    .exec-action span {
+      font-weight: 700 !important;
+    }
+
+    @media (max-width: 1149px) {
+      #grid-semanales {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      #grid-semanales {
+        grid-template-columns: 1fr;
+      }
+
+      /* En movil el numero decorativo chocaba con el chip de frecuencia. */
+      .db-card::after {
+        display: none !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2338,9 +2430,6 @@
         </div>
       </div>
     </div>
-    <div class="hero__visual" aria-hidden="true">
-      <img src="assets/orgulloxxos-hero.jpg" alt="Orgullo XXOS · Mascotas OXXO Plaza Oaxaca" class="hero__image">
-    </div>
   </div>
 </section>
 
@@ -2375,11 +2464,11 @@
         <div class="executive-kicker">Vista ejecutiva</div>
         <h2 class="executive-title">Estado operativo de talento</h2>
         <div class="executive-subtitle">
-          Lectura rapida para priorizar seguimiento: vacantes, bajas, estructura, tiempo extra,
+          Lectura rápida para priorizar seguimiento: vacantes, bajas, estructura, tiempo extra,
           ausentismos y TREO en un solo punto de entrada.
         </div>
       </div>
-      <div class="executive-chip">Plaza Oaxaca - Google Sheets</div>
+      <div class="executive-chip">Plaza Oaxaca · Google Sheets</div>
     </div>
 
     <div class="executive-layout">
@@ -2388,22 +2477,22 @@
           <div class="exec-metric" data-code="01">
             <div class="exec-metric__label">Dashboards activos</div>
             <div class="exec-metric__value">7</div>
-            <div class="exec-metric__note">3 diarios - 4 semanales</div>
+            <div class="exec-metric__note">3 diarios · 4 semanales</div>
           </div>
           <div class="exec-metric" data-code="02">
             <div class="exec-metric__label">Cobertura de datos</div>
-            <div class="exec-metric__value" id="exec-coverage">-</div>
-            <div class="exec-metric__note" id="exec-coverage-note">Validando configuracion</div>
+            <div class="exec-metric__value" id="exec-coverage">—</div>
+            <div class="exec-metric__note" id="exec-coverage-note">Validando configuración</div>
           </div>
           <div class="exec-metric" data-code="03">
-            <div class="exec-metric__label">Ultima revision</div>
-            <div class="exec-metric__value" id="exec-check-time">-</div>
-            <div class="exec-metric__note">Sesion actual</div>
+            <div class="exec-metric__label">Última revisión</div>
+            <div class="exec-metric__value" id="exec-check-time">—</div>
+            <div class="exec-metric__note">Sesión actual</div>
           </div>
           <div class="exec-metric" data-code="04">
             <div class="exec-metric__label">Prioridad</div>
             <div class="exec-metric__value">Mes</div>
-            <div class="exec-metric__note">Revisar filtros al mes mas reciente</div>
+            <div class="exec-metric__note">Revisar filtros al mes más reciente</div>
           </div>
         </div>
 
@@ -2427,11 +2516,13 @@
     <a href="dashboards/dashboard-1.html" class="db-card"
        style="--card-accent:#F2A52B;--card-icon-bg:rgba(242,165,43,0.14);--card-freq-bg:rgba(242,165,43,0.16);--card-freq-color:#F71926">
       <div class="db-card__top">
-        <div class="db-card__icon">📊</div>
+        <div class="db-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1.5A4.5 4.5 0 0 1 6.5 15h5"/><path d="M17 14l5 5m0-5l-5 5"/></svg>
+        </div>
         <span class="db-card__freq">Diario</span>
       </div>
       <!-- ► EDITAR: Nombre y descripción del dashboard -->
-      <div class="db-card__title">Vacantes<br>Diarias</div>
+      <div class="db-card__title">Vacantes Diarias</div>
       <div class="db-card__desc">
         Seguimiento diario de cobertura, vacantes activas y ritmo de avance operativo.
       </div>
@@ -2450,10 +2541,12 @@
     <a href="dashboards/dashboard-2.html" class="db-card"
        style="--card-accent:#F71926;--card-icon-bg:rgba(247,25,38,0.10);--card-freq-bg:rgba(247,25,38,0.12);--card-freq-color:#F71926">
       <div class="db-card__top">
-        <div class="db-card__icon">🏪</div>
+        <div class="db-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </div>
         <span class="db-card__freq">Diario</span>
       </div>
-      <div class="db-card__title">Bajas<br>Diarias</div>
+      <div class="db-card__title">Bajas Diarias</div>
       <div class="db-card__desc">
         Lectura diaria de movimientos, bajas recientes y comportamiento por periodo.
       </div>
@@ -2472,10 +2565,12 @@
     <a href="dashboards/dashboard-3.html" class="db-card"
        style="--card-accent:#F2A52B;--card-icon-bg:rgba(242,165,43,0.14);--card-freq-bg:rgba(242,165,43,0.16);--card-freq-color:#F71926">
       <div class="db-card__top">
-        <div class="db-card__icon">👥</div>
-        <span class="db-card__freq" style="background:rgba(242,165,43,0.16);color:#F71926">Diario</span>
+        <div class="db-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+        </div>
+        <span class="db-card__freq">Diario</span>
       </div>
-      <div class="db-card__title">Aprovechamiento<br>de Estructura</div>
+      <div class="db-card__title">Aprovechamiento de Estructura</div>
       <div class="db-card__desc">
         Visibilidad de estructura autorizada, ocupación y oportunidades de ajuste.
       </div>
@@ -2508,10 +2603,12 @@
     <a href="dashboards/dashboard-4.html" class="db-card"
        style="--card-accent:#F71926;--card-icon-bg:rgba(247,25,38,0.10);--card-freq-bg:rgba(247,25,38,0.12);--card-freq-color:#F71926">
       <div class="db-card__top">
-        <div class="db-card__icon">📈</div>
-        <span class="db-card__freq" style="background:rgba(247,25,38,0.12);color:#F71926">Semanal</span>
+        <div class="db-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg>
+        </div>
+        <span class="db-card__freq">Semanal</span>
       </div>
-      <div class="db-card__title">Tiempo<br>Extra</div>
+      <div class="db-card__title">Tiempo Extra</div>
       <div class="db-card__desc">
         Control semanal de horas extra, tendencias y focos de atención por operación.
       </div>
@@ -2530,10 +2627,12 @@
     <a href="dashboards/dashboard-5.html" class="db-card"
        style="--card-accent:#F2A52B;--card-icon-bg:rgba(242,165,43,0.14);--card-freq-bg:rgba(242,165,43,0.16);--card-freq-color:#F71926">
       <div class="db-card__top">
-        <div class="db-card__icon">🗺️</div>
-        <span class="db-card__freq" style="background:rgba(242,165,43,0.16);color:#F71926">Semanal</span>
+        <div class="db-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/><path d="m9 16 2 2 4-4"/></svg>
+        </div>
+        <span class="db-card__freq">Semanal</span>
       </div>
-      <div class="db-card__title">Control de<br>Vacaciones</div>
+      <div class="db-card__title">Control de Vacaciones</div>
       <div class="db-card__desc">
         Estado semanal de vacaciones, programación y balance de disponibilidad.
       </div>
@@ -2552,8 +2651,10 @@
     <a href="dashboards/dashboard-6.html" class="db-card"
        style="--card-accent:#F71926;--card-icon-bg:rgba(247,25,38,0.10);--card-freq-bg:rgba(247,25,38,0.12);--card-freq-color:#F71926">
       <div class="db-card__top">
-        <div class="db-card__icon">🎯</div>
-        <span class="db-card__freq" style="background:rgba(247,25,38,0.12);color:#F71926">Semanal</span>
+        <div class="db-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1.5A4.5 4.5 0 0 1 6.5 15h5"/><path d="M16 17h6"/></svg>
+        </div>
+        <span class="db-card__freq">Semanal</span>
       </div>
       <div class="db-card__title">Ausentismos</div>
       <div class="db-card__desc">
@@ -2573,8 +2674,10 @@
     <a href="dashboards/dashboard-7.html" class="db-card"
        style="--card-accent:#2D2D44;--card-icon-bg:rgba(45,45,68,0.10);--card-freq-bg:rgba(45,45,68,0.12);--card-freq-color:#2D2D44">
       <div class="db-card__top">
-        <div class="db-card__icon">📋</div>
-        <span class="db-card__freq" style="background:rgba(45,45,68,0.12);color:#2D2D44">TREO</span>
+        <div class="db-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M5 7 2 14h6L5 7Z"/><path d="m19 7-3 7h6l-3-7Z"/><path d="M8 21h8"/></svg>
+        </div>
+        <span class="db-card__freq">TREO</span>
       </div>
       <div class="db-card__title">TREO</div>
       <div class="db-card__desc">
@@ -2626,9 +2729,13 @@
     const checkEl = document.getElementById('exec-check-time');
 
     if (coverageEl) coverageEl.textContent = `${withDate}/${dashboardIds.length}`;
-    if (coverageNoteEl) coverageNoteEl.textContent = withDate === dashboardIds.length
-      ? 'Todos con fecha registrada'
-      : 'Fechas pendientes por validar';
+    if (coverageNoteEl) {
+      coverageNoteEl.textContent = withDate === dashboardIds.length
+        ? 'Todos con fecha registrada'
+        : 'Fechas pendientes por validar';
+      // Solo pintamos de rojo cuando de verdad falta cobertura.
+      coverageNoteEl.classList.toggle('is-neutral', withDate === dashboardIds.length);
+    }
     if (countEl) countEl.textContent = `${withDate} de ${dashboardIds.length}`;
     if (checkEl) checkEl.textContent = now;
   }
@@ -2652,8 +2759,11 @@
       const data = config[configId];
       if (data && data.ultima_actualizacion) {
         el.textContent = data.ultima_actualizacion;
+        el.classList.remove('is-empty');
       } else {
         el.textContent = 'Sin fecha registrada';
+        // Estado neutro: el rojo se reserva para alertas reales, no para "aun no hay dato".
+        el.classList.add('is-empty');
       }
     });
 
