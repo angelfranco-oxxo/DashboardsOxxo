@@ -281,14 +281,14 @@
 
       const title = pptx.addSlide();
       title.background = { color: RED };
-      title.addText('Presentación Ejecutiva', { x: 0.6, y: 1.9, w: 8.8, h: 1, fontSize: 40, bold: true, color: 'FFFFFF', fontFace: 'Arial' });
+      title.addText('Presentación Foro Bienestar Días Martes', { x: 0.6, y: 1.6, w: 8.8, h: 1.3, fontSize: 34, bold: true, color: 'FFFFFF', fontFace: 'Arial' });
       title.addText('Indicadores clave · Plaza Oaxaca', { x: 0.6, y: 2.9, w: 8.8, h: 0.5, fontSize: 18, color: 'FFD7D5', fontFace: 'Arial' });
       const today = new Date();
       title.addText(today.toLocaleDateString('es-MX', { year:'numeric', month:'long', day:'numeric' }), { x: 0.6, y: 4.8, w: 8.8, h: 0.4, fontSize: 12, color: 'FFD7D5', fontFace: 'Arial' });
 
       results.forEach(({ name, kpi }) => addKpiSlide(pptx, name, kpi));
 
-      const fileName = `Presentacion-Ejecutiva-Oaxaca-${today.toISOString().slice(0,10)}.pptx`;
+      const fileName = `Presentacion-Foro-Bienestar-Dias-Martes-${today.toISOString().slice(0,10)}.pptx`;
       await pptx.writeFile({ fileName });
       if(statusEl) statusEl.textContent = 'Presentación generada correctamente.';
     } catch(e){
@@ -296,7 +296,7 @@
       if(statusEl) statusEl.textContent = 'Error al generar la presentación: ' + e.message;
     } finally {
       btn.disabled = false;
-      btn.textContent = '📊 Generar Presentación Ejecutiva';
+      btn.textContent = '📊 Generar Presentación Foro Bienestar Días Martes';
     }
   }
 
