@@ -30,6 +30,86 @@
     const vals = [...new Set(rows.map(r => String(r[key]||'').trim()).filter(Boolean))];
     return vals.sort().slice(-1)[0] || '';
   }
+  // Igual que normalizeMonthKey()/normalizeMesColumn() en dashboard-1.html y
+  // dashboard-2.html: convierte "Mes" (texto tipo "jul-26", "07-2026",
+  // "2026-07") a una clave canonica "YYYY-MM". Sin esto, ordenar el texto
+  // crudo alfabeticamente ("ago-26" < "ene-26" < "jul-26") no coincide con el
+  // orden cronologico real y puede elegir un mes distinto al que muestra el
+  // dashboard.
+  const MES_ABBR = {
+    ene:1, enero:1, feb:2, febrero:2, mar:3, marzo:3, abr:4, abril:4,
+    may:5, mayo:5, jun:6, junio:6, jul:7, julio:7, ago:8, agosto:8,
+    sep:9, sept:9, septiembre:9, set:9, setiembre:9,
+    oct:10, octubre:10, nov:11, noviembre:11, dic:12, diciembre:12,
+  };
+  function normalizeMonthKey(value){
+    const raw = String(value ?? '').trim();
+    if(!raw) return '';
+    const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[._/]+/g,'-').replace(/\s+/g,'-').trim();
+    let m = clean.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
+    if(m) return `${m[1]}-${String(+m[2]).padStart(2,'0')}`;
+    m = clean.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
+    if(m){ const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(+m[2]).padStart(2,'0')}`; }
+    m = clean.match(/^([a-z]+)-?(\d{2,4})$/);
+    if(m && MES_ABBR[m[1]]){ const y = +m[2] < 100 ? 2000 + +m[2] : +m[2]; return `${y}-${String(MES_ABBR[m[1]]).padStart(2,'0')}`; }
+    m = clean.match(/^(\d{1,2})-([a-z]+)-(\d{2,4})$/);
+    if(m && MES_ABBR[m[2]]){ const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(MES_ABBR[m[2]]).padStart(2,'0')}`; }
+    return '';
+  }
+  // Devuelve { mes: <clave canonica YYYY-MM>, rows: <filas de ese mes segun
+  // la clave canonica, no el texto crudo> }. Si ninguna fila tiene un mes
+  // reconocible, regresa todas las filas sin filtrar (igual que cuando
+  // mesKey no existe).
+  // Igual que parseFechaVacante()+mesKeyFromDate() en dashboard-1.html: si el
+  // texto de "Mes" no es reconocible, intenta leer una fecha (serial de Excel
+  // o texto dd/mm/aaaa, aaaa-mm-dd, etc.) y deriva el mes de ahi.
+  function parseFechaVacante(value){
+    const raw = String(value ?? '').trim();
+    if(!raw) return null;
+    if(/^\d+(\.\d+)?$/.test(raw)){
+      const serial = Number(raw);
+      if(serial > 25000 && serial < 80000){
+        const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+        return isNaN(d) ? null : d;
+      }
+    }
+    const clean = raw.replace(/\s+\d{1,2}:\d{2}(:\d{2})?.*$/, '').replace(/[.]/g,'/').replace(/-/g,'/');
+    const parts = clean.split('/').map(p => p.trim()).filter(Boolean);
+    if(parts.length >= 3){
+      let day, month, year;
+      if(parts[0].length === 4){ year = Number(parts[0]); month = Number(parts[1]); day = Number(parts[2]); }
+      else { day = Number(parts[0]); month = Number(parts[1]); year = Number(parts[2]); }
+      if(year < 100) year += 2000;
+      const d = new Date(year, month - 1, day);
+      if(!isNaN(d) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
+    }
+    const d = new Date(raw);
+    return isNaN(d) ? null : d;
+  }
+  function mesKeyFromDate(date){
+    if(!date) return '';
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+  }
+  // Clave de mes por fila igual que dashboard-1.html
+  // (mesInfo.key || mesKeyFromDate(fechaObj)): si "Mes" no se puede
+  // normalizar, se deriva del valor de "Fecha" parseado como fecha real
+  // (no solo texto tipo "jul-26").
+  function rowMonthKeyD1(row, mesKey, fechaKey){
+    return normalizeMonthKey(val(row, mesKey)) || mesKeyFromDate(parseFechaVacante(val(row, fechaKey)));
+  }
+  // Clave de mes por fila igual que monthKeyFromRow() en dashboard-2.html:
+  // normalizeMonthKey(Mes) || normalizeMonthKey(Fecha) (aqui si el fallback
+  // es solo texto, sin parsear fecha completa).
+  function rowMonthKeyD2(row, mesKey, fechaKey){
+    return normalizeMonthKey(val(row, mesKey)) || normalizeMonthKey(val(row, fechaKey));
+  }
+  function filterLatestMonth(rows, rowKeyFn){
+    const keyed = rows.map(r => ({ r, k: rowKeyFn(r) }));
+    const keys = [...new Set(keyed.map(x => x.k).filter(Boolean))].sort();
+    const mes = keys.slice(-1)[0] || '';
+    if(!mes) return { mes: '', rows };
+    return { mes, rows: keyed.filter(x => x.k === mes).map(x => x.r) };
+  }
   function tipoPuesto(desc){
     const d = normText(desc);
     if(d.includes('LIDER')) return 'Lider';
@@ -66,7 +146,7 @@
     const asesorKey = findKey(raw[0], ['Asesor']);
     const tiendaKey = findKey(raw[0], ['Tienda','Unidad org']);
     const crKey = findKey(raw[0], ['CR TIENDA','CR']);
-    const mes = latestByKey(raw, mesKey);
+    const fechaKey = findKey(raw[0], ['Fecha']);
     // dashboard-1.html filtra TODA la base cargada (no solo el mes activo) por:
     // tienda no vacia, excluir 'timoteoantonioperez', y el catalogo de 255
     // tiendas autorizadas (isTiendaValid). Sin esto se cuentan filas de
@@ -76,7 +156,7 @@
       .filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda')
       .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ')
       .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
-    const rows = mes ? base.filter(r => String(r[mesKey]||'').trim() === mes) : base;
+    const { mes, rows } = filterLatestMonth(base, r => rowMonthKeyD1(r, mesKey, fechaKey));
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach(r => { byPuesto[tipoPuesto(val(r, puestoKey))]++; });
     return {
@@ -92,11 +172,27 @@
     const mesKey = findKey(raw[0], ['Mes']);
     const asesorKey = findKey(raw[0], ['Asesor']);
     const puestoKey = findKey(raw[0], ['Puesto']);
-    const mes = latestByKey(raw, mesKey);
-    const rows = raw.filter(r => {
-      if(mes && String(r[mesKey]||'').trim() !== mes) return false;
+    const medidaKey = findKey(raw[0], ['Denominación Medida','Denominacion Medida','Medida','Med.']);
+    const plazaKey = findKey(raw[0], ['Plaza']);
+    const fechaKey = findKey(raw[0], ['Fecha']);
+    const asesorCrudoOk = r => String(val(r, asesorKey)||'').trim() && normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ';
+    // Igual que filterData() en dashboard-2.html: si la hoja trae columna de
+    // Medida, quedarse solo con movimientos de BAJA; si trae Plaza, quedarse
+    // solo con Oaxaca. Cada filtro solo se aplica si existe la columna y deja
+    // al menos una fila (mismo criterio "solo si aplica" del dashboard).
+    let base = raw.filter(r => asesorCrudoOk(r));
+    if(medidaKey){
+      const bajas = base.filter(r => normText(val(r, medidaKey)).includes('BAJA'));
+      if(bajas.length) base = bajas;
+    }
+    if(plazaKey){
+      const oax = base.filter(r => normText(val(r, plazaKey)).includes('OAXACA'));
+      if(oax.length) base = oax;
+    }
+    const { mes, rows: byMonth } = filterLatestMonth(base, r => rowMonthKeyD2(r, mesKey, fechaKey));
+    const rows = byMonth.filter(r => {
       const asesor = normText(val(r, asesorKey));
-      if(!asesor || asesor.includes('SIN ASESOR') || asesor.replace(/[^A-Z]/g,'') === 'TIMOTEOANTONIOPEREZ') return false;
+      if(!asesor || asesor.includes('SIN ASESOR')) return false;
       const puesto = tipoPuesto(val(r, puestoKey));
       return puesto !== 'Otro';
     });
@@ -114,8 +210,9 @@
     if(!raw || !raw.length) return null;
     const estatusKey = findKey(raw[0], ['Clas Aprov','Estatus Con impacto Ausentismo','Estatus']);
     const asesorKey = findKey(raw[0], ['Asesor']);
-    const ecPorAtKey = findKey(raw[0], ['Ec por AT','EC por AT']);
-    const fechaKey = findKey(raw[0], ['FECHA','Fecha']);
+    const ecPorAtKey = findKey(raw[0], ['Ec','EC','Ec por AT','EC POR AT','EC por AT','Ec Por AT']);
+    const atKey = findKey(raw[0], ['Ats','ATS','AT','At']);
+    const fechaKey = findKey(raw[0], ['Mes Semana','Semana','Fecha','FECHA']);
     // Igual que Dashboard 3: aunque cada carga deberia reemplazar toda la
     // pestana (foto diaria), si llegaran a quedar varias fechas mezcladas se
     // usa solo la mas reciente, para no promediar dias distintos.
@@ -162,25 +259,40 @@
     // columna 'Ec por AT' de la hoja si viene poblada; si no, cae al mismo
     // EC% (completas/total) calculado por asesor con la clasificacion de
     // Estatus de arriba — nunca el umbral sobre el valor crudo.
-    let ranking;
-    if(ecPorAtKey && rows.some(r => num(val(r, ecPorAtKey)) > 0)){
-      const ecRows = rows.filter(r => num(val(r, ecPorAtKey)) > 0).map(r => ({ [asesorKey]: val(r, asesorKey), __ec: normPct(val(r, ecPorAtKey)) }));
-      ranking = rankAvg(ecRows, asesorKey, '__ec', 15);
-    } else {
-      const byAsesor = new Map();
-      rows.forEach(r => {
-        const name = String(val(r, asesorKey)||'').trim();
-        if(!name) return;
-        if(!byAsesor.has(name)) byAsesor.set(name, { total: 0, completas: 0 });
-        const acc = byAsesor.get(name);
-        acc.total++;
-        if(clasifica(r) === 'completas') acc.completas++;
+    // Dashboard-3.html cruza el EC% (columna 'Ec por AT') por la columna 'AT'
+    // (no 'Asesor'), y ese promedio se calcula sobre TODA la base cargada
+    // (ALL_DATA, sin filtrar por fecha/semana) — "fijo, no depende de
+    // filtros". El resto (total de tiendas y EC% de respaldo) sí usa solo
+    // las filas de la fecha mas reciente.
+    const ecByAt = new Map();
+    if(ecPorAtKey && atKey){
+      raw.forEach(r => {
+        const ecVal = normPct(val(r, ecPorAtKey));
+        const atName = String(val(r, atKey)||'').trim().toUpperCase();
+        if(!(ecVal > 0) || !atName) return;
+        if(!ecByAt.has(atName)) ecByAt.set(atName, { sum: 0, n: 0 });
+        const acc = ecByAt.get(atName);
+        acc.sum += ecVal; acc.n++;
       });
-      ranking = [...byAsesor.entries()]
-        .map(([name, v]) => ({ name, value: v.total > 0 ? (v.completas / v.total) * 100 : 0 }))
-        .sort((a,b) => b.value - a.value)
-        .slice(0, 15);
     }
+    const byAsesor = new Map();
+    rows.forEach(r => {
+      const name = String(val(r, asesorKey)||'').trim();
+      if(!name) return;
+      if(!byAsesor.has(name)) byAsesor.set(name, { total: 0, completas: 0 });
+      const acc = byAsesor.get(name);
+      acc.total++;
+      if(clasifica(r) === 'completas') acc.completas++;
+    });
+    const ranking = [...byAsesor.entries()]
+      .map(([name, v]) => {
+        const ecAt = ecByAt.get(name.trim().toUpperCase());
+        const ec = v.total > 0 ? v.completas / v.total : 0;
+        return { name, value: ecAt ? ecAt.sum / ecAt.n : ec * 100, hasData: !!ecAt || ec > 0 };
+      })
+      .filter(x => x.hasData)
+      .sort((a,b) => b.value - a.value)
+      .slice(0, 15);
 
     return {
       pct, completas, incompletas, criticas,
@@ -222,8 +334,12 @@
     const activosKey = findKey(raw[0], ['Empleados Activos','Activos']);
     const vacantesKey = findKey(raw[0], ['Vacantes']);
     const asesorKey = findKey(raw[0], ['Asesor']);
-    const tiendaKey = findKey(raw[0], ['Tienda']);
-    const crKey = findKey(raw[0], ['CR']);
+    // Mismos alias que pickField() en dashboard-7.html para 'tienda' y 'cr':
+    // sin ellos, una hoja que use 'Unidad Organizativa' o 'ID Tienda' en vez
+    // de 'Tienda'/'CR' se queda sin CR para el match por catalogo y cae al
+    // respaldo por nombre de tienda, que es menos preciso.
+    const tiendaKey = findKey(raw[0], ['Tienda','Nombre Tienda','Unidad','Unidad Org','Unidad Organizativa']);
+    const crKey = findKey(raw[0], ['CR','ID Tienda','ID_Tienda']);
     // dashboard-7.html filtra por el catalogo de 255 tiendas autorizadas y
     // excluye 'timoteoantonioperez', igual que Dashboard 1.
     const asesorCatalog = await OXXO.loadAsesorCatalog();
