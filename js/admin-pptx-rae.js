@@ -152,11 +152,16 @@
     // tiendas autorizadas (isTiendaValid). Sin esto se cuentan filas de
     // tiendas/plazas que el dashboard real nunca muestra.
     const asesorCatalog = await OXXO.loadAsesorCatalog();
-    const base = raw
-      .filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda')
-      .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ')
-      .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    console.log('[RAE][D1] raw.length=', raw.length, { mesKey, puestoKey, asesorKey, tiendaKey, crKey, fechaKey });
+    console.log('[RAE][D1] catalog.loaded=', asesorCatalog && asesorCatalog.loaded, 'validTiendas.size=', asesorCatalog && asesorCatalog.validTiendas && asesorCatalog.validTiendas.size);
+    const stepTienda = raw.filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda');
+    const stepTimoteo = stepTienda.filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ');
+    const base = stepTimoteo.filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    console.log('[RAE][D1] tras tienda no vacia=', stepTienda.length, '/ tras excluir timoteo=', stepTimoteo.length, '/ tras catalogo=', base.length);
     const { mes, rows } = filterLatestMonth(base, r => rowMonthKeyD1(r, mesKey, fechaKey));
+    console.log('[RAE][D1] mes elegido=', mes, '/ filas de ese mes=', rows.length);
+    const mesesDisponibles = [...new Set(base.map(r => rowMonthKeyD1(r, mesKey, fechaKey)).filter(Boolean))].sort();
+    console.log('[RAE][D1] meses disponibles en base=', mesesDisponibles, '(conteo por mes:', mesesDisponibles.map(m => `${m}:${base.filter(r=>rowMonthKeyD1(r,mesKey,fechaKey)===m).length}`).join(', '), ')');
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach(r => { byPuesto[tipoPuesto(val(r, puestoKey))]++; });
     return {
@@ -343,6 +348,14 @@
     // dashboard-7.html filtra por el catalogo de 255 tiendas autorizadas y
     // excluye 'timoteoantonioperez', igual que Dashboard 1.
     const asesorCatalog = await OXXO.loadAsesorCatalog();
+    console.log('[RAE][D7] raw.length=', raw.length, { difKey, treoKey, activosKey, vacantesKey, asesorKey, tiendaKey, crKey });
+    console.log('[RAE][D7] catalog.loaded=', asesorCatalog && asesorCatalog.loaded, 'validTiendas.size=', asesorCatalog && asesorCatalog.validTiendas && asesorCatalog.validTiendas.size, 'activosPorCR.size=', activosPorCR.size);
+    const stepTiendaOAsesor = raw.filter(r => String(val(r, tiendaKey)||'').trim() || String(val(r, asesorKey)||'').trim());
+    const stepCatalogo = stepTiendaOAsesor.filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    const stepTimoteo = stepCatalogo.filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ');
+    console.log('[RAE][D7] tras tienda-o-asesor=', stepTiendaOAsesor.length, '/ tras catalogo=', stepCatalogo.length, '/ tras excluir timoteo=', stepTimoteo.length);
+    const excluidasPorCatalogo = stepTiendaOAsesor.filter(r => !OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    if(excluidasPorCatalogo.length) console.log('[RAE][D7] ejemplo de filas excluidas por catalogo (hasta 5):', excluidasPorCatalogo.slice(0,5).map(r => ({ tienda: val(r,tiendaKey), cr: val(r,crKey) })));
     const rows = raw
       .filter(r => String(val(r, tiendaKey)||'').trim() || String(val(r, asesorKey)||'').trim())
       .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)))
