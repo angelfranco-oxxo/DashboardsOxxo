@@ -21,15 +21,6 @@
     if(d.includes('AYUDANTE')) return 'Ayudante';
     return 'Otro';
   }
-  function tipoAusentismo(desc){
-    const d = normText(desc);
-    if(d.includes('FALTA')) return 'Faltas';
-    if(d.includes('ACCIDENTE')) return 'Accidentes';
-    if(d.includes('INC') || d.includes('ENF')) return 'Incapacidades';
-    if(d.includes('VACAC')) return 'Vacaciones';
-    if(d.includes('MATERN') || d.includes('PATERN') || d.includes('PERMISO')) return 'Permisos';
-    return 'Otro';
-  }
   // Ranking de conteo por nombre (p.ej. vacantes o bajas por Asesor), top N descendente.
   function rankCount(rows, nameKey, limit){
     const counts = new Map();
@@ -39,16 +30,6 @@
       counts.set(name, (counts.get(name)||0) + 1);
     });
     return [...counts.entries()].map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, limit);
-  }
-  // Ranking de suma por nombre (p.ej. horas TE o dias ausentes por Asesor), top N descendente.
-  function rankSum(rows, nameKey, valueKey, limit){
-    const sums = new Map();
-    rows.forEach(r => {
-      const name = String(val(r, nameKey)||'').trim();
-      if(!name) return;
-      sums.set(name, (sums.get(name)||0) + num(val(r, valueKey)));
-    });
-    return [...sums.entries()].map(([name, value]) => ({ name, value: Math.round(value) })).filter(it => it.value > 0).sort((a,b) => b.value - a.value).slice(0, limit);
   }
   // Ranking de promedio por nombre (p.ej. % aprovechamiento por AT), ordenado descendente.
   function rankAvg(rows, nameKey, valueKey, limit){
@@ -61,13 +42,6 @@
     });
     return [...sums.entries()].map(([name, sum]) => ({ name, value: sum / counts.get(name) })).sort((a,b) => b.value - a.value).slice(0, limit);
   }
-  // Ranking ascendente (p.ej. dias restantes de vacaciones: los mas criticos primero).
-  function rankAsc(rows, nameKey, valueKey, limit){
-    return rows.map(r => ({ name: String(val(r, nameKey)||'').trim(), value: num(val(r, valueKey)) }))
-      .filter(it => it.name)
-      .sort((a,b) => a.value - b.value).slice(0, limit);
-  }
-
   async function dataD1(){
     const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d1);
     if(!raw || !raw.length) return null;
@@ -141,70 +115,6 @@
       pct, completas, incompletas, criticas,
       plazas: plazas.slice(0, 5),
       ranking: rankAvg(raw, asesorKey, aprovKey, 10),
-    };
-  }
-
-  async function dataD4(){
-    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s4);
-    if(!raw || !raw.length) return null;
-    const semanaKey = findKey(raw[0], ['Semana']);
-    const horasKey = findKey(raw[0], ['Cantidad']);
-    const tipoKey = findKey(raw[0], ['Textos homologados']);
-    const asesorKey = findKey(raw[0], ['Asesor']);
-    const semana = latestByKey(raw, semanaKey);
-    const rows = semana ? raw.filter(r => String(r[semanaKey]||'').trim() === semana) : raw;
-    const totalHoras = rows.reduce((s,r) => s + num(val(r, horasKey)), 0);
-    const byTipo = { Sencillo: 0, Doble: 0, Triple: 0, Descanso: 0 };
-    rows.forEach(r => {
-      const t = normText(val(r, tipoKey));
-      const horas = num(val(r, horasKey));
-      if(t.replace(/\s+/g,'') === 'TIEMPOEXTRADOBLE') byTipo.Doble += horas;
-      else if(t.replace(/\s+/g,'') === 'TIEMPOEXTRATRIPLE') byTipo.Triple += horas;
-      else if(t.replace(/\s+/g,'').startsWith('DIADES')) byTipo.Descanso += horas;
-      else byTipo.Sencillo += horas;
-    });
-    return {
-      totalHoras, sub: semana ? `Semana ${semana}` : 'Plaza Oaxaca',
-      byTipo,
-      ranking: rankSum(rows, asesorKey, horasKey, 8),
-    };
-  }
-
-  async function dataD5(){
-    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s5);
-    if(!raw || !raw.length) return null;
-    const diasKey = findKey(raw[0], ['Dias_Restantes']);
-    const bucketKey = findKey(raw[0], ['Bucket_Ant']);
-    const nombreKey = findKey(raw[0], ['Nombre']);
-    const totalDias = raw.reduce((s,r) => s + num(val(r, diasKey)), 0);
-    const buckets = { 'ya vencieron sus dias': 0, '0 a 50 dias': 0, '51 a 100 dias': 0, '101 a 150 dias': 0, 'mas de 150 dias': 0 };
-    raw.forEach(r => {
-      const b = String(val(r, bucketKey) || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-      if(buckets[b] !== undefined) buckets[b]++;
-    });
-    return {
-      totalDias: Math.round(totalDias), colaboradores: raw.length,
-      buckets,
-      ranking: rankAsc(raw, nombreKey, diasKey, 8),
-    };
-  }
-
-  async function dataD6(){
-    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s6);
-    if(!raw || !raw.length) return null;
-    const semanaKey = findKey(raw[0], ['Semana']);
-    const diasKey = findKey(raw[0], ['Dias']);
-    const denomKey = findKey(raw[0], ['Denominacion']);
-    const asesorKey = findKey(raw[0], ['Asesor']);
-    const semana = latestByKey(raw, semanaKey);
-    const rows = semana ? raw.filter(r => String(r[semanaKey]||'').trim() === semana) : raw;
-    const totalDias = rows.reduce((s,r) => s + num(val(r, diasKey)), 0);
-    const byTipo = { Faltas: 0, Incapacidades: 0, Vacaciones: 0, Permisos: 0, Accidentes: 0, Otro: 0 };
-    rows.forEach(r => { byTipo[tipoAusentismo(val(r, denomKey))] += num(val(r, diasKey)); });
-    return {
-      totalDias: Math.round(totalDias), sub: semana ? `Semana ${semana}` : 'Plaza Oaxaca',
-      byTipo,
-      ranking: rankSum(rows, asesorKey, diasKey, 8),
     };
   }
 
@@ -425,48 +335,6 @@
     ]);
   }
 
-  function buildD4(pptx, d, dateLabel){
-    const slide = pptx.addSlide();
-    slide.background = { color: WHITE };
-    addHeader(slide, 'TIEMPO EXTRA', dateLabel);
-    addHeroKpi(slide, MARGIN_X, 1.25, 4.55, 1.35, OXXO.formatNum(d.totalHoras), 'HORAS TE TOTALES', d.sub + ' · Plaza Oaxaca');
-    addDoughnutCard(pptx, slide, MARGIN_X, 2.8, 4.55, 2.5, 'Horas TE por tipo', [
-      { label: 'Sencillo', value: d.byTipo.Sencillo, color: GOLD },
-      { label: 'Doble', value: d.byTipo.Doble, color: ORANGE },
-      { label: 'Triple', value: d.byTipo.Triple, color: RED },
-      { label: 'Descanso', value: d.byTipo.Descanso, color: DARK },
-    ]);
-    addRankingList(slide, 5.35, 1.25, 7.55, 5.75, 'Horas TE por Asesor', d.ranking, `${OXXO.formatNum(d.totalHoras)} h totales`);
-  }
-
-  function buildD5(pptx, d, dateLabel){
-    const slide = pptx.addSlide();
-    slide.background = { color: WHITE };
-    addHeader(slide, 'CONTROL DE VACACIONES', dateLabel);
-    addHeroKpi(slide, MARGIN_X, 1.25, 4.55, 1.35, OXXO.formatNum(d.totalDias), 'DÍAS RESTANTES', `${d.colaboradores} colaboradores · Plaza Oaxaca`);
-    addDoughnutCard(pptx, slide, MARGIN_X, 2.8, 4.55, 2.5, 'Colaboradores por vencimiento', [
-      { label: 'Vencidos', value: d.buckets['ya vencieron sus dias'], color: RED },
-      { label: '0-50 días', value: d.buckets['0 a 50 dias'], color: ORANGE },
-      { label: '51-100 días', value: d.buckets['51 a 100 dias'], color: GOLD },
-      { label: '+100 días', value: d.buckets['101 a 150 dias'] + d.buckets['mas de 150 dias'], color: GREEN },
-    ]);
-    addRankingList(slide, 5.35, 1.25, 7.55, 5.75, 'Casos más críticos (menos días)', d.ranking, `${d.colaboradores} colaboradores`);
-  }
-
-  function buildD6(pptx, d, dateLabel){
-    const slide = pptx.addSlide();
-    slide.background = { color: WHITE };
-    addHeader(slide, 'AUSENTISMOS', dateLabel);
-    addHeroKpi(slide, MARGIN_X, 1.25, 4.55, 1.35, OXXO.formatNum(d.totalDias), 'DÍAS AUSENTES', d.sub + ' · Plaza Oaxaca');
-    addDoughnutCard(pptx, slide, MARGIN_X, 2.8, 4.55, 2.5, 'Días ausentes por tipo', [
-      { label: 'Faltas', value: Math.round(d.byTipo.Faltas), color: RED },
-      { label: 'Incapacidades', value: Math.round(d.byTipo.Incapacidades), color: ORANGE },
-      { label: 'Vacaciones', value: Math.round(d.byTipo.Vacaciones), color: GOLD },
-      { label: 'Permisos', value: Math.round(d.byTipo.Permisos), color: DARK },
-    ]);
-    addRankingList(slide, 5.35, 1.25, 7.55, 5.75, 'Días ausentes por Asesor', d.ranking, `${OXXO.formatNum(d.totalDias)} días totales`);
-  }
-
   function buildD7(pptx, d, dateLabel){
     const slide = pptx.addSlide();
     slide.background = { color: WHITE };
@@ -487,13 +355,12 @@
     ]);
   }
 
+  // Solo las 4 diapositivas que trae RAE_BASE.pptx: Vacantes, Bajas,
+  // Aprovechamiento y TREO. Tiempo Extra/Vacaciones/Ausentismos no van aqui.
   const DASHBOARDS = [
     { title: 'VACANTES', fetch: dataD1, build: buildD1 },
     { title: 'BAJAS', fetch: dataD2, build: buildD2 },
     { title: 'APROVECHAMIENTO DE ESTRUCTURA', fetch: dataD3, build: buildD3 },
-    { title: 'TIEMPO EXTRA', fetch: dataD4, build: buildD4 },
-    { title: 'CONTROL DE VACACIONES', fetch: dataD5, build: buildD5 },
-    { title: 'AUSENTISMOS', fetch: dataD6, build: buildD6 },
     { title: 'TREO · ESTRUCTURA', fetch: dataD7, build: buildD7 },
   ];
 
