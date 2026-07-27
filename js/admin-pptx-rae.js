@@ -15,6 +15,17 @@
   // por 100 al exportarlo (73.69 -> "7369.19%"). Se revierte esa duplicacion.
   function normPct(v){ let n = num(v); while(n > 100) n /= 100; return n; }
   function normText(v){ return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase(); }
+  // Acorta un nombre largo a "Nombre(s) Apellido1 A." (inicial del ultimo
+  // apellido) en vez de cortarlo a solo el primer nombre: la plaza suele tener
+  // varios asesores que comparten nombre de pila, asi que recortar de mas
+  // volveria a confundirlos.
+  function shortenName(name, maxChars = 24){
+    const trimmed = String(name || '').trim();
+    if(trimmed.length <= maxChars) return trimmed;
+    const parts = trimmed.split(/\s+/);
+    if(parts.length <= 2) return trimmed;
+    return `${parts.slice(0, -1).join(' ')} ${parts[parts.length - 1][0]}.`;
+  }
   function latestByKey(rows, key){
     const vals = [...new Set(rows.map(r => String(r[key]||'').trim()).filter(Boolean))];
     return vals.sort().slice(-1)[0] || '';
@@ -60,7 +71,7 @@
     return {
       total: rows.length, sub: mes ? `Mes ${mes}` : 'Plaza Oaxaca',
       byPuesto,
-      ranking: rankCount(rows, asesorKey, 8),
+      ranking: rankCount(rows, asesorKey, 15),
     };
   }
 
@@ -83,7 +94,7 @@
     return {
       total: rows.length, sub: mes ? `Mes ${mes}` : 'Plaza Oaxaca',
       byPuesto,
-      ranking: rankCount(rows, asesorKey, 8),
+      ranking: rankCount(rows, asesorKey, 15),
     };
   }
 
@@ -123,7 +134,7 @@
     return {
       pct, completas, incompletas, criticas,
       plazas: plazas.slice(0, 5),
-      ranking: rankAvg(normalizedRows, asesorKey, aprovKey, 10),
+      ranking: rankAvg(normalizedRows, asesorKey, aprovKey, 15),
     };
   }
 
@@ -248,7 +259,7 @@
       const barX = x + 0.2 + nameW;
       const barW = w - 0.4 - nameW - 0.65;
       const pillW = 0.6;
-      slide.addText(item.name, { x: x + 0.2, y: ry, w: nameW - 0.1, h: rowH, fontSize: 9.5, color: TEXT, fontFace: 'Arial', valign: 'middle', margin: 0, fit: 'shrink' });
+      slide.addText(shortenName(item.name), { x: x + 0.2, y: ry, w: nameW - 0.1, h: rowH, fontSize: 9.5, color: TEXT, fontFace: 'Arial', valign: 'middle', margin: 0, fit: 'shrink' });
       slide.addShape('roundRect', { x: barX, y: ry + rowH * 0.28, w: barW, h: rowH * 0.32, rectRadius: 0.04, fill: { color: TRACKBG }, line: { type: 'none' } });
       const fillW = Math.max(barW * (item.value / maxValue), 0.06);
       slide.addShape('roundRect', { x: barX, y: ry + rowH * 0.28, w: fillW, h: rowH * 0.32, rectRadius: 0.04, fill: { color: barColor }, line: { type: 'none' } });
@@ -285,7 +296,7 @@
       const barX = x + 0.2 + nameW;
       const barW = w - 0.4 - nameW - 0.75;
       const pillW = 0.7;
-      slide.addText(item.name, { x: x + 0.2, y: ry, w: nameW - 0.1, h: rowH, fontSize: 9.5, color: TEXT, fontFace: 'Arial', valign: 'middle', margin: 0, fit: 'shrink' });
+      slide.addText(shortenName(item.name), { x: x + 0.2, y: ry, w: nameW - 0.1, h: rowH, fontSize: 9.5, color: TEXT, fontFace: 'Arial', valign: 'middle', margin: 0, fit: 'shrink' });
       slide.addShape('roundRect', { x: barX, y: ry + rowH * 0.28, w: barW, h: rowH * 0.32, rectRadius: 0.04, fill: { color: TRACKBG }, line: { type: 'none' } });
       const fillW = Math.max(barW * Math.min(item.value, 100) / 100, 0.06);
       slide.addShape('roundRect', { x: barX, y: ry + rowH * 0.28, w: fillW, h: rowH * 0.32, rectRadius: 0.04, fill: { color: barColor }, line: { type: 'none' } });
@@ -384,8 +395,11 @@
     addHeader(slide, 'APROVECHAMIENTO DE ESTRUCTURA', dateLabel);
     addSectionTitle(slide, MARGIN_X, 1.2, 6.85, 'Aprovechamiento por Plaza', 'Meta 95%');
     const gW = (6.85 - 0.2 * 4) / 5;
-    d.plazas.forEach((p, i) => addGaugeCard(slide, MARGIN_X + i * (gW + 0.2), 1.65, gW, 1.55, p.value, p.name));
-    addPctRankingList(slide, MARGIN_X, 3.5, 6.85, 3.5, 'Aprovechamiento por AT', d.ranking, 'Meta 95%');
+    d.plazas.forEach((p, i) => addGaugeCard(slide, MARGIN_X + i * (gW + 0.2), 1.65, gW, 1.4, p.value, p.name));
+    // Un asesor por fila cabe holgado hasta ~10; con 11+ se le da toda la
+    // altura restante hasta la base del panel derecho (mismo fondo que
+    // 'Estatus con impacto de ausentismo') en vez de dejar espacio muerto.
+    addPctRankingList(slide, MARGIN_X, 3.2, 6.85, 3.8, 'Aprovechamiento por AT', d.ranking, 'Meta 95%');
     addDoughnutCard(pptx, slide, 8.3, 1.2, 4.6, 5.8, 'Estatus con impacto de ausentismo', [
       { label: 'Completas', value: d.completas, color: GREEN },
       { label: 'Incompletas', value: d.incompletas, color: GOLD },
