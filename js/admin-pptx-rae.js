@@ -9,6 +9,11 @@
   }
   function val(row, key, fallback=''){ const v = key ? row[key] : undefined; return (v===undefined||v===null||String(v).trim()==='') ? fallback : v; }
   function num(v){ const n = Number(String(v??'').replace(/[$,%]/g,'').replace(/,/g,'').trim()); return Number.isFinite(n) ? n : 0; }
+  // Normaliza un valor de aprovechamiento a escala 0-100. Cuando la columna de
+  // Sheets tiene formato "Porcentaje" aplicado a un numero que ya viene en
+  // escala 0-100 (en vez de una fraccion 0-1), Sheets lo multiplica otra vez
+  // por 100 al exportarlo (73.69 -> "7369.19%"). Se revierte esa duplicacion.
+  function normPct(v){ let n = num(v); while(n > 100) n /= 100; return n; }
   function normText(v){ return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase(); }
   function latestByKey(rows, key){
     const vals = [...new Set(rows.map(r => String(r[key]||'').trim()).filter(Boolean))];
@@ -97,7 +102,7 @@
       else if(s.includes('COMPLETO')) completas++;
     });
     const pct = total > 0 ? (completas / total * 100) : 0;
-    const oaxacaAvg = raw.reduce((s,r) => s + num(val(r, aprovKey)), 0) / (total || 1);
+    const oaxacaAvg = raw.reduce((s,r) => s + normPct(val(r, aprovKey)), 0) / (total || 1);
 
     let plazas = [];
     try {
@@ -105,16 +110,20 @@
       if(otras && otras.length){
         const plazaKey = findKey(otras[0], ['PLAZAS','Plaza']);
         const valKey = findKey(otras[0], ['Aprovechamiento de estructura a hoy','Aprovechamiento']);
-        plazas = otras.map(r => ({ name: String(val(r, plazaKey)||'').trim(), value: num(val(r, valKey)) })).filter(p => p.name);
+        plazas = otras.map(r => ({ name: String(val(r, plazaKey)||'').trim(), value: normPct(val(r, valKey)) })).filter(p => p.name);
       }
     } catch(e){ /* sin datos de otras plazas: se muestra solo Oaxaca */ }
     plazas.push({ name: 'OAXACA', value: oaxacaAvg });
     plazas.sort((a,b) => b.value - a.value);
 
+    // rankAvg normaliza cada fila con normPct antes de promediar, para que el
+    // ranking por AT no arrastre el mismo error de formato x100.
+    const normalizedRows = raw.map(r => ({ ...r, [aprovKey]: normPct(val(r, aprovKey)) }));
+
     return {
       pct, completas, incompletas, criticas,
       plazas: plazas.slice(0, 5),
-      ranking: rankAvg(raw, asesorKey, aprovKey, 10),
+      ranking: rankAvg(normalizedRows, asesorKey, aprovKey, 10),
     };
   }
 
@@ -258,33 +267,82 @@
     slide.addShape('roundRect', { x: x + 0.1, y: y + h - 0.24, w: (w - 0.2) * Math.min(pct, 100) / 100, h: 0.1, rectRadius: 0.05, fill: { color }, line: { type: 'none' } });
   }
 
-  function addAtList(slide, x, y, w, h, title, items, rightText){
+  // Ranking de porcentaje con barra (p.ej. Aprovechamiento por AT). Igual que
+  // addRankingList pero con barra hasta el 100% y color por umbral (95/85%)
+  // en vez de color fijo por posicion, y valor mostrado con decimales.
+  function addPctRankingList(slide, x, y, w, h, title, items, rightText){
     slide.addShape('roundRect', { x, y, w, h, rectRadius: 0.1, fill: { color: WHITE }, line: { color: BORDER, width: 1 } });
     addSectionTitle(slide, x + 0.2, y + 0.16, w - 0.4, title, rightText);
     if(!items.length){
       slide.addText('Sin datos disponibles', { x: x + 0.2, y: y + h/2 - 0.2, w: w - 0.4, h: 0.4, fontSize: 12, color: MUTED, align: 'center', fontFace: 'Arial', margin: 0 });
       return;
     }
-    const half = Math.ceil(items.length / 2);
-    const colW = (w - 0.4) / 2;
-    const rowH = Math.min(0.4, (h - 0.75) / half);
-    [items.slice(0, half), items.slice(half)].forEach((col, ci) => {
-      let ry = y + 0.62;
-      col.forEach(it => {
-        const cx = x + 0.2 + ci * colW;
-        const color = it.value >= 95 ? GREEN : (it.value >= 85 ? '#B8860B' : RED);
-        slide.addText(it.name, { x: cx, y: ry, w: colW - 1.0, h: rowH, fontSize: 10, color: TEXT, fontFace: 'Arial', valign: 'middle', margin: 0, fit: 'shrink' });
-        slide.addText(`${it.value.toFixed(2)}%`, { x: cx + colW - 1.0, y: ry, w: 1.0, h: rowH, fontSize: 10, bold: true, color, fontFace: 'Arial', align: 'right', valign: 'middle', margin: 0 });
-        ry += rowH;
-      });
+    const rowH = Math.min(0.68, (h - 0.8) / items.length);
+    let ry = y + 0.62;
+    items.forEach(item => {
+      const barColor = item.value >= 95 ? GREEN : (item.value >= 85 ? GOLD : RED);
+      const nameW = w * 0.32;
+      const barX = x + 0.2 + nameW;
+      const barW = w - 0.4 - nameW - 0.75;
+      const pillW = 0.7;
+      slide.addText(item.name, { x: x + 0.2, y: ry, w: nameW - 0.1, h: rowH, fontSize: 9.5, color: TEXT, fontFace: 'Arial', valign: 'middle', margin: 0, fit: 'shrink' });
+      slide.addShape('roundRect', { x: barX, y: ry + rowH * 0.28, w: barW, h: rowH * 0.32, rectRadius: 0.04, fill: { color: TRACKBG }, line: { type: 'none' } });
+      const fillW = Math.max(barW * Math.min(item.value, 100) / 100, 0.06);
+      slide.addShape('roundRect', { x: barX, y: ry + rowH * 0.28, w: fillW, h: rowH * 0.32, rectRadius: 0.04, fill: { color: barColor }, line: { type: 'none' } });
+      slide.addShape('roundRect', { x: x + w - 0.2 - pillW, y: ry + (rowH - 0.24) / 2, w: pillW, h: 0.24, rectRadius: 0.04, fill: { color: PINKBG }, line: { type: 'none' } });
+      slide.addText(`${item.value.toFixed(1)}%`, { x: x + w - 0.2 - pillW, y: ry + (rowH - 0.24) / 2, w: pillW, h: 0.24, fontSize: 9.5, bold: true, color: barColor, fontFace: 'Arial', align: 'center', valign: 'middle', margin: 0 });
+      ry += rowH;
     });
   }
 
-  function addMetricCard(slide, x, y, w, h, label, value, note, big){
+  // Tarjeta de metrica TREO. Proporciones fraccionales (label ~arriba 8-25%,
+  // valor grande ~27-68%, nota ~74-96%) tomadas de las coordenadas reales de
+  // RAE_BASE.pptx (tarjetas de 1.83x2.05in), para que escale igual sin
+  // importar el alto exacto que se le pase.
+  function addMetricCard(slide, x, y, w, h, label, value, note){
     slide.addShape('roundRect', { x, y, w, h, rectRadius: 0.08, fill: { color: WHITE }, line: { color: BORDER, width: 1 } });
-    slide.addText(label.toUpperCase(), { x: x + 0.14, y: y + 0.1, w: w - 0.28, h: 0.24, fontSize: 9, bold: true, color: MUTED, fontFace: 'Arial', margin: 0, fit: 'shrink' });
-    slide.addText(String(value), { x: x + 0.14, y: y + 0.32, w: w - 0.28, h: big ? 0.55 : 0.4, fontSize: big ? 30 : 20, bold: true, color: TEXT, fontFace: 'Arial', margin: 0 });
-    slide.addText(note, { x: x + 0.14, y: y + h - 0.32, w: w - 0.28, h: 0.28, fontSize: 8.5, bold: true, color: RED, fontFace: 'Arial', margin: 0, fit: 'shrink' });
+    slide.addText(label.toUpperCase(), { x: x + 0.14, y: y + h * 0.08, w: w - 0.28, h: h * 0.17, fontSize: 9, bold: true, color: MUTED, fontFace: 'Arial', margin: 0, fit: 'shrink' });
+    slide.addText(String(value), { x: x + 0.14, y: y + h * 0.27, w: w - 0.28, h: h * 0.41, fontSize: 30, bold: true, color: TEXT, fontFace: 'Arial', margin: 0, fit: 'shrink' });
+    slide.addText(note, { x: x + 0.14, y: y + h * 0.74, w: w - 0.28, h: h * 0.22, fontSize: 8.5, bold: true, color: RED, fontFace: 'Arial', margin: 0, fit: 'shrink' });
+  }
+
+  function addNoteCard(slide, x, y, w, h, title, note){
+    slide.addShape('roundRect', { x, y, w, h, rectRadius: 0.08, fill: { color: WHITE }, line: { color: BORDER, width: 1 } });
+    slide.addText(title, { x: x + 0.14, y: y + h * 0.1, w: w - 0.28, h: h * 0.4, fontSize: 11, bold: true, color: TEXT, fontFace: 'Arial', margin: 0, fit: 'shrink' });
+    slide.addText(note, { x: x + 0.14, y: y + h * 0.5, w: w - 0.28, h: h * 0.4, fontSize: 10, color: RED, fontFace: 'Arial', margin: 0, fit: 'shrink' });
+  }
+
+  // Tarjeta "Alineacion Global": dona arriba + 3 casillas de estatus abajo,
+  // igual que la columna derecha de la diapositiva TREO en RAE_BASE.pptx
+  // (ahi la dona no lleva leyenda lateral, sino recuadros debajo).
+  function addTreoAlignmentCard(pptx, slide, x, y, w, h, segments){
+    slide.addShape('roundRect', { x, y, w, h, rectRadius: 0.1, fill: { color: WHITE }, line: { color: BORDER, width: 1 } });
+    addSectionTitle(slide, x + 0.3, y + 0.29, w - 0.6, 'Alineación Global');
+    const clean = segments.filter(s => s.value > 0);
+    const total = clean.reduce((s, seg) => s + seg.value, 0) || 1;
+    const chartSize = Math.min(w * 0.78, h * 0.56);
+    const chartX = x + (w - chartSize) / 2;
+    const chartY = y + 0.7;
+    if(clean.length){
+      slide.addChart(pptx.ChartType.doughnut, [{ name: 'Alineación Global', labels: clean.map(s => s.label), values: clean.map(s => s.value) }], {
+        x: chartX, y: chartY, w: chartSize, h: chartSize,
+        chartColors: clean.map(s => s.color),
+        showLegend: false, showValue: false, showPercent: false,
+        dataBorder: { pt: 2, color: WHITE },
+        holeSize: 62,
+      });
+      const topPct = Math.round((clean[0].value / total) * 100);
+      slide.addText(`${topPct}%`, { x: chartX, y: chartY + chartSize/2 - 0.32, w: chartSize, h: 0.34, fontSize: 22, bold: true, color: TEXT, align: 'center', fontFace: 'Arial', margin: 0 });
+      slide.addText(clean[0].label.toUpperCase(), { x: chartX, y: chartY + chartSize/2 + 0.03, w: chartSize, h: 0.22, fontSize: 9, color: MUTED, align: 'center', fontFace: 'Arial', margin: 0 });
+    }
+    const boxY = chartY + chartSize + 0.15;
+    const boxW = (w - 0.4) / segments.length - 0.1;
+    segments.forEach((seg, i) => {
+      const bx = x + 0.2 + i * (boxW + 0.13);
+      slide.addShape('roundRect', { x: bx, y: boxY, w: boxW, h: 0.85, rectRadius: 0.06, fill: { color: TRACKBG }, line: { type: 'none' } });
+      slide.addText(String(seg.value), { x: bx, y: boxY + 0.08, w: boxW, h: 0.42, fontSize: 16, bold: true, color: TEXT, align: 'center', fontFace: 'Arial', margin: 0 });
+      slide.addText(seg.label, { x: bx, y: boxY + 0.52, w: boxW, h: 0.26, fontSize: 8.5, color: MUTED, align: 'center', fontFace: 'Arial', margin: 0, fit: 'shrink' });
+    });
   }
 
   function emptySlide(pptx, title, dateLabel){
@@ -327,7 +385,7 @@
     addSectionTitle(slide, MARGIN_X, 1.2, 6.85, 'Aprovechamiento por Plaza', 'Meta 95%');
     const gW = (6.85 - 0.2 * 4) / 5;
     d.plazas.forEach((p, i) => addGaugeCard(slide, MARGIN_X + i * (gW + 0.2), 1.65, gW, 1.55, p.value, p.name));
-    addAtList(slide, MARGIN_X, 3.5, 6.85, 3.5, 'Aprovechamiento por AT', d.ranking, 'Meta 95%');
+    addPctRankingList(slide, MARGIN_X, 3.5, 6.85, 3.5, 'Aprovechamiento por AT', d.ranking, 'Meta 95%');
     addDoughnutCard(pptx, slide, 8.3, 1.2, 4.6, 5.8, 'Estatus con impacto de ausentismo', [
       { label: 'Completas', value: d.completas, color: GREEN },
       { label: 'Incompletas', value: d.incompletas, color: GOLD },
@@ -339,20 +397,29 @@
     const slide = pptx.addSlide();
     slide.background = { color: WHITE };
     addHeader(slide, 'TREO · ESTRUCTURA', dateLabel);
-    const kpiW = (PAGE_W - MARGIN_X * 2 - 0.2 * 3) / 4;
-    addMetricCard(slide, MARGIN_X + 0 * (kpiW + 0.2), 1.2, kpiW, 1.05, 'Total Tiendas', d.total, 'Plaza Oaxaca', true);
-    addMetricCard(slide, MARGIN_X + 1 * (kpiW + 0.2), 1.2, kpiW, 1.05, 'Cobertura Estructura', `${d.cobertura.toFixed(0)}%`, `${OXXO.formatNum(d.totalActivos)} de ${OXXO.formatNum(d.totalTreo)} posiciones`, true);
-    addMetricCard(slide, MARGIN_X + 2 * (kpiW + 0.2), 1.2, kpiW, 1.05, 'Alineadas', d.alineadas, `${d.total ? Math.round(d.alineadas/d.total*100) : 0}% del total`, true);
-    addMetricCard(slide, MARGIN_X + 3 * (kpiW + 0.2), 1.2, kpiW, 1.05, 'Vacantes Totales', OXXO.formatNum(d.totalVacantes), 'En tiendas filtradas', true);
-    addMetricCard(slide, MARGIN_X + 0 * (kpiW + 0.2), 2.4, kpiW, 0.85, 'Por Subir ▲', OXXO.formatNum(Math.round(d.posSubir)), `+${OXXO.formatNum(Math.round(d.posSubir))} posiciones a agregar`);
-    addMetricCard(slide, MARGIN_X + 1 * (kpiW + 0.2), 2.4, kpiW, 0.85, 'Por Bajar ▼', OXXO.formatNum(Math.round(d.posBajar)), `-${OXXO.formatNum(Math.round(d.posBajar))} posiciones a liberar`);
-    addMetricCard(slide, MARGIN_X + 2 * (kpiW + 0.2), 2.4, kpiW, 0.85, 'Sub-dotadas', d.subir, 'Activos < TREO');
-    addMetricCard(slide, MARGIN_X + 3 * (kpiW + 0.2), 2.4, kpiW, 0.85, 'Sobre-dotadas', d.bajar, 'Activos > TREO');
-    addDoughnutCard(pptx, slide, MARGIN_X, 3.5, PAGE_W - MARGIN_X * 2, 3.5, 'Alineación Global', [
+    // Coordenadas exactas de RAE_BASE.pptx: bloque de 8 tarjetas (2 filas x 4
+    // columnas de 1.83x2.05in) confinado a la izquierda, con la tarjeta de
+    // Alineacion Global a la derecha ocupando el alto completo de ambas filas.
+    const cardW = 1.83, cardH = 2.05, gapX = 0.22, gapY = 0.25;
+    const xs = [MARGIN_X, MARGIN_X + (cardW + gapX), MARGIN_X + 2 * (cardW + gapX), MARGIN_X + 3 * (cardW + gapX)];
+    const row1Y = 1.28, row2Y = row1Y + cardH + gapY;
+
+    addMetricCard(slide, xs[0], row1Y, cardW, cardH, 'Total Tiendas', d.total, 'Plaza Oaxaca');
+    addMetricCard(slide, xs[1], row1Y, cardW, cardH, 'Cobertura Estructura', `${d.cobertura.toFixed(0)}%`, `${OXXO.formatNum(d.totalActivos)} de ${OXXO.formatNum(d.totalTreo)} posiciones`);
+    addMetricCard(slide, xs[2], row1Y, cardW, cardH, 'Alineadas', d.alineadas, `${d.total ? Math.round(d.alineadas/d.total*100) : 0}% del total`);
+    addMetricCard(slide, xs[3], row1Y, cardW, cardH, 'Vacantes Totales', OXXO.formatNum(d.totalVacantes), 'En tiendas filtradas');
+    addMetricCard(slide, xs[0], row2Y, cardW, cardH, 'Por Subir ▲', OXXO.formatNum(Math.round(d.posSubir)), `+${OXXO.formatNum(Math.round(d.posSubir))} posiciones a agregar`);
+    addMetricCard(slide, xs[1], row2Y, cardW, cardH, 'Por Bajar ▼', OXXO.formatNum(Math.round(d.posBajar)), `-${OXXO.formatNum(Math.round(d.posBajar))} posiciones a liberar`);
+    addMetricCard(slide, xs[2], row2Y, cardW, cardH, 'Sub-dotadas', d.subir, 'Activos < TREO');
+    addMetricCard(slide, xs[3], row2Y, cardW, cardH, 'Sobre-dotadas', d.bajar, 'Activos > TREO');
+
+    const rightX = xs[3] + cardW + 0.35, rightW = PAGE_W - MARGIN_X - rightX;
+    addTreoAlignmentCard(pptx, slide, rightX, 1.25, rightW, 4.55, [
       { label: 'Alineada', value: d.alineadas, color: GREEN },
       { label: 'Subir', value: d.subir, color: GOLD },
       { label: 'Bajar', value: d.bajar, color: RED },
     ]);
+    addNoteCard(slide, rightX, 5.95, rightW, 1.05, 'Cobertura de estructura sobre TREO', `${d.cobertura.toFixed(0)}% de cobertura`);
   }
 
   // Solo las 4 diapositivas que trae RAE_BASE.pptx: Vacantes, Bajas,
