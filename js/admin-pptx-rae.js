@@ -104,6 +104,7 @@
     const estatusKey = findKey(raw[0], ['Clas Aprov','Estatus Con impacto Ausentismo','Estatus']);
     const asesorKey = findKey(raw[0], ['Asesor']);
     const aprovKey = findKey(raw[0], ['Aprovechamiento Estructura','Aprovechamiento de estructura']);
+    const binarioKey = findKey(raw[0], ['Aprovechamiento Binario']);
     const total = raw.length;
     let completas = 0, incompletas = 0, criticas = 0;
     raw.forEach(r => {
@@ -113,7 +114,15 @@
       else if(s.includes('COMPLETO')) completas++;
     });
     const pct = total > 0 ? (completas / total * 100) : 0;
-    const oaxacaAvg = raw.reduce((s,r) => s + normPct(val(r, aprovKey)), 0) / (total || 1);
+
+    // El aprovechamiento "por Plaza"/"por AT" que usa el Dashboard 3 no es el
+    // promedio del porcentaje crudo por tienda, sino el promedio del binario
+    // (tienda >=95% cuenta 100, si no cuenta 0) — la "Regla D3". Promediar el
+    // crudo daba numeros mucho mas altos que el dashboard real (89% en vez de
+    // 77.7% en Oaxaca). Si la columna Aprovechamiento Binario no vino en la
+    // hoja, se recalcula aqui con el mismo umbral.
+    const binVal = r => binarioKey ? num(val(r, binarioKey)) : (normPct(val(r, aprovKey)) >= 95 ? 100 : 0);
+    const oaxacaAvg = raw.reduce((s,r) => s + binVal(r), 0) / (total || 1);
 
     let plazas = [];
     try {
@@ -127,14 +136,12 @@
     plazas.push({ name: 'OAXACA', value: oaxacaAvg });
     plazas.sort((a,b) => b.value - a.value);
 
-    // rankAvg normaliza cada fila con normPct antes de promediar, para que el
-    // ranking por AT no arrastre el mismo error de formato x100.
-    const normalizedRows = raw.map(r => ({ ...r, [aprovKey]: normPct(val(r, aprovKey)) }));
+    const binRows = raw.map(r => ({ [asesorKey]: val(r, asesorKey), __bin: binVal(r) }));
 
     return {
       pct, completas, incompletas, criticas,
       plazas: plazas.slice(0, 5),
-      ranking: rankAvg(normalizedRows, asesorKey, aprovKey, 15),
+      ranking: rankAvg(binRows, asesorKey, '__bin', 15),
     };
   }
 
