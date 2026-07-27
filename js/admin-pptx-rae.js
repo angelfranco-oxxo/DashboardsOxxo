@@ -90,12 +90,39 @@
     if(!date) return '';
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
   }
+  // Replica EXACTA (con su mismo bug) de normalizeMesColumn() en
+  // dashboard-1.html: solo lee parts[0] como mes y parts[1] como anio, sin
+  // importar cuantas partes tenga el texto. En la base real la columna "Mes"
+  // de Dashboard_1_Diario trae una fecha completa "26/07/2026" (dia/mes/anio
+  // de corte), asi que parts=['26','07','2026'] y esta funcion intenta leer
+  // mes=26 (invalido) -> siempre falla y cae al respaldo por Fecha, igual
+  // que en el dashboard real. Usar el parser generico (normalizeMonthKey,
+  // que si sabe leer 3 partes) aqui rompia la paridad: nunca caia al
+  // respaldo por Fecha como si lo hace el dashboard real, y terminaba
+  // agrupando las vacantes por el mes de corte en vez de por su fecha real.
+  function normalizeMesColumnD1(value){
+    const raw = String(value ?? '').trim();
+    if(!raw) return '';
+    const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[._/]+/g,'-');
+    const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
+    let month = 0, year = 0;
+    if(parts.length >= 2){
+      month = MES_ABBR[parts[0]] || Number(parts[0]) || 0;
+      year = Number(parts[1]) || 0;
+    } else {
+      const m = clean.match(/^([a-z]+)\s*(\d{2,4})$/);
+      if(m){ month = MES_ABBR[m[1]] || 0; year = Number(m[2]) || 0; }
+    }
+    if(year > 0 && year < 100) year += 2000;
+    if(month >= 1 && month <= 12 && year >= 2000) return `${year}-${String(month).padStart(2,'0')}`;
+    return '';
+  }
   // Clave de mes por fila igual que dashboard-1.html
   // (mesInfo.key || mesKeyFromDate(fechaObj)): si "Mes" no se puede
-  // normalizar, se deriva del valor de "Fecha" parseado como fecha real
-  // (no solo texto tipo "jul-26").
+  // normalizar (con el mismo criterio, y el mismo bug, que el dashboard
+  // real), se deriva del valor de "Fecha" parseado como fecha real.
   function rowMonthKeyD1(row, mesKey, fechaKey){
-    return normalizeMonthKey(val(row, mesKey)) || mesKeyFromDate(parseFechaVacante(val(row, fechaKey)));
+    return normalizeMesColumnD1(val(row, mesKey)) || mesKeyFromDate(parseFechaVacante(val(row, fechaKey)));
   }
   // Clave de mes por fila igual que monthKeyFromRow() en dashboard-2.html:
   // normalizeMonthKey(Mes) || normalizeMonthKey(Fecha) (aqui si el fallback
