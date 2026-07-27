@@ -64,8 +64,19 @@
     const mesKey = findKey(raw[0], ['Mes']);
     const puestoKey = findKey(raw[0], ['Descripcion de Posicion','Puesto']);
     const asesorKey = findKey(raw[0], ['Asesor']);
+    const tiendaKey = findKey(raw[0], ['Tienda','Unidad org']);
+    const crKey = findKey(raw[0], ['CR TIENDA','CR']);
     const mes = latestByKey(raw, mesKey);
-    const rows = mes ? raw.filter(r => String(r[mesKey]||'').trim() === mes) : raw;
+    // dashboard-1.html filtra TODA la base cargada (no solo el mes activo) por:
+    // tienda no vacia, excluir 'timoteoantonioperez', y el catalogo de 255
+    // tiendas autorizadas (isTiendaValid). Sin esto se cuentan filas de
+    // tiendas/plazas que el dashboard real nunca muestra.
+    const asesorCatalog = await OXXO.loadAsesorCatalog();
+    const base = raw
+      .filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda')
+      .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ')
+      .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    const rows = mes ? base.filter(r => String(r[mesKey]||'').trim() === mes) : base;
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach(r => { byPuesto[tipoPuesto(val(r, puestoKey))]++; });
     return {
@@ -178,31 +189,71 @@
     };
   }
 
+  // Replica buildActivosPorCR() de dashboard-7.html: el "Empleados Activos" de
+  // TREO no se toma de su propia columna sino de Dashboard 3 (Estructura
+  // Diaria - Vacante), por CR, tomando solo el corte de la FECHA mas reciente.
+  async function buildActivosPorCR(){
+    const rows = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3);
+    if(!rows || !rows.length) return new Map();
+    const crKey = findKey(rows[0], ['CR TIENDA','CR']);
+    const fechaKey = findKey(rows[0], ['FECHA','Fecha']);
+    const estructuraKey = findKey(rows[0], ['Estructura Diaria']);
+    const vacanteKey = findKey(rows[0], ['Vacante']);
+    const fecha = latestByKey(rows, fechaKey);
+    const map = new Map();
+    rows.forEach(r => {
+      if(fecha && String(val(r, fechaKey)||'').trim() !== fecha) return;
+      const cr = String(val(r, crKey)||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+      if(!cr) return;
+      const activos = Math.max(0, num(val(r, estructuraKey)) - num(val(r, vacanteKey)));
+      map.set(cr, activos);
+    });
+    return map;
+  }
+
   async function dataD7(){
-    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s7);
+    const [raw, activosPorCR] = await Promise.all([
+      OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s7),
+      buildActivosPorCR(),
+    ]);
     if(!raw || !raw.length) return null;
     const difKey = findKey(raw[0], ['Dif SAP vs Est Optima Final']);
     const treoKey = findKey(raw[0], ['Estructura Propuesta TREO P2 Jun - Ago','TREO']);
     const activosKey = findKey(raw[0], ['Empleados Activos','Activos']);
     const vacantesKey = findKey(raw[0], ['Vacantes']);
     const asesorKey = findKey(raw[0], ['Asesor']);
-    const total = raw.length;
+    const tiendaKey = findKey(raw[0], ['Tienda']);
+    const crKey = findKey(raw[0], ['CR']);
+    // dashboard-7.html filtra por el catalogo de 255 tiendas autorizadas y
+    // excluye 'timoteoantonioperez', igual que Dashboard 1.
+    const asesorCatalog = await OXXO.loadAsesorCatalog();
+    const rows = raw
+      .filter(r => String(val(r, tiendaKey)||'').trim() || String(val(r, asesorKey)||'').trim())
+      .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)))
+      .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ')
+      .map(r => {
+        const cr = String(val(r, crKey)||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+        const activosD3 = cr ? activosPorCR.get(cr) : undefined;
+        return activosD3 !== undefined ? { ...r, [activosKey]: activosD3 } : r;
+      });
+    const total = rows.length;
     let alineadas = 0, subir = 0, bajar = 0, posSubir = 0, posBajar = 0;
-    raw.forEach(r => {
+    rows.forEach(r => {
       const d = num(val(r, difKey));
       if(d === 0) alineadas++;
       else if(d > 0) { subir++; posSubir += d; }
       else { bajar++; posBajar += -d; }
     });
-    const totalTreo = raw.reduce((s,r) => s + num(val(r, treoKey)), 0);
-    const totalActivos = raw.reduce((s,r) => s + num(val(r, activosKey)), 0);
-    const totalVacantes = raw.reduce((s,r) => s + num(val(r, vacantesKey)), 0);
+    const totalTreo = rows.reduce((s,r) => s + num(val(r, treoKey)), 0);
+    const totalActivos = rows.reduce((s,r) => s + num(val(r, activosKey)), 0);
+    const totalVacantes = rows.reduce((s,r) => s + num(val(r, vacantesKey)), 0);
     const cobertura = totalTreo > 0 ? (totalActivos / totalTreo * 100) : 0;
     // "Sub-dotadas"/"Sobre-dotadas" NO son subir/bajar (esas comparan SAP vs
     // Est. Optima via 'dif'): dashboard-7.html las calcula aparte, comparando
-    // Empleados Activos contra el objetivo TREO directamente por tienda.
-    const subDotadas = raw.filter(r => num(val(r, activosKey)) < num(val(r, treoKey))).length;
-    const sobreDotadas = raw.filter(r => num(val(r, activosKey)) > num(val(r, treoKey))).length;
+    // Empleados Activos (ya con el override de D3 aplicado) contra el
+    // objetivo TREO directamente por tienda.
+    const subDotadas = rows.filter(r => num(val(r, activosKey)) < num(val(r, treoKey))).length;
+    const sobreDotadas = rows.filter(r => num(val(r, activosKey)) > num(val(r, treoKey))).length;
     return {
       total, alineadas, subir, bajar, posSubir, posBajar,
       totalTreo, totalActivos, totalVacantes, cobertura,
