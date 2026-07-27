@@ -9,11 +9,11 @@
   }
   function val(row, key, fallback=''){ const v = key ? row[key] : undefined; return (v===undefined||v===null||String(v).trim()==='') ? fallback : v; }
   function num(v){ const n = Number(String(v??'').replace(/[$,%]/g,'').replace(/,/g,'').trim()); return Number.isFinite(n) ? n : 0; }
-  // Normaliza un valor de aprovechamiento a escala 0-100. Cuando la columna de
-  // Sheets tiene formato "Porcentaje" aplicado a un numero que ya viene en
-  // escala 0-100 (en vez de una fraccion 0-1), Sheets lo multiplica otra vez
-  // por 100 al exportarlo (73.69 -> "7369.19%"). Se revierte esa duplicacion.
-  function normPct(v){ let n = num(v); while(n > 100) n /= 100; return n; }
+  // Misma regla que normalizePct() en dashboard-3.html: solo se divide entre
+  // 100 cuando el valor viene claramente duplicado por el formato Porcentaje
+  // de Sheets (>150). Un aprovechamiento real de 100-150% (tienda con mas
+  // activos de los necesarios) no se debe tocar.
+  function normPct(v){ const n = num(v); return n > 150 ? n / 100 : n; }
   function normText(v){ return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase(); }
   // Acorta un nombre largo a "Nombre(s) Apellido1 A." (inicial del ultimo
   // apellido) en vez de cortarlo a solo el primer nombre: la plaza suele tener
@@ -103,8 +103,7 @@
     if(!raw || !raw.length) return null;
     const estatusKey = findKey(raw[0], ['Clas Aprov','Estatus Con impacto Ausentismo','Estatus']);
     const asesorKey = findKey(raw[0], ['Asesor']);
-    const aprovKey = findKey(raw[0], ['Aprovechamiento Estructura','Aprovechamiento de estructura']);
-    const binarioKey = findKey(raw[0], ['Aprovechamiento Binario']);
+    const ecPorAtKey = findKey(raw[0], ['Ec por AT','EC por AT']);
     const fechaKey = findKey(raw[0], ['FECHA','Fecha']);
     // Igual que Dashboard 3: aunque cada carga deberia reemplazar toda la
     // pestana (foto diaria), si llegaran a quedar varias fechas mezcladas se
@@ -112,23 +111,29 @@
     const fecha = latestByKey(raw, fechaKey);
     const rows = fecha ? raw.filter(r => String(r[fechaKey]||'').trim() === fecha) : raw;
     const total = rows.length;
+    // Misma clasificacion que isCompleta/isIncompleta/isCritica de
+    // dashboard-3.html (por texto de Estatus, no por umbral numerico).
+    const clasifica = r => {
+      const s = normText(val(r, estatusKey));
+      if(s.includes('CRIT')) return 'criticas';
+      if(s.includes('INCOMPLETO')) return 'incompletas';
+      if(s.includes('COMPLETO')) return 'completas';
+      return null;
+    };
     let completas = 0, incompletas = 0, criticas = 0;
     rows.forEach(r => {
-      const s = normText(val(r, estatusKey));
-      if(s.includes('CRIT')) criticas++;
-      else if(s.includes('INCOMPLETO')) incompletas++;
-      else if(s.includes('COMPLETO')) completas++;
+      const c = clasifica(r);
+      if(c === 'criticas') criticas++;
+      else if(c === 'incompletas') incompletas++;
+      else if(c === 'completas') completas++;
     });
+    // "Aprovechamiento General" del Dashboard 3 = Equipo Completo / Total (EC%).
     const pct = total > 0 ? (completas / total * 100) : 0;
 
-    // El aprovechamiento "por Plaza"/"por AT" que usa el Dashboard 3 no es el
-    // promedio del porcentaje crudo por tienda, sino el promedio del binario
-    // (tienda >=95% cuenta 100, si no cuenta 0) — la "Regla D3". Promediar el
-    // crudo daba numeros mucho mas altos que el dashboard real (89% en vez de
-    // 77.7% en Oaxaca). Si la columna Aprovechamiento Binario no vino en la
-    // hoja, se recalcula aqui con el mismo umbral.
-    const binVal = r => binarioKey ? num(val(r, binarioKey)) : (normPct(val(r, aprovKey)) >= 95 ? 100 : 0);
-    const oaxacaAvg = rows.reduce((s,r) => s + binVal(r), 0) / (total || 1);
+    // El gauge de OAXACA en "Aprovechamiento por Plaza" reutiliza ese mismo
+    // EC% (asi lo calcula dashboard-3.html cuando no hay una columna de plaza
+    // por tienda separada) — no es un promedio del aprovechamiento crudo.
+    const oaxacaAvg = pct;
 
     let plazas = [];
     try {
@@ -142,12 +147,34 @@
     plazas.push({ name: 'OAXACA', value: oaxacaAvg });
     plazas.sort((a,b) => b.value - a.value);
 
-    const binRows = rows.map(r => ({ [asesorKey]: val(r, asesorKey), __bin: binVal(r) }));
+    // "Aprovechamiento por AT" = tabla EC% (AT) del Dashboard 3: usa la
+    // columna 'Ec por AT' de la hoja si viene poblada; si no, cae al mismo
+    // EC% (completas/total) calculado por asesor con la clasificacion de
+    // Estatus de arriba — nunca el umbral sobre el valor crudo.
+    let ranking;
+    if(ecPorAtKey && rows.some(r => num(val(r, ecPorAtKey)) > 0)){
+      const ecRows = rows.filter(r => num(val(r, ecPorAtKey)) > 0).map(r => ({ [asesorKey]: val(r, asesorKey), __ec: normPct(val(r, ecPorAtKey)) }));
+      ranking = rankAvg(ecRows, asesorKey, '__ec', 15);
+    } else {
+      const byAsesor = new Map();
+      rows.forEach(r => {
+        const name = String(val(r, asesorKey)||'').trim();
+        if(!name) return;
+        if(!byAsesor.has(name)) byAsesor.set(name, { total: 0, completas: 0 });
+        const acc = byAsesor.get(name);
+        acc.total++;
+        if(clasifica(r) === 'completas') acc.completas++;
+      });
+      ranking = [...byAsesor.entries()]
+        .map(([name, v]) => ({ name, value: v.total > 0 ? (v.completas / v.total) * 100 : 0 }))
+        .sort((a,b) => b.value - a.value)
+        .slice(0, 15);
+    }
 
     return {
       pct, completas, incompletas, criticas,
       plazas: plazas.slice(0, 5),
-      ranking: rankAvg(binRows, asesorKey, '__bin', 15),
+      ranking,
     };
   }
 
@@ -171,9 +198,15 @@
     const totalActivos = raw.reduce((s,r) => s + num(val(r, activosKey)), 0);
     const totalVacantes = raw.reduce((s,r) => s + num(val(r, vacantesKey)), 0);
     const cobertura = totalTreo > 0 ? (totalActivos / totalTreo * 100) : 0;
+    // "Sub-dotadas"/"Sobre-dotadas" NO son subir/bajar (esas comparan SAP vs
+    // Est. Optima via 'dif'): dashboard-7.html las calcula aparte, comparando
+    // Empleados Activos contra el objetivo TREO directamente por tienda.
+    const subDotadas = raw.filter(r => num(val(r, activosKey)) < num(val(r, treoKey))).length;
+    const sobreDotadas = raw.filter(r => num(val(r, activosKey)) > num(val(r, treoKey))).length;
     return {
       total, alineadas, subir, bajar, posSubir, posBajar,
       totalTreo, totalActivos, totalVacantes, cobertura,
+      subDotadas, sobreDotadas,
     };
   }
 
@@ -437,8 +470,8 @@
     addMetricCard(slide, xs[3], row1Y, cardW, cardH, 'Vacantes Totales', OXXO.formatNum(d.totalVacantes), 'En tiendas filtradas');
     addMetricCard(slide, xs[0], row2Y, cardW, cardH, 'Por Subir ▲', OXXO.formatNum(Math.round(d.posSubir)), `+${OXXO.formatNum(Math.round(d.posSubir))} posiciones a agregar`);
     addMetricCard(slide, xs[1], row2Y, cardW, cardH, 'Por Bajar ▼', OXXO.formatNum(Math.round(d.posBajar)), `-${OXXO.formatNum(Math.round(d.posBajar))} posiciones a liberar`);
-    addMetricCard(slide, xs[2], row2Y, cardW, cardH, 'Sub-dotadas', d.subir, 'Activos < TREO');
-    addMetricCard(slide, xs[3], row2Y, cardW, cardH, 'Sobre-dotadas', d.bajar, 'Activos > TREO');
+    addMetricCard(slide, xs[2], row2Y, cardW, cardH, 'Sub-dotadas', d.subDotadas, 'Activos < TREO');
+    addMetricCard(slide, xs[3], row2Y, cardW, cardH, 'Sobre-dotadas', d.sobreDotadas, 'Activos > TREO');
 
     const rightX = xs[3] + cardW + 0.35, rightW = PAGE_W - MARGIN_X - rightX;
     addTreoAlignmentCard(pptx, slide, rightX, 1.25, rightW, 4.55, [
