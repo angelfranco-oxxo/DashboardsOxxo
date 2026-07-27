@@ -105,9 +105,15 @@
     const asesorKey = findKey(raw[0], ['Asesor']);
     const aprovKey = findKey(raw[0], ['Aprovechamiento Estructura','Aprovechamiento de estructura']);
     const binarioKey = findKey(raw[0], ['Aprovechamiento Binario']);
-    const total = raw.length;
+    const fechaKey = findKey(raw[0], ['FECHA','Fecha']);
+    // Igual que Dashboard 3: aunque cada carga deberia reemplazar toda la
+    // pestana (foto diaria), si llegaran a quedar varias fechas mezcladas se
+    // usa solo la mas reciente, para no promediar dias distintos.
+    const fecha = latestByKey(raw, fechaKey);
+    const rows = fecha ? raw.filter(r => String(r[fechaKey]||'').trim() === fecha) : raw;
+    const total = rows.length;
     let completas = 0, incompletas = 0, criticas = 0;
-    raw.forEach(r => {
+    rows.forEach(r => {
       const s = normText(val(r, estatusKey));
       if(s.includes('CRIT')) criticas++;
       else if(s.includes('INCOMPLETO')) incompletas++;
@@ -122,7 +128,7 @@
     // 77.7% en Oaxaca). Si la columna Aprovechamiento Binario no vino en la
     // hoja, se recalcula aqui con el mismo umbral.
     const binVal = r => binarioKey ? num(val(r, binarioKey)) : (normPct(val(r, aprovKey)) >= 95 ? 100 : 0);
-    const oaxacaAvg = raw.reduce((s,r) => s + binVal(r), 0) / (total || 1);
+    const oaxacaAvg = rows.reduce((s,r) => s + binVal(r), 0) / (total || 1);
 
     let plazas = [];
     try {
@@ -136,7 +142,7 @@
     plazas.push({ name: 'OAXACA', value: oaxacaAvg });
     plazas.sort((a,b) => b.value - a.value);
 
-    const binRows = raw.map(r => ({ [asesorKey]: val(r, asesorKey), __bin: binVal(r) }));
+    const binRows = rows.map(r => ({ [asesorKey]: val(r, asesorKey), __bin: binVal(r) }));
 
     return {
       pct, completas, incompletas, criticas,
