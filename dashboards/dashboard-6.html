@@ -241,13 +241,9 @@ const ALIASES_D6 = {
   año:        ['Ano','Año'],
 };
 function cleanKeyD6(str){ return String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''); }
-function findRealKeyD6(row, aliases){
-  const keys = Object.keys(row||{});
-  const map = new Map(keys.map(k => [cleanKeyD6(k), k]));
-  for(const a of aliases){ const found = map.get(cleanKeyD6(a)); if(found) return found; }
-  for(const a of aliases){ const ca = cleanKeyD6(a); const found = keys.find(k => cleanKeyD6(k).includes(ca) || ca.includes(cleanKeyD6(k))); if(found) return found; }
-  return null;
-}
+// Delegado a core.js (OXXO.metricsFindKey): misma implementacion exacta,
+// para que dashboards y presentaciones nunca vuelvan a divergir.
+function findRealKeyD6(row, aliases){ return OXXO.metricsFindKey(row, aliases); }
 let C = {};
 function buildColsD6(sample){
   const cols = {};
@@ -502,9 +498,7 @@ async function initDashboard() {
   // historico completo de semanas (periodColumn:'Semana' en admin.js reemplaza por periodo,
   // no por semana individual mostrada aqui), asi que sin este filtro las KPIs y graficas
   // sumaban todas las semanas juntas en vez de solo la actual.
-  const semanas = [...new Set(data.map(r => String(r[C.semana]||'').trim()).filter(Boolean))]
-    .sort((a,b) => (parseInt(a.replace(/\D+/g,''),10)||0) - (parseInt(b.replace(/\D+/g,''),10)||0));
-  const semanaActual = semanas[semanas.length - 1] || '';
+  const semanaActual = OXXO.metricsLatestSemanaNumerica(data, C.semana);
   if(semanaActual) data = data.filter(r => String(r[C.semana]||'').trim() === semanaActual);
   BASE_DATA = data;
 

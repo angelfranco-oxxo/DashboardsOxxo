@@ -1,65 +1,24 @@
 (function(){
-  function findKey(row, aliases){
-    const clean = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
-    const keys = Object.keys(row||{});
-    const map = new Map(keys.map(k => [clean(k), k]));
-    for(const a of aliases){ const found = map.get(clean(a)); if(found) return found; }
-    for(const a of aliases){ const ca = clean(a); const found = keys.find(k => clean(k).includes(ca) || ca.includes(clean(k))); if(found) return found; }
-    return null;
-  }
-  // Variante de findKey() para hojas con el problema de exportacion de
-  // Google descrito en core.js (una fila "sacrificio" de encabezado que a
-  // veces trae texto de otras celdas pegado, ej. "_buffer_ CR Reg" junto a
-  // "_buffer_ CR 501K9 50N0M..."): el match por substring de findKey puede
-  // acertarle a una columna vacia que solo *contiene* el alias como texto,
-  // en vez de la columna real con los datos. Aqui se prueban TODOS los
-  // candidatos que matchean por alias (exactos primero, luego por
-  // substring) y se elige el que tenga mas valores no vacios en una
-  // muestra de filas \u2014 la columna vacia pierde frente a la que s\u00ed trae
-  // datos, sin importar el orden de las columnas en la hoja.
-  // numeric=true prioriza, entre los candidatos, el que tenga mas valores
-  // que parecen numero (columnas como "Vacantes"/"Dif..." son siempre
-  // numericas; sin esto, una columna de texto libre que solo MENCIONA el
-  // alias dentro de una frase larga -ej. "...para considerar subir
-  // posiciones..." contiene "vacante"- puede ganarle a la columna numerica
-  // real si ambas estan igual de llenas).
-  function findDataKey(rows, aliases, sample=25, numeric=false){
-    if(!rows || !rows.length) return null;
-    const clean = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
-    const keys = Object.keys(rows[0]||{});
-    const exact = [], partial = [];
-    for(const a of aliases){
-      const ca = clean(a);
-      for(const k of keys){
-        const ck = clean(k);
-        if(ck === ca) exact.push(k);
-        else if(ck.includes(ca) || ca.includes(ck)) partial.push(k);
-      }
-    }
-    const candidates = [...new Set([...exact, ...partial])];
-    if(!candidates.length) return null;
-    const n = Math.min(sample, rows.length);
-    const isNum = v => v !== '' && Number.isFinite(Number(String(v).replace(/,/g,'').trim()));
-    let best = candidates[0], bestScore = -1;
-    for(const k of candidates){
-      let score = 0;
-      for(let i = 0; i < n; i++){
-        const v = String(rows[i][k]??'').trim();
-        if(!v) continue;
-        score += (numeric ? (isNum(v) ? 1 : 0) : 1);
-      }
-      if(score > bestScore){ bestScore = score; best = k; }
-    }
-    return best;
-  }
-  function val(row, key, fallback=''){ const v = key ? row[key] : undefined; return (v===undefined||v===null||String(v).trim()==='') ? fallback : v; }
-  function num(v){ const n = Number(String(v??'').replace(/[$,%]/g,'').replace(/,/g,'').trim()); return Number.isFinite(n) ? n : 0; }
+  // Toda la logica de columnas/filtros/fechas que replica el comportamiento
+  // real de los dashboards vive en core.js (window.OXXO.metrics*), para que
+  // dashboards y presentaciones nunca vuelvan a divergir. Aqui solo se
+  // referencian esas funciones \u2014 nada de esto se reimplementa.
+  const findKey = OXXO.metricsFindKey;
+  const findDataKey = OXXO.metricsFindDataKey;
+  const val = OXXO.metricsVal;
+  const num = OXXO.metricsNum;
+  const normText = OXXO.metricsNormText;
+  const latestByKey = (rows, key) => { const vals = [...new Set(rows.map(r => String(r[key]||'').trim()).filter(Boolean))]; return vals.sort().slice(-1)[0] || ''; };
+  const rowMonthKeyD1 = OXXO.metricsRowMonthKeyD1;
+  const rowMonthKeyD2 = OXXO.metricsRowMonthKeyD2;
+  const filterLatestMonth = OXXO.metricsFilterLatestMonth;
+  const tipoPuesto = OXXO.metricsTipoPuesto;
+  const coerceTreoRowsD7 = OXXO.metricsCoerceTreoRows;
   // Misma regla que normalizePct() en dashboard-3.html: solo se divide entre
   // 100 cuando el valor viene claramente duplicado por el formato Porcentaje
   // de Sheets (>150). Un aprovechamiento real de 100-150% (tienda con mas
   // activos de los necesarios) no se debe tocar.
   function normPct(v){ const n = num(v); return n > 150 ? n / 100 : n; }
-  function normText(v){ return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase(); }
   // Acorta un nombre largo a "Nombre(s) Apellido1 A." (inicial del ultimo
   // apellido) en vez de cortarlo a solo el primer nombre: la plaza suele tener
   // varios asesores que comparten nombre de pila, asi que recortar de mas
@@ -70,165 +29,6 @@
     const parts = trimmed.split(/\s+/);
     if(parts.length <= 2) return trimmed;
     return `${parts.slice(0, -1).join(' ')} ${parts[parts.length - 1][0]}.`;
-  }
-  function latestByKey(rows, key){
-    const vals = [...new Set(rows.map(r => String(r[key]||'').trim()).filter(Boolean))];
-    return vals.sort().slice(-1)[0] || '';
-  }
-  // Igual que normalizeMonthKey()/normalizeMesColumn() en dashboard-1.html y
-  // dashboard-2.html: convierte "Mes" (texto tipo "jul-26", "07-2026",
-  // "2026-07") a una clave canonica "YYYY-MM". Sin esto, ordenar el texto
-  // crudo alfabeticamente ("ago-26" < "ene-26" < "jul-26") no coincide con el
-  // orden cronologico real y puede elegir un mes distinto al que muestra el
-  // dashboard.
-  const MES_ABBR = {
-    ene:1, enero:1, feb:2, febrero:2, mar:3, marzo:3, abr:4, abril:4,
-    may:5, mayo:5, jun:6, junio:6, jul:7, julio:7, ago:8, agosto:8,
-    sep:9, sept:9, septiembre:9, set:9, setiembre:9,
-    oct:10, octubre:10, nov:11, noviembre:11, dic:12, diciembre:12,
-  };
-  function normalizeMonthKey(value){
-    const raw = String(value ?? '').trim();
-    if(!raw) return '';
-    const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[._/]+/g,'-').replace(/\s+/g,'-').trim();
-    let m = clean.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
-    if(m) return `${m[1]}-${String(+m[2]).padStart(2,'0')}`;
-    m = clean.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
-    if(m){ const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(+m[2]).padStart(2,'0')}`; }
-    m = clean.match(/^([a-z]+)-?(\d{2,4})$/);
-    if(m && MES_ABBR[m[1]]){ const y = +m[2] < 100 ? 2000 + +m[2] : +m[2]; return `${y}-${String(MES_ABBR[m[1]]).padStart(2,'0')}`; }
-    m = clean.match(/^(\d{1,2})-([a-z]+)-(\d{2,4})$/);
-    if(m && MES_ABBR[m[2]]){ const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(MES_ABBR[m[2]]).padStart(2,'0')}`; }
-    return '';
-  }
-  // Devuelve { mes: <clave canonica YYYY-MM>, rows: <filas de ese mes segun
-  // la clave canonica, no el texto crudo> }. Si ninguna fila tiene un mes
-  // reconocible, regresa todas las filas sin filtrar (igual que cuando
-  // mesKey no existe).
-  // Igual que parseFechaVacante()+mesKeyFromDate() en dashboard-1.html: si el
-  // texto de "Mes" no es reconocible, intenta leer una fecha (serial de Excel
-  // o texto dd/mm/aaaa, aaaa-mm-dd, etc.) y deriva el mes de ahi.
-  function parseFechaVacante(value){
-    const raw = String(value ?? '').trim();
-    if(!raw) return null;
-    if(/^\d+(\.\d+)?$/.test(raw)){
-      const serial = Number(raw);
-      if(serial > 25000 && serial < 80000){
-        const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
-        return isNaN(d) ? null : d;
-      }
-    }
-    const clean = raw.replace(/\s+\d{1,2}:\d{2}(:\d{2})?.*$/, '').replace(/[.]/g,'/').replace(/-/g,'/');
-    const parts = clean.split('/').map(p => p.trim()).filter(Boolean);
-    if(parts.length >= 3){
-      let day, month, year;
-      if(parts[0].length === 4){ year = Number(parts[0]); month = Number(parts[1]); day = Number(parts[2]); }
-      else { day = Number(parts[0]); month = Number(parts[1]); year = Number(parts[2]); }
-      if(year < 100) year += 2000;
-      const d = new Date(year, month - 1, day);
-      if(!isNaN(d) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
-    }
-    const d = new Date(raw);
-    return isNaN(d) ? null : d;
-  }
-  function mesKeyFromDate(date){
-    if(!date) return '';
-    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
-  }
-  // Replica EXACTA (con su mismo comportamiento, incluido su "bug") de
-  // normalizeMesColumn() en dashboard-1.html: solo lee parts[0] como mes y
-  // parts[1] como anio, sin importar cuantas partes tenga el texto. En la
-  // base real la columna "Mes" de Dashboard_1_Diario trae una fecha de corte
-  // completa ("26/07/2026", dia/mes/anio), asi que parts=['26','07','2026']
-  // y esta funcion interpreta mal el mes (lee '26' en vez de '07').
-  //
-  // OJO: a diferencia de lo que se penso en un primer intento, el fallback
-  // final de la funcion real NO es "invalido" (key vacia) sino que regresa
-  // el TEXTO CRUDO tal cual como clave de agrupacion ({key:raw,label:raw}).
-  // Confirmado en vivo: el selector "Mes" del dashboard-1.html real muestra
-  // literalmente "26/07/2026" (el texto crudo, sin formatear) como opcion.
-  // Por eso el dashboard real NUNCA cae al respaldo por "Fecha" mientras la
-  // celda de "Mes" no este vacia -- agrupa por el texto crudo de corte.
-  function normalizeMesColumnD1(value){
-    const raw = String(value ?? '').trim();
-    if(!raw) return '';
-    const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[._/]+/g,'-');
-    const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
-    let month = 0, year = 0;
-    if(parts.length >= 2){
-      month = MES_ABBR[parts[0]] || Number(parts[0]) || 0;
-      year = Number(parts[1]) || 0;
-    } else {
-      const m = clean.match(/^([a-z]+)\s*(\d{2,4})$/);
-      if(m){ month = MES_ABBR[m[1]] || 0; year = Number(m[2]) || 0; }
-    }
-    if(year > 0 && year < 100) year += 2000;
-    if(month >= 1 && month <= 12 && year >= 2000) return `${year}-${String(month).padStart(2,'0')}`;
-    return raw;
-  }
-  // Clave de mes por fila igual que dashboard-1.html (mesInfo.key ||
-  // mesKeyFromDate(fechaObj)): como normalizeMesColumnD1 solo regresa '' si
-  // la celda "Mes" esta vacia, el respaldo por "Fecha" solo se activa en ese
-  // caso \u2014 igual que en el dashboard real.
-  function rowMonthKeyD1(row, mesKey, fechaKey){
-    return normalizeMesColumnD1(val(row, mesKey)) || mesKeyFromDate(parseFechaVacante(val(row, fechaKey)));
-  }
-  // Clave de mes por fila igual que monthKeyFromRow() en dashboard-2.html:
-  // normalizeMonthKey(Mes) || normalizeMonthKey(Fecha) (aqui si el fallback
-  // es solo texto, sin parsear fecha completa).
-  function rowMonthKeyD2(row, mesKey, fechaKey){
-    return normalizeMonthKey(val(row, mesKey)) || normalizeMonthKey(val(row, fechaKey));
-  }
-  function filterLatestMonth(rows, rowKeyFn){
-    const keyed = rows.map(r => ({ r, k: rowKeyFn(r) }));
-    const keys = [...new Set(keyed.map(x => x.k).filter(Boolean))].sort();
-    const mes = keys.slice(-1)[0] || '';
-    if(!mes) return { mes: '', rows };
-    return { mes, rows: keyed.filter(x => x.k === mes).map(x => x.r) };
-  }
-  function tipoPuesto(desc){
-    const d = normText(desc);
-    if(d.includes('LIDER')) return 'Lider';
-    if(d.includes('ENCARGADO')) return 'Encargado';
-    if(d.includes('AYUDANTE')) return 'Ayudante';
-    return 'Otro';
-  }
-  // Igual que normKey() en dashboard-7.html.
-  function normKeyD7(s){
-    return String(s||'')
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_|_$/g, '');
-  }
-  // Igual que hasTreoHeaderValues()/coerceTreoRows() en dashboard-7.html: la
-  // hoja Dashboard_7_Semanal tiene un problema de exportacion de Google
-  // Sheets donde el encabezado real termina pegado como texto dentro de las
-  // celdas de la primera fila de datos (parseCSV detecta como "encabezado"
-  // otra fila distinta, con columnas tipo "_buffer_..."). Sin esta
-  // correccion, findKey() busca sobre esos encabezados corruptos y puede
-  // emparejar la columna equivocada (ej. una columna vacia "CR Reg" en vez
-  // de la columna real de CR), rompiendo el match contra el catalogo de
-  // tiendas y arrastrando totales incorrectos en toda la diapositiva TREO.
-  function hasTreoHeaderValuesD7(row){
-    const values = Object.values(row || {}).map(v => normKeyD7(v));
-    const hits = ['zona','plaza','tienda','id_tienda','at_ro','estructura_sap','movimiento_inicial']
-      .filter(h => values.includes(h)).length;
-    return hits >= 4;
-  }
-  function coerceTreoRowsD7(rows){
-    if(!Array.isArray(rows) || !rows.length) return [];
-    if(!hasTreoHeaderValuesD7(rows[0])) return rows;
-    const sourceKeys = Object.keys(rows[0]);
-    const headers = sourceKeys.map((key, idx) => {
-      const value = String(rows[0][key] || '').trim();
-      return value || `col_${idx + 1}`;
-    });
-    return rows.slice(1).map(raw => {
-      const out = {};
-      sourceKeys.forEach((key, idx) => { out[headers[idx]] = raw[key]; });
-      return out;
-    });
   }
   // Ranking de conteo por nombre (p.ej. vacantes o bajas por Asesor), top N descendente.
   function rankCount(rows, nameKey, limit){
@@ -288,27 +88,7 @@
     //   cumple NINGUNO de los 6 y queda excluida del total por defecto.
     //   'nuevas' (esTiendaNueva: dias>500 o sin Fecha) tampoco esta en el
     //   default, asi que esas tambien se excluyen.
-    const DEFAULT_PUESTOS_D1 = new Set([
-      'ENCARGADO TURNO', 'ENCARGADO TURNO SATELITE',
-      'LIDER TIENDA', 'LIDER TIENDA SATELITE',
-      'AYUDANTE TIENDA', 'AYUDANTE TIENDA SATELITE',
-    ]);
-    const isDefaultExcludedTiendaD1 = v => {
-      const t = normText(v);
-      return t.includes('ENTRENAMIENTO') || t.includes('OPERACIONES');
-    };
-    const pasaAntiguedadDefaultD1 = r => {
-      const dias = num(val(r, diasKey));
-      const diasRaw = String(val(r, diasKey)||'').trim();
-      const esTiendaNueva = dias > 500 || diasRaw === '';
-      if(esTiendaNueva) return false;
-      return dias >= 1;
-    };
-    const base = stepCatalog
-      .filter(r => !isDefaultExcludedTiendaD1(val(r, tiendaKey)))
-      .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'SINASESORASIGNADO')
-      .filter(r => DEFAULT_PUESTOS_D1.has(String(val(r, puestoKey)||'').trim().toUpperCase()))
-      .filter(pasaAntiguedadDefaultD1);
+    const base = OXXO.metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
     const { mes, rows } = filterLatestMonth(base, r => rowMonthKeyD1(r, mesKey, fechaKey));
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach(r => { byPuesto[tipoPuesto(val(r, puestoKey))]++; });
@@ -333,15 +113,7 @@
     // Medida, quedarse solo con movimientos de BAJA; si trae Plaza, quedarse
     // solo con Oaxaca. Cada filtro solo se aplica si existe la columna y deja
     // al menos una fila (mismo criterio "solo si aplica" del dashboard).
-    let base = raw.filter(r => asesorCrudoOk(r));
-    if(medidaKey){
-      const bajas = base.filter(r => normText(val(r, medidaKey)).includes('BAJA'));
-      if(bajas.length) base = bajas;
-    }
-    if(plazaKey){
-      const oax = base.filter(r => normText(val(r, plazaKey)).includes('OAXACA'));
-      if(oax.length) base = oax;
-    }
+    const base = OXXO.metricsFilterBajasD2(raw.filter(r => asesorCrudoOk(r)), { medidaKey, plazaKey });
     const { mes, rows: byMonth } = filterLatestMonth(base, r => rowMonthKeyD2(r, mesKey, fechaKey));
     const rows = byMonth.filter(r => {
       const asesor = normText(val(r, asesorKey));
@@ -374,13 +146,7 @@
     const total = rows.length;
     // Misma clasificacion que isCompleta/isIncompleta/isCritica de
     // dashboard-3.html (por texto de Estatus, no por umbral numerico).
-    const clasifica = r => {
-      const s = normText(val(r, estatusKey));
-      if(s.includes('CRIT')) return 'criticas';
-      if(s.includes('INCOMPLETO')) return 'incompletas';
-      if(s.includes('COMPLETO')) return 'completas';
-      return null;
-    };
+    const clasifica = r => OXXO.metricsClasificaAprovechamiento(val(r, estatusKey));
     let completas = 0, incompletas = 0, criticas = 0;
     rows.forEach(r => {
       const c = clasifica(r);
@@ -457,24 +223,7 @@
   // Replica buildActivosPorCR() de dashboard-7.html: el "Empleados Activos" de
   // TREO no se toma de su propia columna sino de Dashboard 3 (Estructura
   // Diaria - Vacante), por CR, tomando solo el corte de la FECHA mas reciente.
-  async function buildActivosPorCR(){
-    const rows = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3);
-    if(!rows || !rows.length) return new Map();
-    const crKey = findKey(rows[0], ['CR TIENDA','CR']);
-    const fechaKey = findKey(rows[0], ['FECHA','Fecha']);
-    const estructuraKey = findKey(rows[0], ['Estructura Diaria']);
-    const vacanteKey = findKey(rows[0], ['Vacante']);
-    const fecha = latestByKey(rows, fechaKey);
-    const map = new Map();
-    rows.forEach(r => {
-      if(fecha && String(val(r, fechaKey)||'').trim() !== fecha) return;
-      const cr = String(val(r, crKey)||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-      if(!cr) return;
-      const activos = Math.max(0, num(val(r, estructuraKey)) - num(val(r, vacanteKey)));
-      map.set(cr, activos);
-    });
-    return map;
-  }
+  const buildActivosPorCR = OXXO.metricsBuildActivosPorCR;
 
   async function dataD7(){
     const [rawSheet, activosPorCR] = await Promise.all([
