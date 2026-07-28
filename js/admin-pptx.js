@@ -364,8 +364,20 @@
     const semanaKey = findKey(raw[0], ['Semana']);
     const diasKey = findKey(raw[0], ['Dias']);
     const denomKey = findKey(raw[0], ['Denominacion']);
-    const semana = latestByKey(raw, semanaKey);
-    const rows = semana ? raw.filter(r => String(r[semanaKey]||'').trim() === semana) : raw;
+    const tiendaKey = findKey(raw[0], ['Tienda']);
+    const crKey = findKey(raw[0], ['Cr de Tienda','CR de Tienda']);
+    // Igual que dashboard-6.html: filtrar por el catalogo de 255 tiendas
+    // autorizadas (filterValidTiendas) antes de elegir semana/sumar dias.
+    const asesorCatalog = await OXXO.loadAsesorCatalog();
+    const base = raw.filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    // Semana mas reciente por orden NUMERICO (parseInt de los digitos del
+    // texto, ej. "Sem 28" -> 28), igual que dashboard-6.html — un orden de
+    // texto simple falla entre semanas de una y dos cifras (ej. "Sem 9" >
+    // "Sem 28" alfabeticamente).
+    const semanas = [...new Set(base.map(r => String(val(r, semanaKey)||'').trim()).filter(Boolean))]
+      .sort((a,b) => (parseInt(a.replace(/\D+/g,''),10)||0) - (parseInt(b.replace(/\D+/g,''),10)||0));
+    const semana = semanas[semanas.length - 1] || '';
+    const rows = semana ? base.filter(r => String(val(r, semanaKey)||'').trim() === semana) : base;
     const totalDias = rows.reduce((s,r) => s + num(val(r, diasKey)), 0);
     const byTipo = { Faltas: 0, Incapacidades: 0, Vacaciones: 0, Permisos: 0, Accidentes: 0, Otro: 0 };
     rows.forEach(r => { byTipo[tipoAusentismo(val(r, denomKey))] += num(val(r, diasKey)); });
