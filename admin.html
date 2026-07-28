@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="css/global.css" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
     body{background:linear-gradient(135deg,#fff8ef 0%,#fff 48%,#ffeceb 100%);color:#211312}
     .admin-shell{max-width:1440px;margin:0 auto;padding:24px}
@@ -209,6 +210,14 @@
       <div class="helper-box" id="pptx-rae-status" style="margin-top:12px"></div>
     </section>
     <section class="admin-card" style="margin-top:18px">
+      <h2>Indicadores ATs</h2>
+      <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Descarga el Excel de Indicadores por AT con Aprovechamiento de estructura, Vacantes en estructura y Alineación de estructura actualizados en vivo desde Google Sheets (mismos datos que Vacantes/Aprovechamiento/TREO). El resto de los indicadores (NPS, Ausentismo, Rotación, % Apego) se conservan tal cual para llenarse a mano.</p>
+      <div class="admin-actions">
+        <button class="admin-btn primary" type="button" id="generate-indicadores-btn">📥 Generar Indicadores ATs</button>
+      </div>
+      <div class="helper-box" id="indicadores-status" style="margin-top:12px"></div>
+    </section>
+    <section class="admin-card" style="margin-top:18px">
       <div class="preview-head"><h2>3. Vista previa</h2><div class="preview-meta" id="preview-meta">0 filas</div></div>
       <div class="table-wrap">
         <table class="preview-table" id="preview-table">
@@ -221,5 +230,6 @@
   <script src="js/admin.js"></script>
   <script src="js/admin-pptx.js"></script>
   <script src="js/admin-pptx-rae.js"></script>
+  <script src="js/admin-indicadores.js"></script>
 </body>
 </html>

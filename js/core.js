@@ -1283,6 +1283,118 @@ function metricsLatestSemanaNumerica(rows, semanaKey) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// DESGLOSES POR ASESOR (para exportables tipo "Indicadores ATs")
+//
+// Mismas reglas ya verificadas de Vacantes/Aprovechamiento/TREO, pero
+// agrupadas por TODOS los asesores (no solo el top 15 de un ranking), para
+// cruzarlas contra una lista externa de nombres (ej. un Excel de
+// indicadores llenado a mano con columnas por AT).
+
+// Empareja un nombre corto (ej. "Adrian") contra la lista de asesores
+// reales buscando coincidencia de PALABRA COMPLETA (no substring), ya que
+// el nombre corto puede ser cualquier palabra del nombre completo, no solo
+// la primera (ej. "Jorge Adrian Posadas Lopez" para "Adrian").
+function metricsMatchShortName(shortName, fullNames) {
+  const target = metricsNormText(shortName).trim();
+  if (!target) return null;
+  for (const full of fullNames) {
+    const words = metricsNormText(full).split(/\s+/).filter(Boolean);
+    if (words.includes(target)) return full;
+  }
+  return null;
+}
+
+// Vacantes por Asesor (Dashboard 1): mismo pipeline verificado de
+// dataD1() — catalogo, timoteoantonioperez, los 3 filtros DEFAULT, mes mas
+// reciente — pero regresa TODOS los asesores, no solo el top N.
+async function metricsVacantesPorAsesor() {
+  const raw = await fetchSheetData(SHEETS_CONFIG.TABS.d1);
+  if (!raw || !raw.length) return new Map();
+  const mesKey = metricsFindKey(raw[0], ['Mes']);
+  const puestoKey = metricsFindKey(raw[0], ['Descripcion de Posicion', 'Puesto']);
+  const asesorKey = metricsFindKey(raw[0], ['Asesor']);
+  const tiendaKey = metricsFindKey(raw[0], ['Tienda', 'Unidad org']);
+  const crKey = metricsFindKey(raw[0], ['CR TIENDA', 'CR']);
+  const fechaKey = metricsFindKey(raw[0], ['Fecha']);
+  const diasKey = metricsFindKey(raw[0], ['Dias Vacantes', 'Dias_Vacantes']);
+  const asesorCatalog = await loadAsesorCatalog();
+  const stepCatalog = raw
+    .filter(r => String(metricsVal(r, tiendaKey) || '').trim() && String(metricsVal(r, tiendaKey) || '').trim() !== 'Sin tienda')
+    .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ')
+    .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)));
+  const base = metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
+  const { rows } = metricsFilterLatestMonth(base, r => metricsRowMonthKeyD1(r, mesKey, fechaKey));
+  const map = new Map();
+  rows.forEach(r => {
+    const name = String(metricsVal(r, asesorKey) || '').trim();
+    if (!name) return;
+    map.set(name, (map.get(name) || 0) + 1);
+  });
+  return map;
+}
+
+// Aprovechamiento por AT (Dashboard 3): mismo pipeline verificado de
+// dataD3() — EC% (completas/total) por asesor, agrupando por el corte de
+// la fecha mas reciente. (El cruce por columna 'AT'/'Ec por AT' de la hoja,
+// cuando existe, sigue siendo exclusivo de la Presentación RAE porque ahi
+// el ranking se muestra tal cual viene esa columna; aqui se necesita un
+// numero por CADA asesor para cruzar contra una lista externa, y ese
+// cruce siempre esta disponible via Estatus, a diferencia de 'Ec por AT'
+// que no siempre viene poblada.)
+async function metricsAprovechamientoPorAT() {
+  const raw = await fetchSheetData(SHEETS_CONFIG.TABS.d3);
+  if (!raw || !raw.length) return new Map();
+  const estatusKey = metricsFindKey(raw[0], ['Clas Aprov', 'Estatus Con impacto Ausentismo', 'Estatus']);
+  const asesorKey = metricsFindKey(raw[0], ['Asesor']);
+  const fechaKey = metricsFindKey(raw[0], ['Mes Semana', 'Semana', 'Fecha', 'FECHA']);
+  const fechas = [...new Set(raw.map(r => String(r[fechaKey] || '').trim()).filter(Boolean))].sort();
+  const fecha = fechas.slice(-1)[0] || '';
+  const rows = fecha ? raw.filter(r => String(r[fechaKey] || '').trim() === fecha) : raw;
+  const byAsesor = new Map();
+  rows.forEach(r => {
+    const name = String(metricsVal(r, asesorKey) || '').trim();
+    if (!name) return;
+    if (!byAsesor.has(name)) byAsesor.set(name, { total: 0, completas: 0 });
+    const acc = byAsesor.get(name);
+    acc.total++;
+    if (metricsClasificaAprovechamiento(metricsVal(r, estatusKey)) === 'completas') acc.completas++;
+  });
+  const map = new Map();
+  byAsesor.forEach((v, name) => map.set(name, v.total > 0 ? v.completas / v.total : 0));
+  return map;
+}
+
+// Alineación de estructura por Asesor (Dashboard 7/TREO): mismo pipeline
+// verificado de dataD7() — catalogo, timoteoantonioperez — pero agrupando
+// el % de tiendas Alineadas (Dif===0) por asesor en vez de un solo total.
+async function metricsAlineacionPorAsesor() {
+  const rawSheet = await fetchSheetData(SHEETS_CONFIG.TABS.s7);
+  const raw = metricsCoerceTreoRows(rawSheet);
+  if (!raw || !raw.length) return new Map();
+  const difKey = metricsFindDataKey(raw, ['Dif SAP vs Est Optima Final'], 25, true);
+  const asesorKey = metricsFindDataKey(raw, ['Asesor']);
+  const tiendaKey = metricsFindDataKey(raw, ['Tienda', 'Nombre Tienda', 'Unidad', 'Unidad Org', 'Unidad Organizativa']);
+  const crKey = metricsFindDataKey(raw, ['CR', 'ID Tienda', 'ID_Tienda']);
+  const asesorCatalog = await loadAsesorCatalog();
+  const rows = raw
+    .filter(r => String(metricsVal(r, tiendaKey) || '').trim() || String(metricsVal(r, asesorKey) || '').trim())
+    .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)))
+    .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ');
+  const byAsesor = new Map();
+  rows.forEach(r => {
+    const name = String(metricsVal(r, asesorKey) || '').trim();
+    if (!name) return;
+    if (!byAsesor.has(name)) byAsesor.set(name, { total: 0, alineadas: 0 });
+    const acc = byAsesor.get(name);
+    acc.total++;
+    if (metricsNum(metricsVal(r, difKey)) === 0) acc.alineadas++;
+  });
+  const map = new Map();
+  byAsesor.forEach((v, name) => map.set(name, v.total > 0 ? v.alineadas / v.total : 0));
+  return map;
+}
+
+// ─────────────────────────────────────────────────────────────
 // FUNCIÓN: Botón de descarga de archivo por dashboard
 // Lee la columna 'archivo_url' (y opcionalmente 'archivo_nombre') de la fila
 // correspondiente en la pestaña Configuracion. Si el admin sube un archivo (p.ej.
@@ -1365,4 +1477,8 @@ window.OXXO = {
   metricsCoerceTreoRows,
   metricsBuildActivosPorCR,
   metricsLatestSemanaNumerica,
+  metricsMatchShortName,
+  metricsVacantesPorAsesor,
+  metricsAprovechamientoPorAT,
+  metricsAlineacionPorAsesor,
 };
