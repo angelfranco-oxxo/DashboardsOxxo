@@ -794,8 +794,8 @@
     addMetricCard(slide, xs[1], row1Y, cardW, cardH, 'Cobertura Estructura', `${d.cobertura.toFixed(0)}%`, `${OXXO.formatNum(d.totalActivos)} de ${OXXO.formatNum(d.totalTreo)} posiciones`);
     addMetricCard(slide, xs[2], row1Y, cardW, cardH, 'Alineadas', d.alineadas, `${d.total ? Math.round(d.alineadas/d.total*100) : 0}% del total`);
     addMetricCard(slide, xs[3], row1Y, cardW, cardH, 'Vacantes Totales', OXXO.formatNum(d.totalVacantes), 'En tiendas filtradas');
-    addMetricCard(slide, xs[0], row2Y, cardW, cardH, 'Por Subir ▲', OXXO.formatNum(Math.round(d.posSubir)), `+${OXXO.formatNum(Math.round(d.posSubir))} posiciones a agregar`);
-    addMetricCard(slide, xs[1], row2Y, cardW, cardH, 'Por Bajar ▼', OXXO.formatNum(Math.round(d.posBajar)), `-${OXXO.formatNum(Math.round(d.posBajar))} posiciones a liberar`);
+    addMetricCard(slide, xs[0], row2Y, cardW, cardH, 'Por Subir ▲', d.subir, `+${OXXO.formatNum(Math.round(d.posSubir))} posiciones a agregar`);
+    addMetricCard(slide, xs[1], row2Y, cardW, cardH, 'Por Bajar ▼', d.bajar, `-${OXXO.formatNum(Math.round(d.posBajar))} posiciones a liberar`);
     addMetricCard(slide, xs[2], row2Y, cardW, cardH, 'Sub-dotadas', d.subDotadas, 'Activos < TREO');
     addMetricCard(slide, xs[3], row2Y, cardW, cardH, 'Sobre-dotadas', d.sobreDotadas, 'Activos > TREO');
 
