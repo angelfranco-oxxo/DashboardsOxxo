@@ -90,16 +90,20 @@
     if(!date) return '';
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
   }
-  // Replica EXACTA (con su mismo bug) de normalizeMesColumn() en
-  // dashboard-1.html: solo lee parts[0] como mes y parts[1] como anio, sin
-  // importar cuantas partes tenga el texto. En la base real la columna "Mes"
-  // de Dashboard_1_Diario trae una fecha completa "26/07/2026" (dia/mes/anio
-  // de corte), asi que parts=['26','07','2026'] y esta funcion intenta leer
-  // mes=26 (invalido) -> siempre falla y cae al respaldo por Fecha, igual
-  // que en el dashboard real. Usar el parser generico (normalizeMonthKey,
-  // que si sabe leer 3 partes) aqui rompia la paridad: nunca caia al
-  // respaldo por Fecha como si lo hace el dashboard real, y terminaba
-  // agrupando las vacantes por el mes de corte en vez de por su fecha real.
+  // Replica EXACTA (con su mismo comportamiento, incluido su "bug") de
+  // normalizeMesColumn() en dashboard-1.html: solo lee parts[0] como mes y
+  // parts[1] como anio, sin importar cuantas partes tenga el texto. En la
+  // base real la columna "Mes" de Dashboard_1_Diario trae una fecha de corte
+  // completa ("26/07/2026", dia/mes/anio), asi que parts=['26','07','2026']
+  // y esta funcion interpreta mal el mes (lee '26' en vez de '07').
+  //
+  // OJO: a diferencia de lo que se penso en un primer intento, el fallback
+  // final de la funcion real NO es "invalido" (key vacia) sino que regresa
+  // el TEXTO CRUDO tal cual como clave de agrupacion ({key:raw,label:raw}).
+  // Confirmado en vivo: el selector "Mes" del dashboard-1.html real muestra
+  // literalmente "26/07/2026" (el texto crudo, sin formatear) como opcion.
+  // Por eso el dashboard real NUNCA cae al respaldo por "Fecha" mientras la
+  // celda de "Mes" no este vacia -- agrupa por el texto crudo de corte.
   function normalizeMesColumnD1(value){
     const raw = String(value ?? '').trim();
     if(!raw) return '';
@@ -115,12 +119,12 @@
     }
     if(year > 0 && year < 100) year += 2000;
     if(month >= 1 && month <= 12 && year >= 2000) return `${year}-${String(month).padStart(2,'0')}`;
-    return '';
+    return raw;
   }
-  // Clave de mes por fila igual que dashboard-1.html
-  // (mesInfo.key || mesKeyFromDate(fechaObj)): si "Mes" no se puede
-  // normalizar (con el mismo criterio, y el mismo bug, que el dashboard
-  // real), se deriva del valor de "Fecha" parseado como fecha real.
+  // Clave de mes por fila igual que dashboard-1.html (mesInfo.key ||
+  // mesKeyFromDate(fechaObj)): como normalizeMesColumnD1 solo regresa '' si
+  // la celda "Mes" esta vacia, el respaldo por "Fecha" solo se activa en ese
+  // caso \u2014 igual que en el dashboard real.
   function rowMonthKeyD1(row, mesKey, fechaKey){
     return normalizeMesColumnD1(val(row, mesKey)) || mesKeyFromDate(parseFechaVacante(val(row, fechaKey)));
   }
@@ -183,8 +187,33 @@
     console.log('[RAE][D1] catalog.loaded=', asesorCatalog && asesorCatalog.loaded, 'validTiendas.size=', asesorCatalog && asesorCatalog.validTiendas && asesorCatalog.validTiendas.size);
     const stepTienda = raw.filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda');
     const stepTimoteo = stepTienda.filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ');
-    const base = stepTimoteo.filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
-    console.log('[RAE][D1] tras tienda no vacia=', stepTienda.length, '/ tras excluir timoteo=', stepTimoteo.length, '/ tras catalogo=', base.length);
+    const stepCatalog = stepTimoteo.filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    // dashboard-1.html arranca con la seleccion DEFAULT de sus 3 filtros
+    // "todo seleccionado" (Asesor, Puesto, Tienda), y esos defaults SI
+    // excluyen filas (no son "todo, sin filtrar"):
+    // - Puesto: solo los 6 valores exactos de DEFAULT_PUESTOS (texto crudo de
+    //   "Descripcion de Posicion", NO "contiene AYUDANTE/ENCARGADO/LIDER").
+    //   Puestos reales como "AYUDANTE APERTURA", "AYUDANTE BANCA",
+    //   "AYUDANTE TIENDA ENTRENAMIENTO" NO son ninguno de los 6 y quedan
+    //   fuera del total por defecto.
+    // - Tienda: excluye nombres que contengan "entrenamiento" u
+    //   "operaciones" (isDefaultExcludedTienda), mostrado como "Tiendas
+    //   operativas" en el filtro.
+    // - Asesor: excluye 'Sin Asesor Asignado' (defaultAsesorSelection).
+    const DEFAULT_PUESTOS_D1 = new Set([
+      'ENCARGADO TURNO', 'ENCARGADO TURNO SATELITE',
+      'LIDER TIENDA', 'LIDER TIENDA SATELITE',
+      'AYUDANTE TIENDA', 'AYUDANTE TIENDA SATELITE',
+    ]);
+    const isDefaultExcludedTiendaD1 = v => {
+      const t = normText(v);
+      return t.includes('ENTRENAMIENTO') || t.includes('OPERACIONES');
+    };
+    const base = stepCatalog
+      .filter(r => !isDefaultExcludedTiendaD1(val(r, tiendaKey)))
+      .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'SINASESORASIGNADO')
+      .filter(r => DEFAULT_PUESTOS_D1.has(String(val(r, puestoKey)||'').trim().toUpperCase()));
+    console.log('[RAE][D1] tras tienda no vacia=', stepTienda.length, '/ tras excluir timoteo=', stepTimoteo.length, '/ tras catalogo=', stepCatalog.length, '/ tras filtros default (tienda/asesor/puesto)=', base.length);
     const { mes, rows } = filterLatestMonth(base, r => rowMonthKeyD1(r, mesKey, fechaKey));
     console.log('[RAE][D1] mes elegido=', mes, '/ filas de ese mes=', rows.length);
     const mesesDisponibles = [...new Set(base.map(r => rowMonthKeyD1(r, mesKey, fechaKey)).filter(Boolean))].sort();
