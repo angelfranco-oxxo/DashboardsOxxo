@@ -218,6 +218,15 @@
       <div class="helper-box" id="indicadores-status" style="margin-top:12px"></div>
     </section>
     <section class="admin-card" style="margin-top:18px">
+      <h2>Presentación por Asesor</h2>
+      <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Elige un asesor y genera un .pptx con sus datos: Vacantes, Bajas, Aprovechamiento y TREO, tomados en vivo de Google Sheets (mismas reglas ya verificadas de las otras presentaciones).</p>
+      <div class="admin-actions" style="align-items:center;gap:12px">
+        <select class="admin-select" id="select-asesor" style="min-width:280px"><option value="">Cargando asesores…</option></select>
+        <button class="admin-btn primary" type="button" id="generate-pptx-asesor-btn">👤 Generar Presentación del Asesor</button>
+      </div>
+      <div class="helper-box" id="pptx-asesor-status" style="margin-top:12px"></div>
+    </section>
+    <section class="admin-card" style="margin-top:18px">
       <div class="preview-head"><h2>3. Vista previa</h2><div class="preview-meta" id="preview-meta">0 filas</div></div>
       <div class="table-wrap">
         <table class="preview-table" id="preview-table">
@@ -231,5 +240,6 @@
   <script src="js/admin-pptx.js"></script>
   <script src="js/admin-pptx-rae.js"></script>
   <script src="js/admin-indicadores.js"></script>
+  <script src="js/admin-pptx-asesor.js"></script>
 </body>
 </html>
