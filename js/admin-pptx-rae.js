@@ -7,6 +7,51 @@
     for(const a of aliases){ const ca = clean(a); const found = keys.find(k => clean(k).includes(ca) || ca.includes(clean(k))); if(found) return found; }
     return null;
   }
+  // Variante de findKey() para hojas con el problema de exportacion de
+  // Google descrito en core.js (una fila "sacrificio" de encabezado que a
+  // veces trae texto de otras celdas pegado, ej. "_buffer_ CR Reg" junto a
+  // "_buffer_ CR 501K9 50N0M..."): el match por substring de findKey puede
+  // acertarle a una columna vacia que solo *contiene* el alias como texto,
+  // en vez de la columna real con los datos. Aqui se prueban TODOS los
+  // candidatos que matchean por alias (exactos primero, luego por
+  // substring) y se elige el que tenga mas valores no vacios en una
+  // muestra de filas \u2014 la columna vacia pierde frente a la que s\u00ed trae
+  // datos, sin importar el orden de las columnas en la hoja.
+  // numeric=true prioriza, entre los candidatos, el que tenga mas valores
+  // que parecen numero (columnas como "Vacantes"/"Dif..." son siempre
+  // numericas; sin esto, una columna de texto libre que solo MENCIONA el
+  // alias dentro de una frase larga -ej. "...para considerar subir
+  // posiciones..." contiene "vacante"- puede ganarle a la columna numerica
+  // real si ambas estan igual de llenas).
+  function findDataKey(rows, aliases, sample=25, numeric=false){
+    if(!rows || !rows.length) return null;
+    const clean = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const keys = Object.keys(rows[0]||{});
+    const exact = [], partial = [];
+    for(const a of aliases){
+      const ca = clean(a);
+      for(const k of keys){
+        const ck = clean(k);
+        if(ck === ca) exact.push(k);
+        else if(ck.includes(ca) || ca.includes(ck)) partial.push(k);
+      }
+    }
+    const candidates = [...new Set([...exact, ...partial])];
+    if(!candidates.length) return null;
+    const n = Math.min(sample, rows.length);
+    const isNum = v => v !== '' && Number.isFinite(Number(String(v).replace(/,/g,'').trim()));
+    let best = candidates[0], bestScore = -1;
+    for(const k of candidates){
+      let score = 0;
+      for(let i = 0; i < n; i++){
+        const v = String(rows[i][k]??'').trim();
+        if(!v) continue;
+        score += (numeric ? (isNum(v) ? 1 : 0) : 1);
+      }
+      if(score > bestScore){ bestScore = score; best = k; }
+    }
+    return best;
+  }
   function val(row, key, fallback=''){ const v = key ? row[key] : undefined; return (v===undefined||v===null||String(v).trim()==='') ? fallback : v; }
   function num(v){ const n = Number(String(v??'').replace(/[$,%]/g,'').replace(/,/g,'').trim()); return Number.isFinite(n) ? n : 0; }
   // Misma regla que normalizePct() en dashboard-3.html: solo se divide entre
@@ -147,6 +192,43 @@
     if(d.includes('ENCARGADO')) return 'Encargado';
     if(d.includes('AYUDANTE')) return 'Ayudante';
     return 'Otro';
+  }
+  // Igual que normKey() en dashboard-7.html.
+  function normKeyD7(s){
+    return String(s||'')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '');
+  }
+  // Igual que hasTreoHeaderValues()/coerceTreoRows() en dashboard-7.html: la
+  // hoja Dashboard_7_Semanal tiene un problema de exportacion de Google
+  // Sheets donde el encabezado real termina pegado como texto dentro de las
+  // celdas de la primera fila de datos (parseCSV detecta como "encabezado"
+  // otra fila distinta, con columnas tipo "_buffer_..."). Sin esta
+  // correccion, findKey() busca sobre esos encabezados corruptos y puede
+  // emparejar la columna equivocada (ej. una columna vacia "CR Reg" en vez
+  // de la columna real de CR), rompiendo el match contra el catalogo de
+  // tiendas y arrastrando totales incorrectos en toda la diapositiva TREO.
+  function hasTreoHeaderValuesD7(row){
+    const values = Object.values(row || {}).map(v => normKeyD7(v));
+    const hits = ['zona','plaza','tienda','id_tienda','at_ro','estructura_sap','movimiento_inicial']
+      .filter(h => values.includes(h)).length;
+    return hits >= 4;
+  }
+  function coerceTreoRowsD7(rows){
+    if(!Array.isArray(rows) || !rows.length) return [];
+    if(!hasTreoHeaderValuesD7(rows[0])) return rows;
+    const sourceKeys = Object.keys(rows[0]);
+    const headers = sourceKeys.map((key, idx) => {
+      const value = String(rows[0][key] || '').trim();
+      return value || `col_${idx + 1}`;
+    });
+    return rows.slice(1).map(raw => {
+      const out = {};
+      sourceKeys.forEach((key, idx) => { out[headers[idx]] = raw[key]; });
+      return out;
+    });
   }
   // Ranking de conteo por nombre (p.ej. vacantes o bajas por Asesor), top N descendente.
   function rankCount(rows, nameKey, limit){
@@ -395,22 +477,28 @@
   }
 
   async function dataD7(){
-    const [raw, activosPorCR] = await Promise.all([
+    const [rawSheet, activosPorCR] = await Promise.all([
       OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s7),
       buildActivosPorCR(),
     ]);
+    const raw = coerceTreoRowsD7(rawSheet);
     if(!raw || !raw.length) return null;
-    const difKey = findKey(raw[0], ['Dif SAP vs Est Optima Final']);
-    const treoKey = findKey(raw[0], ['Estructura Propuesta TREO P2 Jun - Ago','TREO']);
-    const activosKey = findKey(raw[0], ['Empleados Activos','Activos']);
-    const vacantesKey = findKey(raw[0], ['Vacantes']);
-    const asesorKey = findKey(raw[0], ['Asesor']);
+    // findDataKey (no findKey) para toda esta pestana: Dashboard_7_Semanal es
+    // propensa al problema de exportacion de Google donde el encabezado real
+    // aparece pegado dentro del texto de otra columna (ej. "_buffer_ CR Reg"
+    // vs "_buffer_ CR 501K9 50N0M..."); un match por substring simple puede
+    // acertarle a la columna vacia que solo *menciona* el alias.
+    const difKey = findDataKey(raw, ['Dif SAP vs Est Optima Final'], 25, true);
+    const treoKey = findDataKey(raw, ['Estructura Propuesta TREO P2 Jun - Ago','TREO'], 25, true);
+    const activosKey = findDataKey(raw, ['Empleados Activos','Activos'], 25, true);
+    const vacantesKey = findDataKey(raw, ['Vacantes'], 25, true);
+    const asesorKey = findDataKey(raw, ['Asesor']);
     // Mismos alias que pickField() en dashboard-7.html para 'tienda' y 'cr':
     // sin ellos, una hoja que use 'Unidad Organizativa' o 'ID Tienda' en vez
     // de 'Tienda'/'CR' se queda sin CR para el match por catalogo y cae al
     // respaldo por nombre de tienda, que es menos preciso.
-    const tiendaKey = findKey(raw[0], ['Tienda','Nombre Tienda','Unidad','Unidad Org','Unidad Organizativa']);
-    const crKey = findKey(raw[0], ['CR','ID Tienda','ID_Tienda']);
+    const tiendaKey = findDataKey(raw, ['Tienda','Nombre Tienda','Unidad','Unidad Org','Unidad Organizativa']);
+    const crKey = findDataKey(raw, ['CR','ID Tienda','ID_Tienda']);
     // dashboard-7.html filtra por el catalogo de 255 tiendas autorizadas y
     // excluye 'timoteoantonioperez', igual que Dashboard 1.
     const asesorCatalog = await OXXO.loadAsesorCatalog();
