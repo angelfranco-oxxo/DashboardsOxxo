@@ -1097,11 +1097,18 @@ function render(data){
     if(ecOaxaca > 0) plazaData.push({ plaza: 'OAXACA', aprov: ecOaxaca });
   }
 
-  // Agregar otras plazas desde la hoja manual (sin sobreescribir OAXACA)
+  // Agregar otras plazas desde la hoja manual (sin sobreescribir OAXACA).
+  // findDataKey (no acceso directo por nombre literal de columna): esta
+  // hoja es una carga manual y de vez en cuando trae el mismo problema de
+  // exportacion de Google que Dashboard_7_Semanal (el encabezado real
+  // queda pegado como texto en otra columna, "_buffer_..."); el acceso
+  // directo r['PLAZAS'] se quedaba en blanco en esos casos.
   if(OTRAS_PLAZAS_D3.length) {
+    const plazaKey = OXXO.metricsFindDataKey(OTRAS_PLAZAS_D3, ['PLAZAS','Plazas','Plaza']);
+    const aprovKey = OXXO.metricsFindDataKey(OTRAS_PLAZAS_D3, ['Aprovechamiento de estructura a hoy','Aprovechamiento'], 25, true);
     OTRAS_PLAZAS_D3.forEach(r => {
-      const plaza = String(r['PLAZAS']||r['Plazas']||r['Plaza']||'').trim();
-      const aprov = Number(String(r['Aprovechamiento de estructura a hoy']||r['Aprovechamiento']||'').replace(/[^0-9.-]/g,''));
+      const plaza = String(OXXO.metricsVal(r, plazaKey)||'').trim();
+      const aprov = Number(String(OXXO.metricsVal(r, aprovKey)||'').replace(/[^0-9.-]/g,''));
       if(plaza && !isNaN(aprov) && aprov > 0 && !plazaData.find(p => p.plaza.toUpperCase() === plaza.toUpperCase())) {
         plazaData.push({ plaza, aprov });
       }

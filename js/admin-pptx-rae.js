@@ -166,8 +166,15 @@
     try {
       const otras = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3plazas);
       if(otras && otras.length){
-        const plazaKey = findKey(otras[0], ['PLAZAS','Plaza']);
-        const valKey = findKey(otras[0], ['Aprovechamiento de estructura a hoy','Aprovechamiento']);
+        // findDataKey (no findKey): la hoja de "Otras Plazas" es una carga
+        // manual y, como la de TREO, puede traer el mismo problema de
+        // exportacion de Google donde el encabezado real queda pegado como
+        // texto dentro de otra columna (fila "_buffer_..."). findKey se
+        // conformaba con la primera columna que *mencionara* el alias
+        // (pudiendo ser una vacia); findDataKey elige la que de verdad
+        // tiene datos.
+        const plazaKey = findDataKey(otras, ['PLAZAS','Plaza']);
+        const valKey = findDataKey(otras, ['Aprovechamiento de estructura a hoy','Aprovechamiento'], 25, true);
         plazas = otras.map(r => ({ name: String(val(r, plazaKey)||'').trim(), value: normPct(val(r, valKey)) })).filter(p => p.name);
       }
     } catch(e){ /* sin datos de otras plazas: se muestra solo Oaxaca */ }
