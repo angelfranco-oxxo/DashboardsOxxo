@@ -492,63 +492,13 @@
         zip.file(path, xml);
       }
 
-      // Slide 2 (Bajas): la plantilla YA trae dos tarjetas vacias con sus
-      // titulos ("Compromiso vs Resultado" a la izq., "Bajas por Asesor" a la
-      // der. — coordenadas medidas directamente del template: Group 19 en
-      // (1.25,1.75,7.67,4.82) y Group 28 en (9.76,1.75,9.01,4.82)). Se coloca
-      // el hero KPI en la primera y el ranking real por asesor en la segunda,
-      // dentro de esos limites — NUNCA con coordenadas propias sueltas, que
-      // es lo que se encimaba con las tarjetas de la plantilla.
-      {
-        const kpi = results['Dashboard 2 · Bajas'];
-        if(kpi){
-          const path = 'ppt/slides/slide2.xml';
-          let xml = await zip.file(path).async('string');
-          let id = nextShapeId(xml);
-          const left = heroInBoundsXml(id, 1.55, 2.65, 7.07, 3.62, kpi);
-          id = left.nextId;
-          const right = rankListInBoundsXml(id, 10.06, 2.65, 8.41, 3.62, null, kpi.ranking, { pct: false });
-          xml = xml.replace('</p:spTree>', left.xml + right.xml + '</p:spTree>');
-          zip.file(path, xml);
-        }
-      }
-
-      // Slide 3 (Aprovechamiento): la plantilla trae dos tarjetas vacias SIN
-      // titulo propio (Freeform 19 arriba en (0.8,2.35,18.4,1.83) y Freeform
-      // 20 abajo en (0.96,4.3,18.08,6.48)). Arriba va el hero + Completas/
-      // Incompletas/Criticas; abajo el ranking real "Aprovechamiento por AT".
-      {
-        const kpi = results['Dashboard 3 · Aprovechamiento'];
-        if(kpi){
-          const path = 'ppt/slides/slide3.xml';
-          let xml = await zip.file(path).async('string');
-          let id = nextShapeId(xml);
-          const top = heroInBoundsXml(id, 1.2, 2.55, 16.8, 1.5, kpi);
-          id = top.nextId;
-          const bottom = rankListInBoundsXml(id, 1.36, 4.6, 17.4, 6.0, 'Aprovechamiento por AT', kpi.ranking, { pct: true });
-          xml = xml.replace('</p:spTree>', top.xml + bottom.xml + '</p:spTree>');
-          zip.file(path, xml);
-        }
-      }
-
-      // Slides 4-7: cada una trae una sola tarjeta grande ya dibujada en la
-      // plantilla (fondo con imagen); se coloca el hero + KPIs secundarios
-      // dentro de sus limites reales (medidos del template), con margen, para
-      // no volver a encimarse con el fondo de la tarjeta.
-      const boundedSlides = [
-        { file: 'ppt/slides/slide4.xml', kpi: results['Dashboard 6 · Ausentismos'], bounds: [4.4, 2.55, 11.57, 3.73] },
-        { file: 'ppt/slides/slide5.xml', kpi: results['Dashboard 4 · Tiempo Extra'], bounds: [1.87, 2.67, 8.25, 4.42] },
-        { file: 'ppt/slides/slide6.xml', kpi: results['Dashboard 5 · Vacaciones'], bounds: [2.56, 2.5, 14.88, 5.34] },
-        { file: 'ppt/slides/slide7.xml', kpi: results['Dashboard 7 · TREO'], bounds: [7.39, 5.52, 11.33, 4.77] },
-      ];
-      for(const { file, kpi, bounds } of boundedSlides){
-        if(!kpi) continue;
-        let xml = await zip.file(file).async('string');
-        const id = nextShapeId(xml);
-        const { xml: extra } = heroInBoundsXml(id, ...bounds, kpi);
-        xml = xml.replace('</p:spTree>', extra + '</p:spTree>');
-        zip.file(file, xml);
-      }
+      // Slides 2-7: por instrucción explícita del usuario, se dejan TAL COMO
+      // ESTÁN en la plantilla (solo título), sin agregar tarjetas ni
+      // rankings. Los intentos anteriores de inyectar contenido propio en
+      // estas diapositivas causaron texto encimado con el diseño del
+      // template; en vez de seguir ajustando coordenadas a ciegas (no hay
+      // forma de renderizar el .pptx visualmente en este entorno para
+      // verificarlo), se deja el resto del archivo intacto.
 
       const out = await zip.generateAsync({ type: 'blob' });
       const today = new Date();
