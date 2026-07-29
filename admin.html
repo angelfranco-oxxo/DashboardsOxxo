@@ -111,6 +111,7 @@
     <nav class="admin-tabs" role="tablist">
       <button class="admin-tab active" type="button" role="tab" aria-selected="true" data-tab="upload">📤 Cargar y Publicar Bases</button>
       <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="presentaciones">📊 Presentaciones</button>
+      <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="excels">📥 Excels</button>
     </nav>
     <section class="admin-tabpanel" id="tabpanel-upload" role="tabpanel">
     <section class="admin-grid">
@@ -231,14 +232,6 @@
       <div class="helper-box" id="pptx-rae-status" style="margin-top:12px"></div>
     </section>
     <section class="admin-card" style="margin-top:18px">
-      <h2>Indicadores ATs</h2>
-      <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Descarga el Excel de Indicadores por AT con Aprovechamiento de estructura, Vacantes en estructura y Alineación de estructura actualizados en vivo desde Google Sheets (mismos datos que Vacantes/Aprovechamiento/TREO). El resto de los indicadores (NPS, Ausentismo, Rotación, % Apego) se conservan tal cual para llenarse a mano.</p>
-      <div class="admin-actions">
-        <button class="admin-btn primary" type="button" id="generate-indicadores-btn">📥 Generar Indicadores ATs</button>
-      </div>
-      <div class="helper-box" id="indicadores-status" style="margin-top:12px"></div>
-    </section>
-    <section class="admin-card" style="margin-top:18px">
       <h2>Presentación por Asesor</h2>
       <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Elige un asesor y genera un .pptx con sus datos: Vacantes, Bajas, Aprovechamiento y TREO, tomados en vivo de Google Sheets (mismas reglas ya verificadas de las otras presentaciones).</p>
       <div class="admin-actions" style="align-items:center;gap:12px">
@@ -246,6 +239,16 @@
         <button class="admin-btn primary" type="button" id="generate-pptx-asesor-btn">👤 Generar Presentación del Asesor</button>
       </div>
       <div class="helper-box" id="pptx-asesor-status" style="margin-top:12px"></div>
+    </section>
+    </section>
+    <section class="admin-tabpanel hidden" id="tabpanel-excels" role="tabpanel">
+    <section class="admin-card">
+      <h2>Indicadores ATs</h2>
+      <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Descarga el Excel de Indicadores por AT con Aprovechamiento de estructura, Vacantes en estructura y Alineación de estructura actualizados en vivo desde Google Sheets (mismos datos que Vacantes/Aprovechamiento/TREO). El resto de los indicadores (NPS, Ausentismo, Rotación, % Apego) se conservan tal cual para llenarse a mano.</p>
+      <div class="admin-actions">
+        <button class="admin-btn primary" type="button" id="generate-indicadores-btn">📥 Generar Indicadores ATs</button>
+      </div>
+      <div class="helper-box" id="indicadores-status" style="margin-top:12px"></div>
     </section>
     </section>
   </main>
