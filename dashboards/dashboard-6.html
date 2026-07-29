@@ -248,6 +248,17 @@ let C = {};
 function buildColsD6(sample){
   const cols = {};
   Object.entries(ALIASES_D6).forEach(([k,aliases]) => { cols[k] = findRealKeyD6(sample, aliases) || aliases[0]; });
+  // Si 'tienda' cayo sobre la misma columna que 'cr' (el alias 'Tienda' matchea por
+  // substring dentro de 'Cr de Tienda' si los encabezados vienen con texto pegado —
+  // mismo bug encontrado y corregido en Dashboard 3), buscar otra columna que
+  // contenga 'tienda' pero no 'cr'.
+  if(cols.tienda && cols.tienda === cols.cr){
+    const alt = Object.keys(sample||{}).find(k => {
+      const ck = cleanKeyD6(k);
+      return ck.includes('tienda') && !ck.includes('cr') && k !== cols.cr;
+    });
+    if(alt) cols.tienda = alt;
+  }
   return cols;
 }
 
