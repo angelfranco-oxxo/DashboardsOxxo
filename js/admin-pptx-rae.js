@@ -340,13 +340,25 @@
     const contentTop = y + 0.62;
     const contentH = h - 0.62 - 0.2;
     const chartSize = Math.min(w * 0.42, contentH, 2.3);
-    const rowStep = Math.min(0.62, Math.max(contentH, 0.62 * clean.length) / clean.length);
+    // rowStep debe limitarse a contentH/n; Math.max(contentH, 0.62*n) hacia
+    // arriba siempre devolvia 0.62 sin importar contentH, haciendo que la
+    // leyenda se calculara para una tarjeta mas alta de la real y se
+    // encimara con la dona en tarjetas bajas/anchas (ver mismo fix en
+    // admin-pptx-asesor.js).
+    const rowStep = Math.min(0.62, contentH / clean.length);
     const blockH = Math.max(chartSize, rowStep * clean.length);
     const blockY = contentTop + Math.max(0, (contentH - blockH) / 2);
     const chartY = blockY + (blockH - chartSize) / 2;
 
+    // Leyenda con ancho maximo (3.2in) en vez de estirarse al ancho completo
+    // de la tarjeta, y bloque dona+leyenda centrado horizontalmente (ver
+    // mismo fix en admin-pptx-asesor.js).
+    const legendW = Math.min(w - 0.6 - chartSize, 3.2);
+    const contentW = 0.25 + chartSize + 0.1 + legendW;
+    const blockX = x + Math.max(0.2, (w - contentW) / 2);
+
     slide.addChart(pptx.ChartType.doughnut, [{ name: title, labels: clean.map(s => s.label), values: clean.map(s => s.value) }], {
-      x: x + 0.25, y: chartY, w: chartSize, h: chartSize,
+      x: blockX + 0.25, y: chartY, w: chartSize, h: chartSize,
       chartColors: clean.map(s => s.color),
       showLegend: false, showValue: false, showPercent: false,
       dataBorder: { pt: 2, color: WHITE },
@@ -354,11 +366,10 @@
     });
     const top = clean[0];
     const topPct = Math.round((top.value / total) * 100);
-    slide.addText(`${topPct}%`, { x: x + 0.25, y: chartY + chartSize/2 - 0.32, w: chartSize, h: 0.34, fontSize: 20, bold: true, color: TEXT, align: 'center', fontFace: 'Arial', margin: 0 });
-    slide.addText(top.label.toUpperCase(), { x: x + 0.25, y: chartY + chartSize/2 + 0.02, w: chartSize, h: 0.22, fontSize: 8, color: MUTED, align: 'center', fontFace: 'Arial', margin: 0 });
+    slide.addText(`${topPct}%`, { x: blockX + 0.25, y: chartY + chartSize/2 - 0.32, w: chartSize, h: 0.34, fontSize: 20, bold: true, color: TEXT, align: 'center', fontFace: 'Arial', margin: 0 });
+    slide.addText(top.label.toUpperCase(), { x: blockX + 0.25, y: chartY + chartSize/2 + 0.02, w: chartSize, h: 0.22, fontSize: 8, color: MUTED, align: 'center', fontFace: 'Arial', margin: 0 });
 
-    const legendX = x + 0.35 + chartSize;
-    const legendW = w - 0.6 - chartSize;
+    const legendX = blockX + 0.35 + chartSize;
     const legendRowH = Math.min(0.22, rowStep * 0.36);
     let ly = blockY + (blockH - rowStep * clean.length) / 2;
     clean.forEach(seg => {

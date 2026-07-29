@@ -16,16 +16,24 @@
   const RED = 'CC0000', GOLD = 'FFC400', ORANGE = 'EE7203', DARK = '2B1714';
   const TRACKBG = 'F4F4F4', BORDER = 'E2E2E2';
   const TEXT = '222222', MUTED = '777777', SUBTLE = 'FFE3E0', BADGETEXT = '5A3A00', WHITE = 'FFFFFF', GREEN = '00A878';
-  const PAGE_W = 13.333, MARGIN_X = 0.45, HEADER_H = 0.92;
+  // LAYOUT_WIDE de pptxgenjs mide 13.333 x 7.5in — antes buildD7() usaba un
+  // "5.75" suelto para calcular la altura disponible (una altura de layout
+  // vieja/equivocada), dejando la tarjeta de "Alineación de estructura"
+  // demasiado baja (dona chiquita, filas de leyenda amontonadas) y ~1.8in de
+  // espacio en blanco sin usar al fondo de la diapositiva.
+  const PAGE_W = 13.333, PAGE_H = 7.5, MARGIN_X = 0.45, HEADER_H = 0.92;
 
   function addHeader(slide, title, sub, dateLabel){
     slide.addShape('rect', { x: 0, y: 0, w: PAGE_W, h: HEADER_H, fill: { color: RED }, line: { type: 'none' } });
     slide.addShape('rect', { x: 0, y: HEADER_H, w: PAGE_W, h: 0.05, fill: { color: GOLD }, line: { type: 'none' } });
     slide.addText(title, { x: MARGIN_X, y: 0, w: 8.4, h: HEADER_H * 0.62, fontSize: 24, bold: true, color: WHITE, fontFace: 'Arial', valign: 'bottom', margin: 0 });
     slide.addText(sub, { x: MARGIN_X, y: HEADER_H * 0.6, w: 8.4, h: HEADER_H * 0.4, fontSize: 12, color: SUBTLE, fontFace: 'Arial', valign: 'top', margin: 0 });
-    slide.addShape('roundRect', { x: 9.9, y: 0.26, w: 2.55, h: 0.42, rectRadius: 0.08, fill: { color: GOLD }, line: { type: 'none' } });
-    slide.addText('Plaza Oaxaca', { x: 9.9, y: 0.26, w: 2.55, h: 0.42, fontSize: 13, bold: true, color: BADGETEXT, fontFace: 'Arial', align: 'center', valign: 'middle', margin: 0 });
-    slide.addText(`OXXO · Uso Interno · ${dateLabel}`, { x: 10.7, y: 0, w: 2.2, h: HEADER_H, fontSize: 10, color: SUBTLE, fontFace: 'Arial', align: 'right', valign: 'middle', margin: 0 });
+    // "OXXO · Uso Interno" y la pastilla "Plaza Oaxaca" van en FILAS separadas
+    // (antes se encimaban: la pastilla ocupaba 9.9-12.45 y el texto arrancaba
+    // en 10.7, dentro de esa misma franja horizontal).
+    slide.addText(`OXXO · Uso Interno · ${dateLabel}`, { x: PAGE_W - MARGIN_X - 3.0, y: 0.08, w: 3.0, h: 0.22, fontSize: 9, color: SUBTLE, fontFace: 'Arial', align: 'right', valign: 'middle', margin: 0 });
+    slide.addShape('roundRect', { x: PAGE_W - MARGIN_X - 2.2, y: 0.36, w: 2.2, h: 0.42, rectRadius: 0.08, fill: { color: GOLD }, line: { type: 'none' } });
+    slide.addText('Plaza Oaxaca', { x: PAGE_W - MARGIN_X - 2.2, y: 0.36, w: 2.2, h: 0.42, fontSize: 13, bold: true, color: BADGETEXT, fontFace: 'Arial', align: 'center', valign: 'middle', margin: 0 });
   }
 
   function addSectionTitle(slide, x, y, w, text, rightText){
@@ -38,7 +46,10 @@
 
   function addHeroKpi(slide, x, y, w, h, value, label, sub){
     slide.addShape('roundRect', { x, y, w, h, rectRadius: 0.12, fill: { color: RED }, line: { type: 'none' } });
-    slide.addText(String(value), { x: x + 0.2, y: y + 0.12, w: w * 0.45, h: h - 0.24, fontSize: 56, bold: true, color: WHITE, fontFace: 'Arial', valign: 'middle', margin: 0 });
+    // fit:'shrink' + wrap:false: sin esto, un valor mas largo de lo esperado
+    // (p.ej. "85.2%" en vez de un entero de 1-2 digitos) no cabe en el ancho
+    // fijo a 56pt y PowerPoint lo parte en dos lineas ("85.2" / "%").
+    slide.addText(String(value), { x: x + 0.2, y: y + 0.12, w: w * 0.45, h: h - 0.24, fontSize: 56, bold: true, color: WHITE, fontFace: 'Arial', valign: 'middle', margin: 0, wrap: false, fit: 'shrink' });
     slide.addText([
       { text: label, options: { bold: true, breakLine: true } },
       { text: sub, options: { bold: false } },
@@ -57,13 +68,28 @@
     const contentTop = y + 0.62;
     const contentH = h - 0.62 - 0.2;
     const chartSize = Math.min(w * 0.42, contentH, 2.3);
-    const rowStep = Math.min(0.62, Math.max(contentH, 0.62 * clean.length) / clean.length);
+    // Antes: Math.max(contentH, 0.62*n)/n siempre devolvía 0.62 sin importar
+    // contentH (el Math.max con 0.62*n domina la division), asi que en
+    // tarjetas bajas (contentH chico, como el panel ancho de TREO) las N
+    // filas de la leyenda se calculaban para una altura mayor a la real de
+    // la tarjeta y se salian por debajo, encimandose con la dona (que si
+    // respeta contentH). Ahora rowStep tambien se limita a contentH/n.
+    const rowStep = Math.min(0.62, contentH / clean.length);
     const blockH = Math.max(chartSize, rowStep * clean.length);
     const blockY = contentTop + Math.max(0, (contentH - blockH) / 2);
     const chartY = blockY + (blockH - chartSize) / 2;
 
+    // La leyenda se limita a un ancho maximo (3.2in) en vez de estirarse al
+    // ancho completo de la tarjeta: en tarjetas anchas (full width) eso
+    // dejaba el nombre pegado a la dona y el porcentaje disparado hasta el
+    // borde derecho, con un vacio enorme en medio. El bloque
+    // dona+leyenda ahora se centra horizontalmente dentro de la tarjeta.
+    const legendW = Math.min(w - 0.6 - chartSize, 3.2);
+    const contentW = 0.25 + chartSize + 0.1 + legendW;
+    const blockX = x + Math.max(0.2, (w - contentW) / 2);
+
     slide.addChart(pptx.ChartType.doughnut, [{ name: title, labels: clean.map(s => s.label), values: clean.map(s => s.value) }], {
-      x: x + 0.25, y: chartY, w: chartSize, h: chartSize,
+      x: blockX + 0.25, y: chartY, w: chartSize, h: chartSize,
       chartColors: clean.map(s => s.color),
       showLegend: false, showValue: false, showPercent: false,
       dataBorder: { pt: 2, color: WHITE },
@@ -71,11 +97,10 @@
     });
     const top = clean[0];
     const topPct = Math.round((top.value / total) * 100);
-    slide.addText(`${topPct}%`, { x: x + 0.25, y: chartY + chartSize/2 - 0.32, w: chartSize, h: 0.34, fontSize: 20, bold: true, color: TEXT, align: 'center', fontFace: 'Arial', margin: 0 });
-    slide.addText(top.label.toUpperCase(), { x: x + 0.25, y: chartY + chartSize/2 + 0.02, w: chartSize, h: 0.22, fontSize: 8, color: MUTED, align: 'center', fontFace: 'Arial', margin: 0 });
+    slide.addText(`${topPct}%`, { x: blockX + 0.25, y: chartY + chartSize/2 - 0.32, w: chartSize, h: 0.34, fontSize: 20, bold: true, color: TEXT, align: 'center', fontFace: 'Arial', margin: 0 });
+    slide.addText(top.label.toUpperCase(), { x: blockX + 0.25, y: chartY + chartSize/2 + 0.02, w: chartSize, h: 0.22, fontSize: 8, color: MUTED, align: 'center', fontFace: 'Arial', margin: 0 });
 
-    const legendX = x + 0.35 + chartSize;
-    const legendW = w - 0.6 - chartSize;
+    const legendX = blockX + 0.35 + chartSize;
     const legendRowH = Math.min(0.22, rowStep * 0.36);
     let ly = blockY + (blockH - rowStep * clean.length) / 2;
     clean.forEach(seg => {
@@ -151,12 +176,17 @@
     return { total, alineadas, subir, bajar, totalTreo, totalActivos, totalVacantes, cobertura };
   }
 
+  // Ancho completo (menos margenes): antes el hero + la dona se quedaban en
+  // 4.55in fijos y dejaban vacia toda la mitad derecha de la diapositiva
+  // (PAGE_W=13.333in). Ahora ambos usan el ancho disponible completo.
+  const FULL_W = PAGE_W - MARGIN_X * 2;
+
   function buildD1(pptx, d, nombre, dateLabel){
     const slide = pptx.addSlide();
     slide.background = { color: WHITE };
     addHeader(slide, 'VACANTES', nombre, dateLabel);
-    addHeroKpi(slide, MARGIN_X, 1.25, 4.55, 1.6, d.total, 'VACANTES TOTALES', d.mes ? `Mes ${d.mes}` : 'Plaza Oaxaca');
-    addDoughnutCard(pptx, slide, MARGIN_X, 3.1, 4.55, 3.15, 'Distribución por puesto', [
+    addHeroKpi(slide, MARGIN_X, 1.25, FULL_W, 1.6, d.total, 'VACANTES TOTALES', d.mes ? `Mes ${d.mes}` : 'Plaza Oaxaca');
+    addDoughnutCard(pptx, slide, MARGIN_X, 3.1, FULL_W, 3.15, 'Distribución por puesto', [
       { label: 'Ayudante', value: d.byPuesto.Ayudante, color: GOLD },
       { label: 'Encargado', value: d.byPuesto.Encargado, color: ORANGE },
       { label: 'Lider', value: d.byPuesto.Lider, color: RED },
@@ -167,8 +197,8 @@
     const slide = pptx.addSlide();
     slide.background = { color: WHITE };
     addHeader(slide, 'BAJAS', nombre, dateLabel);
-    addHeroKpi(slide, MARGIN_X, 1.25, 4.55, 1.6, d.total, 'BAJAS TOTALES', d.mes ? `Mes ${d.mes}` : 'Plaza Oaxaca');
-    addDoughnutCard(pptx, slide, MARGIN_X, 3.1, 4.55, 3.15, 'Distribución por puesto', [
+    addHeroKpi(slide, MARGIN_X, 1.25, FULL_W, 1.6, d.total, 'BAJAS TOTALES', d.mes ? `Mes ${d.mes}` : 'Plaza Oaxaca');
+    addDoughnutCard(pptx, slide, MARGIN_X, 3.1, FULL_W, 3.15, 'Distribución por puesto', [
       { label: 'Ayudante', value: d.byPuesto.Ayudante, color: GOLD },
       { label: 'Encargado', value: d.byPuesto.Encargado, color: ORANGE },
       { label: 'Lider', value: d.byPuesto.Lider, color: RED },
@@ -179,8 +209,8 @@
     const slide = pptx.addSlide();
     slide.background = { color: WHITE };
     addHeader(slide, 'APROVECHAMIENTO DE ESTRUCTURA', nombre, dateLabel);
-    addHeroKpi(slide, MARGIN_X, 1.25, 4.55, 1.6, `${d.pct.toFixed(1)}%`, 'APROVECHAMIENTO (EC%)', `${d.total} tiendas · Meta 95%`);
-    addDoughnutCard(pptx, slide, MARGIN_X, 3.1, 4.55, 3.15, 'Estatus con impacto de ausentismo', [
+    addHeroKpi(slide, MARGIN_X, 1.25, FULL_W, 1.6, `${d.pct.toFixed(1)}%`, 'APROVECHAMIENTO (EC%)', `${d.total} tiendas · Meta 95%`);
+    addDoughnutCard(pptx, slide, MARGIN_X, 3.1, FULL_W, 3.15, 'Estatus con impacto de ausentismo', [
       { label: 'Completas', value: d.completas, color: GREEN },
       { label: 'Incompletas', value: d.incompletas, color: GOLD },
       { label: 'Criticas', value: d.criticas, color: RED },
@@ -197,7 +227,7 @@
     addMetricCard(slide, xs[1], y, cardW, cardH, 'Cobertura', `${d.cobertura.toFixed(0)}%`, `${OXXO.formatNum(d.totalActivos)} de ${OXXO.formatNum(d.totalTreo)} posiciones`);
     addMetricCard(slide, xs[2], y, cardW, cardH, 'Vacantes TREO', OXXO.formatNum(d.totalVacantes), 'En tiendas del asesor');
     addMetricCard(slide, xs[3], y, cardW, cardH, 'Alineadas', d.alineadas, `${d.total ? Math.round(d.alineadas/d.total*100) : 0}% del total`);
-    addDoughnutCard(pptx, slide, MARGIN_X, y + cardH + 0.3, PAGE_W - MARGIN_X * 2, 5.75 - (y + cardH + 0.3) - MARGIN_X, 'Alineación de estructura', [
+    addDoughnutCard(pptx, slide, MARGIN_X, y + cardH + 0.3, PAGE_W - MARGIN_X * 2, PAGE_H - (y + cardH + 0.3) - MARGIN_X, 'Alineación de estructura', [
       { label: 'Alineada', value: d.alineadas, color: GREEN },
       { label: 'Subir', value: d.subir, color: GOLD },
       { label: 'Bajar', value: d.bajar, color: RED },
