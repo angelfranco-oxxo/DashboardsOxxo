@@ -316,11 +316,12 @@
     return (ids.length ? Math.max(...ids) : 0) + 1;
   }
 
-  function textBoxXml(id, x, y, w, h, text, { size = 18, bold = false, color = DARK_HEX, align = 'l' } = {}){
+  function textBoxXml(id, x, y, w, h, text, { size = 18, bold = false, color = DARK_HEX, align = 'l', anchor = 't', autofit = false } = {}){
+    const bodyExtra = autofit ? '<a:normAutofit/>' : '';
     return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="KPI ${id}"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>` +
       `<p:spPr><a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(w)}" cy="${emu(h)}"/></a:xfrm>` +
       `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>` +
-      `<p:txBody><a:bodyPr wrap="square" lIns="0" tIns="0" rIns="0" bIns="0"/><a:lstStyle/>` +
+      `<p:txBody><a:bodyPr wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" anchor="${anchor}">${bodyExtra}</a:bodyPr><a:lstStyle/>` +
       `<a:p><a:pPr algn="${align}"/><a:r><a:rPr lang="es-MX" sz="${size * 100}" b="${bold ? 1 : 0}"><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="Arial"/></a:rPr><a:t>${xmlEscape(text)}</a:t></a:r></a:p>` +
       `</p:txBody></p:sp>`;
   }
@@ -341,15 +342,18 @@
     if(!kpi) return slideXml;
     let id = nextShapeId(slideXml);
     let extra = '';
-    extra += textBoxXml(id++, 1.2, 3.0, 7.0, 1.5, kpi.value, { size: 96, bold: true, color: RED_HEX });
-    extra += textBoxXml(id++, 1.2, 4.5, 7.0, 0.6, kpi.label, { size: 28, bold: true, color: DARK_HEX });
-    extra += textBoxXml(id++, 1.2, 5.15, 7.0, 0.5, kpi.sub || '', { size: 18, color: GRAY_HEX });
+    // normAutofit en el numero hero: si el valor real es mas largo de lo
+    // esperado (p.ej. "13,897" en vez de "95"), PowerPoint encoge la fuente
+    // en vez de desbordar el cuadro y encimarse con la etiqueta de abajo.
+    extra += textBoxXml(id++, 1.2, 2.7, 7.0, 1.9, kpi.value, { size: 80, bold: true, color: RED_HEX, anchor: 'b', autofit: true });
+    extra += textBoxXml(id++, 1.2, 4.75, 7.0, 0.55, kpi.label, { size: 26, bold: true, color: DARK_HEX });
+    extra += textBoxXml(id++, 1.2, 5.35, 7.0, 0.45, kpi.sub || '', { size: 16, color: GRAY_HEX });
     const cardH = 1.1, gap = 0.35, startY = 3.0;
     (kpi.secondary || []).forEach((s, i) => {
       const y = startY + i * (cardH + gap);
       extra += cardRectXml(id++, 9.0, y, 9.6, cardH);
-      extra += textBoxXml(id++, 9.3, y, 6.0, cardH, s.label, { size: 20, color: GRAY_HEX, align: 'l' });
-      extra += textBoxXml(id++, 15.4, y, 3.0, cardH, s.value, { size: 24, bold: true, color: DARK_HEX, align: 'r' });
+      extra += textBoxXml(id++, 9.3, y, 5.5, cardH, s.label, { size: 20, color: GRAY_HEX, align: 'l', anchor: 'ctr' });
+      extra += textBoxXml(id++, 14.9, y, 3.4, cardH, s.value, { size: 24, bold: true, color: DARK_HEX, align: 'r', anchor: 'ctr' });
     });
     return slideXml.replace('</p:spTree>', extra + '</p:spTree>');
   }
