@@ -457,7 +457,7 @@
       try { extraD1 = await extraD1Stats(); } catch(e){ console.error('Error extraD1Stats', e); }
 
       if(statusEl) statusEl.textContent = 'Rellenando plantilla...';
-      const resp = await fetch(TEMPLATE_URL);
+      const resp = await fetch(TEMPLATE_URL, { cache: 'no-store' });
       if(!resp.ok) throw new Error(`No se pudo cargar la plantilla (HTTP ${resp.status})`);
       const buf = await resp.arrayBuffer();
       const zip = await JSZip.loadAsync(buf);
