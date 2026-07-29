@@ -765,10 +765,21 @@ const ALIASES_DET = {
   ausRestEC: ['Numero de ausentismos restantes para EC'],
   ausRestTC: ['Numero de ausentismos restantes para TC'],
 };
+// Si 'tienda' cayo sobre la misma columna que 'cr' (ej. con encabezados corruptos tipo
+// "_buffer_ CR TIENDA" apareciendo antes que "_buffer_ Tienda" en el orden de columnas,
+// el alias 'Tienda' matchea "CR TIENDA" primero por substring), se busca otra columna que
+// contenga 'tienda' pero NO 'cr', para no mostrar el codigo de CR en vez del nombre real.
+function fixTiendaCrCollision(s,m){
+  if(m.tienda && m.tienda===m.cr){
+    const alt=Object.keys(s||{}).find(k=>{const ck=cleanKey(k);return ck.includes('tienda')&&!ck.includes('cr')&&k!==m.cr;});
+    if(alt) m.tienda=alt;
+  }
+}
 function buildMapDet(data){
   const s=data.find(r=>Object.values(r).some(v=>String(v||'').trim()!==''))||data[0]||{};
   const m={};
   Object.entries(ALIASES_DET).forEach(([k,al])=>m[k]=findKey(s,al));
+  fixTiendaCrCollision(s,m);
   return m;
 }
 
@@ -792,6 +803,7 @@ function buildMap(data){
   // aprovechamiento por tienda o la de estatus, descartarla (queda vacia, no datos ajenos).
   if(m.aprov_plaza && m.aprov_plaza===m.aprov) m.aprov_plaza=null;
   if(m.at && m.at===m.estatus) m.at=null;
+  fixTiendaCrCollision(s,m);
   return m;
 }
 function gv(row,map,k,fb=''){const key=map[k];const v=key?row[key]:undefined;return(v===undefined||v===null||String(v).trim()==='')?fb:v;}
