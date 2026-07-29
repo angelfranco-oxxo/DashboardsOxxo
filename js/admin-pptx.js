@@ -67,7 +67,7 @@
         { label: 'Ayudante', value: String(byPuesto.Ayudante) },
       ],
       chart: { title: 'Vacantes por Puesto', labels: ['Lider','Encargado','Ayudante'], values: [byPuesto.Lider, byPuesto.Encargado, byPuesto.Ayudante] },
-      ranking: { title: 'Vacantes por Asesor', items: rankCount(rows, asesorKey, 8) },
+      ranking: { title: 'Vacantes por Asesor', items: rankCount(rows, asesorKey, 20) },
     };
   }
 
@@ -95,6 +95,25 @@
     });
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0 };
     rows.forEach(r => { byPuesto[tipoPuesto(val(r, puestoKey))]++; });
+    // Ranking de Plazas ("🏆 Ranking de Plazas" del Dashboard 2): Oaxaca =
+    // total de bajas del mes ANTES de excluir 'Otro' puesto/sin asesor (i.e.
+    // byMonth.length, igual que renderPlazas() en dashboard-2.html usa
+    // BASE_BAJAS_DATA ya filtrada solo a Oaxaca, sin esa exclusion extra) +
+    // las demas plazas capturadas a mano en Dashboard_2_Otras_Plazas.
+    const plazaRanking = [{ plaza: 'Oaxaca', bajas: byMonth.length }];
+    try {
+      const otras = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2otras);
+      if(otras && otras.length){
+        const plazaOtrasKey = findDataKey(otras, ['Plazas','PLAZAS']);
+        const bajasOtrasKey = findDataKey(otras, ['Bajas Plaza','Bajas_Plaza']);
+        otras.forEach(r => {
+          const plaza = String(val(r, plazaOtrasKey)||'').trim();
+          const bajas = num(val(r, bajasOtrasKey));
+          if(plaza && bajas > 0 && !plazaRanking.find(p => p.plaza === plaza)) plazaRanking.push({ plaza, bajas });
+        });
+      }
+    } catch(e){ /* sin datos de otras plazas: se muestra solo Oaxaca */ }
+    plazaRanking.sort((a,b) => b.bajas - a.bajas);
     return {
       label: 'Total de Bajas', value: String(rows.length), sub: mes ? `Mes ${mes}` : 'Plaza Oaxaca',
       secondary: [
@@ -103,7 +122,8 @@
         { label: 'Lider', value: String(byPuesto.Lider) },
       ],
       chart: { title: 'Bajas por Puesto', labels: ['Ayudante','Encargado','Lider'], values: [byPuesto.Ayudante, byPuesto.Encargado, byPuesto.Lider] },
-      ranking: { title: 'Bajas por Asesor', items: rankCount(rows, asesorKey, 8) },
+      ranking: { title: 'Bajas por Asesor', items: rankCount(rows, asesorKey, 20) },
+      plazaRanking,
     };
   }
 
@@ -143,7 +163,7 @@
       .map(([name, v]) => ({ name, value: v.total > 0 ? (v.completas / v.total * 100) : 0 }))
       .filter(x => x.value > 0)
       .sort((a,b) => b.value - a.value)
-      .slice(0, 8);
+      .slice(0, 20);
     return {
       label: 'Aprovechamiento General', value: pct.toFixed(2) + '%', sub: 'Plaza Oaxaca',
       secondary: [
@@ -362,6 +382,44 @@
     });
   }
 
+  // Diapositiva "🏆 Ranking de Plazas · Bajas acumuladas" — misma tabla que
+  // el panel de dashboard-2.html (medalla, barra degradada, pill con el
+  // total, footer con el acumulado), con datos reales de Oaxaca + las
+  // plazas capturadas a mano en Dashboard_2_Otras_Plazas.
+  function addPlazaRankingSlide(pptx, plazaRanking){
+    const slide = pptx.addSlide();
+    slide.background = { color: 'FFF8EF' };
+    slide.addText('Bajas por Plaza · Comparativo Regional', { x: 0.4, y: 0.3, w: 9.2, h: 0.5, fontSize: 22, bold: true, color: DARK, fontFace: 'Arial' });
+
+    if(!plazaRanking || !plazaRanking.length){
+      slide.addText('Sin datos disponibles', { x: 0.4, y: 2.3, w: 9.2, h: 0.6, fontSize: 22, color: GRAY, align: 'center', fontFace: 'Arial' });
+      return;
+    }
+
+    const total = plazaRanking.reduce((s,p) => s + p.bajas, 0) || 1;
+    const maxVal = Math.max(...plazaRanking.map(p => p.bajas), 1);
+    const rowH = Math.min(0.72, 4.1 / plazaRanking.length);
+    let ry = 1.0;
+    plazaRanking.forEach((p, i) => {
+      const tone = i === 0 ? RED : i === 1 ? 'F07B22' : i === 2 ? 'F6B73C' : '9B6B60';
+      const pct = Math.round(p.bajas / total * 100);
+      slide.addShape(pptx.ShapeType.roundRect, { x: 0.4, y: ry, w: 9.2, h: rowH - 0.08, fill: { color: 'FFFFFF' }, line: { color: 'EFE2DC', width: 1 }, rectRadius: 0.1 });
+      slide.addShape(pptx.ShapeType.ellipse, { x: 0.55, y: ry + (rowH - 0.08) / 2 - 0.22, w: 0.44, h: 0.44, fill: { color: tone }, line: { type: 'none' } });
+      slide.addText(String(i + 1), { x: 0.55, y: ry + (rowH - 0.08) / 2 - 0.22, w: 0.44, h: 0.44, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle', fontFace: 'Arial' });
+      slide.addText(p.plaza, { x: 1.15, y: ry + 0.06, w: 4.0, h: 0.3, fontSize: 13, bold: true, color: DARK, fontFace: 'Arial' });
+      slide.addText(`${pct}% del total`, { x: 5.2, y: ry + 0.06, w: 3.2, h: 0.3, fontSize: 10, color: GRAY, align: 'right', fontFace: 'Arial' });
+      const barX = 1.15, barW = 7.25;
+      slide.addShape(pptx.ShapeType.roundRect, { x: barX, y: ry + rowH - 0.34, w: barW, h: 0.14, fill: { color: 'EFE2DC' }, line: { type: 'none' }, rectRadius: 0.07 });
+      slide.addShape(pptx.ShapeType.roundRect, { x: barX, y: ry + rowH - 0.34, w: Math.max(barW * (p.bajas / maxVal), 0.08), h: 0.14, fill: { color: tone }, line: { type: 'none' }, rectRadius: 0.07 });
+      slide.addShape(pptx.ShapeType.roundRect, { x: 8.55, y: ry + (rowH - 0.08) / 2 - 0.22, w: 1.0, h: 0.44, fill: { color: 'FFF2F1' }, line: { type: 'none' }, rectRadius: 0.22 });
+      slide.addText(String(p.bajas), { x: 8.55, y: ry + (rowH - 0.08) / 2 - 0.22, w: 1.0, h: 0.44, fontSize: 15, bold: true, color: RED, align: 'center', valign: 'middle', fontFace: 'Arial' });
+      ry += rowH;
+    });
+    slide.addText('Total acumulado', { x: 0.4, y: ry + 0.05, w: 5.0, h: 0.35, fontSize: 12, bold: true, color: GRAY, fontFace: 'Arial' });
+    slide.addText(String(total), { x: 5.4, y: ry + 0.02, w: 2.2, h: 0.4, fontSize: 18, bold: true, color: DARK, align: 'right', fontFace: 'Arial' });
+    slide.addText('100%', { x: 7.6, y: ry + 0.1, w: 2.0, h: 0.3, fontSize: 11, bold: true, color: RED, fontFace: 'Arial' });
+  }
+
   async function generatePresentation(){
     const statusEl = document.getElementById('pptx-status');
     const btn = document.getElementById('generate-pptx-btn');
@@ -391,7 +449,12 @@
       const today = new Date();
       title.addText(today.toLocaleDateString('es-MX', { year:'numeric', month:'long', day:'numeric' }), { x: 0.6, y: 4.8, w: 8.8, h: 0.4, fontSize: 12, color: 'FFD7D5', fontFace: 'Arial' });
 
-      results.forEach(({ name, kpi }) => addKpiSlide(pptx, name, kpi));
+      results.forEach(({ name, kpi }) => {
+        addKpiSlide(pptx, name, kpi);
+        if(name === 'Dashboard 2 · Bajas' && kpi && kpi.plazaRanking){
+          addPlazaRankingSlide(pptx, kpi.plazaRanking);
+        }
+      });
 
       const fileName = `Presentacion-Foro-Bienestar-Dias-Martes-${today.toISOString().slice(0,10)}.pptx`;
       await pptx.writeFile({ fileName });
