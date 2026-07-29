@@ -15,8 +15,8 @@
   const filterLatestMonth = OXXO.metricsFilterLatestMonth;
   const coerceTreoRowsD7 = OXXO.metricsCoerceTreoRows;
   // Ranking de conteo por nombre (p.ej. vacantes o bajas por Asesor), top N
-  // descendente. Copia local de rankCount() de admin-pptx-rae.js (ya
-  // verificada ahi) para no acoplar los dos archivos.
+  // descendente. Misma logica ya verificada de rankCount() en
+  // admin-pptx-rae.js (copia local para no acoplar los dos archivos).
   function rankCount(rows, nameKey, limit){
     const counts = new Map();
     rows.forEach(r => {
@@ -67,7 +67,7 @@
         { label: 'Ayudante', value: String(byPuesto.Ayudante) },
       ],
       chart: { title: 'Vacantes por Puesto', labels: ['Lider','Encargado','Ayudante'], values: [byPuesto.Lider, byPuesto.Encargado, byPuesto.Ayudante] },
-      ranking: rankCount(rows, asesorKey, 8),
+      ranking: { title: 'Vacantes por Asesor', items: rankCount(rows, asesorKey, 8) },
     };
   }
 
@@ -103,7 +103,7 @@
         { label: 'Lider', value: String(byPuesto.Lider) },
       ],
       chart: { title: 'Bajas por Puesto', labels: ['Ayudante','Encargado','Lider'], values: [byPuesto.Ayudante, byPuesto.Encargado, byPuesto.Lider] },
-      ranking: rankCount(rows, asesorKey, 8),
+      ranking: { title: 'Bajas por Asesor', items: rankCount(rows, asesorKey, 8) },
     };
   }
 
@@ -127,8 +127,8 @@
       else if(c === 'completas') completas++;
     });
     const pct = total > 0 ? (completas / total * 100) : 0;
-    // "Aprovechamiento por AT" (ranking) = EC% (Equipo Completo / Total) por
-    // Asesor, misma clasificacion que arriba. Igual fallback que dataD3() en
+    // "Aprovechamiento por AT" = EC% (Equipo Completo / Total) por Asesor,
+    // misma clasificacion que arriba. Igual fallback que dataD3() en
     // admin-pptx-rae.js cuando no hay columna dedicada de 'Ec por AT'.
     const byAsesor = new Map();
     rows.forEach(r => {
@@ -152,7 +152,7 @@
         { label: 'Criticas', value: String(criticas) },
       ],
       chart: { title: 'Tiendas por Estatus', labels: ['Completas','Incompletas','Criticas'], values: [completas, incompletas, criticas], type: 'pie' },
-      ranking,
+      ranking: { title: 'Aprovechamiento por AT', items: ranking, pct: true },
     };
   }
 
@@ -276,169 +276,90 @@
     };
   }
 
-  // Estadisticas extra de D1 que no calcula kpiD1 (necesarias para llenar la
-  // plantilla de Foro Bienestar: tienda con la vacante mas antigua, Top 5 de
-  // tiendas con mas vacantes, y numero de asesores afectados). Usa el mismo
-  // pipeline verificado de kpiD1 (catalogo + filtros DEFAULT + mes mas
-  // reciente) para que nunca diverja del KPI principal. OJO: para el alias de
-  // tienda se usa SOLO 'Unidad org' (no 'Tienda') porque ese alias tan corto
-  // tambien matchea la columna 'CR TIENDA' y findDataKey puede quedarse con
-  // esa por empate de score, devolviendo codigos de CR en vez de nombres.
-  async function extraD1Stats(){
-    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d1);
-    if(!raw || !raw.length) return null;
-    const puestoKey = findDataKey(raw, ['Descripcion de Posicion','Puesto']);
-    const asesorKey = findDataKey(raw, ['Asesor']);
-    const tiendaKey = findDataKey(raw, ['Unidad org']);
-    const crKey = findDataKey(raw, ['CR TIENDA','CR']);
-    const fechaKey = findDataKey(raw, ['Fecha']);
-    const diasKey = findDataKey(raw, ['Dias Vacantes','Dias_Vacantes']);
-    const asesorCatalog = await OXXO.loadAsesorCatalog();
-    const stepCatalog = raw
-      .filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda')
-      .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ')
-      .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
-    const base = OXXO.metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
-    const { rows } = filterLatestMonth(base, r => rowMonthKeyD1(r, findDataKey(raw, ['Mes']), fechaKey));
-    const byTienda = new Map();
-    rows.forEach(r => { const t = String(val(r, tiendaKey)||'').trim(); if(t) byTienda.set(t, (byTienda.get(t)||0) + 1); });
-    const top5 = [...byTienda.entries()].sort((a,b) => b[1]-a[1]).slice(0,5);
-    let maxDias = 0, maxTienda = '';
-    rows.forEach(r => { const d = num(val(r, diasKey)); if(d > maxDias){ maxDias = d; maxTienda = String(val(r, tiendaKey)||'').trim(); } });
-    const asesoresAfectados = new Set(rows.map(r => normText(val(r, asesorKey))).filter(Boolean));
-    return { top5, maxDias, maxTienda, asesoresAfectados: asesoresAfectados.size };
-  }
-
   const DASHBOARDS = [
     { name: 'Dashboard 1 · Vacantes', fn: kpiD1 },
     { name: 'Dashboard 2 · Bajas', fn: kpiD2 },
     { name: 'Dashboard 3 · Aprovechamiento', fn: kpiD3 },
-    { name: 'Dashboard 6 · Ausentismos', fn: kpiD6 },
     { name: 'Dashboard 4 · Tiempo Extra', fn: kpiD4 },
     { name: 'Dashboard 5 · Vacaciones', fn: kpiD5 },
+    { name: 'Dashboard 6 · Ausentismos', fn: kpiD6 },
     { name: 'Dashboard 7 · TREO', fn: kpiD7 },
   ];
 
-  const TEMPLATE_URL = 'assets/foro-bienestar-template.pptx';
-  const RED_HEX = 'E3000F';
-  const DARK_HEX = '221F1F';
-  const GRAY_HEX = '6B6363';
+  const RED = 'F71926';
+  const DARK = '211312';
+  const GRAY = '7A4A42';
+  const PALETTE = ['F71926','F07B22','F6B73C','1DB954','0066CC','8B4CF7','9E9E9E'];
 
-  function xmlEscape(s){
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-  function emu(inches){ return Math.round(inches * 914400); }
+  function addKpiSlide(pptx, name, kpi){
+    const slide = pptx.addSlide();
+    slide.background = { color: 'FFF8EF' };
+    slide.addText(name, { x: 0.4, y: 0.3, w: 9.2, h: 0.5, fontSize: 22, bold: true, color: DARK, fontFace: 'Arial' });
 
-  // Reemplaza la N-esima ocurrencia (0-based) de un texto exacto dentro de
-  // <a:t>...</a:t>, sin tocar el resto del XML (misma tecnica que
-  // admin-indicadores.js: parcheo quirurgico, nunca reescribir todo el
-  // documento).
-  function replaceNthText(xml, oldText, newText, n){
-    const marker = `<a:t>${xmlEscape(oldText)}</a:t>`;
-    const parts = xml.split(marker);
-    if(parts.length - 1 <= n) return xml;
-    return parts.slice(0, n + 1).join(marker) + `<a:t>${xmlEscape(newText)}</a:t>` + parts.slice(n + 1).join(marker);
-  }
-  function replaceAllText(xml, oldText, newText){
-    const marker = `<a:t>${xmlEscape(oldText)}</a:t>`;
-    return xml.split(marker).join(`<a:t>${xmlEscape(newText)}</a:t>`);
-  }
+    if(!kpi){
+      slide.addText('Sin datos disponibles', { x: 0.4, y: 2.3, w: 9.2, h: 0.6, fontSize: 22, color: GRAY, align: 'center', fontFace: 'Arial' });
+      return;
+    }
 
-  function nextShapeId(xml){
-    const ids = [...xml.matchAll(/<p:cNvPr id="(\d+)"/g)].map(m => Number(m[1]));
-    return (ids.length ? Math.max(...ids) : 0) + 1;
-  }
+    // KPI principal (izquierda)
+    slide.addText(kpi.value, { x: 0.4, y: 1.0, w: 4.2, h: 1.3, fontSize: 56, bold: true, color: RED, align: 'center', fontFace: 'Arial' });
+    slide.addText(kpi.label, { x: 0.4, y: 2.25, w: 4.2, h: 0.45, fontSize: 15, color: DARK, align: 'center', fontFace: 'Arial', bold: true });
+    slide.addText(kpi.sub || '', { x: 0.4, y: 2.65, w: 4.2, h: 0.35, fontSize: 11, color: GRAY, align: 'center', fontFace: 'Arial' });
 
-  function textBoxXml(id, x, y, w, h, text, { size = 18, bold = false, color = DARK_HEX, align = 'l', anchor = 't', autofit = false } = {}){
-    const bodyExtra = autofit ? '<a:normAutofit/>' : '';
-    return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="KPI ${id}"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>` +
-      `<p:spPr><a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(w)}" cy="${emu(h)}"/></a:xfrm>` +
-      `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>` +
-      `<p:txBody><a:bodyPr wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" anchor="${anchor}">${bodyExtra}</a:bodyPr><a:lstStyle/>` +
-      `<a:p><a:pPr algn="${align}"/><a:r><a:rPr lang="es-MX" sz="${size * 100}" b="${bold ? 1 : 0}"><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="Arial"/></a:rPr><a:t>${xmlEscape(text)}</a:t></a:r></a:p>` +
-      `</p:txBody></p:sp>`;
-  }
-  function cardRectXml(id, x, y, w, h){
-    return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="Card ${id}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>` +
-      `<p:spPr><a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(w)}" cy="${emu(h)}"/></a:xfrm>` +
-      `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 8000"/></a:avLst></a:prstGeom>` +
-      `<a:solidFill><a:srgbClr val="F7F3F3"/></a:solidFill>` +
-      `<a:ln w="9525"><a:solidFill><a:srgbClr val="E8DADA"/></a:solidFill></a:ln></p:spPr>` +
-      `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>`;
-  }
-  // Barra de relleno de un ranking (sin borde, radio pequeño). Igual funcion
-  // que la barra de "avance" de addRankingList()/addPctRankingList() en
-  // admin-pptx-rae.js, pero como shape OOXML crudo.
-  function fillBarXml(id, x, y, w, h, colorHex){
-    return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="Bar ${id}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>` +
-      `<p:spPr><a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(Math.max(w,0.02))}" cy="${emu(h)}"/></a:xfrm>` +
-      `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 30000"/></a:avLst></a:prstGeom>` +
-      `<a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr>` +
-      `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>`;
-  }
+    // KPIs secundarios (debajo del principal)
+    (kpi.secondary || []).forEach((s, i) => {
+      const y = 3.15 + i * 0.62;
+      slide.addShape(pptx.ShapeType.roundRect, { x: 0.4, y, w: 4.2, h: 0.52, fill: { color: 'FFFFFF' }, line: { color: 'EFE2DC', width: 1 }, rectRadius: 0.08 });
+      slide.addText(s.label, { x: 0.55, y: y + 0.06, w: 2.6, h: 0.4, fontSize: 12, color: GRAY, fontFace: 'Arial', valign: 'middle' });
+      slide.addText(s.value, { x: 3.1, y: y + 0.06, w: 1.4, h: 0.4, fontSize: 14, bold: true, color: DARK, align: 'right', fontFace: 'Arial', valign: 'middle' });
+    });
 
-  // Coloca un hero (valor + etiqueta + subtitulo) y las tarjetas secundarias
-  // DENTRO de los limites (x,y,w,h) de una tarjeta que ya existe en la
-  // plantilla (evita el bug de encimarse con el fondo/tarjeta de la
-  // plantilla, que es lo que pasaba al usar coordenadas fijas propias).
-  function heroInBoundsXml(idStart, x, y, w, h, kpi){
-    let id = idStart, extra = '';
-    const leftW = w * 0.42;
-    const valueH = h * 0.5;
-    extra += textBoxXml(id++, x, y, leftW, valueH, kpi.value, { size: 60, bold: true, color: RED_HEX, anchor: 'b', autofit: true });
-    extra += textBoxXml(id++, x, y + valueH + 0.05, leftW, h * 0.2, kpi.label, { size: 18, bold: true, color: DARK_HEX, autofit: true });
-    extra += textBoxXml(id++, x, y + valueH + 0.05 + h * 0.2, leftW, h * 0.15, kpi.sub || '', { size: 13, color: GRAY_HEX, autofit: true });
-
-    const items = kpi.secondary || [];
-    if(items.length){
-      const rightX = x + leftW + 0.3;
-      const rightW = w - leftW - 0.3;
-      const rowH = Math.min(1.05, h / items.length);
-      items.forEach((s, i) => {
-        const ry = y + i * rowH;
-        const cardH = rowH * 0.82;
-        extra += cardRectXml(id++, rightX, ry, rightW, cardH);
-        extra += textBoxXml(id++, rightX + 0.2, ry, rightW * 0.58, cardH, s.label, { size: 14, color: GRAY_HEX, anchor: 'ctr' });
-        extra += textBoxXml(id++, rightX + rightW * 0.55, ry, rightW * 0.4, cardH, s.value, { size: 18, bold: true, color: DARK_HEX, align: 'r', anchor: 'ctr' });
+    // Derecha: si hay un ranking real por asesor/AT (Vacantes, Bajas,
+    // Aprovechamiento), se muestra esa lista con barras en vez de la
+    // gráfica genérica de 3 categorías — es la info que de verdad se usa en
+    // el Foro Bienestar.
+    if(kpi.ranking && kpi.ranking.items && kpi.ranking.items.length){
+      addRankingList(pptx, slide, 4.85, 0.9, 4.75, 4.25, kpi.ranking.title, kpi.ranking.items, { pct: !!kpi.ranking.pct });
+    } else if(kpi.chart && kpi.chart.values.some(v => v > 0)){
+      const chartType = kpi.chart.type === 'pie' ? pptx.ChartType.pie : pptx.ChartType.bar;
+      const dataSeries = [{ name: kpi.chart.title, labels: kpi.chart.labels, values: kpi.chart.values }];
+      slide.addText(kpi.chart.title, { x: 4.9, y: 0.9, w: 4.7, h: 0.35, fontSize: 13, bold: true, color: DARK, fontFace: 'Arial' });
+      slide.addChart(chartType, dataSeries, {
+        x: 4.85, y: 1.25, w: 4.75, h: 3.9,
+        chartColors: PALETTE,
+        showLegend: true, legendPos: 'b', legendFontSize: 9,
+        showValue: kpi.chart.type === 'pie',
+        dataLabelFontSize: 10,
+        catAxisLabelFontSize: 10,
+        valAxisLabelFontSize: 10,
       });
     }
-    return { xml: extra, nextId: id };
   }
 
   // Lista de ranking con barras (p.ej. "Bajas por Asesor", "Aprovechamiento
-  // por AT"), dentro de los limites (x,y,w,h) de una tarjeta existente de la
-  // plantilla. opts.pct=true usa escala 0-100 y color por semaforo (95/85%)
-  // en vez de color fijo por posicion, igual que addPctRankingList() de
-  // admin-pptx-rae.js.
-  function rankListInBoundsXml(idStart, x, y, w, h, title, items, opts = {}){
-    let id = idStart, extra = '';
-    let contentY = y;
-    if(title){
-      extra += textBoxXml(id++, x, y, w, 0.4, title, { size: 16, bold: true, color: DARK_HEX });
-      contentY = y + 0.5;
-    }
-    if(!items || !items.length){
-      extra += textBoxXml(id++, x, contentY, w, 0.5, 'Sin datos disponibles', { size: 13, color: GRAY_HEX });
-      return { xml: extra, nextId: id };
-    }
+  // por AT"), usando shapes nativos de pptxgenjs — mismo estilo visual que
+  // addRankingList()/addPctRankingList() de admin-pptx-rae.js, adaptado al
+  // layout mas chico (10x5.63in) de esta presentación.
+  function addRankingList(pptx, slide, x, y, w, h, title, items, opts = {}){
+    slide.addText(title, { x, y, w, h: 0.32, fontSize: 13, bold: true, color: DARK, fontFace: 'Arial' });
+    const contentY = y + 0.42;
     const availH = (y + h) - contentY;
-    const rowH = Math.min(0.5, availH / items.length);
+    const rowH = Math.min(0.46, availH / items.length);
     const maxVal = opts.pct ? 100 : Math.max(...items.map(it => it.value), 1);
-    const nameW = w * 0.34;
-    const barX = x + nameW + 0.1;
-    const barW = w - nameW - 1.0;
-    const pillW = 0.85;
+    const nameW = w * 0.5;
+    const barX = x + nameW + 0.05;
+    const barW = w - nameW - 0.75;
+    const pillW = 0.65;
     items.forEach((item, i) => {
       const ry = contentY + i * rowH;
-      const color = opts.pct ? (item.value >= 95 ? '00A878' : (item.value >= 85 ? 'D99A00' : RED_HEX)) : (i === 0 ? RED_HEX : 'D99A00');
-      extra += textBoxXml(id++, x, ry, nameW - 0.1, rowH, item.name, { size: 10.5, color: DARK_HEX, anchor: 'ctr' });
-      extra += cardRectXml(id++, barX, ry + rowH * 0.32, barW, rowH * 0.36);
-      const fillW = Math.max(barW * (Math.min(item.value, maxVal) / maxVal), 0.06);
-      extra += fillBarXml(id++, barX, ry + rowH * 0.32, fillW, rowH * 0.36, color);
+      const color = opts.pct ? (item.value >= 95 ? '1DB954' : (item.value >= 85 ? 'F6B73C' : RED)) : (i === 0 ? RED : 'F6B73C');
+      slide.addText(item.name, { x, y: ry, w: nameW - 0.05, h: rowH, fontSize: 9, color: DARK, fontFace: 'Arial', valign: 'middle', fit: 'shrink' });
+      slide.addShape(pptx.ShapeType.roundRect, { x: barX, y: ry + rowH * 0.32, w: barW, h: rowH * 0.36, fill: { color: 'EFE2DC' }, line: { type: 'none' }, rectRadius: 0.03 });
+      const fillW = Math.max(barW * (Math.min(item.value, maxVal) / maxVal), 0.05);
+      slide.addShape(pptx.ShapeType.roundRect, { x: barX, y: ry + rowH * 0.32, w: fillW, h: rowH * 0.36, fill: { color }, line: { type: 'none' }, rectRadius: 0.03 });
       const valText = opts.pct ? `${item.value.toFixed(1)}%` : String(item.value);
-      extra += textBoxXml(id++, x + w - pillW, ry, pillW, rowH, valText, { size: 11, bold: true, color: RED_HEX, align: 'r', anchor: 'ctr' });
+      slide.addText(valText, { x: x + w - pillW, y: ry, w: pillW, h: rowH, fontSize: 10, bold: true, color: RED, align: 'right', fontFace: 'Arial', valign: 'middle' });
     });
-    return { xml: extra, nextId: id };
   }
 
   async function generatePresentation(){
@@ -448,62 +369,32 @@
     btn.textContent = 'Generando...';
     if(statusEl) statusEl.textContent = 'Consultando Google Sheets...';
     try {
-      const results = {};
+      const results = [];
       for(const d of DASHBOARDS){
-        try { results[d.name] = await d.fn(); }
-        catch(e) { console.error('Error KPI', d.name, e); results[d.name] = null; }
-      }
-      let extraD1 = null;
-      try { extraD1 = await extraD1Stats(); } catch(e){ console.error('Error extraD1Stats', e); }
-
-      if(statusEl) statusEl.textContent = 'Rellenando plantilla...';
-      const resp = await fetch(TEMPLATE_URL);
-      if(!resp.ok) throw new Error(`No se pudo cargar la plantilla (HTTP ${resp.status})`);
-      const buf = await resp.arrayBuffer();
-      const zip = await JSZip.loadAsync(buf);
-
-      // Slide 1 (Vacantes): ya trae el diseño completo con datos de ejemplo,
-      // solo se reemplazan los valores por los reales.
-      const kpiD1v = results['Dashboard 1 · Vacantes'];
-      if(kpiD1v){
-        const path = 'ppt/slides/slide1.xml';
-        let xml = await zip.file(path).async('string');
-        const byPuesto = {};
-        (kpiD1v.secondary || []).forEach(s => { byPuesto[s.label] = s.value; });
-        xml = replaceAllText(xml, '37', String(kpiD1v.value));
-        xml = replaceAllText(xml, '7', byPuesto['Encargado'] ?? '7');
-        xml = replaceAllText(xml, '30', byPuesto['Ayudante'] ?? '30');
-        if(extraD1){
-          xml = replaceAllText(xml, '28 días', `${extraD1.maxDias} días`);
-          xml = replaceAllText(xml, '9 asesores afectados', `${extraD1.asesoresAfectados} asesores afectados`);
-          // Badge "OXXO Amilpas OAX" esta partido en 3 runs; se deja el nombre
-          // completo en el run del medio y se vacian los otros dos.
-          xml = replaceAllText(xml, 'Amilpas', extraD1.maxTienda || 'Amilpas');
-          xml = replaceAllText(xml, 'OXXO ', '');
-          xml = replaceAllText(xml, ' OAX', '');
-          const oldNames = ['OXXO AMILPAS OAX', 'OXXO EMILIO OAX', 'OXXO LOS TAMARINDOS VSA', 'OXXO CARRIZALILLO ', 'OXXO LA VENTOSA'];
-          extraD1.top5.forEach(([name], i) => {
-            if(oldNames[i]) xml = replaceAllText(xml, oldNames[i], name);
-          });
-          extraD1.top5.forEach(([, count], i) => {
-            xml = replaceNthText(xml, '2 vac.', `${count} vac.`, 0);
-          });
+        try {
+          const kpi = await d.fn();
+          results.push({ name: d.name, kpi });
+        } catch(e) {
+          console.error('Error KPI', d.name, e);
+          results.push({ name: d.name, kpi: null });
         }
-        zip.file(path, xml);
       }
 
-      // Slides 2-7: por instrucción explícita del usuario, se dejan TAL COMO
-      // ESTÁN en la plantilla (solo título), sin agregar tarjetas ni
-      // rankings. Los intentos anteriores de inyectar contenido propio en
-      // estas diapositivas causaron texto encimado con el diseño del
-      // template; en vez de seguir ajustando coordenadas a ciegas (no hay
-      // forma de renderizar el .pptx visualmente en este entorno para
-      // verificarlo), se deja el resto del archivo intacto.
+      const pptx = new window.PptxGenJS();
+      pptx.defineLayout({ name: 'OXXO', width: 10, height: 5.63 });
+      pptx.layout = 'OXXO';
 
-      const out = await zip.generateAsync({ type: 'blob' });
+      const title = pptx.addSlide();
+      title.background = { color: RED };
+      title.addText('Presentación Foro Bienestar Días Martes', { x: 0.6, y: 1.6, w: 8.8, h: 1.3, fontSize: 34, bold: true, color: 'FFFFFF', fontFace: 'Arial' });
+      title.addText('Indicadores clave · Plaza Oaxaca', { x: 0.6, y: 2.9, w: 8.8, h: 0.5, fontSize: 18, color: 'FFD7D5', fontFace: 'Arial' });
       const today = new Date();
+      title.addText(today.toLocaleDateString('es-MX', { year:'numeric', month:'long', day:'numeric' }), { x: 0.6, y: 4.8, w: 8.8, h: 0.4, fontSize: 12, color: 'FFD7D5', fontFace: 'Arial' });
+
+      results.forEach(({ name, kpi }) => addKpiSlide(pptx, name, kpi));
+
       const fileName = `Presentacion-Foro-Bienestar-Dias-Martes-${today.toISOString().slice(0,10)}.pptx`;
-      OXXO.downloadBlob(out, fileName);
+      await pptx.writeFile({ fileName });
       if(statusEl) statusEl.textContent = 'Presentación generada correctamente.';
     } catch(e){
       console.error(e);
