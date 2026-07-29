@@ -14,6 +14,18 @@
   const rowMonthKeyD2 = OXXO.metricsRowMonthKeyD2;
   const filterLatestMonth = OXXO.metricsFilterLatestMonth;
   const coerceTreoRowsD7 = OXXO.metricsCoerceTreoRows;
+  // Ranking de conteo por nombre (p.ej. vacantes o bajas por Asesor), top N
+  // descendente. Copia local de rankCount() de admin-pptx-rae.js (ya
+  // verificada ahi) para no acoplar los dos archivos.
+  function rankCount(rows, nameKey, limit){
+    const counts = new Map();
+    rows.forEach(r => {
+      const name = String(val(r, nameKey)||'').trim();
+      if(!name) return;
+      counts.set(name, (counts.get(name)||0) + 1);
+    });
+    return [...counts.entries()].map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, limit);
+  }
   function tipoAusentismo(desc){
     const d = normText(desc);
     if(d.includes('FALTA')) return 'Faltas';
@@ -55,6 +67,7 @@
         { label: 'Ayudante', value: String(byPuesto.Ayudante) },
       ],
       chart: { title: 'Vacantes por Puesto', labels: ['Lider','Encargado','Ayudante'], values: [byPuesto.Lider, byPuesto.Encargado, byPuesto.Ayudante] },
+      ranking: rankCount(rows, asesorKey, 8),
     };
   }
 
@@ -90,6 +103,7 @@
         { label: 'Lider', value: String(byPuesto.Lider) },
       ],
       chart: { title: 'Bajas por Puesto', labels: ['Ayudante','Encargado','Lider'], values: [byPuesto.Ayudante, byPuesto.Encargado, byPuesto.Lider] },
+      ranking: rankCount(rows, asesorKey, 8),
     };
   }
 
@@ -97,6 +111,7 @@
     const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3);
     if(!raw || !raw.length) return null;
     const estatusKey = findKey(raw[0], ['Clas Aprov','Estatus Con impacto Ausentismo','Estatus']);
+    const asesorKey = findKey(raw[0], ['Asesor']);
     const fechaKey = findKey(raw[0], ['Mes Semana','Semana','Fecha','FECHA']);
     // Igual que dashboard-3.html: limitar al corte de la fecha mas
     // reciente, para no mezclar dias distintos si llegaran a quedar
@@ -112,6 +127,23 @@
       else if(c === 'completas') completas++;
     });
     const pct = total > 0 ? (completas / total * 100) : 0;
+    // "Aprovechamiento por AT" (ranking) = EC% (Equipo Completo / Total) por
+    // Asesor, misma clasificacion que arriba. Igual fallback que dataD3() en
+    // admin-pptx-rae.js cuando no hay columna dedicada de 'Ec por AT'.
+    const byAsesor = new Map();
+    rows.forEach(r => {
+      const name = String(val(r, asesorKey)||'').trim();
+      if(!name) return;
+      if(!byAsesor.has(name)) byAsesor.set(name, { total: 0, completas: 0 });
+      const acc = byAsesor.get(name);
+      acc.total++;
+      if(OXXO.metricsClasificaAprovechamiento(val(r, estatusKey)) === 'completas') acc.completas++;
+    });
+    const ranking = [...byAsesor.entries()]
+      .map(([name, v]) => ({ name, value: v.total > 0 ? (v.completas / v.total * 100) : 0 }))
+      .filter(x => x.value > 0)
+      .sort((a,b) => b.value - a.value)
+      .slice(0, 8);
     return {
       label: 'Aprovechamiento General', value: pct.toFixed(2) + '%', sub: 'Plaza Oaxaca',
       secondary: [
@@ -120,6 +152,7 @@
         { label: 'Criticas', value: String(criticas) },
       ],
       chart: { title: 'Tiendas por Estatus', labels: ['Completas','Incompletas','Criticas'], values: [completas, incompletas, criticas], type: 'pie' },
+      ranking,
     };
   }
 
@@ -333,29 +366,79 @@
       `<a:ln w="9525"><a:solidFill><a:srgbClr val="E8DADA"/></a:solidFill></a:ln></p:spPr>` +
       `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>`;
   }
+  // Barra de relleno de un ranking (sin borde, radio pequeño). Igual funcion
+  // que la barra de "avance" de addRankingList()/addPctRankingList() en
+  // admin-pptx-rae.js, pero como shape OOXML crudo.
+  function fillBarXml(id, x, y, w, h, colorHex){
+    return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="Bar ${id}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>` +
+      `<p:spPr><a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(Math.max(w,0.02))}" cy="${emu(h)}"/></a:xfrm>` +
+      `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 30000"/></a:avLst></a:prstGeom>` +
+      `<a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr>` +
+      `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>`;
+  }
 
-  // Inserta las tarjetas de KPI reales (hero + secundarios) en el area de
-  // contenido de una diapositiva de la plantilla que solo trae el titulo
-  // (indicadores 2 a 7). No toca nada existente: solo agrega <p:sp> nuevos
-  // justo antes de </p:spTree>.
-  function injectKpiCards(slideXml, kpi){
-    if(!kpi) return slideXml;
-    let id = nextShapeId(slideXml);
-    let extra = '';
-    // normAutofit en el numero hero: si el valor real es mas largo de lo
-    // esperado (p.ej. "13,897" en vez de "95"), PowerPoint encoge la fuente
-    // en vez de desbordar el cuadro y encimarse con la etiqueta de abajo.
-    extra += textBoxXml(id++, 1.2, 2.7, 7.0, 1.9, kpi.value, { size: 80, bold: true, color: RED_HEX, anchor: 'b', autofit: true });
-    extra += textBoxXml(id++, 1.2, 4.75, 7.0, 0.55, kpi.label, { size: 26, bold: true, color: DARK_HEX });
-    extra += textBoxXml(id++, 1.2, 5.35, 7.0, 0.45, kpi.sub || '', { size: 16, color: GRAY_HEX });
-    const cardH = 1.1, gap = 0.35, startY = 3.0;
-    (kpi.secondary || []).forEach((s, i) => {
-      const y = startY + i * (cardH + gap);
-      extra += cardRectXml(id++, 9.0, y, 9.6, cardH);
-      extra += textBoxXml(id++, 9.3, y, 5.5, cardH, s.label, { size: 20, color: GRAY_HEX, align: 'l', anchor: 'ctr' });
-      extra += textBoxXml(id++, 14.9, y, 3.4, cardH, s.value, { size: 24, bold: true, color: DARK_HEX, align: 'r', anchor: 'ctr' });
+  // Coloca un hero (valor + etiqueta + subtitulo) y las tarjetas secundarias
+  // DENTRO de los limites (x,y,w,h) de una tarjeta que ya existe en la
+  // plantilla (evita el bug de encimarse con el fondo/tarjeta de la
+  // plantilla, que es lo que pasaba al usar coordenadas fijas propias).
+  function heroInBoundsXml(idStart, x, y, w, h, kpi){
+    let id = idStart, extra = '';
+    const leftW = w * 0.42;
+    const valueH = h * 0.5;
+    extra += textBoxXml(id++, x, y, leftW, valueH, kpi.value, { size: 60, bold: true, color: RED_HEX, anchor: 'b', autofit: true });
+    extra += textBoxXml(id++, x, y + valueH + 0.05, leftW, h * 0.2, kpi.label, { size: 18, bold: true, color: DARK_HEX, autofit: true });
+    extra += textBoxXml(id++, x, y + valueH + 0.05 + h * 0.2, leftW, h * 0.15, kpi.sub || '', { size: 13, color: GRAY_HEX, autofit: true });
+
+    const items = kpi.secondary || [];
+    if(items.length){
+      const rightX = x + leftW + 0.3;
+      const rightW = w - leftW - 0.3;
+      const rowH = Math.min(1.05, h / items.length);
+      items.forEach((s, i) => {
+        const ry = y + i * rowH;
+        const cardH = rowH * 0.82;
+        extra += cardRectXml(id++, rightX, ry, rightW, cardH);
+        extra += textBoxXml(id++, rightX + 0.2, ry, rightW * 0.58, cardH, s.label, { size: 14, color: GRAY_HEX, anchor: 'ctr' });
+        extra += textBoxXml(id++, rightX + rightW * 0.55, ry, rightW * 0.4, cardH, s.value, { size: 18, bold: true, color: DARK_HEX, align: 'r', anchor: 'ctr' });
+      });
+    }
+    return { xml: extra, nextId: id };
+  }
+
+  // Lista de ranking con barras (p.ej. "Bajas por Asesor", "Aprovechamiento
+  // por AT"), dentro de los limites (x,y,w,h) de una tarjeta existente de la
+  // plantilla. opts.pct=true usa escala 0-100 y color por semaforo (95/85%)
+  // en vez de color fijo por posicion, igual que addPctRankingList() de
+  // admin-pptx-rae.js.
+  function rankListInBoundsXml(idStart, x, y, w, h, title, items, opts = {}){
+    let id = idStart, extra = '';
+    let contentY = y;
+    if(title){
+      extra += textBoxXml(id++, x, y, w, 0.4, title, { size: 16, bold: true, color: DARK_HEX });
+      contentY = y + 0.5;
+    }
+    if(!items || !items.length){
+      extra += textBoxXml(id++, x, contentY, w, 0.5, 'Sin datos disponibles', { size: 13, color: GRAY_HEX });
+      return { xml: extra, nextId: id };
+    }
+    const availH = (y + h) - contentY;
+    const rowH = Math.min(0.5, availH / items.length);
+    const maxVal = opts.pct ? 100 : Math.max(...items.map(it => it.value), 1);
+    const nameW = w * 0.34;
+    const barX = x + nameW + 0.1;
+    const barW = w - nameW - 1.0;
+    const pillW = 0.85;
+    items.forEach((item, i) => {
+      const ry = contentY + i * rowH;
+      const color = opts.pct ? (item.value >= 95 ? '00A878' : (item.value >= 85 ? 'D99A00' : RED_HEX)) : (i === 0 ? RED_HEX : 'D99A00');
+      extra += textBoxXml(id++, x, ry, nameW - 0.1, rowH, item.name, { size: 10.5, color: DARK_HEX, anchor: 'ctr' });
+      extra += cardRectXml(id++, barX, ry + rowH * 0.32, barW, rowH * 0.36);
+      const fillW = Math.max(barW * (Math.min(item.value, maxVal) / maxVal), 0.06);
+      extra += fillBarXml(id++, barX, ry + rowH * 0.32, fillW, rowH * 0.36, color);
+      const valText = opts.pct ? `${item.value.toFixed(1)}%` : String(item.value);
+      extra += textBoxXml(id++, x + w - pillW, ry, pillW, rowH, valText, { size: 11, bold: true, color: RED_HEX, align: 'r', anchor: 'ctr' });
     });
-    return slideXml.replace('</p:spTree>', extra + '</p:spTree>');
+    return { xml: extra, nextId: id };
   }
 
   async function generatePresentation(){
@@ -409,19 +492,61 @@
         zip.file(path, xml);
       }
 
-      // Slides 2-7: solo traen el titulo en la plantilla, se agregan tarjetas
-      // de KPI reales.
-      const slideMap = [
-        { file: 'ppt/slides/slide2.xml', kpi: results['Dashboard 2 · Bajas'] },
-        { file: 'ppt/slides/slide3.xml', kpi: results['Dashboard 3 · Aprovechamiento'] },
-        { file: 'ppt/slides/slide4.xml', kpi: results['Dashboard 6 · Ausentismos'] },
-        { file: 'ppt/slides/slide5.xml', kpi: results['Dashboard 4 · Tiempo Extra'] },
-        { file: 'ppt/slides/slide6.xml', kpi: results['Dashboard 5 · Vacaciones'] },
-        { file: 'ppt/slides/slide7.xml', kpi: results['Dashboard 7 · TREO'] },
+      // Slide 2 (Bajas): la plantilla YA trae dos tarjetas vacias con sus
+      // titulos ("Compromiso vs Resultado" a la izq., "Bajas por Asesor" a la
+      // der. — coordenadas medidas directamente del template: Group 19 en
+      // (1.25,1.75,7.67,4.82) y Group 28 en (9.76,1.75,9.01,4.82)). Se coloca
+      // el hero KPI en la primera y el ranking real por asesor en la segunda,
+      // dentro de esos limites — NUNCA con coordenadas propias sueltas, que
+      // es lo que se encimaba con las tarjetas de la plantilla.
+      {
+        const kpi = results['Dashboard 2 · Bajas'];
+        if(kpi){
+          const path = 'ppt/slides/slide2.xml';
+          let xml = await zip.file(path).async('string');
+          let id = nextShapeId(xml);
+          const left = heroInBoundsXml(id, 1.55, 2.65, 7.07, 3.62, kpi);
+          id = left.nextId;
+          const right = rankListInBoundsXml(id, 10.06, 2.65, 8.41, 3.62, null, kpi.ranking, { pct: false });
+          xml = xml.replace('</p:spTree>', left.xml + right.xml + '</p:spTree>');
+          zip.file(path, xml);
+        }
+      }
+
+      // Slide 3 (Aprovechamiento): la plantilla trae dos tarjetas vacias SIN
+      // titulo propio (Freeform 19 arriba en (0.8,2.35,18.4,1.83) y Freeform
+      // 20 abajo en (0.96,4.3,18.08,6.48)). Arriba va el hero + Completas/
+      // Incompletas/Criticas; abajo el ranking real "Aprovechamiento por AT".
+      {
+        const kpi = results['Dashboard 3 · Aprovechamiento'];
+        if(kpi){
+          const path = 'ppt/slides/slide3.xml';
+          let xml = await zip.file(path).async('string');
+          let id = nextShapeId(xml);
+          const top = heroInBoundsXml(id, 1.2, 2.55, 16.8, 1.5, kpi);
+          id = top.nextId;
+          const bottom = rankListInBoundsXml(id, 1.36, 4.6, 17.4, 6.0, 'Aprovechamiento por AT', kpi.ranking, { pct: true });
+          xml = xml.replace('</p:spTree>', top.xml + bottom.xml + '</p:spTree>');
+          zip.file(path, xml);
+        }
+      }
+
+      // Slides 4-7: cada una trae una sola tarjeta grande ya dibujada en la
+      // plantilla (fondo con imagen); se coloca el hero + KPIs secundarios
+      // dentro de sus limites reales (medidos del template), con margen, para
+      // no volver a encimarse con el fondo de la tarjeta.
+      const boundedSlides = [
+        { file: 'ppt/slides/slide4.xml', kpi: results['Dashboard 6 · Ausentismos'], bounds: [4.4, 2.55, 11.57, 3.73] },
+        { file: 'ppt/slides/slide5.xml', kpi: results['Dashboard 4 · Tiempo Extra'], bounds: [1.87, 2.67, 8.25, 4.42] },
+        { file: 'ppt/slides/slide6.xml', kpi: results['Dashboard 5 · Vacaciones'], bounds: [2.56, 2.5, 14.88, 5.34] },
+        { file: 'ppt/slides/slide7.xml', kpi: results['Dashboard 7 · TREO'], bounds: [7.39, 5.52, 11.33, 4.77] },
       ];
-      for(const { file, kpi } of slideMap){
+      for(const { file, kpi, bounds } of boundedSlides){
+        if(!kpi) continue;
         let xml = await zip.file(file).async('string');
-        xml = injectKpiCards(xml, kpi);
+        const id = nextShapeId(xml);
+        const { xml: extra } = heroInBoundsXml(id, ...bounds, kpi);
+        xml = xml.replace('</p:spTree>', extra + '</p:spTree>');
         zip.file(file, xml);
       }
 
