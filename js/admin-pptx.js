@@ -243,59 +243,115 @@
     };
   }
 
+  // Estadisticas extra de D1 que no calcula kpiD1 (necesarias para llenar la
+  // plantilla de Foro Bienestar: tienda con la vacante mas antigua, Top 5 de
+  // tiendas con mas vacantes, y numero de asesores afectados). Usa el mismo
+  // pipeline verificado de kpiD1 (catalogo + filtros DEFAULT + mes mas
+  // reciente) para que nunca diverja del KPI principal. OJO: para el alias de
+  // tienda se usa SOLO 'Unidad org' (no 'Tienda') porque ese alias tan corto
+  // tambien matchea la columna 'CR TIENDA' y findDataKey puede quedarse con
+  // esa por empate de score, devolviendo codigos de CR en vez de nombres.
+  async function extraD1Stats(){
+    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d1);
+    if(!raw || !raw.length) return null;
+    const puestoKey = findDataKey(raw, ['Descripcion de Posicion','Puesto']);
+    const asesorKey = findDataKey(raw, ['Asesor']);
+    const tiendaKey = findDataKey(raw, ['Unidad org']);
+    const crKey = findDataKey(raw, ['CR TIENDA','CR']);
+    const fechaKey = findDataKey(raw, ['Fecha']);
+    const diasKey = findDataKey(raw, ['Dias Vacantes','Dias_Vacantes']);
+    const asesorCatalog = await OXXO.loadAsesorCatalog();
+    const stepCatalog = raw
+      .filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda')
+      .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ')
+      .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    const base = OXXO.metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
+    const { rows } = filterLatestMonth(base, r => rowMonthKeyD1(r, findDataKey(raw, ['Mes']), fechaKey));
+    const byTienda = new Map();
+    rows.forEach(r => { const t = String(val(r, tiendaKey)||'').trim(); if(t) byTienda.set(t, (byTienda.get(t)||0) + 1); });
+    const top5 = [...byTienda.entries()].sort((a,b) => b[1]-a[1]).slice(0,5);
+    let maxDias = 0, maxTienda = '';
+    rows.forEach(r => { const d = num(val(r, diasKey)); if(d > maxDias){ maxDias = d; maxTienda = String(val(r, tiendaKey)||'').trim(); } });
+    const asesoresAfectados = new Set(rows.map(r => normText(val(r, asesorKey))).filter(Boolean));
+    return { top5, maxDias, maxTienda, asesoresAfectados: asesoresAfectados.size };
+  }
+
   const DASHBOARDS = [
     { name: 'Dashboard 1 · Vacantes', fn: kpiD1 },
     { name: 'Dashboard 2 · Bajas', fn: kpiD2 },
     { name: 'Dashboard 3 · Aprovechamiento', fn: kpiD3 },
+    { name: 'Dashboard 6 · Ausentismos', fn: kpiD6 },
     { name: 'Dashboard 4 · Tiempo Extra', fn: kpiD4 },
     { name: 'Dashboard 5 · Vacaciones', fn: kpiD5 },
-    { name: 'Dashboard 6 · Ausentismos', fn: kpiD6 },
     { name: 'Dashboard 7 · TREO', fn: kpiD7 },
   ];
 
-  const RED = 'F71926';
-  const DARK = '211312';
-  const GRAY = '7A4A42';
-  const PALETTE = ['F71926','F07B22','F6B73C','1DB954','0066CC','8B4CF7','9E9E9E'];
+  const TEMPLATE_URL = 'assets/foro-bienestar-template.pptx';
+  const RED_HEX = 'E3000F';
+  const DARK_HEX = '221F1F';
+  const GRAY_HEX = '6B6363';
 
-  function addKpiSlide(pptx, name, kpi){
-    const slide = pptx.addSlide();
-    slide.background = { color: 'FFF8EF' };
-    slide.addText(name, { x: 0.4, y: 0.3, w: 9.2, h: 0.5, fontSize: 22, bold: true, color: DARK, fontFace: 'Arial' });
+  function xmlEscape(s){
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function emu(inches){ return Math.round(inches * 914400); }
 
-    if(!kpi){
-      slide.addText('Sin datos disponibles', { x: 0.4, y: 2.3, w: 9.2, h: 0.6, fontSize: 22, color: GRAY, align: 'center', fontFace: 'Arial' });
-      return;
-    }
+  // Reemplaza la N-esima ocurrencia (0-based) de un texto exacto dentro de
+  // <a:t>...</a:t>, sin tocar el resto del XML (misma tecnica que
+  // admin-indicadores.js: parcheo quirurgico, nunca reescribir todo el
+  // documento).
+  function replaceNthText(xml, oldText, newText, n){
+    const marker = `<a:t>${xmlEscape(oldText)}</a:t>`;
+    const parts = xml.split(marker);
+    if(parts.length - 1 <= n) return xml;
+    return parts.slice(0, n + 1).join(marker) + `<a:t>${xmlEscape(newText)}</a:t>` + parts.slice(n + 1).join(marker);
+  }
+  function replaceAllText(xml, oldText, newText){
+    const marker = `<a:t>${xmlEscape(oldText)}</a:t>`;
+    return xml.split(marker).join(`<a:t>${xmlEscape(newText)}</a:t>`);
+  }
 
-    // KPI principal (izquierda)
-    slide.addText(kpi.value, { x: 0.4, y: 1.0, w: 4.2, h: 1.3, fontSize: 56, bold: true, color: RED, align: 'center', fontFace: 'Arial' });
-    slide.addText(kpi.label, { x: 0.4, y: 2.25, w: 4.2, h: 0.45, fontSize: 15, color: DARK, align: 'center', fontFace: 'Arial', bold: true });
-    slide.addText(kpi.sub || '', { x: 0.4, y: 2.65, w: 4.2, h: 0.35, fontSize: 11, color: GRAY, align: 'center', fontFace: 'Arial' });
+  function nextShapeId(xml){
+    const ids = [...xml.matchAll(/<p:cNvPr id="(\d+)"/g)].map(m => Number(m[1]));
+    return (ids.length ? Math.max(...ids) : 0) + 1;
+  }
 
-    // KPIs secundarios (debajo del principal)
+  function textBoxXml(id, x, y, w, h, text, { size = 18, bold = false, color = DARK_HEX, align = 'l' } = {}){
+    return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="KPI ${id}"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>` +
+      `<p:spPr><a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(w)}" cy="${emu(h)}"/></a:xfrm>` +
+      `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>` +
+      `<p:txBody><a:bodyPr wrap="square" lIns="0" tIns="0" rIns="0" bIns="0"/><a:lstStyle/>` +
+      `<a:p><a:pPr algn="${align}"/><a:r><a:rPr lang="es-MX" sz="${size * 100}" b="${bold ? 1 : 0}"><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="Arial"/></a:rPr><a:t>${xmlEscape(text)}</a:t></a:r></a:p>` +
+      `</p:txBody></p:sp>`;
+  }
+  function cardRectXml(id, x, y, w, h){
+    return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="Card ${id}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>` +
+      `<p:spPr><a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(w)}" cy="${emu(h)}"/></a:xfrm>` +
+      `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 8000"/></a:avLst></a:prstGeom>` +
+      `<a:solidFill><a:srgbClr val="F7F3F3"/></a:solidFill>` +
+      `<a:ln w="9525"><a:solidFill><a:srgbClr val="E8DADA"/></a:solidFill></a:ln></p:spPr>` +
+      `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>`;
+  }
+
+  // Inserta las tarjetas de KPI reales (hero + secundarios) en el area de
+  // contenido de una diapositiva de la plantilla que solo trae el titulo
+  // (indicadores 2 a 7). No toca nada existente: solo agrega <p:sp> nuevos
+  // justo antes de </p:spTree>.
+  function injectKpiCards(slideXml, kpi){
+    if(!kpi) return slideXml;
+    let id = nextShapeId(slideXml);
+    let extra = '';
+    extra += textBoxXml(id++, 1.2, 3.0, 7.0, 1.5, kpi.value, { size: 96, bold: true, color: RED_HEX });
+    extra += textBoxXml(id++, 1.2, 4.5, 7.0, 0.6, kpi.label, { size: 28, bold: true, color: DARK_HEX });
+    extra += textBoxXml(id++, 1.2, 5.15, 7.0, 0.5, kpi.sub || '', { size: 18, color: GRAY_HEX });
+    const cardH = 1.1, gap = 0.35, startY = 3.0;
     (kpi.secondary || []).forEach((s, i) => {
-      const y = 3.15 + i * 0.62;
-      slide.addShape(pptx.ShapeType.roundRect, { x: 0.4, y, w: 4.2, h: 0.52, fill: { color: 'FFFFFF' }, line: { color: 'EFE2DC', width: 1 }, rectRadius: 0.08 });
-      slide.addText(s.label, { x: 0.55, y: y + 0.06, w: 2.6, h: 0.4, fontSize: 12, color: GRAY, fontFace: 'Arial', valign: 'middle' });
-      slide.addText(s.value, { x: 3.1, y: y + 0.06, w: 1.4, h: 0.4, fontSize: 14, bold: true, color: DARK, align: 'right', fontFace: 'Arial', valign: 'middle' });
+      const y = startY + i * (cardH + gap);
+      extra += cardRectXml(id++, 9.0, y, 9.6, cardH);
+      extra += textBoxXml(id++, 9.3, y, 6.0, cardH, s.label, { size: 20, color: GRAY_HEX, align: 'l' });
+      extra += textBoxXml(id++, 15.4, y, 3.0, cardH, s.value, { size: 24, bold: true, color: DARK_HEX, align: 'r' });
     });
-
-    // Gráfica (derecha)
-    if(kpi.chart && kpi.chart.values.some(v => v > 0)){
-      const chartType = kpi.chart.type === 'pie' ? pptx.ChartType.pie : pptx.ChartType.bar;
-      const dataSeries = [{ name: kpi.chart.title, labels: kpi.chart.labels, values: kpi.chart.values }];
-      slide.addText(kpi.chart.title, { x: 4.9, y: 0.9, w: 4.7, h: 0.35, fontSize: 13, bold: true, color: DARK, fontFace: 'Arial' });
-      slide.addChart(chartType, dataSeries, {
-        x: 4.85, y: 1.25, w: 4.75, h: 3.9,
-        chartColors: PALETTE,
-        showLegend: true, legendPos: 'b', legendFontSize: 9,
-        showValue: kpi.chart.type === 'pie',
-        dataLabelFontSize: 10,
-        catAxisLabelFontSize: 10,
-        valAxisLabelFontSize: 10,
-      });
-    }
+    return slideXml.replace('</p:spTree>', extra + '</p:spTree>');
   }
 
   async function generatePresentation(){
@@ -305,32 +361,70 @@
     btn.textContent = 'Generando...';
     if(statusEl) statusEl.textContent = 'Consultando Google Sheets...';
     try {
-      const results = [];
+      const results = {};
       for(const d of DASHBOARDS){
-        try {
-          const kpi = await d.fn();
-          results.push({ name: d.name, kpi });
-        } catch(e) {
-          console.error('Error KPI', d.name, e);
-          results.push({ name: d.name, kpi: null });
+        try { results[d.name] = await d.fn(); }
+        catch(e) { console.error('Error KPI', d.name, e); results[d.name] = null; }
+      }
+      let extraD1 = null;
+      try { extraD1 = await extraD1Stats(); } catch(e){ console.error('Error extraD1Stats', e); }
+
+      if(statusEl) statusEl.textContent = 'Rellenando plantilla...';
+      const resp = await fetch(TEMPLATE_URL);
+      if(!resp.ok) throw new Error(`No se pudo cargar la plantilla (HTTP ${resp.status})`);
+      const buf = await resp.arrayBuffer();
+      const zip = await JSZip.loadAsync(buf);
+
+      // Slide 1 (Vacantes): ya trae el diseño completo con datos de ejemplo,
+      // solo se reemplazan los valores por los reales.
+      const kpiD1v = results['Dashboard 1 · Vacantes'];
+      if(kpiD1v){
+        const path = 'ppt/slides/slide1.xml';
+        let xml = await zip.file(path).async('string');
+        const byPuesto = {};
+        (kpiD1v.secondary || []).forEach(s => { byPuesto[s.label] = s.value; });
+        xml = replaceAllText(xml, '37', String(kpiD1v.value));
+        xml = replaceAllText(xml, '7', byPuesto['Encargado'] ?? '7');
+        xml = replaceAllText(xml, '30', byPuesto['Ayudante'] ?? '30');
+        if(extraD1){
+          xml = replaceAllText(xml, '28 días', `${extraD1.maxDias} días`);
+          xml = replaceAllText(xml, '9 asesores afectados', `${extraD1.asesoresAfectados} asesores afectados`);
+          // Badge "OXXO Amilpas OAX" esta partido en 3 runs; se deja el nombre
+          // completo en el run del medio y se vacian los otros dos.
+          xml = replaceAllText(xml, 'Amilpas', extraD1.maxTienda || 'Amilpas');
+          xml = replaceAllText(xml, 'OXXO ', '');
+          xml = replaceAllText(xml, ' OAX', '');
+          const oldNames = ['OXXO AMILPAS OAX', 'OXXO EMILIO OAX', 'OXXO LOS TAMARINDOS VSA', 'OXXO CARRIZALILLO ', 'OXXO LA VENTOSA'];
+          extraD1.top5.forEach(([name], i) => {
+            if(oldNames[i]) xml = replaceAllText(xml, oldNames[i], name);
+          });
+          extraD1.top5.forEach(([, count], i) => {
+            xml = replaceNthText(xml, '2 vac.', `${count} vac.`, 0);
+          });
         }
+        zip.file(path, xml);
       }
 
-      const pptx = new window.PptxGenJS();
-      pptx.defineLayout({ name: 'OXXO', width: 10, height: 5.63 });
-      pptx.layout = 'OXXO';
+      // Slides 2-7: solo traen el titulo en la plantilla, se agregan tarjetas
+      // de KPI reales.
+      const slideMap = [
+        { file: 'ppt/slides/slide2.xml', kpi: results['Dashboard 2 · Bajas'] },
+        { file: 'ppt/slides/slide3.xml', kpi: results['Dashboard 3 · Aprovechamiento'] },
+        { file: 'ppt/slides/slide4.xml', kpi: results['Dashboard 6 · Ausentismos'] },
+        { file: 'ppt/slides/slide5.xml', kpi: results['Dashboard 4 · Tiempo Extra'] },
+        { file: 'ppt/slides/slide6.xml', kpi: results['Dashboard 5 · Vacaciones'] },
+        { file: 'ppt/slides/slide7.xml', kpi: results['Dashboard 7 · TREO'] },
+      ];
+      for(const { file, kpi } of slideMap){
+        let xml = await zip.file(file).async('string');
+        xml = injectKpiCards(xml, kpi);
+        zip.file(file, xml);
+      }
 
-      const title = pptx.addSlide();
-      title.background = { color: RED };
-      title.addText('Presentación Foro Bienestar Días Martes', { x: 0.6, y: 1.6, w: 8.8, h: 1.3, fontSize: 34, bold: true, color: 'FFFFFF', fontFace: 'Arial' });
-      title.addText('Indicadores clave · Plaza Oaxaca', { x: 0.6, y: 2.9, w: 8.8, h: 0.5, fontSize: 18, color: 'FFD7D5', fontFace: 'Arial' });
+      const out = await zip.generateAsync({ type: 'blob' });
       const today = new Date();
-      title.addText(today.toLocaleDateString('es-MX', { year:'numeric', month:'long', day:'numeric' }), { x: 0.6, y: 4.8, w: 8.8, h: 0.4, fontSize: 12, color: 'FFD7D5', fontFace: 'Arial' });
-
-      results.forEach(({ name, kpi }) => addKpiSlide(pptx, name, kpi));
-
       const fileName = `Presentacion-Foro-Bienestar-Dias-Martes-${today.toISOString().slice(0,10)}.pptx`;
-      await pptx.writeFile({ fileName });
+      OXXO.downloadBlob(out, fileName);
       if(statusEl) statusEl.textContent = 'Presentación generada correctamente.';
     } catch(e){
       console.error(e);
