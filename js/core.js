@@ -68,7 +68,7 @@ async function fetchSheetData(tabName) {
 // ─────────────────────────────────────────────────────────────
 
 function downloadBlob(content, filename, mimeType = 'text/csv;charset=utf-8') {
-  const blob = new Blob([content], { type: mimeType });
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -137,6 +137,134 @@ async function handleDownloadButton(button, task) {
     button.textContent = 'Error al descargar';
     setTimeout(() => { button.textContent = original; button.disabled = false; }, 1800);
   }
+}
+
+const HTML2CANVAS_CDN = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+let html2CanvasPromise = null;
+
+function loadHtml2Canvas() {
+  if (window.html2canvas) return Promise.resolve(window.html2canvas);
+  if (!html2CanvasPromise) {
+    html2CanvasPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = HTML2CANVAS_CDN;
+      script.async = true;
+      script.onload = () => window.html2canvas ? resolve(window.html2canvas) : reject(new Error('html2canvas no disponible'));
+      script.onerror = () => reject(new Error('No se pudo cargar html2canvas'));
+      document.head.appendChild(script);
+    });
+  }
+  return html2CanvasPromise;
+}
+
+function getDashboardSlug() {
+  const file = (location.pathname.split('/').pop() || 'dashboard').replace(/\.html?$/i, '');
+  return safeFileName(file || document.title || 'dashboard');
+}
+
+function getTargetLabel(element, index) {
+  if (!element) return 'vista';
+  const titleEl = element.querySelector?.('.panel__title,.panel-title,.bajas-panel__title,.chart-title,.card-title,h2,h3,[data-png-title]');
+  const text = (element.getAttribute?.('data-png-title') || titleEl?.textContent || '').replace(/\s+/g, ' ').trim();
+  return text || (index === 0 ? 'vista completa' : `seccion ${index}`);
+}
+
+function findPngTargets() {
+  const targets = [];
+  const main = document.querySelector('main') || document.querySelector('.page') || document.body;
+  if (main) targets.push({ label: 'Vista completa del dashboard', element: main });
+
+  const selector = '[data-png-export], section.bajas-panel, article.bajas-panel, article.panel, section.panel, .chart-card, .table-panel, .detail-card, .card:not(.kpi-card)';
+  const seen = new Set([main]);
+  document.querySelectorAll(selector).forEach((element) => {
+    if (!element || seen.has(element) || element.closest('.png-export-ui')) return;
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 220 || rect.height < 120) return;
+    seen.add(element);
+    targets.push({ label: getTargetLabel(element, targets.length), element });
+  });
+  return targets.slice(0, 24);
+}
+
+async function downloadElementAsPNG(element, label = 'captura') {
+  if (!element) throw new Error('No se encontro la seccion para capturar');
+  const html2canvas = await loadHtml2Canvas();
+  document.body.classList.add('png-exporting');
+  element.classList.add('png-export-target');
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  try {
+    const canvas = await html2canvas(element, {
+      backgroundColor: '#fff8ef',
+      scale: Math.min(2, Math.max(1.35, window.devicePixelRatio || 1.5)),
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      ignoreElements: node => node?.classList?.contains('png-export-ui') || Boolean(node?.closest?.('.png-export-ui'))
+    });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.98));
+    if (!blob) throw new Error('No se pudo generar el PNG');
+    const filename = `${getDashboardSlug()}-${safeFileName(label)}-${timestampForFile()}.png`;
+    downloadBlob(blob, filename, 'image/png');
+  } finally {
+    element.classList.remove('png-export-target');
+    document.body.classList.remove('png-exporting');
+  }
+}
+
+function closePngExportModal() {
+  document.querySelector('.png-export-modal')?.remove();
+}
+
+function openPngExportModal() {
+  closePngExportModal();
+  const targets = findPngTargets();
+  const modal = document.createElement('div');
+  modal.className = 'png-export-modal png-export-ui';
+  modal.innerHTML = `<div class="png-export-backdrop" data-close="1"></div><div class="png-export-dialog" role="dialog" aria-modal="true" aria-label="Exportar PNG"><div class="png-export-head"><div><strong>Exportar PNG</strong><span>Elige la seccion que quieres descargar.</span></div><button type="button" class="png-export-close" data-close="1">x</button></div><div class="png-export-list"></div></div>`;
+  const list = modal.querySelector('.png-export-list');
+  targets.forEach((target, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'png-export-option';
+    button.textContent = target.label;
+    button.addEventListener('click', async () => {
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Generando PNG...';
+      try {
+        await downloadElementAsPNG(target.element, target.label);
+        closePngExportModal();
+      } catch (error) {
+        console.error('[OXXO] Error exportando PNG:', error);
+        button.textContent = 'No se pudo exportar';
+        setTimeout(() => { button.textContent = original; button.disabled = false; }, 1600);
+      }
+    });
+    list.appendChild(button);
+  });
+  modal.addEventListener('click', event => { if (event.target.dataset.close) closePngExportModal(); });
+  document.addEventListener('keydown', function esc(event) { if (event.key === 'Escape') { closePngExportModal(); document.removeEventListener('keydown', esc); } });
+  document.body.appendChild(modal);
+}
+
+function initPngExportControls() {
+  if (!/\/dashboards\//i.test(location.pathname.replace(/\\/g, '/'))) return;
+  if (document.querySelector('.png-export-trigger')) return;
+  const meta = document.querySelector('.topbar__meta') || document.querySelector('.topbar');
+  if (!meta) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'topbar__back png-export-trigger png-export-ui';
+  button.textContent = 'PNG';
+  button.title = 'Exportar una seccion del dashboard como PNG';
+  button.addEventListener('click', openPngExportModal);
+  meta.appendChild(button);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPngExportControls);
+} else {
+  setTimeout(initPngExportControls, 0);
 }
 function parseCSV(text) {
   const lines = parseCSVRecords(text.trim());
@@ -1477,6 +1605,8 @@ window.OXXO = {
   buildSheetURL,
   downloadBlob,
   downloadSheetTab,
+  downloadElementAsPNG,
+  initPngExportControls,
   rowsToCSV,
   downloadRowsAsCSV,
   handleDownloadButton,
