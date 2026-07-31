@@ -1066,13 +1066,13 @@ function buildAsesorCatalog(rows) {
   });
   return { loaded: true, rows, byCr, byTienda, validTiendas };
 }
+// Desactivado a peticion del usuario: Catalogo_Asesores estaba muy desactualizado
+// (23% de asesores no coincidian con los dashboards en vivo, y 13 tiendas activas
+// faltaban del catalogo por completo) y esa desincronizacion causaba que
+// isTiendaValid() excluyera en silencio tiendas reales y validas de varios
+// dashboards. Ahora siempre se acepta la tienda; ya no se filtra contra el catalogo.
 function isTiendaValid(catalog, tienda, cr='') {
-  if (!catalog || !catalog.loaded || !catalog.validTiendas || !catalog.validTiendas.size) return true;
-  // CR es la clave confiable (única, sin truncamientos ni variaciones de nombre). Se usa
-  // como primer criterio; el nombre de tienda es solo respaldo si no hay CR disponible.
-  const crKey = normalizeCatalogCr(cr);
-  if (crKey) return catalog.byCr.has(crKey);
-  return catalog.validTiendas.has(normalizeCatalogTienda(tienda));
+  return true;
 }
 function filterValidTiendas(rows, catalog, tiendaKey, crKey) {
   if (!Array.isArray(rows) || !tiendaKey) return rows;
