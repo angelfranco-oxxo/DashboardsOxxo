@@ -186,11 +186,34 @@ function findPngTargets() {
   return targets.slice(0, 24);
 }
 
+// html2canvas clona el DOM para capturarlo; con canvases de Chart.js (gradientes, escala de
+// pixel propia) esa clonacion puede colgarse o salir en blanco. Workaround: sustituir cada
+// <canvas> por una <img> de su bitmap actual justo antes de capturar, y restaurar despues.
+function swapCanvasesForImages(root) {
+  const canvases = Array.from(root.querySelectorAll('canvas'));
+  const swaps = canvases.map((canvas) => {
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    img.width = canvas.clientWidth || canvas.width;
+    img.height = canvas.clientHeight || canvas.height;
+    img.style.cssText = canvas.style.cssText;
+    img.className = canvas.className;
+    canvas.parentNode.insertBefore(img, canvas);
+    canvas.style.display = 'none';
+    return { canvas, img };
+  });
+  return () => swaps.forEach(({ canvas, img }) => {
+    img.remove();
+    canvas.style.display = '';
+  });
+}
+
 async function downloadElementAsPNG(element, label = 'captura') {
   if (!element) throw new Error('No se encontro la seccion para capturar');
   const html2canvas = await loadHtml2Canvas();
   document.body.classList.add('png-exporting');
   element.classList.add('png-export-target');
+  const restoreCanvases = swapCanvasesForImages(element);
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   try {
     const canvas = await html2canvas(element, {
@@ -206,6 +229,7 @@ async function downloadElementAsPNG(element, label = 'captura') {
     const filename = `${getDashboardSlug()}-${safeFileName(label)}-${timestampForFile()}.png`;
     downloadBlob(blob, filename, 'image/png');
   } finally {
+    restoreCanvases();
     element.classList.remove('png-export-target');
     document.body.classList.remove('png-exporting');
   }
