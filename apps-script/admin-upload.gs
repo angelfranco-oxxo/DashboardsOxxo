@@ -42,6 +42,20 @@ function doPost(e) {
 
     assertAuthorized(payload);
 
+    // Fecha automatica: cada publish() en admin.js llama esta accion aparte
+    // despues de publicar, para que "Ultima actualizacion" en la portada
+    // (index.html) ya no dependa de que alguien la edite a mano en la hoja
+    // Configuracion — siempre queda igual a la fecha real del ultimo publish.
+    if (String(payload.action || '') === 'updateConfigDate') {
+      const lock = LockService.getScriptLock();
+      lock.waitLock(30000);
+      try {
+        return jsonResponse(updateConfigDate(String(payload.dashboardId || '').trim()));
+      } finally {
+        lock.releaseLock();
+      }
+    }
+
     const targetSheet = String(payload.targetSheet || '').trim();
     const rows = Array.isArray(payload.rows) ? payload.rows : [];
     const updateMode = String(payload.updateMode || 'replaceAll').trim();
@@ -135,6 +149,46 @@ function writeWithBufferRow(sheet, values, numCols) {
   if (prevMaxCols > numCols) {
     sheet.getRange(1, numCols + 1, totalRows, prevMaxCols - numCols).clearContent();
   }
+}
+
+// Actualiza SOLO la celda "ultima_actualizacion" de la fila de un dashboard
+// en la hoja Configuracion (columna A=dashboard_id, ver comentario de
+// loadSystemConfig en core.js), sin tocar ninguna otra celda/fila. No usa
+// writeWithBufferRow porque aqui no se reemplaza la hoja completa — es una
+// edicion quirurgica de una sola celda.
+function updateConfigDate(dashboardId) {
+  if (!dashboardId) throw new Error('dashboardId requerido');
+  const ss = SPREADSHEET_ID
+    ? SpreadsheetApp.openById(SPREADSHEET_ID)
+    : SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Configuracion');
+  if (!sheet) throw new Error('Hoja Configuracion no encontrada');
+
+  const values = sheet.getDataRange().getValues();
+  const normCell = v => String(v || '').trim().toLowerCase();
+
+  let headerRow = -1, headers = [];
+  for (let i = 0; i < values.length; i++) {
+    if (values[i].some(c => normCell(c) === 'dashboard_id')) { headerRow = i; headers = values[i]; break; }
+  }
+  if (headerRow === -1) throw new Error('No se encontro el encabezado dashboard_id en Configuracion');
+
+  const idxId = headers.findIndex(h => normCell(h) === 'dashboard_id');
+  const idxFecha = headers.findIndex(h => normCell(h) === 'ultima_actualizacion');
+  if (idxFecha === -1) throw new Error('No se encontro la columna ultima_actualizacion en Configuracion');
+
+  const wantedId = normCell(dashboardId);
+  for (let i = headerRow + 1; i < values.length; i++) {
+    if (normCell(values[i][idxId]) === wantedId) {
+      const today = Utilities.formatDate(new Date(), 'America/Mexico_City', 'dd/MM/yyyy');
+      sheet.getRange(i + 1, idxFecha + 1).setValue(today);
+      return { ok: true, updated: true, dashboardId: wantedId, date: today };
+    }
+  }
+  // No es un error fatal: hay dashboards (d2otras, d2plan, d3plazas, s7...) que
+  // publican datos pero no tienen fila propia en Configuracion. Se reporta sin
+  // reventar el publish principal, que ya tuvo exito antes de llegar aqui.
+  return { ok: true, updated: false, error: 'dashboard_id no encontrado en Configuracion: ' + wantedId };
 }
 
 function replaceAll(sheet, rows, headers) {
