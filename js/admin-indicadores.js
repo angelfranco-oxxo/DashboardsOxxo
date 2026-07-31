@@ -11,9 +11,9 @@
   const COLUMNAS_AT = ['C','D','E','F','G','H','I','J','K','L','M'];
 
   // Renombres de asesor exclusivos de este Excel (no afectan los dashboards):
-  // solo cambia la etiqueta que se muestra, NO fusiona/suma sus filas con las
-  // de otro asesor existente.
-  const ASESOR_RENOMBRE = { 'anadelia': 'Timo' };
+  // Anadelia ya no existe y su estructura/tiendas quedaron a cargo de Timo,
+  // asi que sus filas se cuentan en la columna "Timoteo" de este reporte.
+  const ASESOR_RENOMBRE = { 'anadelia': 'Timoteo' };
   function renombrarAsesores(map){
     const out = new Map();
     map.forEach((value, name) => {
