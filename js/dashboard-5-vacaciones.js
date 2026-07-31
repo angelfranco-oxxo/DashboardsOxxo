@@ -144,12 +144,13 @@ function tooltipLines(row) {
   ];
 }
 
-function renderStackedHorizontal(id, rows) {
+function renderStackedHorizontal(id, rows, onBarClick) {
   const canvas = document.getElementById(id);
   if (!canvas || !OXXO.ensureChartReady(canvas)) return;
   destroyChart(id);
   const t = theme();
   const ctx = canvas.getContext('2d');
+  canvas.style.cursor = onBarClick ? 'pointer' : '';
   const gradient = (from, to) => (context) => {
     const area = context.chart.chartArea;
     if (!area) return to;
@@ -221,6 +222,11 @@ function renderStackedHorizontal(id, rows) {
           ticks: { color: '#5A4037', font: { family: 'Barlow', weight: '900' } },
         },
       },
+      onClick: onBarClick ? (event, elements) => {
+        if (!elements.length) return;
+        const row = rows[elements[0].index];
+        if (row) onBarClick(row);
+      } : undefined,
     },
   });
 }
@@ -445,11 +451,90 @@ function renderAll() {
   document.getElementById('filter-status').textContent = `Filtro activo: ${filterLabel()} - ${n(rows.length)} colaboradores`;
 
   renderActions(rows);
-  renderStackedHorizontal('chart-asesores', groupBy(rows, 'asesor').slice(0, 10));
+  renderStackedHorizontal('chart-asesores', groupBy(rows, 'asesor').slice(0, 10), (bar) => openAsesorModal(bar.label, rows));
   renderStackedHorizontal('chart-plazas', groupBy(rows, 'tienda').slice(0, 10));
   renderStackedHorizontal('chart-puestos', groupBy(rows, 'puesto').slice(0, 10));
   renderVencimiento('chart-vencimiento-ant', countBy(rows, 'vence_ant_bucket', ['ya vencieron sus dias', '0 a 50 dias', '51 a 100 dias', '101 a 150 dias', 'mas de 150 dias']));
   renderDistribution('chart-distribucion', distribution(rows));
+}
+
+function ensureAsesorModal() {
+  let modal = document.getElementById('asesor-modal');
+  if (modal) return modal;
+  modal = document.createElement('div');
+  modal.id = 'asesor-modal';
+  modal.className = 'asesor-modal';
+  modal.innerHTML = `
+    <div class="asesor-modal__backdrop" data-close-modal></div>
+    <div class="asesor-modal__panel" role="dialog" aria-modal="true">
+      <div class="asesor-modal__header">
+        <div>
+          <div class="asesor-modal__title" id="asesor-modal-title">Asesor</div>
+          <div class="asesor-modal__subtitle" id="asesor-modal-subtitle"></div>
+        </div>
+        <button type="button" class="asesor-modal__close" data-close-modal aria-label="Cerrar">&times;</button>
+      </div>
+      <div class="asesor-modal__body" id="asesor-modal-body"></div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (event) => {
+    if (event.target.closest('[data-close-modal]')) closeAsesorModal();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && modal.classList.contains('is-open')) closeAsesorModal();
+  });
+  return modal;
+}
+
+function closeAsesorModal() {
+  const modal = document.getElementById('asesor-modal');
+  if (modal) modal.classList.remove('is-open');
+}
+
+function openAsesorModal(asesorLabel, rows) {
+  const modal = ensureAsesorModal();
+  const employees = rows
+    .filter((row) => row.asesor === asesorLabel)
+    .sort((a, b) => b.dias_restantes - a.dias_restantes);
+
+  document.getElementById('asesor-modal-title').textContent = asesorLabel;
+  document.getElementById('asesor-modal-subtitle').textContent = `${n(employees.length)} colaboradores - ${n(sum(employees, 'dias_restantes'), 1)} dias restantes en total`;
+
+  const body = document.getElementById('asesor-modal-body');
+  if (!employees.length) {
+    body.innerHTML = '<div class="state-box">Sin colaboradores para este asesor con los filtros activos.</div>';
+  } else {
+    body.innerHTML = `
+      <table class="asesor-modal__table">
+        <thead>
+          <tr>
+            <th>No. Empleado</th>
+            <th>Nombre</th>
+            <th>Tienda</th>
+            <th>Puesto</th>
+            <th>Per. anterior</th>
+            <th>Per. actual</th>
+            <th>Dias restantes</th>
+            <th>Vencimiento ant.</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${employees.map((row) => `
+            <tr>
+              <td>${row.num_empleado || '-'}</td>
+              <td>${row.nombre || 'Sin dato'}</td>
+              <td>${row.tienda || '-'}</td>
+              <td>${row.puesto || '-'}</td>
+              <td>${n(row.periodo_anterior, 1)}</td>
+              <td>${n(row.periodo_actual, 1)}</td>
+              <td>${n(row.dias_restantes, 1)}</td>
+              <td>${row.vence_ant_bucket || '-'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  modal.classList.add('is-open');
 }
 
 function findKey(row, aliases) {
@@ -484,6 +569,8 @@ async function initDashboard() {
     periodoActual: findKey(raw[0], ['Periodo_Actual']),
     diasRestantes: findKey(raw[0], ['Dias_Restantes']),
     bucketAnt: findKey(raw[0], ['Bucket_Ant']),
+    numEmpleado: findKey(raw[0], ['No. De Empleado', 'No De Empleado', 'Numero de Empleado']),
+    nombre: findKey(raw[0], ['Nombre']),
   };
 
   const asesorCatalog = await OXXO.loadAsesorCatalog();
@@ -495,6 +582,8 @@ async function initDashboard() {
     periodo_actual: Number(row[cols.periodoActual]) || 0,
     dias_restantes: Number(row[cols.diasRestantes]) || 0,
     vence_ant_bucket: stripAccents(row[cols.bucketAnt] || '').trim(),
+    num_empleado: String(row[cols.numEmpleado] || '').trim(),
+    nombre: String(row[cols.nombre] || '').trim(),
   }));
   populateFilters(state.rows);
   document.getElementById('clear-filters').addEventListener('click', () => {
