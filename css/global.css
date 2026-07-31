@@ -722,6 +722,11 @@ body {
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 .panel--dark-title .panel__title { color: #fff; }
+.panel--dark-title .panel__badge {
+  background: rgba(255,255,255,.18) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.34) !important;
+}
 .chart-container { position: relative; min-height: 260px; height: 100%; }
 .chart-container.small { min-height: 210px; }
 .chart-container.tall { min-height: 330px; }
