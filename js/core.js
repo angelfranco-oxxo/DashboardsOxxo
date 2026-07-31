@@ -1101,20 +1101,8 @@ async function loadAsesorCatalog() {
 // (en vez de borrar cada llamada en los dashboards) para poder reactivarla facil si hiciera
 // falta mas adelante. isTiendaValid()/filterValidTiendas() (otro uso del catalogo, para
 // excluir tiendas no autorizadas) NO se ve afectado por este cambio.
-// Renombres de asesor: solo cambia la etiqueta que se muestra, NO fusiona/suma
-// sus filas con las de otro asesor existente (por eso el valor es 'Timo' y no
-// 'Timoteo': asi sus datos se quedan separados del asesor real Timoteo en
-// cualquier agrupacion, solo cambia el nombre que aparece).
-const ASESOR_MERGE = {
-  'anadelia': 'Timo',
-};
 function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
-  const raw = String(asesor || '').trim();
-  const key = raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  for (const alias in ASESOR_MERGE) {
-    if (key.includes(alias)) return ASESOR_MERGE[alias];
-  }
-  return raw;
+  return String(asesor || '').trim();
 }
 function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) {
   if (!row || !asesorKey) return row;
@@ -1148,11 +1136,6 @@ function metricsCleanKey(s) {
 function metricsVal(row, key, fallback = '') {
   const v = key ? row[key] : undefined;
   return (v === undefined || v === null || String(v).trim() === '') ? fallback : v;
-}
-// Nombre de asesor de una fila, ya con las fusiones de ASESOR_MERGE aplicadas
-// (p.ej. asesores dados de baja cuyas tiendas se reasignaron a otro asesor).
-function metricsAsesorName(row, key) {
-  return resolveAsesor(null, { asesor: metricsVal(row, key) });
 }
 function metricsNum(v) {
   const n = Number(String(v ?? '').replace(/[$,%]/g, '').replace(/,/g, '').trim());
@@ -1509,7 +1492,7 @@ async function metricsVacantesPorAsesor() {
   if (!d1) return new Map();
   const map = new Map();
   d1.rows.forEach(r => {
-    const name = String(metricsAsesorName(r, d1.asesorKey) || '').trim();
+    const name = String(metricsVal(r, d1.asesorKey) || '').trim();
     if (!name) return;
     map.set(name, (map.get(name) || 0) + 1);
   });
@@ -1542,7 +1525,7 @@ async function metricsAprovechamientoPorAT() {
   if (!d3) return new Map();
   const byAsesor = new Map();
   d3.rows.forEach(r => {
-    const name = String(metricsAsesorName(r, d3.asesorKey) || '').trim();
+    const name = String(metricsVal(r, d3.asesorKey) || '').trim();
     if (!name) return;
     if (!byAsesor.has(name)) byAsesor.set(name, { total: 0, completas: 0 });
     const acc = byAsesor.get(name);
@@ -1604,7 +1587,7 @@ async function metricsAlineacionPorAsesor() {
   if (!d7) return new Map();
   const byAsesor = new Map();
   d7.rows.forEach(r => {
-    const name = String(metricsAsesorName(r, d7.asesorKey) || '').trim();
+    const name = String(metricsVal(r, d7.asesorKey) || '').trim();
     if (!name) return;
     if (!byAsesor.has(name)) byAsesor.set(name, { total: 0, alineadas: 0 });
     const acc = byAsesor.get(name);
