@@ -1101,12 +1101,12 @@ async function loadAsesorCatalog() {
 // (en vez de borrar cada llamada en los dashboards) para poder reactivarla facil si hiciera
 // falta mas adelante. isTiendaValid()/filterValidTiendas() (otro uso del catalogo, para
 // excluir tiendas no autorizadas) NO se ve afectado por este cambio.
-// Fusiones de asesor: asesores que ya no existen y cuyas tiendas se
-// reasignaron a otro asesor. La clave se compara sin acentos/mayusculas
-// contra el nombre tal cual viene en el Excel; el valor es el nombre final
-// que debe usarse en todos los dashboards y reportes.
+// Renombres de asesor: solo cambia la etiqueta que se muestra, NO fusiona/suma
+// sus filas con las de otro asesor existente (por eso el valor es 'Timo' y no
+// 'Timoteo': asi sus datos se quedan separados del asesor real Timoteo en
+// cualquier agrupacion, solo cambia el nombre que aparece).
 const ASESOR_MERGE = {
-  'anadelia': 'Timoteo',
+  'anadelia': 'Timo',
 };
 function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
   const raw = String(asesor || '').trim();
