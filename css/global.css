@@ -369,52 +369,6 @@ body {
 .badge-azul     { background: #E0EEFF; color: var(--color-blue); }
 .badge-gris     { background: #F2F2F5; color: var(--color-gray); }
 
-.panel__header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.panel__png-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border, rgba(42,27,25,.16));
-  background: rgba(122,74,66,0.08);
-  color: var(--color-gray, #6f6664);
-  cursor: pointer;
-  flex: none;
-  transition: background .15s ease, color .15s ease, border-color .15s ease;
-}
-
-.panel__png-btn:hover,
-.panel__png-btn:focus-visible {
-  background: var(--color-red, #e30613);
-  border-color: var(--color-red, #e30613);
-  color: #fff;
-  outline: none;
-}
-
-.panel--dark-title .panel__png-btn {
-  border-color: rgba(255,255,255,.34);
-  background: rgba(255,255,255,.12);
-  color: #fff;
-}
-
-.panel--dark-title .panel__png-btn:hover {
-  background: #fff;
-  color: var(--exec-red, #e30613);
-  border-color: #fff;
-}
-
-.card-head .panel__header-actions,
-.panel__header .panel__header-actions {
-  margin-left: auto;
-}
-
 /* ── SEMÁFORO VISUAL ─────────────────────────────────────── */
 .semaforo {
   display: inline-flex;

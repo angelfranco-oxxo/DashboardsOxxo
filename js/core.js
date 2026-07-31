@@ -830,73 +830,6 @@ function applyChartThemeDefaults() {
     chart.update('none');
   });
 }
-// Boton de descarga PNG por grafica, inyectado automaticamente en cada panel con canvas
-function chartToPngUrl(chart) {
-  const src = chart.canvas;
-  const tmp = document.createElement('canvas');
-  tmp.width = src.width;
-  tmp.height = src.height;
-  const ctx = tmp.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, tmp.width, tmp.height);
-  ctx.drawImage(src, 0, 0);
-  return tmp.toDataURL('image/png', 1);
-}
-
-const PNG_CONTAINER_SELECTOR = '.panel, .card, .chart-card, .table-panel';
-const PNG_HEADER_SELECTOR = '.panel__header, .card-head';
-const PNG_TITLE_SELECTOR = '.panel__title, .card-title';
-
-function pngFileName(container, chart) {
-  const titleEl = container.querySelector(PNG_TITLE_SELECTOR);
-  const title = titleEl?.childNodes[0]?.textContent || titleEl?.textContent || chart.canvas.id || 'grafica';
-  const clean = String(title).trim().normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase();
-  return `${clean || 'grafica'}.png`;
-}
-
-function ensurePngButton(container, chart) {
-  const header = container.querySelector(PNG_HEADER_SELECTOR);
-  if (!header || header.querySelector('.panel__png-btn')) return;
-  let actions = header.querySelector('.panel__header-actions');
-  if (!actions) {
-    actions = document.createElement('div');
-    actions.className = 'panel__header-actions';
-    const titleEl = header.querySelector(PNG_TITLE_SELECTOR);
-    Array.from(header.children).forEach((child) => {
-      if (child !== titleEl) actions.appendChild(child);
-    });
-    header.appendChild(actions);
-  }
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'panel__png-btn';
-  btn.title = 'Descargar grafica como PNG';
-  btn.setAttribute('aria-label', 'Descargar grafica como PNG');
-  btn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>';
-  btn.addEventListener('click', (event) => {
-    event.stopPropagation();
-    const a = document.createElement('a');
-    a.href = chartToPngUrl(chart);
-    a.download = pngFileName(container, chart);
-    a.click();
-  });
-  actions.appendChild(btn);
-}
-
-function initChartPngButtons() {
-  if (!window.Chart || !Chart.register || Chart.__oxxoPngPluginRegistered) return;
-  Chart.__oxxoPngPluginRegistered = true;
-  Chart.register({
-    id: 'oxxoPngButton',
-    afterRender(chart) {
-      const container = chart.canvas.closest(PNG_CONTAINER_SELECTOR);
-      if (!container) return;
-      try { ensurePngButton(container, chart); } catch (_) {}
-    },
-  });
-}
-
 // Tema fijo claro compartido
 function initThemeToggle() {
   const STORAGE_KEY = 'oxxo-theme';
@@ -918,7 +851,6 @@ if (document.readyState === 'loading') {
 } else {
   initThemeToggle();
 }
-initChartPngButtons();
 
 // Catalogo compartido para corregir Asesor por CR/Tienda
 let asesorCatalogPromise = null;
@@ -1088,7 +1020,6 @@ window.OXXO = {
   getChartThemeColors,
   applyChartThemeDefaults,
   ensureChartReady,
-  initChartPngButtons,
   updateFooterTime,
   initThemeToggle,
   truncate,
