@@ -765,10 +765,21 @@ const ALIASES_DET = {
   ausRestEC: ['Numero de ausentismos restantes para EC'],
   ausRestTC: ['Numero de ausentismos restantes para TC'],
 };
+// Si 'tienda' cayo sobre la misma columna que 'cr' (ej. con encabezados corruptos tipo
+// "_buffer_ CR TIENDA" apareciendo antes que "_buffer_ Tienda" en el orden de columnas,
+// el alias 'Tienda' matchea "CR TIENDA" primero por substring), se busca otra columna que
+// contenga 'tienda' pero NO 'cr', para no mostrar el codigo de CR en vez del nombre real.
+function fixTiendaCrCollision(s,m){
+  if(m.tienda && m.tienda===m.cr){
+    const alt=Object.keys(s||{}).find(k=>{const ck=cleanKey(k);return ck.includes('tienda')&&!ck.includes('cr')&&k!==m.cr;});
+    if(alt) m.tienda=alt;
+  }
+}
 function buildMapDet(data){
   const s=data.find(r=>Object.values(r).some(v=>String(v||'').trim()!==''))||data[0]||{};
   const m={};
   Object.entries(ALIASES_DET).forEach(([k,al])=>m[k]=findKey(s,al));
+  fixTiendaCrCollision(s,m);
   return m;
 }
 
@@ -792,6 +803,7 @@ function buildMap(data){
   // aprovechamiento por tienda o la de estatus, descartarla (queda vacia, no datos ajenos).
   if(m.aprov_plaza && m.aprov_plaza===m.aprov) m.aprov_plaza=null;
   if(m.at && m.at===m.estatus) m.at=null;
+  fixTiendaCrCollision(s,m);
   return m;
 }
 function gv(row,map,k,fb=''){const key=map[k];const v=key?row[key]:undefined;return(v===undefined||v===null||String(v).trim()==='')?fb:v;}
@@ -1097,11 +1109,18 @@ function render(data){
     if(ecOaxaca > 0) plazaData.push({ plaza: 'OAXACA', aprov: ecOaxaca });
   }
 
-  // Agregar otras plazas desde la hoja manual (sin sobreescribir OAXACA)
+  // Agregar otras plazas desde la hoja manual (sin sobreescribir OAXACA).
+  // findDataKey (no acceso directo por nombre literal de columna): esta
+  // hoja es una carga manual y de vez en cuando trae el mismo problema de
+  // exportacion de Google que Dashboard_7_Semanal (el encabezado real
+  // queda pegado como texto en otra columna, "_buffer_..."); el acceso
+  // directo r['PLAZAS'] se quedaba en blanco en esos casos.
   if(OTRAS_PLAZAS_D3.length) {
+    const plazaKey = OXXO.metricsFindDataKey(OTRAS_PLAZAS_D3, ['PLAZAS','Plazas','Plaza']);
+    const aprovKey = OXXO.metricsFindDataKey(OTRAS_PLAZAS_D3, ['Aprovechamiento de estructura a hoy','Aprovechamiento'], 25, true);
     OTRAS_PLAZAS_D3.forEach(r => {
-      const plaza = String(r['PLAZAS']||r['Plazas']||r['Plaza']||'').trim();
-      const aprov = Number(String(r['Aprovechamiento de estructura a hoy']||r['Aprovechamiento']||'').replace(/[^0-9.-]/g,''));
+      const plaza = String(OXXO.metricsVal(r, plazaKey)||'').trim();
+      const aprov = Number(String(OXXO.metricsVal(r, aprovKey)||'').replace(/[^0-9.-]/g,''));
       if(plaza && !isNaN(aprov) && aprov > 0 && !plazaData.find(p => p.plaza.toUpperCase() === plaza.toUpperCase())) {
         plazaData.push({ plaza, aprov });
       }

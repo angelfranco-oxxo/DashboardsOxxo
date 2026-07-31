@@ -1377,13 +1377,9 @@ const ALIASES = {
 };
 
 function cleanKey(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\/]/g,'');}
-function findKey(sample,aliases){
-  const keys=Object.keys(sample||{});
-  const map=new Map(keys.map(k=>[cleanKey(k),k]));
-  for(const a of aliases){const f=map.get(cleanKey(a));if(f)return f;}
-  for(const a of aliases){const ac=cleanKey(a);const f=keys.find(k=>cleanKey(k).includes(ac)||ac.includes(cleanKey(k)));if(f)return f;}
-  return null;
-}
+// Delegado a core.js (OXXO.metricsFindKey): misma implementacion exacta,
+// para que dashboards y presentaciones nunca vuelvan a divergir.
+function findKey(sample,aliases){ return OXXO.metricsFindKey(sample, aliases); }
 function buildMap(data){
   const s=data.find(r=>Object.values(r).some(v=>String(v||'').trim()!==''))||data[0]||{};
   const m={};Object.entries(ALIASES).forEach(([k,al])=>m[k]=findKey(s,al));
@@ -1394,39 +1390,15 @@ function gn(row,map,k){const v=String(gv(row,map,k,0));const n=Number(v.replace(
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+// Delegado a core.js (OXXO.metricsParseFecha), conservando el atajo para
+// instancias de Date (fetchSheetData nunca las produce, pero por si algun
+// llamador ya trae un Date en vez de texto).
 function parseFechaVacante(value){
   if(value instanceof Date && !isNaN(value)) return value;
-  const raw = String(value ?? '').trim();
-  if(!raw) return null;
-  if(/^\d+(\.\d+)?$/.test(raw)){
-    const serial = Number(raw);
-    if(serial > 25000 && serial < 80000){
-      const utc = Date.UTC(1899, 11, 30) + serial * 86400000;
-      const d = new Date(utc);
-      return isNaN(d) ? null : d;
-    }
-  }
-  const clean = raw.replace(/\s+\d{1,2}:\d{2}(:\d{2})?.*$/, '').replace(/[.]/g,'/').replace(/-/g,'/');
-  const parts = clean.split('/').map(p => p.trim()).filter(Boolean);
-  if(parts.length >= 3){
-    let day, month, year;
-    if(parts[0].length === 4){
-      year = Number(parts[0]); month = Number(parts[1]); day = Number(parts[2]);
-    } else {
-      day = Number(parts[0]); month = Number(parts[1]); year = Number(parts[2]);
-    }
-    if(year < 100) year += 2000;
-    const d = new Date(year, month - 1, day);
-    if(!isNaN(d) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
-  }
-  const d = new Date(raw);
-  return isNaN(d) ? null : d;
+  return OXXO.metricsParseFecha(value);
 }
 
-function mesKeyFromDate(date){
-  if(!date) return '';
-  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
-}
+function mesKeyFromDate(date){ return OXXO.metricsMesKeyFromDate(date); }
 
 function mesLabel(key){
   const [year, month] = String(key).split('-').map(Number);
@@ -1474,13 +1446,7 @@ function normalizeMesColumn(value){
 }
 
 // Clasificar puesto
-function tipoPuesto(desc){
-  const d=String(desc||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  if(d.includes('LIDER')||d.includes('LÍDER'))return'Lider';
-  if(d.includes('ENCARGADO'))return'Encargado';
-  if(d.includes('AYUDANTE')||d.includes('AYUDANTA'))return'Ayudante';
-  return'Otro';
-}
+function tipoPuesto(desc){ return OXXO.metricsTipoPuesto(desc); }
 
 // Semáforo días
 function colorDias(d){if(d>=15)return'rojo';if(d>=7)return'amarillo';return'verde';}

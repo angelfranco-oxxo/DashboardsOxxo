@@ -666,13 +666,9 @@ const ALIASES = {
 
 function cleanKey(str){return String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
 function cleanText(str){return String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();}
-function findRealKey(row, aliases){
-  const keys = Object.keys(row||{});
-  const map = new Map(keys.map(k => [cleanKey(k), k]));
-  for(const a of aliases){ const found = map.get(cleanKey(a)); if(found) return found; }
-  for(const a of aliases){ const ca=cleanKey(a); const found = keys.find(k => cleanKey(k).includes(ca) || ca.includes(cleanKey(k))); if(found) return found; }
-  return null;
-}
+// Delegado a core.js (OXXO.metricsFindKey): misma implementacion exacta,
+// para que dashboards y presentaciones nunca vuelvan a divergir.
+function findRealKey(row, aliases){ return OXXO.metricsFindKey(row, aliases); }
 function buildCols(data){
   const sample = data.find(r => Object.values(r).some(v => String(v||'').trim() !== '')) || data[0] || {};
   const cols = {}; Object.entries(ALIASES).forEach(([k,v]) => cols[k] = findRealKey(sample, v));

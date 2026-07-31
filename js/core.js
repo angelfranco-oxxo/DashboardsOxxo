@@ -19,7 +19,7 @@ const SHEETS_CONFIG = {
 
   // URL del Web App de Apps Script para publicar desde admin.html.
   // Cuando se configure una vez, el panel admin la usara automaticamente.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxOZm5YKazc2Or_ggK7EBdhino6dXH4xQwKSEUdF_gQqcMCvQZP9vNru8LueAJJ328t/exec",
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxf0IUEZmnbj777kde09cjEjlctJkFq8afNWeXkZwrTm26JUmzOym-uHBbZmWFp40Vj/exec",
 
   // Nombres exactos de cada pestaña en Google Sheets
   TABS: {
@@ -68,7 +68,7 @@ async function fetchSheetData(tabName) {
 // ─────────────────────────────────────────────────────────────
 
 function downloadBlob(content, filename, mimeType = 'text/csv;charset=utf-8') {
-  const blob = new Blob([content], { type: mimeType });
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -137,6 +137,134 @@ async function handleDownloadButton(button, task) {
     button.textContent = 'Error al descargar';
     setTimeout(() => { button.textContent = original; button.disabled = false; }, 1800);
   }
+}
+
+const HTML2CANVAS_CDN = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+let html2CanvasPromise = null;
+
+function loadHtml2Canvas() {
+  if (window.html2canvas) return Promise.resolve(window.html2canvas);
+  if (!html2CanvasPromise) {
+    html2CanvasPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = HTML2CANVAS_CDN;
+      script.async = true;
+      script.onload = () => window.html2canvas ? resolve(window.html2canvas) : reject(new Error('html2canvas no disponible'));
+      script.onerror = () => reject(new Error('No se pudo cargar html2canvas'));
+      document.head.appendChild(script);
+    });
+  }
+  return html2CanvasPromise;
+}
+
+function getDashboardSlug() {
+  const file = (location.pathname.split('/').pop() || 'dashboard').replace(/\.html?$/i, '');
+  return safeFileName(file || document.title || 'dashboard');
+}
+
+function getTargetLabel(element, index) {
+  if (!element) return 'vista';
+  const titleEl = element.querySelector?.('.panel__title,.panel-title,.bajas-panel__title,.chart-title,.card-title,h2,h3,[data-png-title]');
+  const text = (element.getAttribute?.('data-png-title') || titleEl?.textContent || '').replace(/\s+/g, ' ').trim();
+  return text || (index === 0 ? 'vista completa' : `seccion ${index}`);
+}
+
+function findPngTargets() {
+  const targets = [];
+  const main = document.querySelector('main') || document.querySelector('.page') || document.body;
+  if (main) targets.push({ label: 'Vista completa del dashboard', element: main });
+
+  const selector = '[data-png-export], section.bajas-panel, article.bajas-panel, article.panel, section.panel, .chart-card, .table-panel, .detail-card, .card:not(.kpi-card)';
+  const seen = new Set([main]);
+  document.querySelectorAll(selector).forEach((element) => {
+    if (!element || seen.has(element) || element.closest('.png-export-ui')) return;
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 220 || rect.height < 120) return;
+    seen.add(element);
+    targets.push({ label: getTargetLabel(element, targets.length), element });
+  });
+  return targets.slice(0, 24);
+}
+
+async function downloadElementAsPNG(element, label = 'captura') {
+  if (!element) throw new Error('No se encontro la seccion para capturar');
+  const html2canvas = await loadHtml2Canvas();
+  document.body.classList.add('png-exporting');
+  element.classList.add('png-export-target');
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  try {
+    const canvas = await html2canvas(element, {
+      backgroundColor: '#fff8ef',
+      scale: Math.min(2, Math.max(1.35, window.devicePixelRatio || 1.5)),
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      ignoreElements: node => node?.classList?.contains('png-export-ui') || Boolean(node?.closest?.('.png-export-ui'))
+    });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.98));
+    if (!blob) throw new Error('No se pudo generar el PNG');
+    const filename = `${getDashboardSlug()}-${safeFileName(label)}-${timestampForFile()}.png`;
+    downloadBlob(blob, filename, 'image/png');
+  } finally {
+    element.classList.remove('png-export-target');
+    document.body.classList.remove('png-exporting');
+  }
+}
+
+function closePngExportModal() {
+  document.querySelector('.png-export-modal')?.remove();
+}
+
+function openPngExportModal() {
+  closePngExportModal();
+  const targets = findPngTargets();
+  const modal = document.createElement('div');
+  modal.className = 'png-export-modal png-export-ui';
+  modal.innerHTML = `<div class="png-export-backdrop" data-close="1"></div><div class="png-export-dialog" role="dialog" aria-modal="true" aria-label="Exportar PNG"><div class="png-export-head"><div><strong>Exportar PNG</strong><span>Elige la seccion que quieres descargar.</span></div><button type="button" class="png-export-close" data-close="1">x</button></div><div class="png-export-list"></div></div>`;
+  const list = modal.querySelector('.png-export-list');
+  targets.forEach((target, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'png-export-option';
+    button.textContent = target.label;
+    button.addEventListener('click', async () => {
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Generando PNG...';
+      try {
+        await downloadElementAsPNG(target.element, target.label);
+        closePngExportModal();
+      } catch (error) {
+        console.error('[OXXO] Error exportando PNG:', error);
+        button.textContent = 'No se pudo exportar';
+        setTimeout(() => { button.textContent = original; button.disabled = false; }, 1600);
+      }
+    });
+    list.appendChild(button);
+  });
+  modal.addEventListener('click', event => { if (event.target.dataset.close) closePngExportModal(); });
+  document.addEventListener('keydown', function esc(event) { if (event.key === 'Escape') { closePngExportModal(); document.removeEventListener('keydown', esc); } });
+  document.body.appendChild(modal);
+}
+
+function initPngExportControls() {
+  if (!/\/dashboards\//i.test(location.pathname.replace(/\\/g, '/'))) return;
+  if (document.querySelector('.png-export-trigger')) return;
+  const meta = document.querySelector('.topbar__meta') || document.querySelector('.topbar');
+  if (!meta) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'topbar__back png-export-trigger png-export-ui';
+  button.textContent = 'PNG';
+  button.title = 'Exportar una seccion del dashboard como PNG';
+  button.addEventListener('click', openPngExportModal);
+  meta.appendChild(button);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPngExportControls);
+} else {
+  setTimeout(initPngExportControls, 0);
 }
 function parseCSV(text) {
   const lines = parseCSVRecords(text.trim());
@@ -964,6 +1092,490 @@ function escapeAttr(s) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// MÉTRICAS COMPARTIDAS (Vacantes/Bajas/Aprovechamiento/Ausentismos/TREO)
+//
+// Antes, cada dashboard y cada generador de presentación (admin-pptx.js,
+// admin-pptx-rae.js) tenía su PROPIA copia de esta lógica de filtros. Eso
+// permitía que divergieran silenciosamente: un ajuste en un dashboard no se
+// reflejaba en las presentaciones (o viceversa), y los totales terminaban
+// sin coincidir. Todo lo de aquí abajo es la única fuente de verdad —
+// dashboards y presentaciones la llaman en vez de reimplementarla.
+//
+// El comportamiento (incluidos los "bugs" documentados, ej. el parseo de
+// "Mes" en Dashboard_1_Diario) fue verificado dato-por-dato contra el CSV
+// en vivo de Google Sheets antes de mover el código aquí; no se cambió
+// ninguna regla al centralizarlo.
+
+function metricsCleanKey(s) {
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+function metricsVal(row, key, fallback = '') {
+  const v = key ? row[key] : undefined;
+  return (v === undefined || v === null || String(v).trim() === '') ? fallback : v;
+}
+function metricsNum(v) {
+  const n = Number(String(v ?? '').replace(/[$,%]/g, '').replace(/,/g, '').trim());
+  return Number.isFinite(n) ? n : 0;
+}
+function metricsNormText(v) {
+  return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+}
+function metricsFindKey(row, aliases) {
+  const keys = Object.keys(row || {});
+  const map = new Map(keys.map(k => [metricsCleanKey(k), k]));
+  for (const a of aliases) { const found = map.get(metricsCleanKey(a)); if (found) return found; }
+  for (const a of aliases) {
+    const ca = metricsCleanKey(a);
+    const found = keys.find(k => metricsCleanKey(k).includes(ca) || ca.includes(metricsCleanKey(k)));
+    if (found) return found;
+  }
+  return null;
+}
+// Variante de metricsFindKey() para hojas con el problema de exportación de
+// Google Sheets donde el encabezado real termina pegado como texto dentro
+// de las celdas de otra columna (ej. Dashboard_7_Semanal: una columna
+// vacía "CR Reg" junto a otra "CR 501K9 50N0M..." que sí trae los datos).
+// Un match por substring simple puede acertarle a la columna equivocada;
+// aquí se prueban TODOS los candidatos que matchean el alias y se elige el
+// que realmente tiene datos (y, si numeric=true, el que tiene más valores
+// que parecen número — para no perder contra una columna de texto libre
+// que solo MENCIONA el alias en una frase larga).
+function metricsFindDataKey(rows, aliases, sample = 25, numeric = false) {
+  if (!rows || !rows.length) return null;
+  const keys = Object.keys(rows[0] || {});
+  const exact = [], partial = [];
+  for (const a of aliases) {
+    const ca = metricsCleanKey(a);
+    for (const k of keys) {
+      const ck = metricsCleanKey(k);
+      if (ck === ca) exact.push(k);
+      else if (ck.includes(ca) || ca.includes(ck)) partial.push(k);
+    }
+  }
+  const candidates = [...new Set([...exact, ...partial])];
+  if (!candidates.length) return null;
+  const n = Math.min(sample, rows.length);
+  const isNum = v => v !== '' && Number.isFinite(Number(String(v).replace(/,/g, '').trim()));
+  let best = candidates[0], bestScore = -1;
+  for (const k of candidates) {
+    let score = 0;
+    for (let i = 0; i < n; i++) {
+      const v = String(rows[i][k] ?? '').trim();
+      if (!v) continue;
+      score += (numeric ? (isNum(v) ? 1 : 0) : 1);
+    }
+    if (score > bestScore) { bestScore = score; best = k; }
+  }
+  return best;
+}
+function metricsTipoPuesto(desc) {
+  const d = metricsNormText(desc);
+  if (d.includes('LIDER')) return 'Lider';
+  if (d.includes('ENCARGADO')) return 'Encargado';
+  if (d.includes('AYUDANTE') || d.includes('AYUDANTA')) return 'Ayudante';
+  return 'Otro';
+}
+const METRICS_MES_ABBR = {
+  ene: 1, enero: 1, feb: 2, febrero: 2, mar: 3, marzo: 3, abr: 4, abril: 4,
+  may: 5, mayo: 5, jun: 6, junio: 6, jul: 7, julio: 7, ago: 8, agosto: 8,
+  sep: 9, sept: 9, septiembre: 9, set: 9, setiembre: 9,
+  oct: 10, octubre: 10, nov: 11, noviembre: 11, dic: 12, diciembre: 12,
+};
+// Convierte "Mes" (texto tipo "jul-26", "07-2026", "2026-07") a una clave
+// canónica "YYYY-MM". Usado por Dashboard_2_Diario (monthKeyFromRow).
+function metricsNormalizeMonthKey(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[._/]+/g, '-').replace(/\s+/g, '-').trim();
+  let m = clean.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
+  if (m) return `${m[1]}-${String(+m[2]).padStart(2, '0')}`;
+  m = clean.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
+  if (m) { const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(+m[2]).padStart(2, '0')}`; }
+  m = clean.match(/^([a-z]+)-?(\d{2,4})$/);
+  if (m && METRICS_MES_ABBR[m[1]]) { const y = +m[2] < 100 ? 2000 + +m[2] : +m[2]; return `${y}-${String(METRICS_MES_ABBR[m[1]]).padStart(2, '0')}`; }
+  m = clean.match(/^(\d{1,2})-([a-z]+)-(\d{2,4})$/);
+  if (m && METRICS_MES_ABBR[m[2]]) { const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(METRICS_MES_ABBR[m[2]]).padStart(2, '0')}`; }
+  return '';
+}
+// Igual que parseFechaVacante() de dashboard-1.html: lee una fecha real
+// (serial de Excel o texto dd/mm/aaaa, aaaa-mm-dd, etc.).
+function metricsParseFecha(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    const serial = Number(raw);
+    if (serial > 25000 && serial < 80000) {
+      const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+      return isNaN(d) ? null : d;
+    }
+  }
+  const clean = raw.replace(/\s+\d{1,2}:\d{2}(:\d{2})?.*$/, '').replace(/[.]/g, '/').replace(/-/g, '/');
+  const parts = clean.split('/').map(p => p.trim()).filter(Boolean);
+  if (parts.length >= 3) {
+    let day, month, year;
+    if (parts[0].length === 4) { year = Number(parts[0]); month = Number(parts[1]); day = Number(parts[2]); }
+    else { day = Number(parts[0]); month = Number(parts[1]); year = Number(parts[2]); }
+    if (year < 100) year += 2000;
+    const d = new Date(year, month - 1, day);
+    if (!isNaN(d) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
+  }
+  const d = new Date(raw);
+  return isNaN(d) ? null : d;
+}
+function metricsMesKeyFromDate(date) {
+  if (!date) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+// Réplica EXACTA (con su mismo comportamiento, incluido su "bug") de
+// normalizeMesColumn() en dashboard-1.html: solo lee parts[0] como mes y
+// parts[1] como año, sin importar cuántas partes tenga el texto. La
+// columna "Mes" de Dashboard_1_Diario trae una fecha de corte completa
+// ("26/07/2026", día/mes/año), así que interpreta mal el mes y regresa el
+// TEXTO CRUDO tal cual como clave de agrupación cuando falla — no ''. Por
+// eso NUNCA cae al respaldo por "Fecha" mientras "Mes" no esté vacío
+// (confirmado en vivo: el selector de mes del dashboard real muestra
+// literalmente "26/07/2026", sin formatear).
+function metricsNormalizeMesColumnD1(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[._/]+/g, '-');
+  const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
+  let month = 0, year = 0;
+  if (parts.length >= 2) {
+    month = METRICS_MES_ABBR[parts[0]] || Number(parts[0]) || 0;
+    year = Number(parts[1]) || 0;
+  } else {
+    const m = clean.match(/^([a-z]+)\s*(\d{2,4})$/);
+    if (m) { month = METRICS_MES_ABBR[m[1]] || 0; year = Number(m[2]) || 0; }
+  }
+  if (year > 0 && year < 100) year += 2000;
+  if (month >= 1 && month <= 12 && year >= 2000) return `${year}-${String(month).padStart(2, '0')}`;
+  return raw;
+}
+// Clave de mes por fila para Dashboard_1_Diario: mesInfo.key ||
+// mesKeyFromDate(fechaObj). Como metricsNormalizeMesColumnD1 solo regresa
+// '' si la celda "Mes" está vacía, el respaldo por "Fecha" solo se activa
+// en ese caso.
+function metricsRowMonthKeyD1(row, mesKey, fechaKey) {
+  return metricsNormalizeMesColumnD1(metricsVal(row, mesKey)) || metricsMesKeyFromDate(metricsParseFecha(metricsVal(row, fechaKey)));
+}
+// Clave de mes por fila para Dashboard_2_Diario: monthKeyFromRow() =
+// normalizeMonthKey(Mes) || normalizeMonthKey(Fecha).
+function metricsRowMonthKeyD2(row, mesKey, fechaKey) {
+  return metricsNormalizeMonthKey(metricsVal(row, mesKey)) || metricsNormalizeMonthKey(metricsVal(row, fechaKey));
+}
+// Agrupa `rows` por la clave de mes que regrese rowKeyFn() y regresa solo
+// las del mes más reciente (orden alfabético de la clave — funciona igual
+// para claves canónicas "YYYY-MM" y para el texto crudo de respaldo de
+// metricsNormalizeMesColumnD1, que en la práctica también ordena bien
+// porque el formato de corte es constante).
+function metricsFilterLatestMonth(rows, rowKeyFn) {
+  const keyed = rows.map(r => ({ r, k: rowKeyFn(r) }));
+  const keys = [...new Set(keyed.map(x => x.k).filter(Boolean))].sort();
+  const mes = keys.slice(-1)[0] || '';
+  if (!mes) return { mes: '', rows };
+  return { mes, rows: keyed.filter(x => x.k === mes).map(x => x.r) };
+}
+// Los 6 valores EXACTOS de "Descripcion de Posicion" que dashboard-1.html
+// selecciona por defecto en su filtro de Puesto (DEFAULT_PUESTOS). Puestos
+// reales como "AYUDANTE APERTURA"/"AYUDANTE BANCA"/"AYUDANTE TIENDA
+// ENTRENAMIENTO" no son ninguno de los 6 y quedan fuera del total por
+// defecto — no es "contiene AYUDANTE/ENCARGADO/LIDER".
+const METRICS_DEFAULT_PUESTOS_D1 = new Set([
+  'ENCARGADO TURNO', 'ENCARGADO TURNO SATELITE',
+  'LIDER TIENDA', 'LIDER TIENDA SATELITE',
+  'AYUDANTE TIENDA', 'AYUDANTE TIENDA SATELITE',
+]);
+// isDefaultExcludedTienda() de dashboard-1.html: el filtro de Tienda por
+// defecto ("Tiendas operativas") excluye nombres con "entrenamiento" u
+// "operaciones".
+function metricsIsDefaultExcludedTiendaD1(v) {
+  const t = metricsNormText(v);
+  return t.includes('ENTRENAMIENTO') || t.includes('OPERACIONES');
+}
+// diasMatch()/esTiendaNueva() de dashboard-1.html: el filtro de Antigüedad
+// por defecto selecciona los 6 umbrales ['30','21','15','7','3','1']
+// (unión: pasa si dias>=ALGUNO). El mínimo es "más de 1 día", así que una
+// vacante con Dias Vacantes=0 (abierta el mismo día del corte) no cumple
+// ninguno y queda excluida — igual que una "tienda nueva" (dias>500 o sin
+// Fecha), que tampoco está en el default.
+function metricsPasaAntiguedadDefaultD1(row, diasKey) {
+  const dias = metricsNum(metricsVal(row, diasKey));
+  const diasRaw = String(metricsVal(row, diasKey) || '').trim();
+  const esTiendaNueva = dias > 500 || diasRaw === '';
+  if (esTiendaNueva) return false;
+  return dias >= 1;
+}
+// Aplica los filtros DEFAULT completos de dashboard-1.html (catálogo de
+// tiendas + timoteoantonioperez ya deben aplicarse antes, por separado,
+// porque también los usa Dashboard 7). Regresa las filas listas para
+// agrupar por mes con metricsRowMonthKeyD1.
+function metricsApplyD1Defaults(rows, keys) {
+  const { tiendaKey, asesorKey, puestoKey, diasKey } = keys;
+  return rows
+    .filter(r => !metricsIsDefaultExcludedTiendaD1(metricsVal(r, tiendaKey)))
+    .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'SINASESORASIGNADO')
+    .filter(r => METRICS_DEFAULT_PUESTOS_D1.has(String(metricsVal(r, puestoKey) || '').trim().toUpperCase()))
+    .filter(r => metricsPasaAntiguedadDefaultD1(r, diasKey));
+}
+// filterData() de dashboard-2.html: si la hoja trae columna de Medida,
+// quedarse solo con movimientos de BAJA; si trae Plaza, quedarse solo con
+// Oaxaca. Cada filtro solo se aplica si existe la columna Y deja al menos
+// una fila (mismo criterio "solo si aplica" del dashboard real).
+function metricsFilterBajasD2(rows, keys) {
+  const { medidaKey, plazaKey } = keys;
+  let base = rows;
+  if (medidaKey) {
+    const bajas = base.filter(r => metricsNormText(metricsVal(r, medidaKey)).includes('BAJA'));
+    if (bajas.length) base = bajas;
+  }
+  if (plazaKey) {
+    const oax = base.filter(r => metricsNormText(metricsVal(r, plazaKey)).includes('OAXACA'));
+    if (oax.length) base = oax;
+  }
+  return base;
+}
+// isCompleta/isIncompleta/isCritica de dashboard-3.html: clasificación por
+// texto de Estatus, no por umbral numérico sobre el aprovechamiento crudo.
+function metricsClasificaAprovechamiento(estatus) {
+  const s = metricsNormText(estatus);
+  if (s.includes('CRIT')) return 'criticas';
+  if (s.includes('INCOMPLETO')) return 'incompletas';
+  if (s.includes('COMPLETO')) return 'completas';
+  return null;
+}
+// hasTreoHeaderValues()/coerceTreoRows() de dashboard-7.html: la hoja
+// Dashboard_7_Semanal tiene un problema de exportación de Google donde el
+// encabezado real termina pegado como texto dentro de las celdas de la
+// primera fila de datos (parseCSV detecta como "encabezado" otra fila
+// distinta, con columnas tipo "_buffer_..."). Sin esta corrección,
+// metricsFindKey()/metricsFindDataKey() buscan sobre encabezados
+// corruptos y pueden emparejar la columna equivocada.
+function metricsNormKeyD7(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+function metricsHasTreoHeaderValues(row) {
+  const values = Object.values(row || {}).map(v => metricsNormKeyD7(v));
+  const hits = ['zona', 'plaza', 'tienda', 'id_tienda', 'at_ro', 'estructura_sap', 'movimiento_inicial']
+    .filter(h => values.includes(h)).length;
+  return hits >= 4;
+}
+function metricsCoerceTreoRows(rows) {
+  if (!Array.isArray(rows) || !rows.length) return [];
+  if (!metricsHasTreoHeaderValues(rows[0])) return rows;
+  const sourceKeys = Object.keys(rows[0]);
+  const headers = sourceKeys.map((key, idx) => {
+    const value = String(rows[0][key] || '').trim();
+    return value || `col_${idx + 1}`;
+  });
+  return rows.slice(1).map(raw => {
+    const out = {};
+    sourceKeys.forEach((key, idx) => { out[headers[idx]] = raw[key]; });
+    return out;
+  });
+}
+// buildActivosPorCR() de dashboard-7.html: "Empleados Activos" de TREO se
+// toma de Dashboard 3 (Estructura Diaria - Vacante) por CR, solo del corte
+// de la FECHA más reciente — no de su propia columna capturada a mano.
+async function metricsBuildActivosPorCR() {
+  const rows = await fetchSheetData(SHEETS_CONFIG.TABS.d3);
+  if (!rows || !rows.length) return new Map();
+  const crKey = metricsFindKey(rows[0], ['CR TIENDA', 'CR']);
+  const fechaKey = metricsFindKey(rows[0], ['FECHA', 'Fecha']);
+  const estructuraKey = metricsFindKey(rows[0], ['Estructura Diaria']);
+  const vacanteKey = metricsFindKey(rows[0], ['Vacante']);
+  const fechas = [...new Set(rows.map(r => String(metricsVal(r, fechaKey) || '').trim()).filter(Boolean))].sort();
+  const fecha = fechas.slice(-1)[0] || '';
+  const map = new Map();
+  rows.forEach(r => {
+    if (fecha && String(metricsVal(r, fechaKey) || '').trim() !== fecha) return;
+    const cr = String(metricsVal(r, crKey) || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!cr) return;
+    const activos = Math.max(0, metricsNum(metricsVal(r, estructuraKey)) - metricsNum(metricsVal(r, vacanteKey)));
+    map.set(cr, activos);
+  });
+  return map;
+}
+// Semana más reciente por orden NUMÉRICO de los dígitos del texto (ej.
+// "Sem 28" -> 28), igual que dashboard-6.html — un orden de texto simple
+// falla entre semanas de una y dos cifras (ej. "Sem 9" > "Sem 28"
+// alfabéticamente).
+function metricsLatestSemanaNumerica(rows, semanaKey) {
+  const semanas = [...new Set(rows.map(r => String(metricsVal(r, semanaKey) || '').trim()).filter(Boolean))]
+    .sort((a, b) => (parseInt(a.replace(/\D+/g, ''), 10) || 0) - (parseInt(b.replace(/\D+/g, ''), 10) || 0));
+  return semanas[semanas.length - 1] || '';
+}
+
+// ─────────────────────────────────────────────────────────────
+// DESGLOSES POR ASESOR (para exportables tipo "Indicadores ATs")
+//
+// Mismas reglas ya verificadas de Vacantes/Aprovechamiento/TREO, pero
+// agrupadas por TODOS los asesores (no solo el top 15 de un ranking), para
+// cruzarlas contra una lista externa de nombres (ej. un Excel de
+// indicadores llenado a mano con columnas por AT).
+
+// Empareja un nombre corto (ej. "Adrian") contra la lista de asesores
+// reales buscando coincidencia de PALABRA COMPLETA (no substring), ya que
+// el nombre corto puede ser cualquier palabra del nombre completo, no solo
+// la primera (ej. "Jorge Adrian Posadas Lopez" para "Adrian").
+function metricsMatchShortName(shortName, fullNames) {
+  const target = metricsNormText(shortName).trim();
+  if (!target) return null;
+  for (const full of fullNames) {
+    const words = metricsNormText(full).split(/\s+/).filter(Boolean);
+    if (words.includes(target)) return full;
+  }
+  return null;
+}
+
+// ── "Rows" reutilizables: la misma base filtrada (catalogo, timoteo,
+// defaults, mes/fecha mas reciente) que usan dataD1/dataD2/dataD3/dataD7 en
+// admin-pptx-rae.js, expuesta aqui para que CUALQUIER consumidor nuevo
+// (rankings, totales por asesor, detalle de un asesor especifico, etc.)
+// parta del mismo conjunto de filas ya verificado en vez de tener que
+// reimplementar el pipeline de filtros otra vez.
+
+// Filas de Dashboard 1 (Vacantes) ya filtradas al mes mas reciente con los
+// 3 defaults reales del dashboard.
+async function metricsD1Rows() {
+  const raw = await fetchSheetData(SHEETS_CONFIG.TABS.d1);
+  if (!raw || !raw.length) return null;
+  const mesKey = metricsFindKey(raw[0], ['Mes']);
+  const puestoKey = metricsFindKey(raw[0], ['Descripcion de Posicion', 'Puesto']);
+  const asesorKey = metricsFindKey(raw[0], ['Asesor']);
+  const tiendaKey = metricsFindKey(raw[0], ['Tienda', 'Unidad org']);
+  const crKey = metricsFindKey(raw[0], ['CR TIENDA', 'CR']);
+  const fechaKey = metricsFindKey(raw[0], ['Fecha']);
+  const diasKey = metricsFindKey(raw[0], ['Dias Vacantes', 'Dias_Vacantes']);
+  const asesorCatalog = await loadAsesorCatalog();
+  const stepCatalog = raw
+    .filter(r => String(metricsVal(r, tiendaKey) || '').trim() && String(metricsVal(r, tiendaKey) || '').trim() !== 'Sin tienda')
+    .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ')
+    .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)));
+  const base = metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
+  const { mes, rows } = metricsFilterLatestMonth(base, r => metricsRowMonthKeyD1(r, mesKey, fechaKey));
+  return { rows, mes, asesorKey, puestoKey, tiendaKey };
+}
+
+// Vacantes por Asesor: mismo pipeline verificado de dataD1(), pero regresa
+// TODOS los asesores (no solo el top N de un ranking).
+async function metricsVacantesPorAsesor() {
+  const d1 = await metricsD1Rows();
+  if (!d1) return new Map();
+  const map = new Map();
+  d1.rows.forEach(r => {
+    const name = String(metricsVal(r, d1.asesorKey) || '').trim();
+    if (!name) return;
+    map.set(name, (map.get(name) || 0) + 1);
+  });
+  return map;
+}
+
+// Filas de Dashboard 3 (Aprovechamiento) ya filtradas al corte de fecha
+// mas reciente.
+async function metricsD3Rows() {
+  const raw = await fetchSheetData(SHEETS_CONFIG.TABS.d3);
+  if (!raw || !raw.length) return null;
+  const estatusKey = metricsFindKey(raw[0], ['Clas Aprov', 'Estatus Con impacto Ausentismo', 'Estatus']);
+  const asesorKey = metricsFindKey(raw[0], ['Asesor']);
+  const fechaKey = metricsFindKey(raw[0], ['Mes Semana', 'Semana', 'Fecha', 'FECHA']);
+  const fechas = [...new Set(raw.map(r => String(r[fechaKey] || '').trim()).filter(Boolean))].sort();
+  const fecha = fechas.slice(-1)[0] || '';
+  const rows = fecha ? raw.filter(r => String(r[fechaKey] || '').trim() === fecha) : raw;
+  return { rows, fecha, asesorKey, estatusKey };
+}
+
+// Aprovechamiento por AT (Dashboard 3): mismo pipeline verificado de
+// dataD3() — EC% (completas/total) por asesor. (El cruce por columna
+// 'AT'/'Ec por AT' de la hoja, cuando existe, sigue siendo exclusivo de la
+// Presentación RAE porque ahi el ranking se muestra tal cual viene esa
+// columna; aqui se necesita un numero por CADA asesor para cruzar contra
+// listas externas, y ese cruce siempre esta disponible via Estatus, a
+// diferencia de 'Ec por AT' que no siempre viene poblada.)
+async function metricsAprovechamientoPorAT() {
+  const d3 = await metricsD3Rows();
+  if (!d3) return new Map();
+  const byAsesor = new Map();
+  d3.rows.forEach(r => {
+    const name = String(metricsVal(r, d3.asesorKey) || '').trim();
+    if (!name) return;
+    if (!byAsesor.has(name)) byAsesor.set(name, { total: 0, completas: 0 });
+    const acc = byAsesor.get(name);
+    acc.total++;
+    if (metricsClasificaAprovechamiento(metricsVal(r, d3.estatusKey)) === 'completas') acc.completas++;
+  });
+  const map = new Map();
+  byAsesor.forEach((v, name) => map.set(name, v.total > 0 ? v.completas / v.total : 0));
+  return map;
+}
+
+// Filas de Dashboard 2 (Bajas) ya filtradas por BAJA/Oaxaca y al mes mas
+// reciente, igual que dataD2() en admin-pptx-rae.js.
+async function metricsD2Rows() {
+  const raw = await fetchSheetData(SHEETS_CONFIG.TABS.d2);
+  if (!raw || !raw.length) return null;
+  const mesKey = metricsFindKey(raw[0], ['Mes']);
+  const asesorKey = metricsFindKey(raw[0], ['Asesor']);
+  const puestoKey = metricsFindKey(raw[0], ['Puesto']);
+  const medidaKey = metricsFindKey(raw[0], ['Denominación Medida', 'Denominacion Medida', 'Medida', 'Med.']);
+  const plazaKey = metricsFindKey(raw[0], ['Plaza']);
+  const fechaKey = metricsFindKey(raw[0], ['Fecha']);
+  const asesorCrudoOk = raw.filter(r => String(metricsVal(r, asesorKey) || '').trim() && metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ');
+  const base = metricsFilterBajasD2(asesorCrudoOk, { medidaKey, plazaKey });
+  const { mes, rows: byMonth } = metricsFilterLatestMonth(base, r => metricsRowMonthKeyD2(r, mesKey, fechaKey));
+  const rows = byMonth.filter(r => {
+    const asesor = metricsNormText(metricsVal(r, asesorKey));
+    if (!asesor || asesor.includes('SIN ASESOR')) return false;
+    return metricsTipoPuesto(metricsVal(r, puestoKey)) !== 'Otro';
+  });
+  return { rows, mes, asesorKey, puestoKey };
+}
+
+// Filas de Dashboard 7 (TREO) ya filtradas por catalogo y timoteo.
+async function metricsD7Rows() {
+  const rawSheet = await fetchSheetData(SHEETS_CONFIG.TABS.s7);
+  const raw = metricsCoerceTreoRows(rawSheet);
+  if (!raw || !raw.length) return null;
+  const difKey = metricsFindDataKey(raw, ['Dif SAP vs Est Optima Final'], 25, true);
+  const treoKey = metricsFindDataKey(raw, ['Estructura Propuesta TREO P2 Jun - Ago', 'TREO'], 25, true);
+  const activosKey = metricsFindDataKey(raw, ['Empleados Activos', 'Activos'], 25, true);
+  const vacantesKey = metricsFindDataKey(raw, ['Vacantes'], 25, true);
+  const asesorKey = metricsFindDataKey(raw, ['Asesor']);
+  const tiendaKey = metricsFindDataKey(raw, ['Tienda', 'Nombre Tienda', 'Unidad', 'Unidad Org', 'Unidad Organizativa']);
+  const crKey = metricsFindDataKey(raw, ['CR', 'ID Tienda', 'ID_Tienda']);
+  const asesorCatalog = await loadAsesorCatalog();
+  const rows = raw
+    .filter(r => String(metricsVal(r, tiendaKey) || '').trim() || String(metricsVal(r, asesorKey) || '').trim())
+    .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)))
+    .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ');
+  return { rows, difKey, treoKey, activosKey, vacantesKey, asesorKey, tiendaKey };
+}
+
+// Alineación de estructura por Asesor (Dashboard 7/TREO): mismo pipeline
+// verificado de dataD7() — agrupando el % de tiendas Alineadas (Dif===0)
+// por asesor en vez de un solo total.
+async function metricsAlineacionPorAsesor() {
+  const d7 = await metricsD7Rows();
+  if (!d7) return new Map();
+  const byAsesor = new Map();
+  d7.rows.forEach(r => {
+    const name = String(metricsVal(r, d7.asesorKey) || '').trim();
+    if (!name) return;
+    if (!byAsesor.has(name)) byAsesor.set(name, { total: 0, alineadas: 0 });
+    const acc = byAsesor.get(name);
+    acc.total++;
+    if (metricsNum(metricsVal(r, d7.difKey)) === 0) acc.alineadas++;
+  });
+  const map = new Map();
+  byAsesor.forEach((v, name) => map.set(name, v.total > 0 ? v.alineadas / v.total : 0));
+  return map;
+}
+
+// ─────────────────────────────────────────────────────────────
 // FUNCIÓN: Botón de descarga de archivo por dashboard
 // Lee la columna 'archivo_url' (y opcionalmente 'archivo_nombre') de la fila
 // correspondiente en la pestaña Configuracion. Si el admin sube un archivo (p.ej.
@@ -993,6 +1605,8 @@ window.OXXO = {
   buildSheetURL,
   downloadBlob,
   downloadSheetTab,
+  downloadElementAsPNG,
+  initPngExportControls,
   rowsToCSV,
   downloadRowsAsCSV,
   handleDownloadButton,
@@ -1024,4 +1638,34 @@ window.OXXO = {
   initThemeToggle,
   truncate,
   maxVal,
+  // Métricas compartidas (ver seccion arriba de resolveAsesor/applyAsesorCatalog)
+  metricsFindKey,
+  metricsFindDataKey,
+  metricsVal,
+  metricsNum,
+  metricsNormText,
+  metricsTipoPuesto,
+  metricsNormalizeMonthKey,
+  metricsParseFecha,
+  metricsMesKeyFromDate,
+  metricsNormalizeMesColumnD1,
+  metricsRowMonthKeyD1,
+  metricsRowMonthKeyD2,
+  metricsFilterLatestMonth,
+  metricsIsDefaultExcludedTiendaD1,
+  metricsPasaAntiguedadDefaultD1,
+  metricsApplyD1Defaults,
+  metricsFilterBajasD2,
+  metricsClasificaAprovechamiento,
+  metricsCoerceTreoRows,
+  metricsBuildActivosPorCR,
+  metricsLatestSemanaNumerica,
+  metricsMatchShortName,
+  metricsVacantesPorAsesor,
+  metricsAprovechamientoPorAT,
+  metricsAlineacionPorAsesor,
+  metricsD1Rows,
+  metricsD2Rows,
+  metricsD3Rows,
+  metricsD7Rows,
 };

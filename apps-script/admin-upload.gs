@@ -16,8 +16,11 @@ const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const ALLOWED_SHEETS = [
   'Dashboard_1_Diario',
   'Dashboard_2_Diario',
+  'Dashboard_2_Otras_Plazas',
   'Denominaciones_Dashboard_2_Diario',
+  'Dashboard_2_Plan_Accion',
   'Dashboard_3_Diario',
+  'Dashboard_3_Otras_Plazas',
   'Dashboard_4_Semanal',
   'Dashboard_5_Semanal',
   'Dashboard_6_Semanal',
@@ -38,6 +41,20 @@ function doPost(e) {
     }
 
     assertAuthorized(payload);
+
+    // Fecha automatica: cada publish() en admin.js llama esta accion aparte
+    // despues de publicar, para que "Ultima actualizacion" en la portada
+    // (index.html) ya no dependa de que alguien la edite a mano en la hoja
+    // Configuracion — siempre queda igual a la fecha real del ultimo publish.
+    if (String(payload.action || '') === 'updateConfigDate') {
+      const lock = LockService.getScriptLock();
+      lock.waitLock(30000);
+      try {
+        return jsonResponse(updateConfigDate(String(payload.dashboardId || '').trim()));
+      } finally {
+        lock.releaseLock();
+      }
+    }
 
     const targetSheet = String(payload.targetSheet || '').trim();
     const rows = Array.isArray(payload.rows) ? payload.rows : [];
@@ -65,7 +82,7 @@ function doPost(e) {
         ? replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues)
         : replaceAll(sheet, rows, newHeaders);
 
-      sheet.setFrozenRows(1);
+      sheet.setFrozenRows(2); // fila 1 = sacrificio, fila 2 = encabezados reales
       sheet.autoResizeColumns(1, Math.min(result.columns, 20));
 
       return jsonResponse({
@@ -92,10 +109,91 @@ function assertAuthorized(payload) {
   const received = String((payload && payload.adminPassword) || '');
   if (received !== configured) throw new Error('No autorizado');
 }
+
+// FIX 1: antes se hacia sheet.clearContents() y luego setValues() como dos pasos separados.
+// Esa ventana entre "borrar todo" y "escribir de nuevo" hacia que el exportador CSV de
+// Google (gviz, el que usan los dashboards) a veces tomara una foto a medio camino,
+// mezclando varias filas en una sola celda. Ahora se escribe directo encima de lo que
+// ya habia, y solo se limpia el sobrante (si la base nueva es mas chica) al final.
+//
+// FIX 2 (version anterior, con bug): se agrego una fila "sacrificio" (_buffer_) como
+// fila 1 fisica de la hoja, para que si Google corrompe "la primera fila" de una
+// escritura masiva, se coma esa basura y no los encabezados/datos reales. PERO la
+// implementacion anterior volvia a partir la escritura en DOS llamadas setValues()
+// separadas (una para la fila buffer, otra para encabezados+datos) — exactamente el
+// mismo patron de "pasos separados" que el FIX 1 identifico como causa de la
+// corrupcion. Resultado real (confirmado leyendo el CSV crudo exportado): el
+// exportador tomaba su foto justo entre esas dos escrituras y fusionaba el texto de
+// ambas en una sola celda por columna (ej. "_buffer_ Plaza" en vez de "_buffer_" y
+// "Plaza" en filas separadas), corrompiendo el encabezado real.
+//
+// FIX 3 (este cambio): la fila buffer, los encabezados y los datos se arman en UN
+// SOLO arreglo 2D y se escriben con UNA SOLA llamada a setValues(), eliminando por
+// completo la ventana entre escrituras. dashboards/js/core.js ya sabe detectar los
+// encabezados reales aunque no esten en la fila 1 (busca en las primeras filas cual
+// tiene pinta de encabezado), asi que esto sigue siendo compatible sin tocar los
+// dashboards.
+const BUFFER_ROW_VALUE = '_buffer_';
+function writeWithBufferRow(sheet, values, numCols) {
+  const prevMaxRows = sheet.getMaxRows();
+  const prevMaxCols = sheet.getMaxColumns();
+  const bufferRow = new Array(numCols).fill(BUFFER_ROW_VALUE);
+  const allRows = [bufferRow].concat(values); // buffer + encabezados + datos, un solo arreglo
+
+  sheet.getRange(1, 1, allRows.length, numCols).setValues(allRows); // una sola escritura
+
+  const totalRows = allRows.length;
+  if (prevMaxRows > totalRows) {
+    sheet.getRange(totalRows + 1, 1, prevMaxRows - totalRows, Math.max(prevMaxCols, numCols)).clearContent();
+  }
+  if (prevMaxCols > numCols) {
+    sheet.getRange(1, numCols + 1, totalRows, prevMaxCols - numCols).clearContent();
+  }
+}
+
+// Actualiza SOLO la celda "ultima_actualizacion" de la fila de un dashboard
+// en la hoja Configuracion (columna A=dashboard_id, ver comentario de
+// loadSystemConfig en core.js), sin tocar ninguna otra celda/fila. No usa
+// writeWithBufferRow porque aqui no se reemplaza la hoja completa — es una
+// edicion quirurgica de una sola celda.
+function updateConfigDate(dashboardId) {
+  if (!dashboardId) throw new Error('dashboardId requerido');
+  const ss = SPREADSHEET_ID
+    ? SpreadsheetApp.openById(SPREADSHEET_ID)
+    : SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Configuracion');
+  if (!sheet) throw new Error('Hoja Configuracion no encontrada');
+
+  const values = sheet.getDataRange().getValues();
+  const normCell = v => String(v || '').trim().toLowerCase();
+
+  let headerRow = -1, headers = [];
+  for (let i = 0; i < values.length; i++) {
+    if (values[i].some(c => normCell(c) === 'dashboard_id')) { headerRow = i; headers = values[i]; break; }
+  }
+  if (headerRow === -1) throw new Error('No se encontro el encabezado dashboard_id en Configuracion');
+
+  const idxId = headers.findIndex(h => normCell(h) === 'dashboard_id');
+  const idxFecha = headers.findIndex(h => normCell(h) === 'ultima_actualizacion');
+  if (idxFecha === -1) throw new Error('No se encontro la columna ultima_actualizacion en Configuracion');
+
+  const wantedId = normCell(dashboardId);
+  for (let i = headerRow + 1; i < values.length; i++) {
+    if (normCell(values[i][idxId]) === wantedId) {
+      const today = Utilities.formatDate(new Date(), 'America/Mexico_City', 'dd/MM/yyyy');
+      sheet.getRange(i + 1, idxFecha + 1).setValue(today);
+      return { ok: true, updated: true, dashboardId: wantedId, date: today };
+    }
+  }
+  // No es un error fatal: hay dashboards (d2otras, d2plan, d3plazas, s7...) que
+  // publican datos pero no tienen fila propia en Configuracion. Se reporta sin
+  // reventar el publish principal, que ya tuvo exito antes de llegar aqui.
+  return { ok: true, updated: false, error: 'dashboard_id no encontrado en Configuracion: ' + wantedId };
+}
+
 function replaceAll(sheet, rows, headers) {
   const values = rowsToValues(rows, headers);
-  sheet.clearContents();
-  sheet.getRange(1, 1, values.length, headers.length).setValues(values);
+  writeWithBufferRow(sheet, values, headers.length);
   return { mode: 'replaceAll', rows: rows.length, columns: headers.length };
 }
 
@@ -103,7 +201,11 @@ function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues) {
   if (!periodValues.length) throw new Error('No se detectaron valores para ' + periodColumn);
 
   const currentValues = sheet.getDataRange().getValues();
-  const existingHeaders = currentValues.length ? currentValues[0].map(String) : [];
+  // Si la fila 1 es la fila "sacrificio", los encabezados reales estan en la fila 2 y
+  // los datos empiezan en la fila 3.
+  const hasBufferRow = currentValues.length && String(currentValues[0][0]) === BUFFER_ROW_VALUE;
+  const headerRowIndex = hasBufferRow ? 1 : 0;
+  const existingHeaders = currentValues.length > headerRowIndex ? currentValues[headerRowIndex].map(String) : [];
   const periodKey = normalizeHeader(periodColumn);
   const periodSet = new Set(periodValues.map(function(value) {
     return normalizePeriodValue(value, periodColumn);
@@ -114,7 +216,7 @@ function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues) {
     row[periodColumn] = normalizePeriodValue(row[periodColumn], periodColumn);
   });
 
-  for (let i = 1; i < currentValues.length; i++) {
+  for (let i = headerRowIndex + 1; i < currentValues.length; i++) {
     const projected = projectRowToHeaders(existingHeaders, currentValues[i], newHeaders);
     const periodHeader = findHeaderByKey(newHeaders, periodKey) || periodColumn;
     const currentPeriod = normalizePeriodValue(projected[periodHeader], periodColumn);
@@ -126,8 +228,8 @@ function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues) {
 
   const finalRows = keptRows.concat(rows);
   const values = rowsToValues(finalRows, newHeaders);
-  sheet.clearContents();
-  sheet.getRange(1, 1, values.length, newHeaders.length).setValues(values);
+  writeWithBufferRow(sheet, values, newHeaders.length);
+
   return {
     mode: 'replacePeriod',
     periodColumn: periodColumn,
@@ -205,7 +307,7 @@ function rowsToValues(rows, headers) {
 function normalizeHeader(value) {
   return String(value || '')
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9%]+/g, '')
     .trim();

@@ -1,20 +1,24 @@
 (function(){
-  function findKey(row, aliases){
-    const clean = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
-    const keys = Object.keys(row||{});
-    const map = new Map(keys.map(k => [clean(k), k]));
-    for(const a of aliases){ const found = map.get(clean(a)); if(found) return found; }
-    for(const a of aliases){ const ca = clean(a); const found = keys.find(k => clean(k).includes(ca) || ca.includes(clean(k))); if(found) return found; }
-    return null;
-  }
-  function val(row, key, fallback=''){ const v = key ? row[key] : undefined; return (v===undefined||v===null||String(v).trim()==='') ? fallback : v; }
-  function num(v){ const n = Number(String(v??'').replace(/[$,%]/g,'').replace(/,/g,'').trim()); return Number.isFinite(n) ? n : 0; }
+  // Toda la logica de columnas/filtros/fechas que replica el comportamiento
+  // real de los dashboards vive en core.js (window.OXXO.metrics*), para que
+  // dashboards y presentaciones nunca vuelvan a divergir. Aqui solo se
+  // referencian esas funciones \u2014 nada de esto se reimplementa.
+  const findKey = OXXO.metricsFindKey;
+  const findDataKey = OXXO.metricsFindDataKey;
+  const val = OXXO.metricsVal;
+  const num = OXXO.metricsNum;
+  const normText = OXXO.metricsNormText;
+  const latestByKey = (rows, key) => { const vals = [...new Set(rows.map(r => String(r[key]||'').trim()).filter(Boolean))]; return vals.sort().slice(-1)[0] || ''; };
+  const rowMonthKeyD1 = OXXO.metricsRowMonthKeyD1;
+  const rowMonthKeyD2 = OXXO.metricsRowMonthKeyD2;
+  const filterLatestMonth = OXXO.metricsFilterLatestMonth;
+  const tipoPuesto = OXXO.metricsTipoPuesto;
+  const coerceTreoRowsD7 = OXXO.metricsCoerceTreoRows;
   // Misma regla que normalizePct() en dashboard-3.html: solo se divide entre
   // 100 cuando el valor viene claramente duplicado por el formato Porcentaje
   // de Sheets (>150). Un aprovechamiento real de 100-150% (tienda con mas
   // activos de los necesarios) no se debe tocar.
   function normPct(v){ const n = num(v); return n > 150 ? n / 100 : n; }
-  function normText(v){ return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase(); }
   // Acorta un nombre largo a "Nombre(s) Apellido1 A." (inicial del ultimo
   // apellido) en vez de cortarlo a solo el primer nombre: la plaza suele tener
   // varios asesores que comparten nombre de pila, asi que recortar de mas
@@ -25,97 +29,6 @@
     const parts = trimmed.split(/\s+/);
     if(parts.length <= 2) return trimmed;
     return `${parts.slice(0, -1).join(' ')} ${parts[parts.length - 1][0]}.`;
-  }
-  function latestByKey(rows, key){
-    const vals = [...new Set(rows.map(r => String(r[key]||'').trim()).filter(Boolean))];
-    return vals.sort().slice(-1)[0] || '';
-  }
-  // Igual que normalizeMonthKey()/normalizeMesColumn() en dashboard-1.html y
-  // dashboard-2.html: convierte "Mes" (texto tipo "jul-26", "07-2026",
-  // "2026-07") a una clave canonica "YYYY-MM". Sin esto, ordenar el texto
-  // crudo alfabeticamente ("ago-26" < "ene-26" < "jul-26") no coincide con el
-  // orden cronologico real y puede elegir un mes distinto al que muestra el
-  // dashboard.
-  const MES_ABBR = {
-    ene:1, enero:1, feb:2, febrero:2, mar:3, marzo:3, abr:4, abril:4,
-    may:5, mayo:5, jun:6, junio:6, jul:7, julio:7, ago:8, agosto:8,
-    sep:9, sept:9, septiembre:9, set:9, setiembre:9,
-    oct:10, octubre:10, nov:11, noviembre:11, dic:12, diciembre:12,
-  };
-  function normalizeMonthKey(value){
-    const raw = String(value ?? '').trim();
-    if(!raw) return '';
-    const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[._/]+/g,'-').replace(/\s+/g,'-').trim();
-    let m = clean.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
-    if(m) return `${m[1]}-${String(+m[2]).padStart(2,'0')}`;
-    m = clean.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
-    if(m){ const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(+m[2]).padStart(2,'0')}`; }
-    m = clean.match(/^([a-z]+)-?(\d{2,4})$/);
-    if(m && MES_ABBR[m[1]]){ const y = +m[2] < 100 ? 2000 + +m[2] : +m[2]; return `${y}-${String(MES_ABBR[m[1]]).padStart(2,'0')}`; }
-    m = clean.match(/^(\d{1,2})-([a-z]+)-(\d{2,4})$/);
-    if(m && MES_ABBR[m[2]]){ const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(MES_ABBR[m[2]]).padStart(2,'0')}`; }
-    return '';
-  }
-  // Devuelve { mes: <clave canonica YYYY-MM>, rows: <filas de ese mes segun
-  // la clave canonica, no el texto crudo> }. Si ninguna fila tiene un mes
-  // reconocible, regresa todas las filas sin filtrar (igual que cuando
-  // mesKey no existe).
-  // Igual que parseFechaVacante()+mesKeyFromDate() en dashboard-1.html: si el
-  // texto de "Mes" no es reconocible, intenta leer una fecha (serial de Excel
-  // o texto dd/mm/aaaa, aaaa-mm-dd, etc.) y deriva el mes de ahi.
-  function parseFechaVacante(value){
-    const raw = String(value ?? '').trim();
-    if(!raw) return null;
-    if(/^\d+(\.\d+)?$/.test(raw)){
-      const serial = Number(raw);
-      if(serial > 25000 && serial < 80000){
-        const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
-        return isNaN(d) ? null : d;
-      }
-    }
-    const clean = raw.replace(/\s+\d{1,2}:\d{2}(:\d{2})?.*$/, '').replace(/[.]/g,'/').replace(/-/g,'/');
-    const parts = clean.split('/').map(p => p.trim()).filter(Boolean);
-    if(parts.length >= 3){
-      let day, month, year;
-      if(parts[0].length === 4){ year = Number(parts[0]); month = Number(parts[1]); day = Number(parts[2]); }
-      else { day = Number(parts[0]); month = Number(parts[1]); year = Number(parts[2]); }
-      if(year < 100) year += 2000;
-      const d = new Date(year, month - 1, day);
-      if(!isNaN(d) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
-    }
-    const d = new Date(raw);
-    return isNaN(d) ? null : d;
-  }
-  function mesKeyFromDate(date){
-    if(!date) return '';
-    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
-  }
-  // Clave de mes por fila igual que dashboard-1.html
-  // (mesInfo.key || mesKeyFromDate(fechaObj)): si "Mes" no se puede
-  // normalizar, se deriva del valor de "Fecha" parseado como fecha real
-  // (no solo texto tipo "jul-26").
-  function rowMonthKeyD1(row, mesKey, fechaKey){
-    return normalizeMonthKey(val(row, mesKey)) || mesKeyFromDate(parseFechaVacante(val(row, fechaKey)));
-  }
-  // Clave de mes por fila igual que monthKeyFromRow() en dashboard-2.html:
-  // normalizeMonthKey(Mes) || normalizeMonthKey(Fecha) (aqui si el fallback
-  // es solo texto, sin parsear fecha completa).
-  function rowMonthKeyD2(row, mesKey, fechaKey){
-    return normalizeMonthKey(val(row, mesKey)) || normalizeMonthKey(val(row, fechaKey));
-  }
-  function filterLatestMonth(rows, rowKeyFn){
-    const keyed = rows.map(r => ({ r, k: rowKeyFn(r) }));
-    const keys = [...new Set(keyed.map(x => x.k).filter(Boolean))].sort();
-    const mes = keys.slice(-1)[0] || '';
-    if(!mes) return { mes: '', rows };
-    return { mes, rows: keyed.filter(x => x.k === mes).map(x => x.r) };
-  }
-  function tipoPuesto(desc){
-    const d = normText(desc);
-    if(d.includes('LIDER')) return 'Lider';
-    if(d.includes('ENCARGADO')) return 'Encargado';
-    if(d.includes('AYUDANTE')) return 'Ayudante';
-    return 'Otro';
   }
   // Ranking de conteo por nombre (p.ej. vacantes o bajas por Asesor), top N descendente.
   function rankCount(rows, nameKey, limit){
@@ -147,15 +60,35 @@
     const tiendaKey = findKey(raw[0], ['Tienda','Unidad org']);
     const crKey = findKey(raw[0], ['CR TIENDA','CR']);
     const fechaKey = findKey(raw[0], ['Fecha']);
+    const diasKey = findKey(raw[0], ['Dias Vacantes','Dias_Vacantes']);
     // dashboard-1.html filtra TODA la base cargada (no solo el mes activo) por:
     // tienda no vacia, excluir 'timoteoantonioperez', y el catalogo de 255
     // tiendas autorizadas (isTiendaValid). Sin esto se cuentan filas de
     // tiendas/plazas que el dashboard real nunca muestra.
     const asesorCatalog = await OXXO.loadAsesorCatalog();
-    const base = raw
-      .filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda')
-      .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ')
-      .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    const stepTienda = raw.filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda');
+    const stepTimoteo = stepTienda.filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ');
+    const stepCatalog = stepTimoteo.filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    // dashboard-1.html arranca con la seleccion DEFAULT de sus 3 filtros
+    // "todo seleccionado" (Asesor, Puesto, Tienda), y esos defaults SI
+    // excluyen filas (no son "todo, sin filtrar"):
+    // - Puesto: solo los 6 valores exactos de DEFAULT_PUESTOS (texto crudo de
+    //   "Descripcion de Posicion", NO "contiene AYUDANTE/ENCARGADO/LIDER").
+    //   Puestos reales como "AYUDANTE APERTURA", "AYUDANTE BANCA",
+    //   "AYUDANTE TIENDA ENTRENAMIENTO" NO son ninguno de los 6 y quedan
+    //   fuera del total por defecto.
+    // - Tienda: excluye nombres que contengan "entrenamiento" u
+    //   "operaciones" (isDefaultExcludedTienda), mostrado como "Tiendas
+    //   operativas" en el filtro.
+    // - Asesor: excluye 'Sin Asesor Asignado' (defaultAsesorSelection).
+    // - Antiguedad ("Dias Vacantes"): el default selecciona los 6 umbrales
+    //   ['30','21','15','7','3','1'] (unión: pasa si dias>=ALGUNO de esos
+    //   valores). El umbral minimo es "mas de 1 dia", asi que una vacante con
+    //   dias===0 (recien abierta el mismo dia, "vacante desde <hoy>") NO
+    //   cumple NINGUNO de los 6 y queda excluida del total por defecto.
+    //   'nuevas' (esTiendaNueva: dias>500 o sin Fecha) tampoco esta en el
+    //   default, asi que esas tambien se excluyen.
+    const base = OXXO.metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
     const { mes, rows } = filterLatestMonth(base, r => rowMonthKeyD1(r, mesKey, fechaKey));
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach(r => { byPuesto[tipoPuesto(val(r, puestoKey))]++; });
@@ -180,15 +113,7 @@
     // Medida, quedarse solo con movimientos de BAJA; si trae Plaza, quedarse
     // solo con Oaxaca. Cada filtro solo se aplica si existe la columna y deja
     // al menos una fila (mismo criterio "solo si aplica" del dashboard).
-    let base = raw.filter(r => asesorCrudoOk(r));
-    if(medidaKey){
-      const bajas = base.filter(r => normText(val(r, medidaKey)).includes('BAJA'));
-      if(bajas.length) base = bajas;
-    }
-    if(plazaKey){
-      const oax = base.filter(r => normText(val(r, plazaKey)).includes('OAXACA'));
-      if(oax.length) base = oax;
-    }
+    const base = OXXO.metricsFilterBajasD2(raw.filter(r => asesorCrudoOk(r)), { medidaKey, plazaKey });
     const { mes, rows: byMonth } = filterLatestMonth(base, r => rowMonthKeyD2(r, mesKey, fechaKey));
     const rows = byMonth.filter(r => {
       const asesor = normText(val(r, asesorKey));
@@ -221,13 +146,7 @@
     const total = rows.length;
     // Misma clasificacion que isCompleta/isIncompleta/isCritica de
     // dashboard-3.html (por texto de Estatus, no por umbral numerico).
-    const clasifica = r => {
-      const s = normText(val(r, estatusKey));
-      if(s.includes('CRIT')) return 'criticas';
-      if(s.includes('INCOMPLETO')) return 'incompletas';
-      if(s.includes('COMPLETO')) return 'completas';
-      return null;
-    };
+    const clasifica = r => OXXO.metricsClasificaAprovechamiento(val(r, estatusKey));
     let completas = 0, incompletas = 0, criticas = 0;
     rows.forEach(r => {
       const c = clasifica(r);
@@ -247,8 +166,15 @@
     try {
       const otras = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3plazas);
       if(otras && otras.length){
-        const plazaKey = findKey(otras[0], ['PLAZAS','Plaza']);
-        const valKey = findKey(otras[0], ['Aprovechamiento de estructura a hoy','Aprovechamiento']);
+        // findDataKey (no findKey): la hoja de "Otras Plazas" es una carga
+        // manual y, como la de TREO, puede traer el mismo problema de
+        // exportacion de Google donde el encabezado real queda pegado como
+        // texto dentro de otra columna (fila "_buffer_..."). findKey se
+        // conformaba con la primera columna que *mencionara* el alias
+        // (pudiendo ser una vacia); findDataKey elige la que de verdad
+        // tiene datos.
+        const plazaKey = findDataKey(otras, ['PLAZAS','Plaza']);
+        const valKey = findDataKey(otras, ['Aprovechamiento de estructura a hoy','Aprovechamiento'], 25, true);
         plazas = otras.map(r => ({ name: String(val(r, plazaKey)||'').trim(), value: normPct(val(r, valKey)) })).filter(p => p.name);
       }
     } catch(e){ /* sin datos de otras plazas: se muestra solo Oaxaca */ }
@@ -304,42 +230,31 @@
   // Replica buildActivosPorCR() de dashboard-7.html: el "Empleados Activos" de
   // TREO no se toma de su propia columna sino de Dashboard 3 (Estructura
   // Diaria - Vacante), por CR, tomando solo el corte de la FECHA mas reciente.
-  async function buildActivosPorCR(){
-    const rows = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3);
-    if(!rows || !rows.length) return new Map();
-    const crKey = findKey(rows[0], ['CR TIENDA','CR']);
-    const fechaKey = findKey(rows[0], ['FECHA','Fecha']);
-    const estructuraKey = findKey(rows[0], ['Estructura Diaria']);
-    const vacanteKey = findKey(rows[0], ['Vacante']);
-    const fecha = latestByKey(rows, fechaKey);
-    const map = new Map();
-    rows.forEach(r => {
-      if(fecha && String(val(r, fechaKey)||'').trim() !== fecha) return;
-      const cr = String(val(r, crKey)||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-      if(!cr) return;
-      const activos = Math.max(0, num(val(r, estructuraKey)) - num(val(r, vacanteKey)));
-      map.set(cr, activos);
-    });
-    return map;
-  }
+  const buildActivosPorCR = OXXO.metricsBuildActivosPorCR;
 
   async function dataD7(){
-    const [raw, activosPorCR] = await Promise.all([
+    const [rawSheet, activosPorCR] = await Promise.all([
       OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s7),
       buildActivosPorCR(),
     ]);
+    const raw = coerceTreoRowsD7(rawSheet);
     if(!raw || !raw.length) return null;
-    const difKey = findKey(raw[0], ['Dif SAP vs Est Optima Final']);
-    const treoKey = findKey(raw[0], ['Estructura Propuesta TREO P2 Jun - Ago','TREO']);
-    const activosKey = findKey(raw[0], ['Empleados Activos','Activos']);
-    const vacantesKey = findKey(raw[0], ['Vacantes']);
-    const asesorKey = findKey(raw[0], ['Asesor']);
+    // findDataKey (no findKey) para toda esta pestana: Dashboard_7_Semanal es
+    // propensa al problema de exportacion de Google donde el encabezado real
+    // aparece pegado dentro del texto de otra columna (ej. "_buffer_ CR Reg"
+    // vs "_buffer_ CR 501K9 50N0M..."); un match por substring simple puede
+    // acertarle a la columna vacia que solo *menciona* el alias.
+    const difKey = findDataKey(raw, ['Dif SAP vs Est Optima Final'], 25, true);
+    const treoKey = findDataKey(raw, ['Estructura Propuesta TREO P2 Jun - Ago','TREO'], 25, true);
+    const activosKey = findDataKey(raw, ['Empleados Activos','Activos'], 25, true);
+    const vacantesKey = findDataKey(raw, ['Vacantes'], 25, true);
+    const asesorKey = findDataKey(raw, ['Asesor']);
     // Mismos alias que pickField() en dashboard-7.html para 'tienda' y 'cr':
     // sin ellos, una hoja que use 'Unidad Organizativa' o 'ID Tienda' en vez
     // de 'Tienda'/'CR' se queda sin CR para el match por catalogo y cae al
     // respaldo por nombre de tienda, que es menos preciso.
-    const tiendaKey = findKey(raw[0], ['Tienda','Nombre Tienda','Unidad','Unidad Org','Unidad Organizativa']);
-    const crKey = findKey(raw[0], ['CR','ID Tienda','ID_Tienda']);
+    const tiendaKey = findDataKey(raw, ['Tienda','Nombre Tienda','Unidad','Unidad Org','Unidad Organizativa']);
+    const crKey = findDataKey(raw, ['CR','ID Tienda','ID_Tienda']);
     // dashboard-7.html filtra por el catalogo de 255 tiendas autorizadas y
     // excluye 'timoteoantonioperez', igual que Dashboard 1.
     const asesorCatalog = await OXXO.loadAsesorCatalog();
@@ -425,13 +340,25 @@
     const contentTop = y + 0.62;
     const contentH = h - 0.62 - 0.2;
     const chartSize = Math.min(w * 0.42, contentH, 2.3);
-    const rowStep = Math.min(0.62, Math.max(contentH, 0.62 * clean.length) / clean.length);
+    // rowStep debe limitarse a contentH/n; Math.max(contentH, 0.62*n) hacia
+    // arriba siempre devolvia 0.62 sin importar contentH, haciendo que la
+    // leyenda se calculara para una tarjeta mas alta de la real y se
+    // encimara con la dona en tarjetas bajas/anchas (ver mismo fix en
+    // admin-pptx-asesor.js).
+    const rowStep = Math.min(0.62, contentH / clean.length);
     const blockH = Math.max(chartSize, rowStep * clean.length);
     const blockY = contentTop + Math.max(0, (contentH - blockH) / 2);
     const chartY = blockY + (blockH - chartSize) / 2;
 
+    // Leyenda con ancho maximo (3.2in) en vez de estirarse al ancho completo
+    // de la tarjeta, y bloque dona+leyenda centrado horizontalmente (ver
+    // mismo fix en admin-pptx-asesor.js).
+    const legendW = Math.min(w - 0.6 - chartSize, 3.2);
+    const contentW = 0.25 + chartSize + 0.1 + legendW;
+    const blockX = x + Math.max(0.2, (w - contentW) / 2);
+
     slide.addChart(pptx.ChartType.doughnut, [{ name: title, labels: clean.map(s => s.label), values: clean.map(s => s.value) }], {
-      x: x + 0.25, y: chartY, w: chartSize, h: chartSize,
+      x: blockX + 0.25, y: chartY, w: chartSize, h: chartSize,
       chartColors: clean.map(s => s.color),
       showLegend: false, showValue: false, showPercent: false,
       dataBorder: { pt: 2, color: WHITE },
@@ -439,11 +366,10 @@
     });
     const top = clean[0];
     const topPct = Math.round((top.value / total) * 100);
-    slide.addText(`${topPct}%`, { x: x + 0.25, y: chartY + chartSize/2 - 0.32, w: chartSize, h: 0.34, fontSize: 20, bold: true, color: TEXT, align: 'center', fontFace: 'Arial', margin: 0 });
-    slide.addText(top.label.toUpperCase(), { x: x + 0.25, y: chartY + chartSize/2 + 0.02, w: chartSize, h: 0.22, fontSize: 8, color: MUTED, align: 'center', fontFace: 'Arial', margin: 0 });
+    slide.addText(`${topPct}%`, { x: blockX + 0.25, y: chartY + chartSize/2 - 0.32, w: chartSize, h: 0.34, fontSize: 20, bold: true, color: TEXT, align: 'center', fontFace: 'Arial', margin: 0 });
+    slide.addText(top.label.toUpperCase(), { x: blockX + 0.25, y: chartY + chartSize/2 + 0.02, w: chartSize, h: 0.22, fontSize: 8, color: MUTED, align: 'center', fontFace: 'Arial', margin: 0 });
 
-    const legendX = x + 0.35 + chartSize;
-    const legendW = w - 0.6 - chartSize;
+    const legendX = blockX + 0.35 + chartSize;
     const legendRowH = Math.min(0.22, rowStep * 0.36);
     let ly = blockY + (blockH - rowStep * clean.length) / 2;
     clean.forEach(seg => {
@@ -635,8 +561,8 @@
     addMetricCard(slide, xs[1], row1Y, cardW, cardH, 'Cobertura Estructura', `${d.cobertura.toFixed(0)}%`, `${OXXO.formatNum(d.totalActivos)} de ${OXXO.formatNum(d.totalTreo)} posiciones`);
     addMetricCard(slide, xs[2], row1Y, cardW, cardH, 'Alineadas', d.alineadas, `${d.total ? Math.round(d.alineadas/d.total*100) : 0}% del total`);
     addMetricCard(slide, xs[3], row1Y, cardW, cardH, 'Vacantes Totales', OXXO.formatNum(d.totalVacantes), 'En tiendas filtradas');
-    addMetricCard(slide, xs[0], row2Y, cardW, cardH, 'Por Subir ▲', OXXO.formatNum(Math.round(d.posSubir)), `+${OXXO.formatNum(Math.round(d.posSubir))} posiciones a agregar`);
-    addMetricCard(slide, xs[1], row2Y, cardW, cardH, 'Por Bajar ▼', OXXO.formatNum(Math.round(d.posBajar)), `-${OXXO.formatNum(Math.round(d.posBajar))} posiciones a liberar`);
+    addMetricCard(slide, xs[0], row2Y, cardW, cardH, 'Por Subir ▲', d.subir, `+${OXXO.formatNum(Math.round(d.posSubir))} posiciones a agregar`);
+    addMetricCard(slide, xs[1], row2Y, cardW, cardH, 'Por Bajar ▼', d.bajar, `-${OXXO.formatNum(Math.round(d.posBajar))} posiciones a liberar`);
     addMetricCard(slide, xs[2], row2Y, cardW, cardH, 'Sub-dotadas', d.subDotadas, 'Activos < TREO');
     addMetricCard(slide, xs[3], row2Y, cardW, cardH, 'Sobre-dotadas', d.sobreDotadas, 'Activos > TREO');
 

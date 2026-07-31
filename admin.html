@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="css/global.css" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
     body{background:linear-gradient(135deg,#fff8ef 0%,#fff 48%,#ffeceb 100%);color:#211312}
     .admin-shell{max-width:1440px;margin:0 auto;padding:24px}
@@ -62,7 +63,13 @@
     .admin-lock__error{min-height:18px;color:#f71926;font-size:12px;font-weight:900}
     .admin-lock__button{border:0;border-radius:14px;background:#f71926;color:#fff;padding:12px 16px;font-weight:900;cursor:pointer;box-shadow:0 14px 28px rgba(247,25,38,.22)}
     .hidden{display:none!important}
-    @media(max-width:980px){.admin-grid{grid-template-columns:1fr}.admin-shell{padding:16px}.admin-hero{padding:24px}}
+    .admin-tabs{display:flex;gap:8px;margin-top:22px;border-bottom:1px solid rgba(220,80,55,.18);padding-bottom:0}
+    .admin-tab{border:0;background:transparent;padding:12px 18px;font:900 14px var(--font-body);color:#9b6b60;cursor:pointer;border-radius:14px 14px 0 0;transition:.16s ease;position:relative;top:1px}
+    .admin-tab:hover{color:#f71926;background:rgba(247,25,38,.06)}
+    .admin-tab.active{color:#f71926;background:#fff;border:1px solid rgba(220,80,55,.18);border-bottom-color:#fff}
+    .admin-tabpanel{margin-top:18px}
+    .admin-tabpanel.hidden{display:none!important}
+    @media(max-width:980px){.admin-grid{grid-template-columns:1fr}.admin-shell{padding:16px}.admin-hero{padding:24px}.admin-tabs{overflow-x:auto;flex-wrap:nowrap}.admin-tab{white-space:nowrap}}
   </style>
 </head>
 <body>
@@ -101,6 +108,12 @@
         <div class="admin-pill">Plaza Oaxaca - Google Sheets</div>
       </div>
     </section>
+    <nav class="admin-tabs" role="tablist">
+      <button class="admin-tab active" type="button" role="tab" aria-selected="true" data-tab="upload">📤 Cargar y Publicar Bases</button>
+      <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="presentaciones">📊 Presentaciones</button>
+      <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="excels">📥 Excels</button>
+    </nav>
+    <section class="admin-tabpanel" id="tabpanel-upload" role="tabpanel">
     <section class="admin-grid">
       <aside class="admin-card">
         <h2>1. Selecciona base</h2>
@@ -193,6 +206,16 @@
       </div>
     </section>
     <section class="admin-card" style="margin-top:18px">
+      <div class="preview-head"><h2>3. Vista previa</h2><div class="preview-meta" id="preview-meta">0 filas</div></div>
+      <div class="table-wrap">
+        <table class="preview-table" id="preview-table">
+          <tbody><tr><td style="padding:28px;text-align:center;color:#7a4a42">Aun no hay datos para mostrar.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+    </section>
+    <section class="admin-tabpanel hidden" id="tabpanel-presentaciones" role="tabpanel">
+    <section class="admin-card">
       <h2>Presentación Foro Bienestar Días Martes</h2>
       <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Genera un .pptx con el indicador principal de cada dashboard, tomado en vivo de Google Sheets (Vacantes, Bajas, Aprovechamiento, Tiempo Extra, Ausentismos y Alineación TREO).</p>
       <div class="admin-actions">
@@ -209,17 +232,45 @@
       <div class="helper-box" id="pptx-rae-status" style="margin-top:12px"></div>
     </section>
     <section class="admin-card" style="margin-top:18px">
-      <div class="preview-head"><h2>3. Vista previa</h2><div class="preview-meta" id="preview-meta">0 filas</div></div>
-      <div class="table-wrap">
-        <table class="preview-table" id="preview-table">
-          <tbody><tr><td style="padding:28px;text-align:center;color:#7a4a42">Aun no hay datos para mostrar.</td></tr></tbody>
-        </table>
+      <h2>Presentación por Asesor</h2>
+      <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Elige un asesor y genera un .pptx con sus datos: Vacantes, Bajas, Aprovechamiento y TREO, tomados en vivo de Google Sheets (mismas reglas ya verificadas de las otras presentaciones).</p>
+      <div class="admin-actions" style="align-items:center;gap:12px">
+        <select class="admin-select" id="select-asesor" style="min-width:280px"><option value="">Cargando asesores…</option></select>
+        <button class="admin-btn primary" type="button" id="generate-pptx-asesor-btn">👤 Generar Presentación del Asesor</button>
       </div>
+      <div class="helper-box" id="pptx-asesor-status" style="margin-top:12px"></div>
+    </section>
+    </section>
+    <section class="admin-tabpanel hidden" id="tabpanel-excels" role="tabpanel">
+    <section class="admin-card">
+      <h2>Indicadores ATs</h2>
+      <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Descarga el Excel de Indicadores por AT con Aprovechamiento de estructura, Vacantes en estructura y Alineación de estructura actualizados en vivo desde Google Sheets (mismos datos que Vacantes/Aprovechamiento/TREO). El resto de los indicadores (NPS, Ausentismo, Rotación, % Apego) se conservan tal cual para llenarse a mano.</p>
+      <div class="admin-actions">
+        <button class="admin-btn primary" type="button" id="generate-indicadores-btn">📥 Generar Indicadores ATs</button>
+      </div>
+      <div class="helper-box" id="indicadores-status" style="margin-top:12px"></div>
+    </section>
     </section>
   </main>
-  <script src="js/core.js"></script>
-  <script src="js/admin.js"></script>
-  <script src="js/admin-pptx.js"></script>
-  <script src="js/admin-pptx-rae.js"></script>
+  <script src="js/core.js?v=20260730b"></script>
+  <script src="js/admin.js?v=20260730b"></script>
+  <script src="js/admin-pptx.js?v=20260730b"></script>
+  <script src="js/admin-pptx-rae.js?v=20260730b"></script>
+  <script src="js/admin-indicadores.js?v=20260730b"></script>
+  <script src="js/admin-pptx-asesor.js?v=20260730b"></script>
+  <script>
+    (function(){
+      var tabs = document.querySelectorAll('.admin-tab');
+      tabs.forEach(function(tab){
+        tab.addEventListener('click', function(){
+          tabs.forEach(function(t){ t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+          tab.classList.add('active'); tab.setAttribute('aria-selected','true');
+          document.querySelectorAll('.admin-tabpanel').forEach(function(p){ p.classList.add('hidden'); });
+          var panel = document.getElementById('tabpanel-' + tab.dataset.tab);
+          if(panel) panel.classList.remove('hidden');
+        });
+      });
+    })();
+  </script>
 </body>
 </html>

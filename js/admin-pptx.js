@@ -1,25 +1,30 @@
 (function(){
-  function findKey(row, aliases){
-    const clean = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
-    const keys = Object.keys(row||{});
-    const map = new Map(keys.map(k => [clean(k), k]));
-    for(const a of aliases){ const found = map.get(clean(a)); if(found) return found; }
-    for(const a of aliases){ const ca = clean(a); const found = keys.find(k => clean(k).includes(ca) || ca.includes(clean(k))); if(found) return found; }
-    return null;
-  }
-  function val(row, key, fallback=''){ const v = key ? row[key] : undefined; return (v===undefined||v===null||String(v).trim()==='') ? fallback : v; }
-  function num(v){ const n = Number(String(v??'').replace(/[$,%]/g,'').replace(/,/g,'').trim()); return Number.isFinite(n) ? n : 0; }
-  function normText(v){ return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase(); }
-  function latestByKey(rows, key){
-    const vals = [...new Set(rows.map(r => String(r[key]||'').trim()).filter(Boolean))];
-    return vals.sort().slice(-1)[0] || '';
-  }
-  function tipoPuesto(desc){
-    const d = normText(desc);
-    if(d.includes('LIDER')) return 'Lider';
-    if(d.includes('ENCARGADO')) return 'Encargado';
-    if(d.includes('AYUDANTE')) return 'Ayudante';
-    return 'Otro';
+  // Toda la logica de columnas/filtros/fechas que replica el comportamiento
+  // real de los dashboards vive en core.js (window.OXXO.metrics*), para que
+  // dashboards y presentaciones nunca vuelvan a divergir. Aqui solo se
+  // referencian esas funciones — nada de esto se reimplementa.
+  const findKey = OXXO.metricsFindKey;
+  const findDataKey = OXXO.metricsFindDataKey;
+  const val = OXXO.metricsVal;
+  const num = OXXO.metricsNum;
+  const normText = OXXO.metricsNormText;
+  const latestByKey = (rows, key) => { const vals = [...new Set(rows.map(r => String(r[key]||'').trim()).filter(Boolean))]; return vals.sort().slice(-1)[0] || ''; };
+  const tipoPuesto = OXXO.metricsTipoPuesto;
+  const rowMonthKeyD1 = OXXO.metricsRowMonthKeyD1;
+  const rowMonthKeyD2 = OXXO.metricsRowMonthKeyD2;
+  const filterLatestMonth = OXXO.metricsFilterLatestMonth;
+  const coerceTreoRowsD7 = OXXO.metricsCoerceTreoRows;
+  // Ranking de conteo por nombre (p.ej. vacantes o bajas por Asesor), top N
+  // descendente. Misma logica ya verificada de rankCount() en
+  // admin-pptx-rae.js (copia local para no acoplar los dos archivos).
+  function rankCount(rows, nameKey, limit){
+    const counts = new Map();
+    rows.forEach(r => {
+      const name = String(val(r, nameKey)||'').trim();
+      if(!name) return;
+      counts.set(name, (counts.get(name)||0) + 1);
+    });
+    return [...counts.entries()].map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, limit);
   }
   function tipoAusentismo(desc){
     const d = normText(desc);
@@ -36,8 +41,22 @@
     if(!raw || !raw.length) return null;
     const mesKey = findKey(raw[0], ['Mes']);
     const puestoKey = findKey(raw[0], ['Descripcion de Posicion','Puesto']);
-    const mes = latestByKey(raw, mesKey);
-    const rows = mes ? raw.filter(r => String(r[mesKey]||'').trim() === mes) : raw;
+    const asesorKey = findKey(raw[0], ['Asesor']);
+    const tiendaKey = findKey(raw[0], ['Tienda','Unidad org']);
+    const crKey = findKey(raw[0], ['CR TIENDA','CR']);
+    const fechaKey = findKey(raw[0], ['Fecha']);
+    const diasKey = findKey(raw[0], ['Dias Vacantes','Dias_Vacantes']);
+    // Misma logica verificada de dataD1() en admin-pptx-rae.js: catalogo de
+    // 255 tiendas, excluir timoteoantonioperez, y los 3 filtros DEFAULT de
+    // dashboard-1.html (puesto exacto, tienda no-entrenamiento/operaciones,
+    // antiguedad>=1 dia).
+    const asesorCatalog = await OXXO.loadAsesorCatalog();
+    const stepCatalog = raw
+      .filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda')
+      .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ')
+      .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    const base = OXXO.metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
+    const { mes, rows } = filterLatestMonth(base, r => rowMonthKeyD1(r, mesKey, fechaKey));
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach(r => { byPuesto[tipoPuesto(val(r, puestoKey))]++; });
     return {
@@ -48,6 +67,7 @@
         { label: 'Ayudante', value: String(byPuesto.Ayudante) },
       ],
       chart: { title: 'Vacantes por Puesto', labels: ['Lider','Encargado','Ayudante'], values: [byPuesto.Lider, byPuesto.Encargado, byPuesto.Ayudante] },
+      ranking: { title: 'Vacantes por Asesor', items: rankCount(rows, asesorKey, 20) },
     };
   }
 
@@ -57,16 +77,43 @@
     const mesKey = findKey(raw[0], ['Mes']);
     const asesorKey = findKey(raw[0], ['Asesor']);
     const puestoKey = findKey(raw[0], ['Puesto']);
-    const mes = latestByKey(raw, mesKey);
-    const rows = raw.filter(r => {
-      if(mes && String(r[mesKey]||'').trim() !== mes) return false;
+    const medidaKey = findKey(raw[0], ['Denominación Medida','Denominacion Medida','Medida','Med.']);
+    const plazaKey = findKey(raw[0], ['Plaza']);
+    const fechaKey = findKey(raw[0], ['Fecha']);
+    // Igual que filterData() en dashboard-2.html: si la hoja trae columna
+    // de Medida, quedarse solo con BAJA; si trae Plaza, quedarse solo con
+    // Oaxaca. Cada filtro solo se aplica si existe la columna y deja al
+    // menos una fila.
+    const asesorCrudoOk = raw.filter(r => String(val(r, asesorKey)||'').trim() && normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ');
+    const base = OXXO.metricsFilterBajasD2(asesorCrudoOk, { medidaKey, plazaKey });
+    const { mes, rows: byMonth } = filterLatestMonth(base, r => rowMonthKeyD2(r, mesKey, fechaKey));
+    const rows = byMonth.filter(r => {
       const asesor = normText(val(r, asesorKey));
-      if(!asesor || asesor.includes('SIN ASESOR') || asesor.replace(/[^A-Z]/g,'') === 'TIMOTEOANTONIOPEREZ') return false;
+      if(!asesor || asesor.includes('SIN ASESOR')) return false;
       const puesto = tipoPuesto(val(r, puestoKey));
       return puesto !== 'Otro';
     });
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0 };
     rows.forEach(r => { byPuesto[tipoPuesto(val(r, puestoKey))]++; });
+    // Ranking de Plazas ("🏆 Ranking de Plazas" del Dashboard 2): Oaxaca =
+    // total de bajas del mes ANTES de excluir 'Otro' puesto/sin asesor (i.e.
+    // byMonth.length, igual que renderPlazas() en dashboard-2.html usa
+    // BASE_BAJAS_DATA ya filtrada solo a Oaxaca, sin esa exclusion extra) +
+    // las demas plazas capturadas a mano en Dashboard_2_Otras_Plazas.
+    const plazaRanking = [{ plaza: 'Oaxaca', bajas: byMonth.length }];
+    try {
+      const otras = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2otras);
+      if(otras && otras.length){
+        const plazaOtrasKey = findDataKey(otras, ['Plazas','PLAZAS']);
+        const bajasOtrasKey = findDataKey(otras, ['Bajas Plaza','Bajas_Plaza']);
+        otras.forEach(r => {
+          const plaza = String(val(r, plazaOtrasKey)||'').trim();
+          const bajas = num(val(r, bajasOtrasKey));
+          if(plaza && bajas > 0 && !plazaRanking.find(p => p.plaza === plaza)) plazaRanking.push({ plaza, bajas });
+        });
+      }
+    } catch(e){ /* sin datos de otras plazas: se muestra solo Oaxaca */ }
+    plazaRanking.sort((a,b) => b.bajas - a.bajas);
     return {
       label: 'Total de Bajas', value: String(rows.length), sub: mes ? `Mes ${mes}` : 'Plaza Oaxaca',
       secondary: [
@@ -75,6 +122,8 @@
         { label: 'Lider', value: String(byPuesto.Lider) },
       ],
       chart: { title: 'Bajas por Puesto', labels: ['Ayudante','Encargado','Lider'], values: [byPuesto.Ayudante, byPuesto.Encargado, byPuesto.Lider] },
+      ranking: { title: 'Bajas por Asesor', items: rankCount(rows, asesorKey, 20) },
+      plazaRanking,
     };
   }
 
@@ -82,15 +131,39 @@
     const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3);
     if(!raw || !raw.length) return null;
     const estatusKey = findKey(raw[0], ['Clas Aprov','Estatus Con impacto Ausentismo','Estatus']);
-    const total = raw.length;
+    const asesorKey = findKey(raw[0], ['Asesor']);
+    const fechaKey = findKey(raw[0], ['Mes Semana','Semana','Fecha','FECHA']);
+    // Igual que dashboard-3.html: limitar al corte de la fecha mas
+    // reciente, para no mezclar dias distintos si llegaran a quedar
+    // varias fechas en la misma hoja.
+    const fecha = latestByKey(raw, fechaKey);
+    const rows = fecha ? raw.filter(r => String(r[fechaKey]||'').trim() === fecha) : raw;
+    const total = rows.length;
     let completas = 0, incompletas = 0, criticas = 0;
-    raw.forEach(r => {
-      const s = normText(val(r, estatusKey));
-      if(s.includes('CRIT')) criticas++;
-      else if(s.includes('INCOMPLETO')) incompletas++;
-      else if(s.includes('COMPLETO')) completas++;
+    rows.forEach(r => {
+      const c = OXXO.metricsClasificaAprovechamiento(val(r, estatusKey));
+      if(c === 'criticas') criticas++;
+      else if(c === 'incompletas') incompletas++;
+      else if(c === 'completas') completas++;
     });
     const pct = total > 0 ? (completas / total * 100) : 0;
+    // "Aprovechamiento por AT" = EC% (Equipo Completo / Total) por Asesor,
+    // misma clasificacion que arriba. Igual fallback que dataD3() en
+    // admin-pptx-rae.js cuando no hay columna dedicada de 'Ec por AT'.
+    const byAsesor = new Map();
+    rows.forEach(r => {
+      const name = String(val(r, asesorKey)||'').trim();
+      if(!name) return;
+      if(!byAsesor.has(name)) byAsesor.set(name, { total: 0, completas: 0 });
+      const acc = byAsesor.get(name);
+      acc.total++;
+      if(OXXO.metricsClasificaAprovechamiento(val(r, estatusKey)) === 'completas') acc.completas++;
+    });
+    const ranking = [...byAsesor.entries()]
+      .map(([name, v]) => ({ name, value: v.total > 0 ? (v.completas / v.total * 100) : 0 }))
+      .filter(x => x.value > 0)
+      .sort((a,b) => b.value - a.value)
+      .slice(0, 20);
     return {
       label: 'Aprovechamiento General', value: pct.toFixed(2) + '%', sub: 'Plaza Oaxaca',
       secondary: [
@@ -99,6 +172,7 @@
         { label: 'Criticas', value: String(criticas) },
       ],
       chart: { title: 'Tiendas por Estatus', labels: ['Completas','Incompletas','Criticas'], values: [completas, incompletas, criticas], type: 'pie' },
+      ranking: { title: 'Aprovechamiento por AT', items: ranking, pct: true },
     };
   }
 
@@ -162,8 +236,15 @@
     const semanaKey = findKey(raw[0], ['Semana']);
     const diasKey = findKey(raw[0], ['Dias']);
     const denomKey = findKey(raw[0], ['Denominacion']);
-    const semana = latestByKey(raw, semanaKey);
-    const rows = semana ? raw.filter(r => String(r[semanaKey]||'').trim() === semana) : raw;
+    const tiendaKey = findKey(raw[0], ['Tienda']);
+    const crKey = findKey(raw[0], ['Cr de Tienda','CR de Tienda']);
+    // Igual que dashboard-6.html: filtrar por el catalogo de 255 tiendas
+    // autorizadas (filterValidTiendas) antes de elegir semana/sumar dias.
+    const asesorCatalog = await OXXO.loadAsesorCatalog();
+    const base = raw.filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    // Semana mas reciente por orden NUMERICO, igual que dashboard-6.html.
+    const semana = OXXO.metricsLatestSemanaNumerica(base, semanaKey);
+    const rows = semana ? base.filter(r => String(val(r, semanaKey)||'').trim() === semana) : base;
     const totalDias = rows.reduce((s,r) => s + num(val(r, diasKey)), 0);
     const byTipo = { Faltas: 0, Incapacidades: 0, Vacaciones: 0, Permisos: 0, Accidentes: 0, Otro: 0 };
     rows.forEach(r => { byTipo[tipoAusentismo(val(r, denomKey))] += num(val(r, diasKey)); });
@@ -179,12 +260,25 @@
   }
 
   async function kpiD7(){
-    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s7);
+    const rawSheet = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s7);
+    // Dashboard_7_Semanal es propensa al problema de exportacion de Google
+    // donde el encabezado real queda pegado como texto en la primera fila
+    // de datos; sin coerceTreoRowsD7 + findDataKey los alias pueden
+    // emparejar una columna vacia o equivocada.
+    const raw = coerceTreoRowsD7(rawSheet);
     if(!raw || !raw.length) return null;
-    const difKey = findKey(raw[0], ['Dif SAP vs Est Optima Final']);
-    const total = raw.length;
+    const difKey = findDataKey(raw, ['Dif SAP vs Est Optima Final'], 25, true);
+    const asesorKey = findDataKey(raw, ['Asesor']);
+    const tiendaKey = findDataKey(raw, ['Tienda','Nombre Tienda','Unidad','Unidad Org','Unidad Organizativa']);
+    const crKey = findDataKey(raw, ['CR','ID Tienda','ID_Tienda']);
+    const asesorCatalog = await OXXO.loadAsesorCatalog();
+    const rows = raw
+      .filter(r => String(val(r, tiendaKey)||'').trim() || String(val(r, asesorKey)||'').trim())
+      .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)))
+      .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ');
+    const total = rows.length;
     let alineadas = 0, subir = 0, bajar = 0;
-    raw.forEach(r => {
+    rows.forEach(r => {
       const d = num(val(r, difKey));
       if(d === 0) alineadas++;
       else if(d > 0) subir++;
@@ -240,8 +334,13 @@
       slide.addText(s.value, { x: 3.1, y: y + 0.06, w: 1.4, h: 0.4, fontSize: 14, bold: true, color: DARK, align: 'right', fontFace: 'Arial', valign: 'middle' });
     });
 
-    // Gráfica (derecha)
-    if(kpi.chart && kpi.chart.values.some(v => v > 0)){
+    // Derecha: si hay un ranking real por asesor/AT (Vacantes, Bajas,
+    // Aprovechamiento), se muestra esa lista con barras en vez de la
+    // gráfica genérica de 3 categorías — es la info que de verdad se usa en
+    // el Foro Bienestar.
+    if(kpi.ranking && kpi.ranking.items && kpi.ranking.items.length){
+      addRankingList(pptx, slide, 4.85, 0.9, 4.75, 4.25, kpi.ranking.title, kpi.ranking.items, { pct: !!kpi.ranking.pct });
+    } else if(kpi.chart && kpi.chart.values.some(v => v > 0)){
       const chartType = kpi.chart.type === 'pie' ? pptx.ChartType.pie : pptx.ChartType.bar;
       const dataSeries = [{ name: kpi.chart.title, labels: kpi.chart.labels, values: kpi.chart.values }];
       slide.addText(kpi.chart.title, { x: 4.9, y: 0.9, w: 4.7, h: 0.35, fontSize: 13, bold: true, color: DARK, fontFace: 'Arial' });
@@ -255,6 +354,70 @@
         valAxisLabelFontSize: 10,
       });
     }
+  }
+
+  // Lista de ranking con barras (p.ej. "Bajas por Asesor", "Aprovechamiento
+  // por AT"), usando shapes nativos de pptxgenjs — mismo estilo visual que
+  // addRankingList()/addPctRankingList() de admin-pptx-rae.js, adaptado al
+  // layout mas chico (10x5.63in) de esta presentación.
+  function addRankingList(pptx, slide, x, y, w, h, title, items, opts = {}){
+    slide.addText(title, { x, y, w, h: 0.32, fontSize: 13, bold: true, color: DARK, fontFace: 'Arial' });
+    const contentY = y + 0.42;
+    const availH = (y + h) - contentY;
+    const rowH = Math.min(0.46, availH / items.length);
+    const maxVal = opts.pct ? 100 : Math.max(...items.map(it => it.value), 1);
+    const nameW = w * 0.5;
+    const barX = x + nameW + 0.05;
+    const barW = w - nameW - 0.75;
+    const pillW = 0.65;
+    items.forEach((item, i) => {
+      const ry = contentY + i * rowH;
+      const color = opts.pct ? (item.value >= 95 ? '1DB954' : (item.value >= 85 ? 'F6B73C' : RED)) : (i === 0 ? RED : 'F6B73C');
+      slide.addText(item.name, { x, y: ry, w: nameW - 0.05, h: rowH, fontSize: 9, color: DARK, fontFace: 'Arial', valign: 'middle', fit: 'shrink' });
+      slide.addShape(pptx.ShapeType.roundRect, { x: barX, y: ry + rowH * 0.32, w: barW, h: rowH * 0.36, fill: { color: 'EFE2DC' }, line: { type: 'none' }, rectRadius: 0.03 });
+      const fillW = Math.max(barW * (Math.min(item.value, maxVal) / maxVal), 0.05);
+      slide.addShape(pptx.ShapeType.roundRect, { x: barX, y: ry + rowH * 0.32, w: fillW, h: rowH * 0.36, fill: { color }, line: { type: 'none' }, rectRadius: 0.03 });
+      const valText = opts.pct ? `${item.value.toFixed(1)}%` : String(item.value);
+      slide.addText(valText, { x: x + w - pillW, y: ry, w: pillW, h: rowH, fontSize: 10, bold: true, color: RED, align: 'right', fontFace: 'Arial', valign: 'middle' });
+    });
+  }
+
+  // Diapositiva "🏆 Ranking de Plazas · Bajas acumuladas" — misma tabla que
+  // el panel de dashboard-2.html (medalla, barra degradada, pill con el
+  // total, footer con el acumulado), con datos reales de Oaxaca + las
+  // plazas capturadas a mano en Dashboard_2_Otras_Plazas.
+  function addPlazaRankingSlide(pptx, plazaRanking){
+    const slide = pptx.addSlide();
+    slide.background = { color: 'FFF8EF' };
+    slide.addText('Bajas por Plaza · Comparativo Regional', { x: 0.4, y: 0.3, w: 9.2, h: 0.5, fontSize: 22, bold: true, color: DARK, fontFace: 'Arial' });
+
+    if(!plazaRanking || !plazaRanking.length){
+      slide.addText('Sin datos disponibles', { x: 0.4, y: 2.3, w: 9.2, h: 0.6, fontSize: 22, color: GRAY, align: 'center', fontFace: 'Arial' });
+      return;
+    }
+
+    const total = plazaRanking.reduce((s,p) => s + p.bajas, 0) || 1;
+    const maxVal = Math.max(...plazaRanking.map(p => p.bajas), 1);
+    const rowH = Math.min(0.72, 4.1 / plazaRanking.length);
+    let ry = 1.0;
+    plazaRanking.forEach((p, i) => {
+      const tone = i === 0 ? RED : i === 1 ? 'F07B22' : i === 2 ? 'F6B73C' : '9B6B60';
+      const pct = Math.round(p.bajas / total * 100);
+      slide.addShape(pptx.ShapeType.roundRect, { x: 0.4, y: ry, w: 9.2, h: rowH - 0.08, fill: { color: 'FFFFFF' }, line: { color: 'EFE2DC', width: 1 }, rectRadius: 0.1 });
+      slide.addShape(pptx.ShapeType.ellipse, { x: 0.55, y: ry + (rowH - 0.08) / 2 - 0.22, w: 0.44, h: 0.44, fill: { color: tone }, line: { type: 'none' } });
+      slide.addText(String(i + 1), { x: 0.55, y: ry + (rowH - 0.08) / 2 - 0.22, w: 0.44, h: 0.44, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle', fontFace: 'Arial' });
+      slide.addText(p.plaza, { x: 1.15, y: ry + 0.06, w: 4.0, h: 0.3, fontSize: 13, bold: true, color: DARK, fontFace: 'Arial' });
+      slide.addText(`${pct}% del total`, { x: 5.2, y: ry + 0.06, w: 3.2, h: 0.3, fontSize: 10, color: GRAY, align: 'right', fontFace: 'Arial' });
+      const barX = 1.15, barW = 7.25;
+      slide.addShape(pptx.ShapeType.roundRect, { x: barX, y: ry + rowH - 0.34, w: barW, h: 0.14, fill: { color: 'EFE2DC' }, line: { type: 'none' }, rectRadius: 0.07 });
+      slide.addShape(pptx.ShapeType.roundRect, { x: barX, y: ry + rowH - 0.34, w: Math.max(barW * (p.bajas / maxVal), 0.08), h: 0.14, fill: { color: tone }, line: { type: 'none' }, rectRadius: 0.07 });
+      slide.addShape(pptx.ShapeType.roundRect, { x: 8.55, y: ry + (rowH - 0.08) / 2 - 0.22, w: 1.0, h: 0.44, fill: { color: 'FFF2F1' }, line: { type: 'none' }, rectRadius: 0.22 });
+      slide.addText(String(p.bajas), { x: 8.55, y: ry + (rowH - 0.08) / 2 - 0.22, w: 1.0, h: 0.44, fontSize: 15, bold: true, color: RED, align: 'center', valign: 'middle', fontFace: 'Arial' });
+      ry += rowH;
+    });
+    slide.addText('Total acumulado', { x: 0.4, y: ry + 0.05, w: 5.0, h: 0.35, fontSize: 12, bold: true, color: GRAY, fontFace: 'Arial' });
+    slide.addText(String(total), { x: 5.4, y: ry + 0.02, w: 2.2, h: 0.4, fontSize: 18, bold: true, color: DARK, align: 'right', fontFace: 'Arial' });
+    slide.addText('100%', { x: 7.6, y: ry + 0.1, w: 2.0, h: 0.3, fontSize: 11, bold: true, color: RED, fontFace: 'Arial' });
   }
 
   async function generatePresentation(){
@@ -286,7 +449,12 @@
       const today = new Date();
       title.addText(today.toLocaleDateString('es-MX', { year:'numeric', month:'long', day:'numeric' }), { x: 0.6, y: 4.8, w: 8.8, h: 0.4, fontSize: 12, color: 'FFD7D5', fontFace: 'Arial' });
 
-      results.forEach(({ name, kpi }) => addKpiSlide(pptx, name, kpi));
+      results.forEach(({ name, kpi }) => {
+        addKpiSlide(pptx, name, kpi);
+        if(name === 'Dashboard 2 · Bajas' && kpi && kpi.plazaRanking){
+          addPlazaRankingSlide(pptx, kpi.plazaRanking);
+        }
+      });
 
       const fileName = `Presentacion-Foro-Bienestar-Dias-Martes-${today.toISOString().slice(0,10)}.pptx`;
       await pptx.writeFile({ fileName });
