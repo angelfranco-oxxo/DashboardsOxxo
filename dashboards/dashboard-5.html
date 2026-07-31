@@ -173,6 +173,110 @@
         grid-template-columns: 1fr;
       }
     }
+
+    .asesor-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+    }
+
+    .asesor-modal.is-open {
+      display: block;
+    }
+
+    .asesor-modal__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(24,17,18,.55);
+      backdrop-filter: blur(2px);
+    }
+
+    .asesor-modal__panel {
+      position: relative;
+      max-width: 920px;
+      width: min(92vw, 920px);
+      max-height: 82vh;
+      margin: 6vh auto 0;
+      background: var(--exec-surface, #fff);
+      border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(28,17,14,.32);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .asesor-modal__header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--exec-line, rgba(42,27,25,.12));
+    }
+
+    .asesor-modal__title {
+      font-size: 17px;
+      font-weight: 900;
+      color: var(--exec-ink, #181112);
+    }
+
+    .asesor-modal__subtitle {
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--exec-muted, #6f6664);
+    }
+
+    .asesor-modal__close {
+      border: none;
+      background: transparent;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      color: var(--exec-muted, #6f6664);
+      padding: 4px 8px;
+    }
+
+    .asesor-modal__close:hover {
+      color: var(--exec-red, #e30613);
+    }
+
+    .asesor-modal__body {
+      padding: 12px 20px 20px;
+      overflow: auto;
+    }
+
+    .asesor-modal__table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+
+    .asesor-modal__table th {
+      position: sticky;
+      top: 0;
+      text-align: left;
+      padding: 8px 10px;
+      background: var(--exec-surface-soft, #fbfaf7);
+      color: var(--exec-muted, #6f6664);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--exec-line, rgba(42,27,25,.12));
+    }
+
+    .asesor-modal__table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--exec-line, rgba(42,27,25,.08));
+      color: var(--exec-ink, #181112);
+      font-weight: 600;
+    }
+
+    .asesor-modal__table tbody tr:hover {
+      background: var(--exec-surface-soft, #fbfaf7);
+    }
   </style>
   <link rel="stylesheet" href="../css/dashboard-skin.css"/>
   <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
