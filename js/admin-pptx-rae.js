@@ -51,7 +51,7 @@
     });
     return [...sums.entries()].map(([name, sum]) => ({ name, value: sum / counts.get(name) })).sort((a,b) => b.value - a.value).slice(0, limit);
   }
-  async function dataD1(){
+  async function dataD1(targetMes = ''){
     const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d1);
     if(!raw || !raw.length) return null;
     const mesKey = findKey(raw[0], ['Mes']);
@@ -89,7 +89,7 @@
     //   'nuevas' (esTiendaNueva: dias>500 o sin Fecha) tampoco esta en el
     //   default, asi que esas tambien se excluyen.
     const base = OXXO.metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
-    const { mes, rows } = filterLatestMonth(base, r => rowMonthKeyD1(r, mesKey, fechaKey));
+    const { mes, rows } = filterLatestMonth(base, r => rowMonthKeyD1(r, mesKey, fechaKey), targetMes);
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach(r => { byPuesto[tipoPuesto(val(r, puestoKey))]++; });
     return {
@@ -99,7 +99,7 @@
     };
   }
 
-  async function dataD2(){
+  async function dataD2(targetMes = ''){
     const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2);
     if(!raw || !raw.length) return null;
     const mesKey = findKey(raw[0], ['Mes']);
@@ -114,7 +114,7 @@
     // solo con Oaxaca. Cada filtro solo se aplica si existe la columna y deja
     // al menos una fila (mismo criterio "solo si aplica" del dashboard).
     const base = OXXO.metricsFilterBajasD2(raw.filter(r => asesorCrudoOk(r)), { medidaKey, plazaKey });
-    const { mes, rows: byMonth } = filterLatestMonth(base, r => rowMonthKeyD2(r, mesKey, fechaKey));
+    const { mes, rows: byMonth } = filterLatestMonth(base, r => rowMonthKeyD2(r, mesKey, fechaKey), targetMes);
     const rows = byMonth.filter(r => {
       const asesor = normText(val(r, asesorKey));
       if(!asesor || asesor.includes('SIN ASESOR')) return false;
@@ -575,14 +575,45 @@
     addNoteCard(slide, rightX, 5.95, rightW, 1.05, 'Cobertura de estructura sobre TREO', `${d.cobertura.toFixed(0)}% de cobertura`);
   }
 
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  // Llena el selector "#pptx-rae-mes" con los meses realmente presentes en
+  // Dashboard_1_Diario (columna 'Mes', formato crudo dd/mm/aaaa). Cada opcion
+  // guarda dos valores: el mes tal cual para dataD1() y su equivalente
+  // canonico YYYY-MM (data-canonico) para dataD2(), que usa otro formato de
+  // llave. Sin seleccion = comportamiento de siempre (mes mas reciente).
+  async function populateMesSelector(){
+    const select = document.getElementById('pptx-rae-mes');
+    if(!select) return;
+    try {
+      const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d1);
+      if(!raw || !raw.length) return;
+      const mesKey = findKey(raw[0], ['Mes']);
+      const fechaKey = findKey(raw[0], ['Fecha']);
+      const keys = [...new Set(raw.map(r => rowMonthKeyD1(r, mesKey, fechaKey)).filter(Boolean))].sort();
+      const opts = keys.map(k => {
+        const m = String(k).match(/^\d{1,2}\/(\d{1,2})\/(\d{4})$/);
+        if(!m) return { key: k, label: k, canon: '' };
+        const mm = Number(m[1]), yyyy = Number(m[2]);
+        const canon = (mm >= 1 && mm <= 12) ? `${yyyy}-${String(mm).padStart(2,'0')}` : '';
+        return { key: k, label: (MESES[mm - 1] || 'Mes') + ' ' + yyyy, canon };
+      });
+      select.innerHTML = '<option value="">Más reciente</option>' + opts.map(o =>
+        `<option value="${o.key.replace(/"/g,'&quot;')}" data-canon="${o.canon}">${o.label}</option>`
+      ).join('');
+    } catch(e){ /* si falla, se queda solo "Más reciente" */ }
+  }
+
   // Solo las 4 diapositivas que trae RAE_BASE.pptx: Vacantes, Bajas,
   // Aprovechamiento y TREO. Tiempo Extra/Vacaciones/Ausentismos no van aqui.
-  const DASHBOARDS = [
-    { title: 'VACANTES', fetch: dataD1, build: buildD1 },
-    { title: 'BAJAS', fetch: dataD2, build: buildD2 },
-    { title: 'APROVECHAMIENTO DE ESTRUCTURA', fetch: dataD3, build: buildD3 },
-    { title: 'TREO · ESTRUCTURA', fetch: dataD7, build: buildD7 },
-  ];
+  function buildDashboardList(mesD1, mesD2){
+    return [
+      { title: 'VACANTES', fetch: () => dataD1(mesD1), build: buildD1 },
+      { title: 'BAJAS', fetch: () => dataD2(mesD2), build: buildD2 },
+      { title: 'APROVECHAMIENTO DE ESTRUCTURA', fetch: dataD3, build: buildD3 },
+      { title: 'TREO · ESTRUCTURA', fetch: dataD7, build: buildD7 },
+    ];
+  }
 
   async function generatePresentation(){
     const statusEl = document.getElementById('pptx-rae-status');
@@ -591,9 +622,16 @@
     btn.textContent = 'Generando...';
     if(statusEl) statusEl.textContent = 'Consultando Google Sheets...';
     try {
+      const mesSelect = document.getElementById('pptx-rae-mes');
+      const mesOption = mesSelect ? mesSelect.selectedOptions[0] : null;
+      const mesD1 = mesOption ? mesOption.value : '';
+      const mesD2 = mesOption ? (mesOption.dataset.canon || '') : '';
+      const usaMesElegido = Boolean(mesD1);
+
       const today = new Date();
-      const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-      const dateLabel = `${MESES[today.getMonth()]} ${today.getFullYear()}`;
+      const dateLabel = usaMesElegido && mesOption.textContent
+        ? mesOption.textContent
+        : `${MESES[today.getMonth()]} ${today.getFullYear()}`;
 
       const pptx = new window.PptxGenJS();
       pptx.layout = 'LAYOUT_WIDE'; // 13.333in x 7.5in, igual que RAE_BASE.pptx
@@ -604,6 +642,7 @@
       title.addText('Indicadores clave · Plaza Oaxaca', { x: 0.8, y: 3.7, w: 11.7, h: 0.5, fontSize: 20, color: 'FFD7D5', fontFace: 'Arial' });
       title.addText(today.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }), { x: 0.8, y: 6.4, w: 11.7, h: 0.4, fontSize: 13, color: 'FFD7D5', fontFace: 'Arial' });
 
+      const DASHBOARDS = buildDashboardList(mesD1, mesD2);
       for(const d of DASHBOARDS){
         try {
           const data = await d.fetch();
@@ -630,5 +669,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('generate-pptx-rae-btn');
     if(btn) btn.addEventListener('click', generatePresentation);
+    populateMesSelector();
   });
 })();

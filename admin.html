@@ -226,9 +226,12 @@
     <section class="admin-card" style="margin-top:18px">
       <h2>Presentación RAE</h2>
       <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Genera un .pptx con la estructura del Reporte de Análisis Ejecutivo: KPI principal, gráfica de dona por categoría y ranking por Asesor/Plaza para cada dashboard, tomado en vivo de Google Sheets.</p>
-      <div class="admin-actions">
+      <div class="admin-actions" style="align-items:center;gap:12px;flex-wrap:wrap">
+        <label for="pptx-rae-mes" style="font-size:12px;font-weight:800;color:#7a4a42">Mes de Vacantes/Bajas:</label>
+        <select id="pptx-rae-mes" style="min-width:180px"><option value="">Más reciente</option></select>
         <button class="admin-btn primary" type="button" id="generate-pptx-rae-btn">📊 Generar Presentación RAE</button>
       </div>
+      <p style="color:#a08076;font-size:11.5px;font-weight:600;margin:8px 0 0">Vacantes y Bajas se agrupan por mes de carga; si ya se subió un mes nuevo y quieres una presentación del mes anterior, selecciónalo aquí. Aprovechamiento y TREO siempre usan la última foto disponible en Sheets (no acumulan histórico).</p>
       <div class="helper-box" id="pptx-rae-status" style="margin-top:12px"></div>
     </section>
     <section class="admin-card" style="margin-top:18px">
