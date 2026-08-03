@@ -201,7 +201,7 @@
 <div class="page">
 
   <!-- Hero con filtros -->
-  <div class="hero">
+  <div class="hero hero--orange">
     <div class="hero-top">
       <div>
         <h1>Tiempo Extra Semanal</h1>
@@ -219,9 +219,7 @@
       </div>
       <div class="vac-fbox">
         <label>Asesor</label>
-        <select class="filtro-select" id="filtro-asesor" onchange="applyDropdownFilters()">
-          <option value="">Todos los asesores</option>
-        </select>
+        <div id="filtro-asesor"></div>
       </div>
       <div class="vac-fbox">
         <label>Tipo de TE</label>
@@ -409,7 +407,7 @@ function sortSemanas(values){
 function baseForCurrentScope(){
   let data = BASE_DATA;
   if (DROP_SEMANA) data = data.filter(r => String(r[C.semana] || '') === DROP_SEMANA);
-  if (DROP_ASESOR) data = data.filter(r => r[C.asesor] === DROP_ASESOR);
+  if (DROP_ASESORES) data = data.filter(r => DROP_ASESORES.includes(r[C.asesor]));
   if (DROP_TIENDA) data = data.filter(r => r[C.tienda] === DROP_TIENDA);
   return data;
 }
@@ -428,7 +426,8 @@ function setTableSort(value){ TABLE_SORT = value || 'gasto-desc'; renderAll(); }
 
 let BASE_DATA = [];
 let ACTIVE_FILTER = null; // null | 'doble' | 'triple' | 'descanso'
-let DROP_ASESOR = '', DROP_TIPO = '', DROP_TIENDA = '', DROP_SEMANA = '';
+let DROP_ASESORES = null, DROP_TIPO = '', DROP_TIENDA = '', DROP_SEMANA = '';
+let asesorFilterHandle = null;
 let DEFAULT_SEMANA = '';
 let TABLE_SORT = 'gasto-desc';
 let chartAsesores = null, chartTiendas = null, chartDona = null;
@@ -452,7 +451,7 @@ function aggregateByAsesor(data) {
 function filteredData() {
   let data = BASE_DATA;
   if (DROP_SEMANA) data = data.filter(r => String(r[C.semana] || '') === DROP_SEMANA);
-  if (DROP_ASESOR) data = data.filter(r => r[C.asesor] === DROP_ASESOR);
+  if (DROP_ASESORES) data = data.filter(r => DROP_ASESORES.includes(r[C.asesor]));
   if (DROP_TIENDA) data = data.filter(r => r[C.tienda] === DROP_TIENDA);
   if (DROP_TIPO || ACTIVE_FILTER) {
     const f = DROP_TIPO || ACTIVE_FILTER;
@@ -707,17 +706,16 @@ function updateKpiActive(){
 function setFilter(f){ ACTIVE_FILTER=f; DROP_TIPO=''; document.getElementById('filtro-tipo').value=''; renderAll(); }
 function applyDropdownFilters(){
   DROP_SEMANA = document.getElementById('filtro-semana').value;
-  DROP_ASESOR = document.getElementById('filtro-asesor').value;
   DROP_TIPO   = document.getElementById('filtro-tipo').value;
   DROP_TIENDA = document.getElementById('filtro-tienda').value;
   if(DROP_TIPO) ACTIVE_FILTER=null;
   renderAll();
 }
 function limpiarFiltros(){
-  ACTIVE_FILTER=null; DROP_ASESOR=''; DROP_TIPO=''; DROP_TIENDA=''; DROP_SEMANA=DEFAULT_SEMANA;
-  ['filtro-asesor','filtro-tipo','filtro-tienda'].forEach(id=>{document.getElementById(id).value='';});
+  ACTIVE_FILTER=null; DROP_TIPO=''; DROP_TIENDA=''; DROP_SEMANA=DEFAULT_SEMANA;
+  ['filtro-tipo','filtro-tienda'].forEach(id=>{document.getElementById(id).value='';});
   document.getElementById('filtro-semana').value = DEFAULT_SEMANA;
-  renderAll();
+  if (asesorFilterHandle) asesorFilterHandle.reset(); else renderAll();
 }
 
 document.getElementById('clear-filter').onclick = ()=>setFilter(null);
@@ -742,8 +740,9 @@ async function initDashboard() {
 
   const asesores = [...new Set(data.map(r=>r[C.asesor]).filter(Boolean))].sort();
   const tiendas  = [...new Set(data.map(r=>r[C.tienda]).filter(Boolean))].sort();
-  const selAsesor = document.getElementById('filtro-asesor');
-  asesores.forEach(a=>{ const o=document.createElement('option');o.value=a;o.textContent=a;selAsesor.appendChild(o); });
+  asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
+    onChange: (selected) => { DROP_ASESORES = selected; renderAll(); },
+  });
   const selTienda = document.getElementById('filtro-tienda');
   tiendas.forEach(t=>{ const o=document.createElement('option');o.value=t;o.textContent=t;selTienda.appendChild(o); });
 

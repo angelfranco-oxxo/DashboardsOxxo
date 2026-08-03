@@ -2,11 +2,12 @@ const charts = {};
 const state = {
   rows: [],
   activeKpi: 'all',
-  asesor: '',
+  asesores: null, // null = todos; array = seleccion del combobox multi-select
   tienda: '',
   puesto: '',
   rango: '',
 };
+let asesorFilterHandle = null;
 
 const KPI_DEFS = [
   { id: 'all', label: 'Dias restantes', color: 'rojo', tip: 'Suma de "dias_restantes" (saldo total de vacaciones pendiente) de todos los colaboradores con los filtros activos.' },
@@ -62,7 +63,7 @@ function bucketMatches(row, kpiId) {
 
 function baseFilteredRows() {
   return state.rows.filter((row) => {
-    if (state.asesor && row.asesor !== state.asesor) return false;
+    if (state.asesores && !state.asesores.includes(row.asesor)) return false;
     if (state.tienda && row.tienda !== state.tienda) return false;
     if (state.puesto && row.puesto !== state.puesto) return false;
     if (state.rango && rangeLabel(row.dias_restantes) !== state.rango) return false;
@@ -403,9 +404,12 @@ function renderActions(rows) {
 
 function filterLabel() {
   const kpi = KPI_DEFS.find((item) => item.id === state.activeKpi)?.label || 'Todos';
+  const asesorLabel = !state.asesores ? 'Todos los asesores'
+    : state.asesores.length === 1 ? state.asesores[0]
+    : `${state.asesores.length} asesores`;
   return [
     kpi,
-    state.asesor || 'Todos los asesores',
+    asesorLabel,
     state.tienda || 'Todas las tiendas',
     state.puesto || 'Todos los puestos',
     state.rango || 'Todos los rangos',
@@ -421,14 +425,17 @@ function populateSelect(id, rows, key, defaultLabel) {
 }
 
 function populateFilters(rows) {
-  populateSelect('filtro-asesor', rows, 'asesor', 'Todos los asesores');
+  const asesores = Array.from(new Set(rows.map((row) => row.asesor).filter(Boolean)));
+  if (asesorFilterHandle) {
+    asesorFilterHandle.setValues(asesores);
+  } else {
+    asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
+      onChange: (selected) => { state.asesores = selected; renderAll(); },
+    });
+  }
   populateSelect('filtro-tienda', rows, 'tienda', 'Todas las tiendas');
   populateSelect('filtro-puesto', rows, 'puesto', 'Todos los puestos');
 
-  document.getElementById('filtro-asesor').addEventListener('change', (event) => {
-    state.asesor = event.target.value;
-    renderAll();
-  });
   document.getElementById('filtro-tienda').addEventListener('change', (event) => {
     state.tienda = event.target.value;
     renderAll();
@@ -588,14 +595,14 @@ async function initDashboard() {
   populateFilters(state.rows);
   document.getElementById('clear-filters').addEventListener('click', () => {
     state.activeKpi = 'all';
-    state.asesor = '';
     state.tienda = '';
     state.puesto = '';
     state.rango = '';
-    ['filtro-asesor', 'filtro-tienda', 'filtro-puesto', 'filtro-rango'].forEach((id) => {
+    ['filtro-tienda', 'filtro-puesto', 'filtro-rango'].forEach((id) => {
       document.getElementById(id).value = '';
     });
-    renderAll();
+    if (asesorFilterHandle) asesorFilterHandle.reset();
+    else renderAll();
   });
   document.getElementById('download-base')?.addEventListener('click', event => {
     OXXO.handleDownloadButton(event.currentTarget, () => OXXO.downloadRowsAsCSV(state.rows, 'dashboard-5-vacaciones.csv'));

@@ -113,7 +113,7 @@
 <div class="page">
 
   <!-- Hero con filtros -->
-  <div class="hero">
+  <div class="hero hero--blue">
     <div class="hero-top">
       <div>
         <h1>Ausentismos Semanal</h1>
@@ -125,9 +125,7 @@
     <div class="vac-filters">
       <div class="vac-fbox">
         <label>Asesor</label>
-        <select class="filtro-select" id="filtro-asesor" onchange="applyFilters()">
-          <option value="">Todos los asesores</option>
-        </select>
+        <div id="filtro-asesor"></div>
       </div>
       <div class="vac-fbox">
         <label>Tipo de Ausentismo</label>
@@ -299,13 +297,14 @@ function tipoColor(tipo) {
 
 let BASE_DATA = [];
 let chartTipos = null, chartTiendas = null, chartFuncion = null;
+let SELECTED_ASESORES = null;
+let asesorFilterHandle = null;
 
 function filteredData() {
   let d = BASE_DATA;
-  const a = document.getElementById('filtro-asesor')?.value;
   const t = document.getElementById('filtro-tipo')?.value;
   const f = document.getElementById('filtro-funcion')?.value;
-  if(a) d = d.filter(r => r[C.asesor] === a);
+  if(SELECTED_ASESORES) d = d.filter(r => SELECTED_ASESORES.includes(r[C.asesor]));
   if(t) d = d.filter(r => r[C.tipo] === t);
   if(f) d = d.filter(r => r[C.funcion] === f);
   return d;
@@ -491,8 +490,8 @@ function renderAll() {
 function applyFilters(){ renderAll(); }
 
 function limpiarFiltros(){
-  ['filtro-asesor','filtro-tipo','filtro-funcion'].forEach(id=>{ document.getElementById(id).value=''; });
-  renderAll();
+  ['filtro-tipo','filtro-funcion'].forEach(id=>{ document.getElementById(id).value=''; });
+  if (asesorFilterHandle) asesorFilterHandle.reset(); else renderAll();
 }
 
 async function initDashboard() {
@@ -522,8 +521,9 @@ async function initDashboard() {
   const tipos     = [...new Set(data.map(r=>r[C.tipo]).filter(Boolean))].sort();
   const funciones = [...new Set(data.map(r=>r[C.funcion]).filter(Boolean))].sort();
 
-  const selA = document.getElementById('filtro-asesor');
-  asesores.forEach(a=>{ const o=document.createElement('option');o.value=a;o.textContent=a;selA.appendChild(o); });
+  asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
+    onChange: (selected) => { SELECTED_ASESORES = selected; renderAll(); },
+  });
   const selT = document.getElementById('filtro-tipo');
   tipos.forEach(t=>{ const o=document.createElement('option');o.value=t;o.textContent=t;selT.appendChild(o); });
   const selF = document.getElementById('filtro-funcion');

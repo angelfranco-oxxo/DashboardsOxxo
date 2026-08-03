@@ -1600,6 +1600,120 @@ async function metricsAlineacionPorAsesor() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Filtro de Asesor con buscador y multi-seleccion (combobox)
+// Reemplaza un <select> simple por el mismo combobox que ya usaban
+// Dashboard 1 y 2. onChange recibe: null (todos seleccionados, sin filtro
+// manual) o un array de valores seleccionados (puede ser []).
+// options.excludeFromAll: valores que NO se marcan por defecto al montar
+// (p.ej. "Sin Asesor Asignado"), igual que defaultAsesorSelection() en D2.
+function mountAsesorFilter(rootId, values, options = {}) {
+  const root = document.getElementById(rootId);
+  if (!root) return null;
+  const excludeFromAll = new Set(options.excludeFromAll || []);
+  const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
+  const allLabel = options.allLabel || 'Todos los asesores';
+
+  let allValues = Array.from(new Set(values || [])).sort((a, b) => String(a).localeCompare(String(b), 'es'));
+  let selected = allValues.filter((v) => !excludeFromAll.has(v));
+
+  root.innerHTML = `
+    <div class="smart-filter" id="${rootId}-filter">
+      <button class="smart-filter__button" type="button" id="${rootId}-button">
+        <span class="smart-filter__label" id="${rootId}-label">${allLabel}</span>
+        <span class="smart-filter__chev">▾</span>
+      </button>
+      <div class="smart-filter__menu" id="${rootId}-menu">
+        <input class="smart-filter__search" id="${rootId}-search" type="search" placeholder="Buscar..." autocomplete="off">
+        <div class="smart-filter__list" id="${rootId}-options"></div>
+      </div>
+    </div>`;
+
+  const wrap = document.getElementById(`${rootId}-filter`);
+  const button = document.getElementById(`${rootId}-button`);
+  const label = document.getElementById(`${rootId}-label`);
+  const menu = document.getElementById(`${rootId}-menu`);
+  const search = document.getElementById(`${rootId}-search`);
+  const list = document.getElementById(`${rootId}-options`);
+
+  function updateLabel() {
+    const total = allValues.length;
+    const n = selected.length;
+    if (n === total) label.textContent = allLabel;
+    else if (n === 0) label.textContent = 'Ninguno seleccionado';
+    else if (n === 1) label.textContent = OXXO.truncate(selected[0], 24);
+    else label.textContent = `${n} seleccionados`;
+  }
+
+  function renderOptions(query = '') {
+    const q = String(query || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const filtered = allValues.filter((v) => !q || String(v).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().includes(q));
+    const allSelected = selected.length === allValues.length;
+    const rows = [{ value: '', label: allLabel, isAll: true }]
+      .concat(filtered.map((v) => ({ value: v, label: v, isAll: false })))
+      .map((opt) => {
+        const active = opt.isAll ? allSelected : selected.includes(opt.value);
+        return `<button type="button" class="smart-filter__option ${active ? 'is-active' : ''}" data-value="${escapeAttr(opt.value)}" data-all="${opt.isAll ? '1' : ''}">
+          <span class="smart-filter__check"></span>
+          <span>${escapeAttr(opt.label)}</span>
+        </button>`;
+      }).join('');
+    list.innerHTML = rows || '<div class="smart-filter__empty">Sin resultados</div>';
+  }
+
+  function emitChange() {
+    updateLabel();
+    onChange(selected.length === allValues.length ? null : selected.slice());
+  }
+
+  list.addEventListener('click', (event) => {
+    const optBtn = event.target.closest('.smart-filter__option');
+    if (!optBtn) return;
+    if (optBtn.dataset.all) {
+      const allSelected = selected.length === allValues.length;
+      selected = allSelected ? [] : allValues.slice();
+    } else {
+      const value = optBtn.dataset.value;
+      const set = new Set(selected);
+      if (set.has(value)) set.delete(value); else set.add(value);
+      selected = allValues.filter((v) => set.has(v));
+    }
+    renderOptions(search.value);
+    emitChange();
+  });
+
+  search.addEventListener('input', () => renderOptions(search.value));
+
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const isOpen = wrap.classList.toggle('open');
+    if (isOpen) { renderOptions(''); search.value = ''; setTimeout(() => search.focus(), 0); }
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!wrap.contains(event.target)) wrap.classList.remove('open');
+  });
+
+  renderOptions('');
+  updateLabel();
+
+  return {
+    getSelected: () => (selected.length === allValues.length ? null : selected.slice()),
+    setValues(newValues, opts = {}) {
+      allValues = Array.from(new Set(newValues || [])).sort((a, b) => String(a).localeCompare(String(b), 'es'));
+      if (opts.resetSelection) selected = allValues.filter((v) => !excludeFromAll.has(v));
+      else selected = selected.filter((v) => allValues.includes(v));
+      renderOptions(search.value);
+      updateLabel();
+    },
+    reset() {
+      selected = allValues.filter((v) => !excludeFromAll.has(v));
+      renderOptions(search.value);
+      emitChange();
+    },
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
 // FUNCIÓN: Botón de descarga de archivo por dashboard
 // Lee la columna 'archivo_url' (y opcionalmente 'archivo_nombre') de la fila
 // correspondiente en la pestaña Configuracion. Si el admin sube un archivo (p.ej.
@@ -1626,6 +1740,7 @@ window.OXXO = {
   SHEETS_CONFIG,
   fetchSheetData,
   renderDownloadButton,
+  mountAsesorFilter,
   buildSheetURL,
   downloadBlob,
   downloadSheetTab,
