@@ -10,6 +10,23 @@
   const FILA_ALINEACION = 11;
   const COLUMNAS_AT = ['C','D','E','F','G','H','I','J','K','L','M'];
 
+  // Renombres de asesor exclusivos de este Excel (no afectan los dashboards):
+  // Anadelia ya no existe y su estructura/tiendas quedaron a cargo de Timo,
+  // asi que sus filas se cuentan en la columna "Timoteo" de este reporte.
+  const ASESOR_RENOMBRE = { 'anadelia': 'Timoteo' };
+  function renombrarAsesores(map){
+    const out = new Map();
+    map.forEach((value, name) => {
+      const key = String(name || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      let nuevoNombre = name;
+      for (const alias in ASESOR_RENOMBRE) {
+        if (key.includes(alias)) { nuevoNombre = ASESOR_RENOMBRE[alias]; break; }
+      }
+      out.set(nuevoNombre, value);
+    });
+    return out;
+  }
+
   function decodeSharedString(sharedXml, idx){
     const items = [...sharedXml.matchAll(/<si>([\s\S]*?)<\/si>/g)];
     const si = items[idx];
@@ -65,7 +82,7 @@
         OXXO.metricsVacantesPorAsesor(),
         OXXO.metricsAprovechamientoPorAT(),
         OXXO.metricsAlineacionPorAsesor(),
-      ]);
+      ].map(p => p.then(renombrarAsesores)));
 
       let celdasActualizadas = 0;
       const sinMatch = [];
