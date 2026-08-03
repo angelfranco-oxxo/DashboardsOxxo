@@ -243,9 +243,7 @@
       </div>
       <div class="vac-fbox">
         <label>Asesor / AT</label>
-        <select class="filtro-select" id="filtro-asesor" onchange="applyFilters()">
-          <option value="">Todos los asesores</option>
-        </select>
+        <div id="filtro-asesor"></div>
       </div>
       <div class="vac-fbox">
         <label>Movimiento</label>
@@ -413,6 +411,8 @@ const SHEET_TAB = OXXO.SHEETS_CONFIG.TABS[SHEET_KEY];
 let ALL = [];
 let VIEW = [];        // datos filtrados
 let SORT = { col: 'mov', dir: 'asc' };
+let SELECTED_ASESORES = null;
+let asesorFilterHandle = null;
 let PAGE = 1;
 let ACTIVE_KPI = '';
 const PER_PAGE = 25;
@@ -600,7 +600,6 @@ function difCell(dif){
 function getFilters(){
   return {
     buscar: document.getElementById('filtro-buscar').value.toLowerCase().trim(),
-    asesor: document.getElementById('filtro-asesor').value,
     mov:    document.getElementById('filtro-mov').value,
     ant:    document.getElementById('filtro-ant').value,
   };
@@ -610,7 +609,7 @@ function filtrar(){
   const f = getFilters();
   VIEW = ALL.filter(r => {
     if(f.buscar && !r.tienda.toLowerCase().includes(f.buscar)) return false;
-    if(f.asesor && r.asesor !== f.asesor) return false;
+    if(SELECTED_ASESORES && !SELECTED_ASESORES.includes(r.asesor)) return false;
     if(f.mov    && r.mov    !== f.mov)    return false;
     if(f.ant    && r.antiguedad !== f.ant) return false;
     if(ACTIVE_KPI === 'vacantes' && (Number(r.vacantes)||0) <= 0) return false;
@@ -642,11 +641,11 @@ function applyFilters(){
 
 function limpiarFiltros(){
   ACTIVE_KPI = '';
-  ['filtro-buscar','filtro-asesor','filtro-mov','filtro-ant'].forEach(id=>{
+  ['filtro-buscar','filtro-mov','filtro-ant'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
-  applyFilters();
+  if (asesorFilterHandle) asesorFilterHandle.reset(); else applyFilters();
 }
 
 function setKpiFilter(kpi){
@@ -1163,9 +1162,9 @@ async function init(){
     if (!actual || (a.length >= actual.length && /[À-ÿ]/.test(a))) asesorPorClave.set(k, a);
   });
   const asesores = [...asesorPorClave.values()].sort();
-  const selA = document.getElementById('filtro-asesor');
-  selA.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
-  asesores.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; selA.appendChild(o); });
+  asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
+    onChange: (selected) => { SELECTED_ASESORES = selected; filtrar(); renderAll(); },
+  });
 
   filtrar();
   renderAll();
