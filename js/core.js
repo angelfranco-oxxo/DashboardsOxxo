@@ -1293,10 +1293,13 @@ function metricsRowMonthKeyD2(row, mesKey, fechaKey) {
 // para claves canónicas "YYYY-MM" y para el texto crudo de respaldo de
 // metricsNormalizeMesColumnD1, que en la práctica también ordena bien
 // porque el formato de corte es constante).
-function metricsFilterLatestMonth(rows, rowKeyFn) {
+// targetMes: opcional. Si se pasa y existe entre las llaves disponibles, se usa
+// ese mes en vez del mas reciente (p.ej. para generar una presentacion de un
+// mes anterior aunque ya se haya subido un mes mas nuevo).
+function metricsFilterLatestMonth(rows, rowKeyFn, targetMes = '') {
   const keyed = rows.map(r => ({ r, k: rowKeyFn(r) }));
   const keys = [...new Set(keyed.map(x => x.k).filter(Boolean))].sort();
-  const mes = keys.slice(-1)[0] || '';
+  const mes = (targetMes && keys.includes(targetMes)) ? targetMes : (keys.slice(-1)[0] || '');
   if (!mes) return { mes: '', rows };
   return { mes, rows: keyed.filter(x => x.k === mes).map(x => x.r) };
 }
