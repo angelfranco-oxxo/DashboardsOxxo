@@ -313,7 +313,12 @@ function parseCSV(text) {
   }
   if (headerIndex === -1) headerIndex = fallbackIndex === -1 ? 0 : fallbackIndex;
 
-  const headers = makeUniqueHeaders(splitCSVRow(lines[headerIndex]).map(h => h.trim().replace(/^"|"$/g, '')));
+  // Corrupcion de encabezado (variante 2): en vez de una fila 1 "sacrificio" separada
+  // (puro "_buffer_"), a veces Google pega el prefijo "_buffer_ " directo al nombre real
+  // de cada columna de la fila de encabezados (ej. "_buffer_ Motivo" en vez de "Motivo").
+  // Sin este strip, cualquier busqueda de columna por nombre real nunca encuentra esa
+  // columna y el dashboard cae siempre a su valor de respaldo.
+  const headers = makeUniqueHeaders(splitCSVRow(lines[headerIndex]).map(h => h.trim().replace(/^"|"$/g, '').replace(/^_buffer_\s*/i, '')));
 
   const rows = [];
   for (let i = headerIndex + 1; i < lines.length; i++) {
