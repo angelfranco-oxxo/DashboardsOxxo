@@ -1135,7 +1135,7 @@ let DET_SORT = { col:'mes', dir:'desc' };
 function detValue(r, cols, key){
   if(key==='mes') return monthKeyFromRow(r,cols) || '';
   if(key==='puesto') return normalizePuesto(val(r,cols,key));
-  if(key==='motivo') return normalizeMotivo(val(r,cols,key));
+  if(key==='motivo') return val(r,cols,'detalle') || normalizeMotivo(val(r,cols,key));
   if(key==='temporalidad') return getTemporalidad(r,cols);
   return val(r,cols,key,'');
 }
