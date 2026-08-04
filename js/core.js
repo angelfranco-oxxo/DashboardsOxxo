@@ -1083,29 +1083,35 @@ function filterValidTiendas(rows, catalog, tiendaKey, crKey) {
   if (!Array.isArray(rows) || !tiendaKey) return rows;
   return rows.filter(row => isTiendaValid(catalog, row[tiendaKey], crKey ? row[crKey] : ''));
 }
+// El catalogo de asesor-por-tienda se construye EN VIVO desde Dashboard_3_Diario
+// (el archivo "Estructura" que se sube en el panel admin), no desde la hoja
+// Catalogo_Asesores por separado — esa hoja se desincronizaba con la realidad
+// (23% de asesores no coincidian, 13 tiendas activas faltaban por completo) y
+// nadie la mantenia actualizada. Estructura, en cambio, se resube seguido y es
+// la fuente que el usuario confirmo como correcta para saber que tienda es de
+// que asesor.
 async function loadAsesorCatalog() {
   if (asesorCatalogPromise) return asesorCatalogPromise;
   asesorCatalogPromise = (async () => {
     try {
-      const url = buildSheetURL(SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores') + '&range=A2%3AC';
-      const response = await fetch(url, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const rows = parseAsesorCatalogCSV(await response.text());
+      const raw = await fetchSheetData(SHEETS_CONFIG.TABS.d3);
+      if (!raw || !raw.length) throw new Error('Sin filas');
+      const asesorKey = metricsFindKey(raw[0], ['Asesor']);
+      const tiendaKey = metricsFindKey(raw[0], ['Tienda']);
+      const crKey = metricsFindKey(raw[0], ['CR TIENDA', 'CR']);
+      const rows = raw
+        .map(r => ({ asesor: String(r[asesorKey] || '').trim(), tienda: String(r[tiendaKey] || '').trim(), cr: String(r[crKey] || '').trim() }))
+        .filter(r => validCatalogRow(r.asesor, r.tienda, r.cr));
       const catalog = buildAsesorCatalog(rows);
-      if (!rows.length) console.warn('[OXXO] Catalogo_Asesores no devolvio filas validas.');
+      if (!rows.length) console.warn('[OXXO] Dashboard_3_Diario (Estructura) no devolvio filas validas para el catalogo.');
       return catalog;
     } catch (error) {
-      console.warn('[OXXO] No se pudo cargar Catalogo_Asesores:', error);
+      console.warn('[OXXO] No se pudo construir el catalogo de asesores desde Estructura:', error);
       return { loaded: false, rows: [], byCr: new Map(), byTienda: new Map() };
     }
   })();
   return asesorCatalogPromise;
 }
-// Desactivado a peticion del usuario: los Excel ya traen el asesor correcto en cada fila,
-// asi que ya no se corrige/reasigna por CR o Tienda contra el catalogo. Se deja la funcion
-// (en vez de borrar cada llamada en los dashboards) para poder reactivarla facil si hiciera
-// falta mas adelante. isTiendaValid()/filterValidTiendas() (otro uso del catalogo, para
-// excluir tiendas no autorizadas) NO se ve afectado por este cambio.
 //
 // Renombres de asesor: Anadelia ya no existe, su estructura/tiendas se
 // traspasaron por completo a Timo, asi que sus filas se cuentan como
@@ -1116,13 +1122,27 @@ async function loadAsesorCatalog() {
 // coincide con ese filtro, asi que las filas de Anadelia no se excluyen por
 // accidente.
 const ASESOR_MERGE = { 'anadelia': 'Timoteo' };
-function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
-  const raw = String(asesor || '').trim();
+function renameMergedAsesor(name) {
+  const raw = String(name || '').trim();
   const key = raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   for (const alias in ASESOR_MERGE) {
     if (key.includes(alias)) return ASESOR_MERGE[alias];
   }
   return raw;
+}
+// Corrige el asesor de una fila contra el catalogo (construido en vivo desde
+// Dashboard_3_Diario / Estructura, ver loadAsesorCatalog): busca primero por
+// CR (clave confiable, unica) y si no hay CR usa el nombre de tienda como
+// respaldo. Si la tienda no esta en el catalogo, se deja el asesor tal cual
+// vino en la fila. El renombre Anadelia->Timoteo se aplica siempre al final,
+// tanto si el asesor viene del catalogo como si viene sin corregir.
+function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
+  const fallback = String(asesor || '').trim();
+  if (!catalog || !catalog.byCr || !catalog.byTienda) return renameMergedAsesor(fallback);
+  const crKey = normalizeCatalogCr(cr);
+  const tiendaKey = normalizeCatalogTienda(tienda);
+  const hit = (crKey && catalog.byCr.get(crKey)) || (tiendaKey && catalog.byTienda.get(tiendaKey));
+  return renameMergedAsesor(hit?.asesor || fallback);
 }
 function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) {
   if (!row || !asesorKey) return row;
