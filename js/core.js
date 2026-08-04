@@ -1106,8 +1106,23 @@ async function loadAsesorCatalog() {
 // (en vez de borrar cada llamada en los dashboards) para poder reactivarla facil si hiciera
 // falta mas adelante. isTiendaValid()/filterValidTiendas() (otro uso del catalogo, para
 // excluir tiendas no autorizadas) NO se ve afectado por este cambio.
+//
+// Renombres de asesor: Anadelia ya no existe, su estructura/tiendas se
+// traspasaron por completo a Timo, asi que sus filas se cuentan como
+// "Timoteo" en todos los dashboards (no solo en el Excel de Indicadores).
+// OJO: el valor es 'Timoteo' (no 'Timoteo Antonio Perez') a proposito — varias
+// metricas de core.js excluyen filas cuyo asesor normalizado es exactamente
+// 'TIMOTEOANTONIOPEREZ' (un placeholder/basura de la hoja); 'Timoteo' solo no
+// coincide con ese filtro, asi que las filas de Anadelia no se excluyen por
+// accidente.
+const ASESOR_MERGE = { 'anadelia': 'Timoteo' };
 function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
-  return String(asesor || '').trim();
+  const raw = String(asesor || '').trim();
+  const key = raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  for (const alias in ASESOR_MERGE) {
+    if (key.includes(alias)) return ASESOR_MERGE[alias];
+  }
+  return raw;
 }
 function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) {
   if (!row || !asesorKey) return row;
