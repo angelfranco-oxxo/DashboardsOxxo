@@ -27,21 +27,37 @@
     return out;
   }
 
+  // Decodifica entidades XML, incluidas las numericas (&#233; / &#x1F600;)
+  // que Excel/openpyxl usan para acentos y caracteres especiales (ej. "H&#233;ctor").
+  function decodeXmlText(s){
+    return String(s || '')
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+      .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+  }
   function decodeSharedString(sharedXml, idx){
     const items = [...sharedXml.matchAll(/<si>([\s\S]*?)<\/si>/g)];
     const si = items[idx];
     if(!si) return '';
     const texts = [...si[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(m => m[1]);
-    return texts.join('')
-      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+    return decodeXmlText(texts.join(''));
   }
 
-  // Lee el texto de una celda (soporta shared string o numero/texto directo),
-  // sin modificar nada — se usa solo para leer los encabezados (fila 1).
+  // Lee el texto de una celda (soporta shared string, numero/texto directo,
+  // O texto inline t="inlineStr" <is><t>...</t></is> — este ultimo es el
+  // formato en el que quedan las celdas de texto cuando Excel/openpyxl
+  // resguardan el archivo, y sin soportarlo getCellText() nunca encontraba
+  // los encabezados de asesor (C1..M1), asi que el generador nunca escribia
+  // nada (0 celdas actualizadas) sin dar ningun error visible.
+  // Sin modificar nada — se usa solo para leer los encabezados (fila 1).
   function getCellText(sheetXml, sharedXml, ref){
     const m = sheetXml.match(new RegExp(`<c r="${ref}"([^>]*)>([\\s\\S]*?)</c>`));
     if(!m) return '';
     const [, attrs, inner] = m;
+    if(/\bt="inlineStr"/.test(attrs)){
+      const tMatch = inner.match(/<is>\s*<t[^>]*>([\s\S]*?)<\/t>\s*<\/is>/);
+      return tMatch ? decodeXmlText(tMatch[1]) : '';
+    }
     const vMatch = inner.match(/<v>([^<]*)<\/v>/);
     if(!vMatch) return '';
     return /\bt="s"/.test(attrs) ? decodeSharedString(sharedXml, Number(vMatch[1])) : vMatch[1];
