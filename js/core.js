@@ -1083,30 +1083,25 @@ function filterValidTiendas(rows, catalog, tiendaKey, crKey) {
   if (!Array.isArray(rows) || !tiendaKey) return rows;
   return rows.filter(row => isTiendaValid(catalog, row[tiendaKey], crKey ? row[crKey] : ''));
 }
-// El catalogo de asesor-por-tienda se construye EN VIVO desde Dashboard_3_Diario
-// (el archivo "Estructura" que se sube en el panel admin), no desde la hoja
-// Catalogo_Asesores por separado — esa hoja se desincronizaba con la realidad
-// (23% de asesores no coincidian, 13 tiendas activas faltaban por completo) y
-// nadie la mantenia actualizada. Estructura, en cambio, se resube seguido y es
-// la fuente que el usuario confirmo como correcta para saber que tienda es de
-// que asesor.
+// El catalogo de asesor-por-tienda vuelve a leerse de la hoja Catalogo_Asesores
+// (en vez de en vivo desde Dashboard_3_Diario): se confirmo que Dashboard_3_Diario
+// esta desactualizado respecto al archivo real de Estructura mas reciente (90
+// tiendas con asesor distinto), asi que por ahora es MENOS confiable que un
+// catalogo curado a mano mientras se resuelve la publicacion de esos archivos.
+// Catalogo_Asesores debe mantenerse actualizado manualmente hasta entonces.
 async function loadAsesorCatalog() {
   if (asesorCatalogPromise) return asesorCatalogPromise;
   asesorCatalogPromise = (async () => {
     try {
-      const raw = await fetchSheetData(SHEETS_CONFIG.TABS.d3);
-      if (!raw || !raw.length) throw new Error('Sin filas');
-      const asesorKey = metricsFindKey(raw[0], ['Asesor']);
-      const tiendaKey = metricsFindKey(raw[0], ['Tienda']);
-      const crKey = metricsFindKey(raw[0], ['CR TIENDA', 'CR']);
-      const rows = raw
-        .map(r => ({ asesor: String(r[asesorKey] || '').trim(), tienda: String(r[tiendaKey] || '').trim(), cr: String(r[crKey] || '').trim() }))
-        .filter(r => validCatalogRow(r.asesor, r.tienda, r.cr));
+      const url = buildSheetURL(SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores') + '&range=A2%3AC';
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const rows = parseAsesorCatalogCSV(await response.text());
       const catalog = buildAsesorCatalog(rows);
-      if (!rows.length) console.warn('[OXXO] Dashboard_3_Diario (Estructura) no devolvio filas validas para el catalogo.');
+      if (!rows.length) console.warn('[OXXO] Catalogo_Asesores no devolvio filas validas.');
       return catalog;
     } catch (error) {
-      console.warn('[OXXO] No se pudo construir el catalogo de asesores desde Estructura:', error);
+      console.warn('[OXXO] No se pudo cargar Catalogo_Asesores:', error);
       return { loaded: false, rows: [], byCr: new Map(), byTienda: new Map() };
     }
   })();
