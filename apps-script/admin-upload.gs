@@ -141,6 +141,11 @@ function writeWithBufferRow(sheet, values, numCols) {
   const allRows = [bufferRow].concat(values); // buffer + encabezados + datos, un solo arreglo
 
   sheet.getRange(1, 1, allRows.length, numCols).setValues(allRows); // una sola escritura
+  SpreadsheetApp.flush(); // fuerza a confirmar antes de seguir: sin esto, en bases grandes
+  // (~260+ filas) el exportador CSV (gviz, el que usan los dashboards) podia leer un
+  // estado intermedio de la escritura por lotes y mezclar el texto de varias filas en
+  // una sola celda — confirmado reproduciendo el bug llamando al Web App directo, fuera
+  // del navegador, con la base real de Catalogo_Asesores (263 filas).
 
   const totalRows = allRows.length;
   if (prevMaxRows > totalRows) {
@@ -149,6 +154,7 @@ function writeWithBufferRow(sheet, values, numCols) {
   if (prevMaxCols > numCols) {
     sheet.getRange(1, numCols + 1, totalRows, prevMaxCols - numCols).clearContent();
   }
+  SpreadsheetApp.flush();
 }
 
 // Actualiza SOLO la celda "ultima_actualizacion" de la fila de un dashboard
