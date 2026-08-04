@@ -1083,6 +1083,12 @@ function filterValidTiendas(rows, catalog, tiendaKey, crKey) {
   if (!Array.isArray(rows) || !tiendaKey) return rows;
   return rows.filter(row => isTiendaValid(catalog, row[tiendaKey], crKey ? row[crKey] : ''));
 }
+// El catalogo de asesor-por-tienda vuelve a leerse de la hoja Catalogo_Asesores
+// (en vez de en vivo desde Dashboard_3_Diario): se confirmo que Dashboard_3_Diario
+// esta desactualizado respecto al archivo real de Estructura mas reciente (90
+// tiendas con asesor distinto), asi que por ahora es MENOS confiable que un
+// catalogo curado a mano mientras se resuelve la publicacion de esos archivos.
+// Catalogo_Asesores debe mantenerse actualizado manualmente hasta entonces.
 async function loadAsesorCatalog() {
   if (asesorCatalogPromise) return asesorCatalogPromise;
   asesorCatalogPromise = (async () => {
@@ -1101,11 +1107,6 @@ async function loadAsesorCatalog() {
   })();
   return asesorCatalogPromise;
 }
-// Desactivado a peticion del usuario: los Excel ya traen el asesor correcto en cada fila,
-// asi que ya no se corrige/reasigna por CR o Tienda contra el catalogo. Se deja la funcion
-// (en vez de borrar cada llamada en los dashboards) para poder reactivarla facil si hiciera
-// falta mas adelante. isTiendaValid()/filterValidTiendas() (otro uso del catalogo, para
-// excluir tiendas no autorizadas) NO se ve afectado por este cambio.
 //
 // Renombres de asesor: Anadelia ya no existe, su estructura/tiendas se
 // traspasaron por completo a Timo, asi que sus filas se cuentan como
@@ -1116,13 +1117,27 @@ async function loadAsesorCatalog() {
 // coincide con ese filtro, asi que las filas de Anadelia no se excluyen por
 // accidente.
 const ASESOR_MERGE = { 'anadelia': 'Timoteo' };
-function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
-  const raw = String(asesor || '').trim();
+function renameMergedAsesor(name) {
+  const raw = String(name || '').trim();
   const key = raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   for (const alias in ASESOR_MERGE) {
     if (key.includes(alias)) return ASESOR_MERGE[alias];
   }
   return raw;
+}
+// Corrige el asesor de una fila contra el catalogo (construido en vivo desde
+// Dashboard_3_Diario / Estructura, ver loadAsesorCatalog): busca primero por
+// CR (clave confiable, unica) y si no hay CR usa el nombre de tienda como
+// respaldo. Si la tienda no esta en el catalogo, se deja el asesor tal cual
+// vino en la fila. El renombre Anadelia->Timoteo se aplica siempre al final,
+// tanto si el asesor viene del catalogo como si viene sin corregir.
+function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
+  const fallback = String(asesor || '').trim();
+  if (!catalog || !catalog.byCr || !catalog.byTienda) return renameMergedAsesor(fallback);
+  const crKey = normalizeCatalogCr(cr);
+  const tiendaKey = normalizeCatalogTienda(tienda);
+  const hit = (crKey && catalog.byCr.get(crKey)) || (tiendaKey && catalog.byTienda.get(tiendaKey));
+  return renameMergedAsesor(hit?.asesor || fallback);
 }
 function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) {
   if (!row || !asesorKey) return row;
