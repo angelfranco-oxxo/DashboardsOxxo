@@ -9,6 +9,11 @@
   const num = OXXO.metricsNum;
   const normText = OXXO.metricsNormText;
   const latestByKey = (rows, key) => { const vals = [...new Set(rows.map(r => String(r[key]||'').trim()).filter(Boolean))]; return vals.sort().slice(-1)[0] || ''; };
+  // Escapa texto que viene de Sheets antes de insertarlo como HTML (ej. el
+  // selector de mes): una celda 'Mes' con formato invalido se usa tal cual
+  // como etiqueta, y sin este escape un valor malicioso en el Sheet podria
+  // inyectar HTML/JS en admin.html.
+  function escHtml(value){ return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
   const rowMonthKeyD1 = OXXO.metricsRowMonthKeyD1;
   const rowMonthKeyD2 = OXXO.metricsRowMonthKeyD2;
   const filterLatestMonth = OXXO.metricsFilterLatestMonth;
@@ -599,7 +604,7 @@
         return { key: k, label: (MESES[mm - 1] || 'Mes') + ' ' + yyyy, canon };
       });
       select.innerHTML = '<option value="">Más reciente</option>' + opts.map(o =>
-        `<option value="${o.key.replace(/"/g,'&quot;')}" data-canon="${o.canon}">${o.label}</option>`
+        `<option value="${escHtml(o.key)}" data-canon="${escHtml(o.canon)}">${escHtml(o.label)}</option>`
       ).join('');
     } catch(e){ /* si falla, se queda solo "Más reciente" */ }
   }
