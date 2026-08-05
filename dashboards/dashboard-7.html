@@ -1091,73 +1091,33 @@ document.querySelectorAll('#main-tbl thead th[data-col]').forEach(th=>{
   });
 });
 
-// SAP/Activos/Vacantes se recalculan desde Dashboard_1_Diario (estructura diaria)
-// usando la foto mensual mas reciente: SAP = conteo de posiciones por tienda, Activos =
-// filas con Empleados, Vacantes = posiciones sin Empleados. Si una tienda no cruza por CR
-// o nombre, se conserva el dato original de TREO para no romper el dashboard.
-function d7NormId(value){ return String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,''); }
-function d7NormStore(value){ return cleanKey(String(value||'').replace(/^OXXO\s+/i,'').trim()); }
-function d7MonthKey(row){
-  const mes = pickField(row, ['mes','periodo']);
-  const fromMes = OXXO.metricsNormalizeMonthKey ? OXXO.metricsNormalizeMonthKey(mes) : '';
-  if(fromMes) return fromMes;
-  const fecha = pickField(row, ['fecha','FECHA']);
-  const d = OXXO.metricsParseFecha ? OXXO.metricsParseFecha(fecha) : null;
-  return OXXO.metricsMesKeyFromDate ? OXXO.metricsMesKeyFromDate(d) : '';
-}
-async function buildEstructuraDiaria(){
-  const rows = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d1);
-  const out = { byCr:new Map(), byTienda:new Map(), periodo:'', total:0 };
-  if(!rows || !rows.length) return out;
-  const keyed = rows.map(row => ({ row, key:d7MonthKey(row) }));
-  const months = [...new Set(keyed.map(x=>x.key).filter(Boolean))].sort();
-  const latest = months[months.length-1] || '';
-  out.periodo = latest;
-  const base = latest ? keyed.filter(x=>x.key===latest).map(x=>x.row) : rows;
-
-  base.forEach(row => {
-    const tienda = pickField(row, ['unidad org','unidad org.','unidad org/','tienda','nombre tienda']);
-    const cr = d7NormId(pickField(row, ['cr tienda','cr','id tienda','id_tienda']));
-    const tiendaKey = d7NormStore(tienda);
-    if(!cr && !tiendaKey) return;
-    const empleado = pickField(row, ['empleados','empleado','nombre del empleado','nombre empleado','nombre del empleado o candidato']);
-    const inc = target => {
-      if(!target) return;
-      if(!target.has('sap')) target.set('sap', 0);
-      if(!target.has('activos')) target.set('activos', 0);
-      target.set('sap', target.get('sap') + 1);
-      if(String(empleado||'').trim()) target.set('activos', target.get('activos') + 1);
-    };
-    if(cr){ if(!out.byCr.has(cr)) out.byCr.set(cr, new Map()); inc(out.byCr.get(cr)); }
-    if(tiendaKey){ if(!out.byTienda.has(tiendaKey)) out.byTienda.set(tiendaKey, new Map()); inc(out.byTienda.get(tiendaKey)); }
-    out.total++;
+// Activos = Estructura Diaria - Vacante, tomado del Dashboard 3 (Estructura) del día más
+// reciente. Se cruza por CR de tienda para no depender de que el Excel de TREO traiga la
+// columna 'Empleados Activos' capturada a mano.
+async function buildActivosPorCR(){
+  const rows = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3);
+  if(!rows || !rows.length) return new Map();
+  const norm = v => String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const fechaKey = row => pickField(row, ['fecha','FECHA']);
+  const fechas = [...new Set(rows.map(fechaKey).filter(Boolean))].sort();
+  const ultimaFecha = fechas[fechas.length-1];
+  const map = new Map();
+  rows.forEach(row => {
+    if(ultimaFecha && fechaKey(row) !== ultimaFecha) return;
+    const cr = norm(pickField(row, ['cr tienda','cr']));
+    if(!cr) return;
+    const estructura = Number(pickField(row, ['estructura diaria'])) || 0;
+    const vacante = Number(pickField(row, ['vacante'])) || 0;
+    map.set(cr, Math.max(0, estructura - vacante));
   });
-  return out;
+  return map;
 }
-function applyEstructuraDiaria(r, estructura){
-  const crKey = d7NormId(r.cr);
-  const tiendaKey = d7NormStore(r.tienda);
-  const src = (crKey && estructura.byCr.get(crKey)) || (tiendaKey && estructura.byTienda.get(tiendaKey));
-  if(!src) return r;
-  const sap = Number(src.get('sap')) || 0;
-  const activos = Number(src.get('activos')) || 0;
-  const vacantes = Math.max(0, sap - activos);
-  const treo = Number(r.est_final) || 0;
-  const dif = treo - sap;
-  return {
-    ...r,
-    est_sap: String(sap),
-    empleados: String(activos),
-    vacantes: String(vacantes),
-    dif: String(dif),
-    mov: dif === 0 ? 'Alineada' : (dif > 0 ? 'Subir' : 'Bajar')
-  };
-}
+
 // ─────────────────────────────────────────────────────────
 // Init
 async function init(){
   OXXO.renderDownloadButton('hero-download','s7');
-  const [rows, estructuraDiaria] = await Promise.all([OXXO.fetchSheetData(SHEET_TAB), buildEstructuraDiaria()]);
+  const [rows, activosPorCR] = await Promise.all([OXXO.fetchSheetData(SHEET_TAB), buildActivosPorCR()]);
   if(!rows || !rows.length){
     document.getElementById('kpi-section').innerHTML = `
       <div class="kpi-card rojo">
@@ -1185,7 +1145,11 @@ async function init(){
   ALL = coerceTreoRows(rows)
     .map(normalizeRow)
     .map(r => ({ ...r, asesor: OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }) }))
-    .map(r => applyEstructuraDiaria(r, estructuraDiaria))
+    .map(r => {
+      const crKey = String(r.cr||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+      const activosD3 = crKey ? activosPorCR.get(crKey) : undefined;
+      return activosD3 !== undefined ? { ...r, empleados: String(activosD3) } : r;
+    })
     .filter(r => r.tienda || r.asesor)
     .filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr))
     .filter(r => cleanKey(r.asesor) !== 'timoteoantonioperez');
