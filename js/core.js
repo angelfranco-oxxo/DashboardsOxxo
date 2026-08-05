@@ -1325,17 +1325,13 @@ function metricsMesKeyFromDate(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 // Réplica EXACTA (con su mismo comportamiento, incluido su "bug") de
-// normalizeMesColumn() en dashboard-1.html: solo lee parts[0] como mes y
-// parts[1] como año, sin importar cuántas partes tenga el texto. La
-// columna "Mes" de Dashboard_1_Diario trae una fecha de corte completa
-// ("26/07/2026", día/mes/año), así que interpreta mal el mes y regresa el
-// TEXTO CRUDO tal cual como clave de agrupación cuando falla — no ''. Por
-// eso NUNCA cae al respaldo por "Fecha" mientras "Mes" no esté vacío
-// (confirmado en vivo: el selector de mes del dashboard real muestra
-// literalmente "26/07/2026", sin formatear).
+// Normaliza la columna "Mes" de Dashboard_1_Diario a clave YYYY-MM.
+// Acepta textos tipo "jul-26" y fechas completas tipo "26/07/2026".
 function metricsNormalizeMesColumnD1(value) {
   const raw = String(value ?? '').trim();
   if (!raw) return '';
+  const parsedDate = metricsParseFecha(raw);
+  if (parsedDate) return metricsMesKeyFromDate(parsedDate);
   const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[._/]+/g, '-');
   const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
   let month = 0, year = 0;

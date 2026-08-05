@@ -1439,6 +1439,11 @@ const MES_ABBR = {
 function normalizeMesColumn(value){
   const raw = String(value ?? '').trim();
   if(!raw) return { key:'', label:'' };
+  const date = parseFechaVacante(raw);
+  if(date){
+    const key = mesKeyFromDate(date);
+    return { key, label: monthShortLabel(key) };
+  }
   const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[._/]+/g,'-');
   const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
   let month = 0;
@@ -1455,9 +1460,17 @@ function normalizeMesColumn(value){
   }
   if(year > 0 && year < 100) year += 2000;
   if(month >= 1 && month <= 12 && year >= 2000){
-    return { key:`${year}-${String(month).padStart(2,'0')}`, label:raw };
+    const key = `${year}-${String(month).padStart(2,'0')}`;
+    return { key, label: monthShortLabel(key) };
   }
   return { key:raw, label:raw };
+}
+
+function monthShortLabel(key){
+  const [year, month] = String(key).split('-').map(Number);
+  if(!year || !month) return key;
+  const abbr=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][month-1];
+  return `${abbr}-${String(year).slice(-2)}`;
 }
 
 // Clasificar puesto
