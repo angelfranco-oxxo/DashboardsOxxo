@@ -1401,9 +1401,12 @@ function metricsIsDefaultExcludedTiendaD1(v) {
 // ninguno y queda excluida — igual que una "tienda nueva" (dias>500 o sin
 // Fecha), que tampoco está en el default.
 function metricsIsVacanteSourceD1(row, keys) {
-  const { statusKey, empleadoKey } = keys;
+  const { statusKey, empleadoKey, diasKey } = keys;
   const status = metricsNormText(metricsVal(row, statusKey));
+  const diasRaw = String(metricsVal(row, diasKey) || '').trim();
+  const dias = metricsNum(metricsVal(row, diasKey));
   if (status.includes('VACANTE') || status.includes('NO OCUPADO')) return true;
+  if (diasRaw && !/finaliz/i.test(diasRaw) && (dias > 0 || /tienda\s+nueva/i.test(diasRaw))) return true;
   if (empleadoKey) return String(metricsVal(row, empleadoKey) || '').trim() === '';
   return true;
 }
@@ -1587,8 +1590,9 @@ async function metricsD1Rows() {
   const empleadoKey = metricsFindKey(raw[0], ['Empleados', 'Empleado', 'Nombre del empleado', 'Nombre empleado']);
   const diasKey = metricsFindKey(raw[0], ['Dias Vacantes', 'Dias_Vacantes']);
   const asesorCatalog = await loadAsesorCatalog();
-  const stepCatalog = raw
-    .filter(r => metricsIsVacanteSourceD1(r, { statusKey, empleadoKey }))
+  const detectedVacantes = raw.filter(r => metricsIsVacanteSourceD1(r, { statusKey, empleadoKey, diasKey }));
+  const sourceRows = detectedVacantes.length ? detectedVacantes : raw;
+  const stepCatalog = sourceRows
     .filter(r => String(metricsVal(r, tiendaKey) || '').trim() && String(metricsVal(r, tiendaKey) || '').trim() !== 'Sin tienda')
     .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ')
     .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)));
