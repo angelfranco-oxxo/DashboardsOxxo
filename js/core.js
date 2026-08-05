@@ -1178,6 +1178,14 @@ function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
   const hit = (crKey && catalog.byCr.get(crKey)) || (tiendaKey && catalog.byTienda.get(tiendaKey));
   return renameMergedAsesor(hit?.asesor || fallback);
 }
+function metricsIsSinAsesorD1(value) {
+  const t = metricsNormText(value).replace(/[^A-Z]/g, '');
+  return !t || t.includes('SINASESOR') || t.includes('NOASIGNADO');
+}
+function resolveAsesorD1(catalog, { cr='', tienda='', asesor='' } = {}) {
+  if (metricsIsSinAsesorD1(asesor)) return 'Timoteo';
+  return resolveAsesor(catalog, { cr, tienda, asesor });
+}
 function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) {
   if (!row || !asesorKey) return row;
   const corrected = resolveAsesor(catalog, { cr: crKey ? row[crKey] : '', tienda: tiendaKey ? row[tiendaKey] : '', asesor: row[asesorKey] });
@@ -1413,7 +1421,6 @@ function metricsApplyD1Defaults(rows, keys) {
   const { tiendaKey, asesorKey, puestoKey, diasKey } = keys;
   return rows
     .filter(r => !metricsIsDefaultExcludedTiendaD1(metricsVal(r, tiendaKey)))
-    .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'SINASESORASIGNADO')
     .filter(r => METRICS_DEFAULT_PUESTOS_D1.has(String(metricsVal(r, puestoKey) || '').trim().toUpperCase()))
     .filter(r => metricsPasaAntiguedadDefaultD1(r, diasKey));
 }
@@ -1553,8 +1560,13 @@ async function metricsD1Rows() {
   const asesorCatalog = await loadAsesorCatalog();
   const stepCatalog = raw
     .filter(r => String(metricsVal(r, tiendaKey) || '').trim() && String(metricsVal(r, tiendaKey) || '').trim() !== 'Sin tienda')
-    .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ')
-    .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)));
+    .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)))
+    .map(r => {
+      const copy = { ...r };
+      if (metricsIsSinAsesorD1(metricsVal(copy, asesorKey))) copy[asesorKey] = 'Timoteo';
+      else applyAsesorCatalog(copy, asesorCatalog, { asesorKey, tiendaKey, crKey });
+      return copy;
+    });
   const base = metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
   const { mes, rows } = metricsFilterLatestMonth(base, r => metricsRowMonthKeyD1(r, mesKey, fechaKey));
   return { rows, mes, asesorKey, puestoKey, tiendaKey };
@@ -1826,6 +1838,7 @@ window.OXXO = {
   handleDownloadButton,
   loadAsesorCatalog,
   resolveAsesor,
+  resolveAsesorD1,
   applyAsesorCatalog,
   isTiendaValid,
   filterValidTiendas,

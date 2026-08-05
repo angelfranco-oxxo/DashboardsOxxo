@@ -1540,6 +1540,11 @@ function asesorCanon(name){
   if(c.includes('SIN ASESOR') || c.includes('NO ASIGNADO') || c==='SIN ASESOR') return SIN_ASESOR;
   return t;
 }
+function asesorD1(catalog, { cr='', tienda='', asesor='' } = {}){
+  const original=asesorCanon(asesor);
+  if(original===SIN_ASESOR) return 'Timoteo';
+  return OXXO.resolveAsesor(catalog, { cr, tienda, asesor: original });
+}
 function buildAsesorOptions(){
   const set=new Set(allData.map(r=>asesorCanon(r.asesor)));
   const arr=[...set].filter(v=>v!==SIN_ASESOR).sort((a,b)=>a.localeCompare(b,'es'));
@@ -2134,7 +2139,7 @@ async function initDashboard(){
     const asesorOriginal = String(gv(r,colMap,'asesor','Sin asesor')).trim();
     return {
       plaza,
-      asesor: OXXO.resolveAsesor(asesorCatalog, { cr, tienda, asesor: asesorOriginal }),
+      asesor: asesorD1(asesorCatalog, { cr, tienda, asesor: asesorOriginal }),
       tienda,
       cr,
       idPos:  String(gv(r,colMap,'idPos','')).trim(),
@@ -2149,7 +2154,6 @@ async function initDashboard(){
       tipo:   tipoPuesto(puesto),
     };
   }).filter(r=>r.tienda && r.tienda !== 'Sin tienda')
-    .filter(r=>cleanKey(r.asesor)!=='timoteoantonioperez')
     .filter(r=>OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr));
 
   poblarFiltros();

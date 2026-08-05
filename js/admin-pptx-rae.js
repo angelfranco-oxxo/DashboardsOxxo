@@ -72,8 +72,9 @@
     // tiendas/plazas que el dashboard real nunca muestra.
     const asesorCatalog = await OXXO.loadAsesorCatalog();
     const stepTienda = raw.filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda');
-    const stepTimoteo = stepTienda.filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ');
-    const stepCatalog = stepTimoteo.filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+    const stepCatalog = stepTienda
+      .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)))
+      .map(r => { const copy={...r}; copy[asesorKey]=OXXO.resolveAsesorD1(asesorCatalog,{cr:val(copy,crKey),tienda:val(copy,tiendaKey),asesor:val(copy,asesorKey)}); return copy; });
     // dashboard-1.html arranca con la seleccion DEFAULT de sus 3 filtros
     // "todo seleccionado" (Asesor, Puesto, Tienda), y esos defaults SI
     // excluyen filas (no son "todo, sin filtrar"):
@@ -85,7 +86,7 @@
     // - Tienda: excluye nombres que contengan "entrenamiento" u
     //   "operaciones" (isDefaultExcludedTienda), mostrado como "Tiendas
     //   operativas" en el filtro.
-    // - Asesor: excluye 'Sin Asesor Asignado' (defaultAsesorSelection).
+    // - Asesor: 'Sin Asesor Asignado' se asigna a Timoteo para D1.
     // - Antiguedad ("Dias Vacantes"): el default selecciona los 6 umbrales
     //   ['30','21','15','7','3','1'] (unión: pasa si dias>=ALGUNO de esos
     //   valores). El umbral minimo es "mas de 1 dia", asi que una vacante con

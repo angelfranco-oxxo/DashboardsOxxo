@@ -53,8 +53,8 @@
     const asesorCatalog = await OXXO.loadAsesorCatalog();
     const stepCatalog = raw
       .filter(r => String(val(r, tiendaKey)||'').trim() && String(val(r, tiendaKey)||'').trim() !== 'Sin tienda')
-      .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ')
-      .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)));
+      .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)))
+      .map(r => { const copy={...r}; copy[asesorKey]=OXXO.resolveAsesorD1(asesorCatalog,{cr:val(copy,crKey),tienda:val(copy,tiendaKey),asesor:val(copy,asesorKey)}); return copy; });
     const base = OXXO.metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
     const { mes, rows } = filterLatestMonth(base, r => rowMonthKeyD1(r, mesKey, fechaKey));
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
