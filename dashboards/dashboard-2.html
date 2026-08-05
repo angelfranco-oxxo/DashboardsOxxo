@@ -1773,8 +1773,19 @@ async function initDashboard(){
   if(raw === null){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar con Google Sheets.')); return; }
   if(!raw.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }
   const cols = buildCols(raw);
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
   const rawSinTimoteo = raw.filter(row => cleanKey(val(row, cols, 'asesor', '')) !== 'timoteoantonioperez');
-  rawSinTimoteo.forEach(row => { if(cols.asesor) row[cols.asesor] = OXXO.resolveAsesor(null, { asesor: row[cols.asesor] }); });
+  // Corregir el asesor de cada baja contra el catalogo por Tienda (D2 no trae CR):
+  // asi las bajas se agrupan bajo el asesor que realmente tiene esa tienda hoy,
+  // igual que el resto de dashboards. Si la tienda no esta en el catalogo (unidades
+  // OPERACIONES/ENTRENAMIENTO), se conserva el asesor original. El renombre
+  // Anadelia->Timoteo va incluido dentro de resolveAsesor.
+  rawSinTimoteo.forEach(row => {
+    if(cols.asesor) row[cols.asesor] = OXXO.resolveAsesor(asesorCatalog, {
+      tienda: cols.tienda ? row[cols.tienda] : '',
+      asesor: row[cols.asesor],
+    });
+  });
   const data = filterData(rawSinTimoteo, cols);
   if(!data.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }
 
