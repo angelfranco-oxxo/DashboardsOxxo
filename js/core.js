@@ -1066,8 +1066,14 @@ function buildAsesorCatalog(rows) {
     const item = { asesor: String(row.asesor || '').trim(), tienda: String(row.tienda || '').trim(), cr: String(row.cr || '').trim() };
     const crKey = normalizeCatalogCr(item.cr);
     const tiendaKey = normalizeCatalogTienda(item.tienda);
-    if (crKey) byCr.set(crKey, item);
-    if (tiendaKey) { byTienda.set(tiendaKey, item); validTiendas.add(tiendaKey); }
+    // Una fila sin asesor (p.ej. un CR "huerfano" rescatado de una celda-blob corrupta
+    // en el sheet) NUNCA debe sobrescribir una asignacion buena ya cargada: eso dejaba
+    // el asesor vacio y resolveAsesor caia al asesor viejo del dashboard.
+    if (crKey && (item.asesor || !byCr.has(crKey))) byCr.set(crKey, item);
+    if (tiendaKey) {
+      if (item.asesor || !byTienda.has(tiendaKey)) byTienda.set(tiendaKey, item);
+      validTiendas.add(tiendaKey);
+    }
   });
   return { loaded: true, rows, byCr, byTienda, validTiendas };
 }
