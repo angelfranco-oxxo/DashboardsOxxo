@@ -45,6 +45,22 @@ function buildSheetURL(tabName) {
   return `https://docs.google.com/spreadsheets/d/${SHEETS_CONFIG.SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
 }
 
+// Ruta base del sitio, derivada del <script> que carga este mismo core.js
+// (dashboards lo incluyen como "../js/core.js" y admin.html como "js/core.js").
+// Sirve para resolver assets locales sin importar la profundidad de la pagina.
+function siteBasePath() {
+  try {
+    const scripts = document.getElementsByTagName('script');
+    for (const s of scripts) {
+      const src = s.getAttribute('src') || '';
+      if (/(^|\/)js\/core\.js(\?|$)/.test(src)) {
+        return src.replace(/js\/core\.js.*$/, '');
+      }
+    }
+  } catch (e) {}
+  return '';
+}
+
 // ─────────────────────────────────────────────────────────────
 // FUNCIÓN: Obtener y parsear datos de una pestaña de Sheets
 // Retorna un array de objetos con las columnas como claves
@@ -1098,6 +1114,23 @@ function filterValidTiendas(rows, catalog, tiendaKey, crKey) {
 async function loadAsesorCatalog() {
   if (asesorCatalogPromise) return asesorCatalogPromise;
   asesorCatalogPromise = (async () => {
+    // 1) Fuente principal: catalogo estatico versionado en el repo
+    //    (assets/catalogo_asesores.csv). Se prefiere sobre la hoja de Google
+    //    porque la publicacion via gviz venia perdiendo/fusionando filas
+    //    (llegaban ~155 de 263 tiendas), dejando a Dashboard 3 sin match y
+    //    cayendo al asesor viejo. El archivo estatico es completo y deterministico.
+    try {
+      const localUrl = siteBasePath() + 'assets/catalogo_asesores.csv';
+      const resp = await fetch(localUrl, { cache: 'no-store' });
+      if (resp.ok) {
+        const rows = parseAsesorCatalogCSV(await resp.text());
+        if (rows.length) return buildAsesorCatalog(rows);
+        console.warn('[OXXO] catalogo_asesores.csv sin filas validas, usando la hoja.');
+      }
+    } catch (e) {
+      console.warn('[OXXO] No se pudo leer catalogo_asesores.csv, usando la hoja:', e);
+    }
+    // 2) Respaldo: hoja Catalogo_Asesores en Google Sheets
     try {
       const url = buildSheetURL(SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores') + '&range=A2%3AC';
       const response = await fetch(url, { cache: 'no-store' });
