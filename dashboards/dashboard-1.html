@@ -1376,6 +1376,7 @@ const ALIASES = {
   status:   ['Status ocupación','Status ocupacion','Estatus ocupación','Estatus ocupacion','Status','Estatus'],
   fecha:    ['Fecha','FECHA','F'],
   mes:      ['Mes','MES'],
+  empleado: ['Empleados','Empleado','Nombre del empleado','Nombre empleado','Nombre del empleado o candidato'],
   dias:     ['Dias Vacantes','Días Vacantes','Dias vacantes','Días vacantes','DIAS VACANTES','Dias','Días'],
 };
 
@@ -1450,7 +1451,13 @@ function normalizeMesColumn(value){
 
 // Clasificar puesto
 function tipoPuesto(desc){ return OXXO.metricsTipoPuesto(desc); }
-
+function isVacancySourceRow(rawRow){
+  const status = normalizeSearchText(gv(rawRow,colMap,'status',''));
+  const empleado = String(gv(rawRow,colMap,'empleado','')).trim();
+  if(status.includes('vacante') || status.includes('no ocupado')) return true;
+  if(colMap.empleado) return empleado === '';
+  return true;
+}
 // Semáforo días
 function colorDias(d){if(d>=15)return'rojo';if(d>=7)return'amarillo';return'verde';}
 // Vacante de tienda nueva = mas de 500 dias vacantes, o columna 'Dias Vacantes' vacia (la
@@ -2113,6 +2120,8 @@ async function initDashboard(){
       idPos:  String(gv(r,colMap,'idPos','')).trim(),
       puesto,
       status: String(gv(r,colMap,'status','')).trim(),
+      empleado: String(gv(r,colMap,'empleado','')).trim(),
+      isVacante: isVacancySourceRow(r),
       fecha:  String(fechaRaw || '').trim(),
       fechaObj,
       mesKey: mesInfo.key || mesKeyFromDate(fechaObj),
@@ -2121,7 +2130,8 @@ async function initDashboard(){
       diasRaw: String(gv(r,colMap,'dias','')).trim(),
       tipo:   tipoPuesto(puesto),
     };
-  }).filter(r=>r.tienda && r.tienda !== 'Sin tienda')
+  }).filter(r=>r.isVacante)
+    .filter(r=>r.tienda && r.tienda !== 'Sin tienda')
     .filter(r=>cleanKey(r.asesor)!=='timoteoantonioperez')
     .filter(r=>OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr));
 

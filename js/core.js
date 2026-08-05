@@ -1400,6 +1400,13 @@ function metricsIsDefaultExcludedTiendaD1(v) {
 // vacante con Dias Vacantes=0 (abierta el mismo día del corte) no cumple
 // ninguno y queda excluida — igual que una "tienda nueva" (dias>500 o sin
 // Fecha), que tampoco está en el default.
+function metricsIsVacanteSourceD1(row, keys) {
+  const { statusKey, empleadoKey } = keys;
+  const status = metricsNormText(metricsVal(row, statusKey));
+  if (status.includes('VACANTE') || status.includes('NO OCUPADO')) return true;
+  if (empleadoKey) return String(metricsVal(row, empleadoKey) || '').trim() === '';
+  return true;
+}
 function metricsPasaAntiguedadDefaultD1(row, diasKey) {
   const dias = metricsNum(metricsVal(row, diasKey));
   const diasRaw = String(metricsVal(row, diasKey) || '').trim();
@@ -1479,26 +1486,46 @@ function metricsCoerceTreoRows(rows) {
     return out;
   });
 }
-// buildActivosPorCR() de dashboard-7.html: "Empleados Activos" de TREO se
-// toma de Dashboard 3 (Estructura Diaria - Vacante) por CR, solo del corte
-// de la FECHA más reciente — no de su propia columna capturada a mano.
-async function metricsBuildActivosPorCR() {
-  const rows = await fetchSheetData(SHEETS_CONFIG.TABS.d3);
-  if (!rows || !rows.length) return new Map();
-  const crKey = metricsFindKey(rows[0], ['CR TIENDA', 'CR']);
-  const fechaKey = metricsFindKey(rows[0], ['FECHA', 'Fecha']);
-  const estructuraKey = metricsFindKey(rows[0], ['Estructura Diaria']);
-  const vacanteKey = metricsFindKey(rows[0], ['Vacante']);
-  const fechas = [...new Set(rows.map(r => String(metricsVal(r, fechaKey) || '').trim()).filter(Boolean))].sort();
-  const fecha = fechas.slice(-1)[0] || '';
-  const map = new Map();
-  rows.forEach(r => {
-    if (fecha && String(metricsVal(r, fechaKey) || '').trim() !== fecha) return;
+// Estructura diaria para TREO: se calcula desde Dashboard_1_Diario, no desde
+// la captura manual de Dashboard_7_Semanal. SAP = conteo de posiciones por
+// CR/tienda; Activos = filas con Empleados; Vacantes = SAP - Activos. Solo
+// usa el mes mas reciente publicado en la hoja diaria.
+function metricsNormTiendaD7(value) {
+  return metricsCleanKey(String(value || '').replace(/^OXXO\s+/i, '').trim());
+}
+async function metricsBuildEstructuraDiariaD1() {
+  const rows = await fetchSheetData(SHEETS_CONFIG.TABS.d1);
+  const out = { byCr: new Map(), byTienda: new Map(), periodo: '', total: 0 };
+  if (!rows || !rows.length) return out;
+  const mesKey = metricsFindKey(rows[0], ['Mes']);
+  const fechaKey = metricsFindKey(rows[0], ['Fecha']);
+  const tiendaKey = metricsFindKey(rows[0], ['Unidad org', 'Unidad org/', 'Tienda', 'Nombre Tienda']);
+  const crKey = metricsFindKey(rows[0], ['CR TIENDA', 'CR', 'ID Tienda', 'ID_Tienda']);
+  const empleadoKey = metricsFindKey(rows[0], ['Empleados', 'Empleado', 'Nombre del empleado', 'Nombre empleado', 'Nombre del empleado o candidato']);
+  const { mes, rows: latestRows } = metricsFilterLatestMonth(rows, r => metricsRowMonthKeyD1(r, mesKey, fechaKey));
+  out.periodo = mes;
+  latestRows.forEach(r => {
     const cr = String(metricsVal(r, crKey) || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (!cr) return;
-    const activos = Math.max(0, metricsNum(metricsVal(r, estructuraKey)) - metricsNum(metricsVal(r, vacanteKey)));
-    map.set(cr, activos);
+    const tienda = metricsNormTiendaD7(metricsVal(r, tiendaKey));
+    if (!cr && !tienda) return;
+    const empleado = String(metricsVal(r, empleadoKey) || '').trim();
+    const add = target => {
+      if (!target) return;
+      target.sap = (target.sap || 0) + 1;
+      if (empleado) target.activos = (target.activos || 0) + 1;
+    };
+    if (cr) { if (!out.byCr.has(cr)) out.byCr.set(cr, { sap: 0, activos: 0 }); add(out.byCr.get(cr)); }
+    if (tienda) { if (!out.byTienda.has(tienda)) out.byTienda.set(tienda, { sap: 0, activos: 0 }); add(out.byTienda.get(tienda)); }
+    out.total++;
   });
+  out.byCr.forEach(v => { v.vacantes = Math.max(0, (v.sap || 0) - (v.activos || 0)); });
+  out.byTienda.forEach(v => { v.vacantes = Math.max(0, (v.sap || 0) - (v.activos || 0)); });
+  return out;
+}
+async function metricsBuildActivosPorCR() {
+  const estructura = await metricsBuildEstructuraDiariaD1();
+  const map = new Map();
+  estructura.byCr.forEach((v, cr) => map.set(cr, v.activos || 0));
   return map;
 }
 // Semana más reciente por orden NUMÉRICO de los dígitos del texto (ej.
@@ -1551,9 +1578,12 @@ async function metricsD1Rows() {
   const tiendaKey = metricsFindKey(raw[0], ['Tienda', 'Unidad org']);
   const crKey = metricsFindKey(raw[0], ['CR TIENDA', 'CR']);
   const fechaKey = metricsFindKey(raw[0], ['Fecha']);
+  const statusKey = metricsFindKey(raw[0], ['Status ocupacion', 'Status ocupación', 'Estatus ocupacion']);
+  const empleadoKey = metricsFindKey(raw[0], ['Empleados', 'Empleado', 'Nombre del empleado', 'Nombre empleado']);
   const diasKey = metricsFindKey(raw[0], ['Dias Vacantes', 'Dias_Vacantes']);
   const asesorCatalog = await loadAsesorCatalog();
   const stepCatalog = raw
+    .filter(r => metricsIsVacanteSourceD1(r, { statusKey, empleadoKey }))
     .filter(r => String(metricsVal(r, tiendaKey) || '').trim() && String(metricsVal(r, tiendaKey) || '').trim() !== 'Sin tienda')
     .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ')
     .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)));
@@ -1643,17 +1673,36 @@ async function metricsD7Rows() {
   if (!raw || !raw.length) return null;
   const difKey = metricsFindDataKey(raw, ['Dif SAP vs Est Optima Final'], 25, true);
   const treoKey = metricsFindDataKey(raw, ['Estructura Propuesta TREO P2 Jun - Ago', 'TREO'], 25, true);
+  const sapKey = metricsFindDataKey(raw, ['Estructura SAP', 'SAP'], 25, true);
   const activosKey = metricsFindDataKey(raw, ['Empleados Activos', 'Activos'], 25, true);
   const vacantesKey = metricsFindDataKey(raw, ['Vacantes'], 25, true);
   const asesorKey = metricsFindDataKey(raw, ['Asesor']);
   const tiendaKey = metricsFindDataKey(raw, ['Tienda', 'Nombre Tienda', 'Unidad', 'Unidad Org', 'Unidad Organizativa']);
   const crKey = metricsFindDataKey(raw, ['CR', 'ID Tienda', 'ID_Tienda']);
   const asesorCatalog = await loadAsesorCatalog();
+  const estructuraD1 = await metricsBuildEstructuraDiariaD1();
   const rows = raw
     .filter(r => String(metricsVal(r, tiendaKey) || '').trim() || String(metricsVal(r, asesorKey) || '').trim())
     .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)))
-    .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ');
-  return { rows, difKey, treoKey, activosKey, vacantesKey, asesorKey, tiendaKey };
+    .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ')
+    .map(r => {
+      const cr = String(metricsVal(r, crKey) || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const tienda = metricsNormTiendaD7(metricsVal(r, tiendaKey));
+      const src = (cr && estructuraD1.byCr.get(cr)) || (tienda && estructuraD1.byTienda.get(tienda));
+      if (!src) return r;
+      const next = { ...r };
+      const sap = src.sap || 0;
+      const activos = src.activos || 0;
+      const vacantes = Math.max(0, sap - activos);
+      const treo = metricsNum(metricsVal(r, treoKey));
+      const dif = treo - sap;
+      if (sapKey) next[sapKey] = sap;
+      if (activosKey) next[activosKey] = activos;
+      if (vacantesKey) next[vacantesKey] = vacantes;
+      if (difKey) next[difKey] = dif;
+      return next;
+    });
+  return { rows, difKey, treoKey, sapKey, activosKey, vacantesKey, asesorKey, tiendaKey };
 }
 
 // Alineación de estructura por Asesor (Dashboard 7/TREO): mismo pipeline
@@ -1855,6 +1904,7 @@ window.OXXO = {
   truncate,
   maxVal,
   // Métricas compartidas (ver seccion arriba de resolveAsesor/applyAsesorCatalog)
+  metricsCleanKey,
   metricsFindKey,
   metricsFindDataKey,
   metricsVal,
@@ -1874,6 +1924,7 @@ window.OXXO = {
   metricsFilterBajasD2,
   metricsClasificaAprovechamiento,
   metricsCoerceTreoRows,
+  metricsBuildEstructuraDiariaD1,
   metricsBuildActivosPorCR,
   metricsLatestSemanaNumerica,
   metricsMatchShortName,
