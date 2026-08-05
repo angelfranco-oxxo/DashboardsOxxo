@@ -4,7 +4,7 @@ El sistema usa un Google Sheet como base central. Cada dashboard lee una pestana
 
 ## Configuracion central
 
-La configuracion esta en `js/core.js`, dentro de `SHEETS_CONFIG`.
+La configuracion editable esta en `js/config.js`, dentro de `window.OXXO_CONFIG`. `js/core.js` la consume como `SHEETS_CONFIG` y conserva un fallback interno para compatibilidad.
 
 Campos importantes:
 

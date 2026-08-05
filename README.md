@@ -33,7 +33,8 @@ DashboardsOxxo/
 
 ## Archivos principales
 
-- `js/core.js`: configuracion central, lectura de Sheets, utilidades compartidas, catalogo de asesores y exportacion PNG.
+- `js/config.js`: configuracion central de Sheets y Apps Script.
+- `js/core.js`: lectura de Sheets, utilidades compartidas, catalogo de asesores y exportacion PNG.
 - `js/admin.js`: validacion de Excel y publicacion al Apps Script.
 - `apps-script/admin-upload.gs`: Web App que recibe datos del panel admin y actualiza Google Sheets.
 - `css/dashboard-skin.css`: tema visual principal de dashboards.
@@ -55,6 +56,7 @@ DashboardsOxxo/
 - [Estructura de Google Sheets](docs/ESTRUCTURA_SHEETS.md)
 - [Mapa de dashboards](docs/DASHBOARDS.md)
 - [Soporte y problemas comunes](docs/SOPORTE.md)
+- [Arquitectura de codigo](docs/ARQUITECTURA_CODIGO.md)
 
 ## Desarrollo local
 
