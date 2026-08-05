@@ -23,6 +23,7 @@
   }
   function dashboard(){return dashboards.find(d=>d.key===$('dashboard-select').value)||dashboards[0];}
   function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+  const {setStatus,renderPreview,toggleManualSection,addPlanRow} = window.OXXO_ADMIN_UI({$,escapeHtml,dashboard});
   async function authenticateAdmin(password){
     if(!String(password||'').trim())throw new Error('Ingresa la contrasena.');
     adminPassword=password;
@@ -49,7 +50,6 @@
       }
     });
   }
-  function setStatus(items){$('status-list').innerHTML=items.map(item=>`<div class="status-item ${item.type}"><span class="status-dot"></span><div><div class="status-title">${escapeHtml(item.title)}</div><div class="status-sub">${escapeHtml(item.text)}</div></div><span class="status-badge">${escapeHtml(item.badge||'')}</span></div>`).join('');}
   const {
     getHeaders,
     containsOaxaca,
@@ -95,7 +95,6 @@
     $('admin-guidance').textContent=state.validation.ok?`Listo para publicar en ${dash.tab}. Encabezados detectados en fila ${state.headerRow}; se enviaran ${dash.output.length} columnas normalizadas.`:'Revisa la hoja seleccionada o el dashboard destino: faltan columnas criticas o no hay filas Oaxaca.';
     renderPreview(nonEmpty.slice(0,80),dash.output);
   }
-  function renderPreview(rows,headers){$('preview-meta').textContent=`${rows.length} filas en vista previa`;if(!rows.length||!headers.length){$('preview-table').innerHTML='<tbody><tr><td style="padding:28px;text-align:center;color:#7a4a42">Aun no hay datos para mostrar.</td></tr></tbody>';return;}const selectedHeaders=headers.slice(0,16);$('preview-table').innerHTML=`<thead><tr>${selectedHeaders.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${selectedHeaders.map(h=>`<td title="${escapeHtml(row[h])}">${escapeHtml(row[h])}</td>`).join('')}</tr>`).join('')}</tbody>`;}
   function fillDashboardSelect(){$('dashboard-select').innerHTML=dashboards.map(d=>`<option value="${d.key}">${d.label}</option>`).join('');}
   function fillSheets(){const names=state.workbook?state.workbook.SheetNames:[];$('sheet-select').disabled=!names.length;$('sheet-select').innerHTML=names.length?names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join(''):'<option value="">Sube un Excel primero</option>';state.sheetName=names[0]||'';autoSelectSheet();}
   function loadCurrentSheet(){if(!state.workbook||!state.sheetName)return;const dash=dashboard(),sheet=state.workbook.Sheets[state.sheetName],matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});const parsed=rowsFromMatrix(matrix,dash);state.rows=parsed.rows;state.headerRow=parsed.headerRow;state.sourceRows=parsed.sourceRows;state.sourceHeaders=parsed.sourceHeaders;validateRows();}
@@ -116,19 +115,6 @@
     publishManualD3,
     publishManualD2Plan
   } = window.OXXO_ADMIN_PUBLISHERS({$,state,OXXO,DEFAULT_UPLOAD_URL,dashboard,getDashboards:()=>dashboards,periodInfo,isoDate,getAdminPassword:()=>adminPassword});
-  function toggleManualSection(){const key=dashboard().key;const sec=$('manual-entry-section');const sec3=$('manual-entry-d3-section');const secPlan=$('manual-entry-d2plan-section');if(sec)sec.classList.toggle('hidden',key!=='d2otras');if(sec3)sec3.classList.toggle('hidden',key!=='d3plazas');if(secPlan)secPlan.classList.toggle('hidden',key!=='d2plan');}
-  function planRowHTML(){return `<tr class="plan-row">
-    <td><textarea class="admin-input" rows="2" data-field="Hallazgo" placeholder="Hallazgo relacionado"></textarea></td>
-    <td><textarea class="admin-input" rows="2" data-field="Accion" placeholder="Accion propuesta"></textarea></td>
-    <td><input class="admin-input" type="text" data-field="Responsable" placeholder="Responsable" /></td>
-    <td><input class="admin-input" type="text" data-field="Plazo" placeholder="Plazo" /></td>
-    <td><input class="admin-input" type="text" data-field="Indicador" placeholder="Indicador de exito" /></td>
-    <td>
-      <select class="admin-input" data-field="Prioridad"><option value="Alta">Alta</option><option value="Media" selected>Media</option><option value="Baja">Baja</option></select>
-      <button type="button" class="admin-btn plan-row-remove" title="Eliminar fila" style="margin-top:6px;padding:4px 10px">Quitar</button>
-    </td>
-  </tr>`;}
-  function addPlanRow(){const tbody=$('manual-input-d2plan')?.querySelector('tbody');if(!tbody)return;tbody.insertAdjacentHTML('beforeend',planRowHTML());}
   function bind(){$('drop-zone').addEventListener('click',()=>$('file-input').click());$('file-input').addEventListener('change',event=>handleFile(event.target.files[0]));['dragenter','dragover'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.add('drag');}));['dragleave','drop'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.remove('drag');}));$('drop-zone').addEventListener('drop',event=>handleFile(event.dataTransfer.files[0]));$('sheet-select').addEventListener('change',event=>{state.sheetName=event.target.value;loadCurrentSheet();});$('dashboard-select').addEventListener('change',()=>{autoSelectSheet();loadCurrentSheet();toggleManualSection();});$('manual-publish-btn').addEventListener('click',publishManual);$('manual-publish-d3-btn').addEventListener('click',publishManualD3);$('manual-publish-d2plan-btn')?.addEventListener('click',publishManualD2Plan);$('manual-add-d2plan-row')?.addEventListener('click',addPlanRow);document.addEventListener('click',event=>{if(event.target.classList.contains('plan-row-remove')){const tr=event.target.closest('tr');const tbody=tr?.parentElement;if(tbody&&tbody.children.length>1)tr.remove();}});$('apps-script-url').addEventListener('input',updatePublishState);$('download-csv-btn').addEventListener('click',downloadCsv);$('publish-btn').addEventListener('click',publish);$('save-config-btn').addEventListener('click',()=>{const url=$('apps-script-url').value.trim();if(!url){alert('No hay URL para guardar.');return;}localStorage.setItem(ADMIN_CONFIG_KEY,url);updatePublishState();alert('URL guardada en este navegador.');});}
   // La URL guardada en localStorage (de un "Guardar" anterior) ya NO tiene prioridad sobre
   // la que trae el codigo: cada vez que se redeploya el Apps Script, DEFAULT_UPLOAD_URL
