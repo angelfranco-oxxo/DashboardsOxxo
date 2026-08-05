@@ -5,10 +5,10 @@
 
 // ─────────────────────────────────────────────────────────────
 // CONFIGURACIÓN CENTRAL DEL SISTEMA
-// ► EDITAR AQUÍ: Reemplaza SPREADSHEET_ID con el ID de tu
-//   Google Sheets (parte de la URL entre /d/ y /edit)
+// Fuente principal: js/config.js. Este bloque queda como fallback
+// por compatibilidad si una pagina antigua carga solo core.js.
 // ─────────────────────────────────────────────────────────────
-const SHEETS_CONFIG = {
+const SHEETS_CONFIG = window.OXXO_CONFIG || {
   // ID de tu Google Sheets
   // Ejemplo: https://docs.google.com/spreadsheets/d/ESTE_ES_EL_ID/edit
   SPREADSHEET_ID: "1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A",
