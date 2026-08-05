@@ -1148,14 +1148,9 @@ async function loadAsesorCatalog() {
 }
 //
 // Renombres de asesor: Anadelia ya no existe, su estructura/tiendas se
-// traspasaron por completo a Timo, asi que sus filas se cuentan como
-// "Timoteo" en todos los dashboards (no solo en el Excel de Indicadores).
-// OJO: el valor es 'Timoteo' (no 'Timoteo Antonio Perez') a proposito — varias
-// metricas de core.js excluyen filas cuyo asesor normalizado es exactamente
-// 'TIMOTEOANTONIOPEREZ' (un placeholder/basura de la hoja); 'Timoteo' solo no
-// coincide con ese filtro, asi que las filas de Anadelia no se excluyen por
-// accidente.
-const ASESOR_MERGE = { 'anadelia': 'Timoteo' };
+// traspasaron por completo a Timoteo Antonio Perez, asi que sus filas se cuentan
+// con ese asesor en todos los dashboards (no solo en el Excel de Indicadores).
+const ASESOR_MERGE = { 'anadelia': 'Timoteo Antonio Perez' };
 function renameMergedAsesor(name) {
   const raw = String(name || '').trim();
   const key = raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -1168,7 +1163,7 @@ function renameMergedAsesor(name) {
 // Dashboard_3_Diario / Estructura, ver loadAsesorCatalog): busca primero por
 // CR (clave confiable, unica) y si no hay CR usa el nombre de tienda como
 // respaldo. Si la tienda no esta en el catalogo, se deja el asesor tal cual
-// vino en la fila. El renombre Anadelia->Timoteo se aplica siempre al final,
+// vino en la fila. El renombre Anadelia->Timoteo Antonio Perez se aplica siempre al final,
 // tanto si el asesor viene del catalogo como si viene sin corregir.
 function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
   const fallback = String(asesor || '').trim();
@@ -1183,7 +1178,7 @@ function metricsIsSinAsesorD1(value) {
   return !t || t.includes('SINASESOR') || t.includes('NOASIGNADO');
 }
 function resolveAsesorD1(catalog, { cr='', tienda='', asesor='' } = {}) {
-  if (metricsIsSinAsesorD1(asesor)) return 'Timoteo';
+  if (metricsIsSinAsesorD1(asesor)) return 'Timoteo Antonio Perez';
   return resolveAsesor(catalog, { cr, tienda, asesor });
 }
 function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) {
@@ -1563,7 +1558,7 @@ async function metricsD1Rows() {
     .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)))
     .map(r => {
       const copy = { ...r };
-      if (metricsIsSinAsesorD1(metricsVal(copy, asesorKey))) copy[asesorKey] = 'Timoteo';
+      if (metricsIsSinAsesorD1(metricsVal(copy, asesorKey))) copy[asesorKey] = 'Timoteo Antonio Perez';
       else applyAsesorCatalog(copy, asesorCatalog, { asesorKey, tiendaKey, crKey });
       return copy;
     });

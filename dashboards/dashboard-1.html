@@ -1542,7 +1542,7 @@ function asesorCanon(name){
 }
 function asesorD1(catalog, { cr='', tienda='', asesor='' } = {}){
   const original=asesorCanon(asesor);
-  if(original===SIN_ASESOR) return 'Timoteo';
+  if(original===SIN_ASESOR) return 'Timoteo Antonio Perez';
   return OXXO.resolveAsesor(catalog, { cr, tienda, asesor: original });
 }
 function buildAsesorOptions(){
