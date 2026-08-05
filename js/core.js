@@ -1495,20 +1495,23 @@ function metricsNormTiendaD7(value) {
 }
 async function metricsBuildEstructuraDiariaD1() {
   const rows = await fetchSheetData(SHEETS_CONFIG.TABS.d1);
-  const out = { byCr: new Map(), byTienda: new Map(), periodo: '', total: 0 };
+  const out = { byCr: new Map(), byTienda: new Map(), periodo: '', total: 0, ready: false };
   if (!rows || !rows.length) return out;
   const mesKey = metricsFindKey(rows[0], ['Mes']);
   const fechaKey = metricsFindKey(rows[0], ['Fecha']);
   const tiendaKey = metricsFindKey(rows[0], ['Unidad org', 'Unidad org/', 'Tienda', 'Nombre Tienda']);
   const crKey = metricsFindKey(rows[0], ['CR TIENDA', 'CR', 'ID Tienda', 'ID_Tienda']);
   const empleadoKey = metricsFindKey(rows[0], ['Empleados', 'Empleado', 'Nombre del empleado', 'Nombre empleado', 'Nombre del empleado o candidato']);
+  if (!empleadoKey) return out;
   const { mes, rows: latestRows } = metricsFilterLatestMonth(rows, r => metricsRowMonthKeyD1(r, mesKey, fechaKey));
   out.periodo = mes;
+  let empleadosDetectados = 0;
   latestRows.forEach(r => {
     const cr = String(metricsVal(r, crKey) || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     const tienda = metricsNormTiendaD7(metricsVal(r, tiendaKey));
     if (!cr && !tienda) return;
     const empleado = String(metricsVal(r, empleadoKey) || '').trim();
+    if (empleado) empleadosDetectados++;
     const add = target => {
       if (!target) return;
       target.sap = (target.sap || 0) + 1;
@@ -1520,11 +1523,13 @@ async function metricsBuildEstructuraDiariaD1() {
   });
   out.byCr.forEach(v => { v.vacantes = Math.max(0, (v.sap || 0) - (v.activos || 0)); });
   out.byTienda.forEach(v => { v.vacantes = Math.max(0, (v.sap || 0) - (v.activos || 0)); });
+  out.ready = out.total > 0 && empleadosDetectados > 0;
   return out;
 }
 async function metricsBuildActivosPorCR() {
   const estructura = await metricsBuildEstructuraDiariaD1();
   const map = new Map();
+  if (!estructura.ready) return map;
   estructura.byCr.forEach((v, cr) => map.set(cr, v.activos || 0));
   return map;
 }
@@ -1686,6 +1691,7 @@ async function metricsD7Rows() {
     .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)))
     .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ')
     .map(r => {
+      if (!estructuraD1.ready) return r;
       const cr = String(metricsVal(r, crKey) || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
       const tienda = metricsNormTiendaD7(metricsVal(r, tiendaKey));
       const src = (cr && estructuraD1.byCr.get(cr)) || (tienda && estructuraD1.byTienda.get(tienda));

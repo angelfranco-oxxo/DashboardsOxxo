@@ -1107,20 +1107,25 @@ function d7MonthKey(row){
 }
 async function buildEstructuraDiaria(){
   const rows = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d1);
-  const out = { byCr:new Map(), byTienda:new Map(), periodo:'', total:0 };
+  const out = { byCr:new Map(), byTienda:new Map(), periodo:'', total:0, ready:false };
   if(!rows || !rows.length) return out;
+  const sample = rows.find(r=>Object.values(r||{}).some(v=>String(v||'').trim())) || rows[0] || {};
+  const empleadoHeader = Object.keys(sample).find(k => ['empleados','empleado','nombre del empleado','nombre empleado','nombre del empleado o candidato'].includes(normKey(k)));
+  if(!empleadoHeader) return out;
   const keyed = rows.map(row => ({ row, key:d7MonthKey(row) }));
   const months = [...new Set(keyed.map(x=>x.key).filter(Boolean))].sort();
   const latest = months[months.length-1] || '';
   out.periodo = latest;
   const base = latest ? keyed.filter(x=>x.key===latest).map(x=>x.row) : rows;
 
+  let empleadosDetectados = 0;
   base.forEach(row => {
     const tienda = pickField(row, ['unidad org','unidad org.','unidad org/','tienda','nombre tienda']);
     const cr = d7NormId(pickField(row, ['cr tienda','cr','id tienda','id_tienda']));
     const tiendaKey = d7NormStore(tienda);
     if(!cr && !tiendaKey) return;
-    const empleado = pickField(row, ['empleados','empleado','nombre del empleado','nombre empleado','nombre del empleado o candidato']);
+    const empleado = row[empleadoHeader];
+    if(String(empleado||'').trim()) empleadosDetectados++;
     const inc = target => {
       if(!target) return;
       if(!target.has('sap')) target.set('sap', 0);
@@ -1132,9 +1137,11 @@ async function buildEstructuraDiaria(){
     if(tiendaKey){ if(!out.byTienda.has(tiendaKey)) out.byTienda.set(tiendaKey, new Map()); inc(out.byTienda.get(tiendaKey)); }
     out.total++;
   });
+  out.ready = out.total > 0 && empleadosDetectados > 0;
   return out;
 }
 function applyEstructuraDiaria(r, estructura){
+  if(!estructura || !estructura.ready) return r;
   const crKey = d7NormId(r.cr);
   const tiendaKey = d7NormStore(r.tienda);
   const src = (crKey && estructura.byCr.get(crKey)) || (tiendaKey && estructura.byTienda.get(tiendaKey));
