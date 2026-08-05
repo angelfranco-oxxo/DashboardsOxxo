@@ -12,7 +12,7 @@ El sitio es estatico: cada HTML carga CSS y JS directo desde el repo. Por eso lo
 |---|---|---|
 | Configuracion | `js/config.js` | IDs de Sheets, URL de Apps Script y nombres de pestanas |
 | Core compartido | `js/core.js` | Lectura de Sheets, parseo CSV, catalogo de asesores, utilidades y exportacion PNG |
-| Panel admin | `js/admin.js`, `js/admin/column-aliases.js`, `js/admin/dashboard-definitions.js` | Validacion de Excel, normalizacion, configuracion de cargas y publicacion a Apps Script |
+| Panel admin | `js/admin.js`, `js/admin/column-aliases.js`, `js/admin/dashboard-definitions.js`, `js/admin/normalizers.js` | Validacion de Excel, normalizacion, configuracion de cargas y publicacion a Apps Script |
 | Dashboards | `dashboards/*.html` | Visualizacion, filtros, KPIs, graficas y tablas de cada dashboard |
 | Estilos | `css/*.css` | Tema visual, layout, tarjetas, filtros y tablas |
 | Integracion Sheets | `apps-script/admin-upload.gs` | Escritura de datos desde panel admin a Google Sheets |
@@ -52,7 +52,7 @@ js/admin/
   publishers.js
 ```
 
-`column-aliases.js` y `dashboard-definitions.js` ya estan separados. Las siguientes piezas tocan mas logica, asi que deben hacerse con pruebas manuales del panel admin antes de publicar.
+`column-aliases.js`, `dashboard-definitions.js` y `normalizers.js` ya estan separados. Las siguientes piezas tocan mas logica, asi que deben hacerse con pruebas manuales del panel admin antes de publicar.
 
 ## Que no mover todavia
 
