@@ -12,7 +12,7 @@ El sitio es estatico: cada HTML carga CSS y JS directo desde el repo. Por eso lo
 |---|---|---|
 | Configuracion | `js/config.js` | IDs de Sheets, URL de Apps Script y nombres de pestanas |
 | Core compartido | `js/core.js` | Lectura de Sheets, parseo CSV, catalogo de asesores, utilidades y exportacion PNG |
-| Panel admin | `js/admin.js` | Validacion de Excel, normalizacion y publicacion a Apps Script |
+| Panel admin | `js/admin.js`, `js/admin/column-aliases.js` | Validacion de Excel, normalizacion, alias de columnas y publicacion a Apps Script |
 | Dashboards | `dashboards/*.html` | Visualizacion, filtros, KPIs, graficas y tablas de cada dashboard |
 | Estilos | `css/*.css` | Tema visual, layout, tarjetas, filtros y tablas |
 | Integracion Sheets | `apps-script/admin-upload.gs` | Escritura de datos desde panel admin a Google Sheets |
@@ -41,7 +41,7 @@ Cuando cambie una URL o pestana importante, actualiza tambien el cache-bust del 
 
 ## Siguiente separacion recomendada
 
-Cuando se quiera ordenar mas, el siguiente paso deberia ser separar `js/admin.js` en archivos pequenos:
+Cuando se quiera ordenar mas, el siguiente paso deberia ser seguir separando `js/admin.js` en archivos pequenos:
 
 ```txt
 js/admin/
@@ -52,7 +52,7 @@ js/admin/
   publishers.js
 ```
 
-Esa separacion toca mas logica, asi que debe hacerse con pruebas manuales del panel admin antes de publicar.
+`column-aliases.js` ya esta separado. Las siguientes piezas tocan mas logica, asi que deben hacerse con pruebas manuales del panel admin antes de publicar.
 
 ## Que no mover todavia
 
