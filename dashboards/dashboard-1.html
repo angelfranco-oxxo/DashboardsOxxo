@@ -1390,6 +1390,18 @@ function buildMap(data){
 }
 function gv(row,map,k,fb=''){const key=map[k];const v=key?row[key]:undefined;return(v===undefined||v===null||String(v).trim()==='')?fb:v;}
 function gn(row,map,k){const v=String(gv(row,map,k,0));const n=Number(v.replace(/[^0-9.-]/g,''));return isNaN(n)?0:n;}
+function diasVacantesValue(value){
+  const raw=String(value??'').trim();
+  if(!raw || /finaliz/i.test(raw)) return 0;
+  const d=parseFechaVacante(raw);
+  if(d && d.getFullYear()<=1901){
+    const base=Date.UTC(1899,11,30);
+    return Math.max(0, Math.round((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-base)/86400000));
+  }
+  if(/\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/.test(raw)) return 0;
+  const n=Number(raw.replace(/[^0-9.-]/g,''));
+  return Number.isFinite(n)&&n>=0?n:0;
+}
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -2117,7 +2129,7 @@ async function initDashboard(){
       fechaObj,
       mesKey: mesInfo.key || mesKeyFromDate(fechaObj),
       mesLabel: mesInfo.label || mesLabel(mesKeyFromDate(fechaObj)),
-      dias:   gn(r,colMap,'dias'),
+      dias:   diasVacantesValue(gv(r,colMap,'dias','')),
       diasRaw: String(gv(r,colMap,'dias','')).trim(),
       tipo:   tipoPuesto(puesto),
     };
