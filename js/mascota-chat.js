@@ -155,9 +155,10 @@
     const { mes, rows } = OXXO.metricsFilterLatestMonth(base, r => OXXO.metricsRowMonthKeyD1(r, mesKey, fechaKey));
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach(r => { byPuesto[OXXO.metricsTipoPuesto(V(r, puestoKey))]++; });
-    const rank = rankBy(rows, r => OXXO.resolveAsesor(cat, {
-      cr: V(r, crKey), tienda: V(r, tiendaKey), asesor: V(r, asesorKey),
-    }));
+    // El asesor ya quedo resuelto (catalogo o Timoteo) en el paso de arriba;
+    // volver a llamar resolveAsesor() aqui podia pisarlo por error si el
+    // CR/tienda de la fila coincidia con otra entrada del catalogo.
+    const rank = rankBy(rows, r => V(r, asesorKey));
     return { total: rows.length, mes, byPuesto, rank };
   }
 

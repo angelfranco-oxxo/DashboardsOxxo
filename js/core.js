@@ -1395,6 +1395,24 @@ function metricsIsDefaultExcludedTiendaD1(v) {
   const t = metricsNormText(v);
   return t.includes('ENTRENAMIENTO') || t.includes('OPERACIONES');
 }
+// diasVacantesValue() de dashboard-1.html: la columna "Dias Vacantes" a
+// veces llega de gviz como fecha-serial de Excel en vez de un numero plano
+// (ej. "20/07/1900" en lugar de "20" — Sheets reinterpreta el numero chico
+// como fecha al exportar). Sin esta conversion, metricsNum() la parsea como
+// 0 y el filtro de Antiguedad por defecto excluye TODAS las filas (dias=0
+// nunca cumple dias>=1), dejando el total en 0 en vez del real.
+function metricsDiasVacantesValue(raw) {
+  const s = String(raw ?? '').trim();
+  if (!s || /finaliz/i.test(s)) return 0;
+  const d = metricsParseFecha(s);
+  if (d && d.getFullYear() <= 1901) {
+    const base = Date.UTC(1899, 11, 30);
+    return Math.max(0, Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - base) / 86400000));
+  }
+  if (/\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/.test(s)) return 0;
+  const n = Number(s.replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
 // diasMatch()/esTiendaNueva() de dashboard-1.html: el filtro de Antigüedad
 // por defecto selecciona los 6 umbrales ['30','21','15','7','3','1']
 // (unión: pasa si dias>=ALGUNO). El mínimo es "más de 1 día", así que una
@@ -1402,7 +1420,7 @@ function metricsIsDefaultExcludedTiendaD1(v) {
 // ninguno y queda excluida — igual que una "tienda nueva" (dias>500 o sin
 // Fecha), que tampoco está en el default.
 function metricsPasaAntiguedadDefaultD1(row, diasKey) {
-  const dias = metricsNum(metricsVal(row, diasKey));
+  const dias = metricsDiasVacantesValue(metricsVal(row, diasKey));
   const diasRaw = String(metricsVal(row, diasKey) || '').trim();
   const esTiendaNueva = dias > 500 || diasRaw === '';
   if (esTiendaNueva) return false;
@@ -1875,6 +1893,7 @@ window.OXXO = {
   metricsRowMonthKeyD2,
   metricsFilterLatestMonth,
   metricsIsDefaultExcludedTiendaD1,
+  metricsDiasVacantesValue,
   metricsPasaAntiguedadDefaultD1,
   metricsApplyD1Defaults,
   metricsFilterBajasD2,
