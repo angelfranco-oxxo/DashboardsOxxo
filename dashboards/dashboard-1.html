@@ -1787,6 +1787,27 @@ function filtrarDatos(){
   return filtered;
 }
 
+function ensureInitialFilterHasData(){
+  if(!allData.length || filtrarDatos().length) return;
+
+  // Si la base nueva no cruza con los filtros iniciales, abrimos el rango de
+  // forma progresiva para evitar que el dashboard arranque en blanco.
+  const selMes=document.getElementById('filtro-mes');
+  const selectedMonth=selMes?.value || '';
+
+  setSelectedDias([]);
+  if(filtrarDatos().length) return;
+
+  setSelectedPuestos([...new Set(allData.map(r=>r.puesto).filter(Boolean))]);
+  if(filtrarDatos().length) return;
+
+  setSelectedTiendas(tiendaOptionsData);
+  if(filtrarDatos().length) return;
+
+  if(selMes && selectedMonth){
+    selMes.value='';
+  }
+}
 function renderTabla(filtered=filtrarDatos()){
   const el=document.getElementById('tabla-detalle');
   const _fc = document.getElementById('filtro-count'); if(_fc) _fc.textContent=`${filtered.length} vacantes`;
@@ -1853,6 +1874,7 @@ function poblarFiltros(){
   });
 
   setSelectedDias(defaultDiasSelection());
+  ensureInitialFilterHasData();
   document.getElementById('dias-button').addEventListener('click', () => {
     const box=document.getElementById('dias-filter');
     const willOpen=!box.classList.contains('open');

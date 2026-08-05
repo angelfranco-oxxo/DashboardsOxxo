@@ -25,7 +25,16 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
   function monthKey(date){if(!date)return '';const abbr=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][date.getMonth()];return `${abbr}-${String(date.getFullYear()).slice(-2)}`;}
   function daysBetween(start,end){if(!start||!end)return '';const a=new Date(start.getFullYear(),start.getMonth(),start.getDate()).getTime();const b=new Date(end.getFullYear(),end.getMonth(),end.getDate()).getTime();return Math.max(0,Math.floor((b-a)/86400000));}
   function extractStatusDate(value){const m=String(value??'').match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);return m?parseDate(m[0]):null;}
-  function isVacancyRow(row){const status=normLoose(row['Status ocupacion']);return status.includes('vacante')||status.includes('no ocupado');}
+  function isVacancyRow(row){
+    const status=normLoose(row['Status ocupacion']);
+    const diasRaw=String(row['Dias Vacantes']??'').trim();
+    const dias=toNumber(diasRaw);
+    return status.includes('vacante')
+      || status.includes('no ocupado')
+      || Boolean(extractStatusDate(row['Status ocupacion']))
+      || dias>0
+      || normLoose(diasRaw).includes('tienda nueva');
+  }
 
   function dateFromText(value){const m=String(value||'').match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);return m?parseDate(m[0]):null;}
   function monthFromSourceName(){return monthKey(dateFromText(state.fileName)||dateFromText(state.sheetName));}
