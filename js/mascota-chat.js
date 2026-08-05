@@ -148,8 +148,8 @@
       const t = String(V(r, tiendaKey) || '').trim();
       return t && t !== 'Sin tienda';
     });
-    base = base.filter(r => OXXO.metricsNormText(V(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ');
-    base = base.filter(r => OXXO.isTiendaValid(cat, V(r, tiendaKey), V(r, crKey)));
+    base = base.filter(r => OXXO.isTiendaValid(cat, V(r, tiendaKey), V(r, crKey)))
+      .map(r => { const copy={...r}; copy[asesorKey]=OXXO.resolveAsesorD1(cat,{cr:V(copy,crKey),tienda:V(copy,tiendaKey),asesor:V(copy,asesorKey)}); return copy; });
     base = OXXO.metricsApplyD1Defaults(base, { tiendaKey, asesorKey, puestoKey, diasKey });
 
     const { mes, rows } = OXXO.metricsFilterLatestMonth(base, r => OXXO.metricsRowMonthKeyD1(r, mesKey, fechaKey));

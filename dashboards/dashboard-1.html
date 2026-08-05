@@ -1390,6 +1390,18 @@ function buildMap(data){
 }
 function gv(row,map,k,fb=''){const key=map[k];const v=key?row[key]:undefined;return(v===undefined||v===null||String(v).trim()==='')?fb:v;}
 function gn(row,map,k){const v=String(gv(row,map,k,0));const n=Number(v.replace(/[^0-9.-]/g,''));return isNaN(n)?0:n;}
+function diasVacantesValue(value){
+  const raw=String(value??'').trim();
+  if(!raw || /finaliz/i.test(raw)) return 0;
+  const d=parseFechaVacante(raw);
+  if(d && d.getFullYear()<=1901){
+    const base=Date.UTC(1899,11,30);
+    return Math.max(0, Math.round((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-base)/86400000));
+  }
+  if(/\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/.test(raw)) return 0;
+  const n=Number(raw.replace(/[^0-9.-]/g,''));
+  return Number.isFinite(n)&&n>=0?n:0;
+}
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -1443,9 +1455,24 @@ function normalizeMesColumn(value){
   }
   if(year > 0 && year < 100) year += 2000;
   if(month >= 1 && month <= 12 && year >= 2000){
-    return { key:`${year}-${String(month).padStart(2,'0')}`, label:raw };
+    const key = `${year}-${String(month).padStart(2,'0')}`;
+    return { key, label: monthShortLabel(key) };
+  }
+  if(/^\d{1,2}-\d{1,2}-\d{2,4}$/.test(clean) || /^\d{4}-\d{1,2}-\d{1,2}$/.test(clean)){
+    const date = parseFechaVacante(raw);
+    if(date){
+      const key = mesKeyFromDate(date);
+      return { key, label: monthShortLabel(key) };
+    }
   }
   return { key:raw, label:raw };
+}
+
+function monthShortLabel(key){
+  const [year, month] = String(key).split('-').map(Number);
+  if(!year || !month) return key;
+  const abbr=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][month-1];
+  return `${abbr}-${String(year).slice(-2)}`;
 }
 
 // Clasificar puesto
@@ -1512,6 +1539,11 @@ function asesorCanon(name){
   const c=t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
   if(c.includes('SIN ASESOR') || c.includes('NO ASIGNADO') || c==='SIN ASESOR') return SIN_ASESOR;
   return t;
+}
+function asesorD1(catalog, { cr='', tienda='', asesor='' } = {}){
+  const original=asesorCanon(asesor);
+  if(original===SIN_ASESOR) return 'Timoteo Antonio Perez';
+  return OXXO.resolveAsesor(catalog, { cr, tienda, asesor: original });
 }
 function buildAsesorOptions(){
   const set=new Set(allData.map(r=>asesorCanon(r.asesor)));
@@ -2107,7 +2139,7 @@ async function initDashboard(){
     const asesorOriginal = String(gv(r,colMap,'asesor','Sin asesor')).trim();
     return {
       plaza,
-      asesor: OXXO.resolveAsesor(asesorCatalog, { cr, tienda, asesor: asesorOriginal }),
+      asesor: asesorD1(asesorCatalog, { cr, tienda, asesor: asesorOriginal }),
       tienda,
       cr,
       idPos:  String(gv(r,colMap,'idPos','')).trim(),
@@ -2117,12 +2149,11 @@ async function initDashboard(){
       fechaObj,
       mesKey: mesInfo.key || mesKeyFromDate(fechaObj),
       mesLabel: mesInfo.label || mesLabel(mesKeyFromDate(fechaObj)),
-      dias:   gn(r,colMap,'dias'),
+      dias:   diasVacantesValue(gv(r,colMap,'dias','')),
       diasRaw: String(gv(r,colMap,'dias','')).trim(),
       tipo:   tipoPuesto(puesto),
     };
   }).filter(r=>r.tienda && r.tienda !== 'Sin tienda')
-    .filter(r=>cleanKey(r.asesor)!=='timoteoantonioperez')
     .filter(r=>OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr));
 
   poblarFiltros();

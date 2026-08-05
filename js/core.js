@@ -1148,14 +1148,9 @@ async function loadAsesorCatalog() {
 }
 //
 // Renombres de asesor: Anadelia ya no existe, su estructura/tiendas se
-// traspasaron por completo a Timo, asi que sus filas se cuentan como
-// "Timoteo" en todos los dashboards (no solo en el Excel de Indicadores).
-// OJO: el valor es 'Timoteo' (no 'Timoteo Antonio Perez') a proposito — varias
-// metricas de core.js excluyen filas cuyo asesor normalizado es exactamente
-// 'TIMOTEOANTONIOPEREZ' (un placeholder/basura de la hoja); 'Timoteo' solo no
-// coincide con ese filtro, asi que las filas de Anadelia no se excluyen por
-// accidente.
-const ASESOR_MERGE = { 'anadelia': 'Timoteo' };
+// traspasaron por completo a Timoteo Antonio Perez, asi que sus filas se cuentan
+// con ese asesor en todos los dashboards (no solo en el Excel de Indicadores).
+const ASESOR_MERGE = { 'anadelia': 'Timoteo Antonio Perez' };
 function renameMergedAsesor(name) {
   const raw = String(name || '').trim();
   const key = raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -1168,7 +1163,7 @@ function renameMergedAsesor(name) {
 // Dashboard_3_Diario / Estructura, ver loadAsesorCatalog): busca primero por
 // CR (clave confiable, unica) y si no hay CR usa el nombre de tienda como
 // respaldo. Si la tienda no esta en el catalogo, se deja el asesor tal cual
-// vino en la fila. El renombre Anadelia->Timoteo se aplica siempre al final,
+// vino en la fila. El renombre Anadelia->Timoteo Antonio Perez se aplica siempre al final,
 // tanto si el asesor viene del catalogo como si viene sin corregir.
 function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
   const fallback = String(asesor || '').trim();
@@ -1177,6 +1172,14 @@ function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
   const tiendaKey = normalizeCatalogTienda(tienda);
   const hit = (crKey && catalog.byCr.get(crKey)) || (tiendaKey && catalog.byTienda.get(tiendaKey));
   return renameMergedAsesor(hit?.asesor || fallback);
+}
+function metricsIsSinAsesorD1(value) {
+  const t = metricsNormText(value).replace(/[^A-Z]/g, '');
+  return !t || t.includes('SINASESOR') || t.includes('NOASIGNADO');
+}
+function resolveAsesorD1(catalog, { cr='', tienda='', asesor='' } = {}) {
+  if (metricsIsSinAsesorD1(asesor)) return 'Timoteo Antonio Perez';
+  return resolveAsesor(catalog, { cr, tienda, asesor });
 }
 function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) {
   if (!row || !asesorKey) return row;
@@ -1325,14 +1328,8 @@ function metricsMesKeyFromDate(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 // Réplica EXACTA (con su mismo comportamiento, incluido su "bug") de
-// normalizeMesColumn() en dashboard-1.html: solo lee parts[0] como mes y
-// parts[1] como año, sin importar cuántas partes tenga el texto. La
-// columna "Mes" de Dashboard_1_Diario trae una fecha de corte completa
-// ("26/07/2026", día/mes/año), así que interpreta mal el mes y regresa el
-// TEXTO CRUDO tal cual como clave de agrupación cuando falla — no ''. Por
-// eso NUNCA cae al respaldo por "Fecha" mientras "Mes" no esté vacío
-// (confirmado en vivo: el selector de mes del dashboard real muestra
-// literalmente "26/07/2026", sin formatear).
+// Normaliza la columna "Mes" de Dashboard_1_Diario a clave YYYY-MM.
+// Acepta textos tipo "jul-26" y fechas completas tipo "26/07/2026".
 function metricsNormalizeMesColumnD1(value) {
   const raw = String(value ?? '').trim();
   if (!raw) return '';
@@ -1348,6 +1345,10 @@ function metricsNormalizeMesColumnD1(value) {
   }
   if (year > 0 && year < 100) year += 2000;
   if (month >= 1 && month <= 12 && year >= 2000) return `${year}-${String(month).padStart(2, '0')}`;
+  if (/^\d{1,2}-\d{1,2}-\d{2,4}$/.test(clean) || /^\d{4}-\d{1,2}-\d{1,2}$/.test(clean)) {
+    const parsedDate = metricsParseFecha(raw);
+    if (parsedDate) return metricsMesKeyFromDate(parsedDate);
+  }
   return raw;
 }
 // Clave de mes por fila para Dashboard_1_Diario: mesInfo.key ||
@@ -1415,7 +1416,6 @@ function metricsApplyD1Defaults(rows, keys) {
   const { tiendaKey, asesorKey, puestoKey, diasKey } = keys;
   return rows
     .filter(r => !metricsIsDefaultExcludedTiendaD1(metricsVal(r, tiendaKey)))
-    .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'SINASESORASIGNADO')
     .filter(r => METRICS_DEFAULT_PUESTOS_D1.has(String(metricsVal(r, puestoKey) || '').trim().toUpperCase()))
     .filter(r => metricsPasaAntiguedadDefaultD1(r, diasKey));
 }
@@ -1555,8 +1555,13 @@ async function metricsD1Rows() {
   const asesorCatalog = await loadAsesorCatalog();
   const stepCatalog = raw
     .filter(r => String(metricsVal(r, tiendaKey) || '').trim() && String(metricsVal(r, tiendaKey) || '').trim() !== 'Sin tienda')
-    .filter(r => metricsNormText(metricsVal(r, asesorKey)).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ')
-    .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)));
+    .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)))
+    .map(r => {
+      const copy = { ...r };
+      if (metricsIsSinAsesorD1(metricsVal(copy, asesorKey))) copy[asesorKey] = 'Timoteo Antonio Perez';
+      else applyAsesorCatalog(copy, asesorCatalog, { asesorKey, tiendaKey, crKey });
+      return copy;
+    });
   const base = metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
   const { mes, rows } = metricsFilterLatestMonth(base, r => metricsRowMonthKeyD1(r, mesKey, fechaKey));
   return { rows, mes, asesorKey, puestoKey, tiendaKey };
@@ -1828,6 +1833,7 @@ window.OXXO = {
   handleDownloadButton,
   loadAsesorCatalog,
   resolveAsesor,
+  resolveAsesorD1,
   applyAsesorCatalog,
   isTiendaValid,
   filterValidTiendas,
