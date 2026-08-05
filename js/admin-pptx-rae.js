@@ -268,7 +268,6 @@
       .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)))
       .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ')
       .map(r => {
-        if(!estructuraD1.ready) return r;
         const cr = String(val(r, crKey)||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
         const tienda = OXXO.metricsCleanKey ? OXXO.metricsCleanKey(String(val(r, tiendaKey)||'').replace(/^OXXO\s+/i,'').trim()) : String(val(r, tiendaKey)||'').trim().toUpperCase();
         const src = (cr && estructuraD1.byCr.get(cr)) || (tienda && estructuraD1.byTienda.get(tienda));
