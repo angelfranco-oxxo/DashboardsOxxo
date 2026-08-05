@@ -1330,8 +1330,6 @@ function metricsMesKeyFromDate(date) {
 function metricsNormalizeMesColumnD1(value) {
   const raw = String(value ?? '').trim();
   if (!raw) return '';
-  const parsedDate = metricsParseFecha(raw);
-  if (parsedDate) return metricsMesKeyFromDate(parsedDate);
   const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[._/]+/g, '-');
   const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
   let month = 0, year = 0;
@@ -1344,6 +1342,10 @@ function metricsNormalizeMesColumnD1(value) {
   }
   if (year > 0 && year < 100) year += 2000;
   if (month >= 1 && month <= 12 && year >= 2000) return `${year}-${String(month).padStart(2, '0')}`;
+  if (/^\d{1,2}-\d{1,2}-\d{2,4}$/.test(clean) || /^\d{4}-\d{1,2}-\d{1,2}$/.test(clean)) {
+    const parsedDate = metricsParseFecha(raw);
+    if (parsedDate) return metricsMesKeyFromDate(parsedDate);
+  }
   return raw;
 }
 // Clave de mes por fila para Dashboard_1_Diario: mesInfo.key ||
