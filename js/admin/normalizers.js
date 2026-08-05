@@ -25,13 +25,6 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
   function monthKey(date){if(!date)return '';const abbr=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][date.getMonth()];return `${abbr}-${String(date.getFullYear()).slice(-2)}`;}
   function daysBetween(start,end){if(!start||!end)return '';const a=new Date(start.getFullYear(),start.getMonth(),start.getDate()).getTime();const b=new Date(end.getFullYear(),end.getMonth(),end.getDate()).getTime();return Math.max(0,Math.floor((b-a)/86400000));}
   function extractStatusDate(value){const m=String(value??'').match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);return m?parseDate(m[0]):null;}
-  function safeVacancyDays(value){
-    const raw=String(value??'').trim();
-    if(!raw||/finaliz/i.test(raw))return '';
-    if(/\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/.test(raw))return '';
-    const n=toNumber(raw);
-    return Number.isFinite(n)&&n>=0?n:'';
-  }
   function isVacancyRow(row){
     const status=normLoose(row['Status ocupacion']);
     const diasRaw=String(row['Dias Vacantes']??'').trim();
@@ -45,7 +38,7 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
 
   function dateFromText(value){const m=String(value||'').match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);return m?parseDate(m[0]):null;}
   function monthFromSourceName(){return monthKey(dateFromText(state.fileName)||dateFromText(state.sheetName));}
-  function deriveD1(row){const fecha=parseDate(row.Fecha)||extractStatusDate(row['Status ocupacion']);const today=new Date();const sourceMonth=monthFromSourceName();const dias=safeVacancyDays(row['Dias Vacantes']);return {...row,Fecha:isoDate(fecha),'Dias Vacantes':dias!==''?dias:daysBetween(fecha,today),Mes:sourceMonth||monthKey(parseDate(row.Mes))||monthKey(fecha)};}
+  function deriveD1(row){const fecha=parseDate(row.Fecha)||extractStatusDate(row['Status ocupacion']);const today=new Date();const sourceMonth=monthFromSourceName();return {...row,Fecha:isoDate(fecha),'Dias Vacantes':row['Dias Vacantes']||daysBetween(fecha,today),Mes:sourceMonth||monthKey(parseDate(row.Mes))||monthKey(fecha)};}
   function deriveD2(row){const fecha=parseDate(row.Fecha);const sourceMonth=monthFromSourceName();return {...row,Fecha:isoDate(fecha),Mes:sourceMonth||monthKey(parseDate(row.Mes))||monthKey(fecha)};}
   function deriveD2Denom(row){const fecha=parseDate(row['F.Crea']);const sourceMonth=monthFromSourceName();return {...row,'F.Crea':isoDate(fecha),Mes:sourceMonth||monthKey(parseDate(row.Mes))||monthKey(fecha)};}
   function deriveD3(row){const raw=pctValue(row['Aprovechamiento Estructura']);return {...row,'Aprovechamiento Estructura':raw,'Aprovechamiento Binario':raw>=95?100:0};}
