@@ -23,22 +23,6 @@
   }
   function dashboard(){return dashboards.find(d=>d.key===$('dashboard-select').value)||dashboards[0];}
   function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
-  function isFetchBlocked(error){return /failed to fetch|load failed|networkerror|cors/i.test(String(error?.message||error||''));}
-  async function postAdminPayload(payload){
-    const url=publishUrl();
-    if(!url)throw new Error('Falta configurar Apps Script.');
-    try{
-      const response=await fetch(url,{method:'POST',mode:'cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
-      if(!response.ok)throw new Error('HTTP '+response.status);
-      const result=await response.json().catch(()=>({ok:true}));
-      if(result.ok===false)throw new Error(result.error||'Apps Script rechazo la publicacion');
-      return result;
-    }catch(error){
-      if(!isFetchBlocked(error))throw error;
-      await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
-      return {ok:true,compatibilityMode:true};
-    }
-  }
   async function authenticateAdmin(password){
     if(!String(password||'').trim())throw new Error('Ingresa la contrasena.');
     adminPassword=password;
@@ -120,23 +104,18 @@
   // codificacion para archivos .csv (los .xlsx no se ven afectados, ya traen
   // su propia codificacion declarada).
   async function handleFile(file){if(!file)return;state.fileName=file.name||'';const buffer=await file.arrayBuffer();state.workbook=XLSX.read(buffer,{type:'array',cellDates:true,codepage:65001});$('file-meta').textContent=`${file.name} - ${(file.size/1024/1024).toFixed(2)} MB`;fillSheets();loadCurrentSheet();}
-  function downloadCsv(){if(!state.rows.length)return;const dash=dashboard();OXXO.downloadRowsAsCSV(state.rows,`${dash.key}-${dash.tab}.csv`,dash.output);}
-  function publishUrl(){return $('apps-script-url').value.trim()||DEFAULT_UPLOAD_URL;}
-  // Despues de un publish exitoso, avisa al Apps Script que escriba la fecha
-  // de hoy en la fila de este dashboard dentro de la hoja Configuracion —
-  // asi "Ultima actualizacion" en la portada (index.html) ya no depende de
-  // que alguien la edite a mano, siempre queda igual al ultimo publish real.
-  // Fire-and-forget: si falla, no rompe el flujo de publicacion (que ya tuvo
-  // exito antes de llegar aqui) ni se le muestra error extra al usuario.
-  function notifyConfigDate(dashKey){
-    const url=publishUrl();if(!url)return;
-    const configId=(String(dashKey||'').match(/^[ds]\d/)||[])[0];
-    if(!configId)return;
-    fetch(url,{method:'POST',mode:'cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'updateConfigDate',adminPassword,dashboardId:configId})}).catch(()=>{});
-  }
-  function updatePublishState(){const el=$('publish-state');if(!el)return;const ready=Boolean(publishUrl());el.textContent=ready?'Publicacion directa lista':'Falta configurar Apps Script una sola vez';el.classList.toggle('ready',ready);}
   function urlFromQuery(){try{return new URLSearchParams(location.search).get('uploadUrl')||'';}catch(_){return ''}}
-  async function publish(){const url=publishUrl();if(!url){alert('Falta configurar Apps Script una sola vez. Mientras tanto puedes descargar CSV.');return;}if(!state.validation?.ok){alert('La base aun tiene errores de validacion.');return;}const dash=dashboard(),period=periodInfo(dash,state.validation.rows);$('publish-btn').disabled=true;$('publish-btn').textContent='Publicando...';try{const payload={adminPassword,targetSheet:dash.tab,rows:state.validation.rows,source:'DashboardsOxxo Admin',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};const result=await postAdminPayload(payload);notifyConfigDate(dash.key);alert(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestana reemplazada completa'}.`);}catch(error){alert('No se pudo publicar. Descarga el CSV o revisa la URL de Apps Script.');console.error(error);}finally{$('publish-btn').disabled=false;$('publish-btn').textContent='Publicar en Sheets';}}
+  const {
+    downloadCsv,
+    publishUrl,
+    postAdminPayload,
+    notifyConfigDate,
+    updatePublishState,
+    publish,
+    publishManual,
+    publishManualD3,
+    publishManualD2Plan
+  } = window.OXXO_ADMIN_PUBLISHERS({$,state,OXXO,DEFAULT_UPLOAD_URL,dashboard,getDashboards:()=>dashboards,periodInfo,isoDate,getAdminPassword:()=>adminPassword});
   function toggleManualSection(){const key=dashboard().key;const sec=$('manual-entry-section');const sec3=$('manual-entry-d3-section');const secPlan=$('manual-entry-d2plan-section');if(sec)sec.classList.toggle('hidden',key!=='d2otras');if(sec3)sec3.classList.toggle('hidden',key!=='d3plazas');if(secPlan)secPlan.classList.toggle('hidden',key!=='d2plan');}
   function planRowHTML(){return `<tr class="plan-row">
     <td><textarea class="admin-input" rows="2" data-field="Hallazgo" placeholder="Hallazgo relacionado"></textarea></td>
@@ -150,26 +129,6 @@
     </td>
   </tr>`;}
   function addPlanRow(){const tbody=$('manual-input-d2plan')?.querySelector('tbody');if(!tbody)return;tbody.insertAdjacentHTML('beforeend',planRowHTML());}
-  async function publishManualD2Plan(){
-    const url=publishUrl();if(!url){alert('Falta configurar Apps Script.');return;}
-    const rowEls=[...document.querySelectorAll('#manual-input-d2plan .plan-row')];
-    const rows=rowEls.map(tr=>{
-      const get=field=>tr.querySelector(`[data-field="${field}"]`)?.value.trim()||'';
-      return {Hallazgo:get('Hallazgo'),Accion:get('Accion'),Responsable:get('Responsable'),Plazo:get('Plazo'),Indicador:get('Indicador'),Prioridad:get('Prioridad')||'Media',Actualizado:isoDate(new Date())};
-    }).filter(r=>r.Hallazgo&&r.Accion);
-    if(!rows.length){alert('Captura al menos una fila con Hallazgo y Accion.');return;}
-    const dash=dashboards.find(d=>d.key==='d2plan');
-    const btn=$('manual-publish-d2plan-btn');btn.disabled=true;btn.textContent='Publicando...';
-    try{
-      const payload={adminPassword,targetSheet:dash.tab,rows,source:'DashboardsOxxo Admin Manual',updateMode:'replaceAll'};
-      const result=await postAdminPayload(payload);
-      notifyConfigDate(dash.key);
-      alert(`${rows.length} fila(s) del plan de accion publicadas en ${dash.tab}.`);
-    }catch(error){alert('No se pudo publicar: '+error.message);console.error(error);}
-    finally{btn.disabled=false;btn.textContent='Publicar';}
-  }
-  async function publishManual(){const url=publishUrl();if(!url){alert('Falta configurar Apps Script.');return;}const inputs=document.querySelectorAll('#manual-input-table [data-plaza]');const rows=[...inputs].filter(inp=>inp.value&&Number(inp.value)>0).map(inp=>({'Plazas':inp.dataset.plaza,'Bajas Plaza':inp.value,'Actualizado':isoDate(new Date())})).sort((a,b)=>Number(b['Bajas Plaza'])-Number(a['Bajas Plaza']));if(!rows.length){alert('Ingresa al menos una plaza con bajas mayor a 0.');return;}const dash=dashboard();const btn=$('manual-publish-btn');btn.disabled=true;btn.textContent='Publicando...';try{const payload={adminPassword,targetSheet:dash.tab,rows,source:'DashboardsOxxo Admin Manual',updateMode:'replaceAll'};const result=await postAdminPayload(payload);notifyConfigDate(dash.key);alert(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`${rows.length} plaza(s) publicadas en ${dash.tab}.`);}catch(error){alert('No se pudo publicar: '+error.message);console.error(error);}finally{btn.disabled=false;btn.textContent='Publicar';}}
-  async function publishManualD3(){const url=publishUrl();if(!url){alert('Falta configurar Apps Script.');return;}const inputs=document.querySelectorAll('#manual-input-d3 [data-plaza]');const rows=[...inputs].filter(inp=>inp.value&&Number(inp.value)>0).map(inp=>({'PLAZAS':inp.dataset.plaza,'Aprovechamiento de estructura a hoy':inp.value,'Actualizado':isoDate(new Date())})).sort((a,b)=>Number(b['Aprovechamiento de estructura a hoy'])-Number(a['Aprovechamiento de estructura a hoy']));if(!rows.length){alert('Ingresa al menos una plaza con aprovechamiento mayor a 0.');return;}const dash=dashboard();const btn=$('manual-publish-d3-btn');btn.disabled=true;btn.textContent='Publicando...';try{const payload={adminPassword,targetSheet:dash.tab,rows,source:'DashboardsOxxo Admin Manual',updateMode:'replaceAll'};const result=await postAdminPayload(payload);notifyConfigDate(dash.key);alert(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`${rows.length} plaza(s) publicadas en ${dash.tab}.`);}catch(error){alert('No se pudo publicar: '+error.message);console.error(error);}finally{btn.disabled=false;btn.textContent='Publicar';}}
   function bind(){$('drop-zone').addEventListener('click',()=>$('file-input').click());$('file-input').addEventListener('change',event=>handleFile(event.target.files[0]));['dragenter','dragover'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.add('drag');}));['dragleave','drop'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.remove('drag');}));$('drop-zone').addEventListener('drop',event=>handleFile(event.dataTransfer.files[0]));$('sheet-select').addEventListener('change',event=>{state.sheetName=event.target.value;loadCurrentSheet();});$('dashboard-select').addEventListener('change',()=>{autoSelectSheet();loadCurrentSheet();toggleManualSection();});$('manual-publish-btn').addEventListener('click',publishManual);$('manual-publish-d3-btn').addEventListener('click',publishManualD3);$('manual-publish-d2plan-btn')?.addEventListener('click',publishManualD2Plan);$('manual-add-d2plan-row')?.addEventListener('click',addPlanRow);document.addEventListener('click',event=>{if(event.target.classList.contains('plan-row-remove')){const tr=event.target.closest('tr');const tbody=tr?.parentElement;if(tbody&&tbody.children.length>1)tr.remove();}});$('apps-script-url').addEventListener('input',updatePublishState);$('download-csv-btn').addEventListener('click',downloadCsv);$('publish-btn').addEventListener('click',publish);$('save-config-btn').addEventListener('click',()=>{const url=$('apps-script-url').value.trim();if(!url){alert('No hay URL para guardar.');return;}localStorage.setItem(ADMIN_CONFIG_KEY,url);updatePublishState();alert('URL guardada en este navegador.');});}
   // La URL guardada en localStorage (de un "Guardar" anterior) ya NO tiene prioridad sobre
   // la que trae el codigo: cada vez que se redeploya el Apps Script, DEFAULT_UPLOAD_URL
