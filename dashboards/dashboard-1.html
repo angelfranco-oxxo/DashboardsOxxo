@@ -1275,6 +1275,13 @@
   #tabla-detalle .tbl tbody tr.row-amarillo:hover{ background:rgba(246,183,60,.2) !important; }
   #tabla-detalle .tbl tbody tr.row-rojo{ background:rgba(217,31,45,.09) !important; box-shadow:inset 4px 0 0 #D91F2D; }
   #tabla-detalle .tbl tbody tr.row-rojo:hover{ background:rgba(217,31,45,.16) !important; }
+
+  /* Encabezados ordenables (clic para ordenar, como en Excel) */
+  #tabla-detalle .tbl thead th[data-col]{ cursor:pointer; user-select:none; }
+  #tabla-detalle .tbl thead th[data-col]:hover{ background:rgba(255,255,255,.08); }
+  #tabla-detalle .tbl thead th[data-col]::after{ content:' ⇅'; opacity:.4; font-size:10px; }
+  #tabla-detalle .tbl thead th[data-col].sort-asc::after{ content:' ↑'; opacity:1; }
+  #tabla-detalle .tbl thead th[data-col].sort-desc::after{ content:' ↓'; opacity:1; }
 </style>
 
   <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
@@ -1939,6 +1946,22 @@ function filtrarDatos(){
   return filtered;
 }
 
+// Orden de la tabla "Detalle por Tienda" (clic en encabezado, como en Excel).
+// Default: dias descendente, igual que el orden fijo que ya traia filtrarDatos().
+let TABLA_SORT = { col: 'dias', dir: 'desc' };
+const TABLA_SORT_FIELDS = { asesor:'asesor', tienda:'tienda', puesto:'puesto', tipo:'tipo', dias:'dias', fecha:'fecha' };
+function ordenarTabla(filtered){
+  const field = TABLA_SORT_FIELDS[TABLA_SORT.col] || 'dias';
+  const dir = TABLA_SORT.dir === 'asc' ? 1 : -1;
+  return filtered.slice().sort((a,b)=>{
+    const va=a[field], vb=b[field];
+    if(typeof va==='number' || typeof vb==='number'){
+      return ((Number(va)||0) - (Number(vb)||0)) * dir;
+    }
+    return String(va||'').localeCompare(String(vb||''), 'es') * dir;
+  });
+}
+
 function renderTabla(filtered=filtrarDatos()){
   const el=document.getElementById('tabla-detalle');
   const _fc = document.getElementById('filtro-count'); if(_fc) _fc.textContent=`${filtered.length} vacantes`;
@@ -1951,6 +1974,7 @@ function renderTabla(filtered=filtrarDatos()){
     return;
   }
 
+  filtered = ordenarTabla(filtered);
   const rows=filtered.map(r=>{
     const dColor=colorDias(r.dias);
     // Semaforo de fila completa por antiguedad (mismos umbrales que la tabla
@@ -1971,15 +1995,25 @@ function renderTabla(filtered=filtrarDatos()){
 
   el.innerHTML=`<div class="tbl-wrap"><table class="tbl">
     <thead><tr>
-      <th>Asesor</th>
-      <th>Tienda</th>
-      <th>Descripción de Posición</th>
-      <th style="text-align:center">Tipo</th>
-      <th style="text-align:center">Días Vacantes</th>
-      <th style="text-align:center">Fecha</th>
+      <th data-col="asesor">Asesor</th>
+      <th data-col="tienda">Tienda</th>
+      <th data-col="puesto">Descripción de Posición</th>
+      <th data-col="tipo" style="text-align:center">Tipo</th>
+      <th data-col="dias" style="text-align:center">Días Vacantes</th>
+      <th data-col="fecha" style="text-align:center">Fecha</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
+
+  el.querySelectorAll('thead th[data-col]').forEach(th=>{
+    th.classList.toggle('sort-asc', th.dataset.col===TABLA_SORT.col && TABLA_SORT.dir==='asc');
+    th.classList.toggle('sort-desc', th.dataset.col===TABLA_SORT.col && TABLA_SORT.dir==='desc');
+    th.addEventListener('click', ()=>{
+      if(TABLA_SORT.col===th.dataset.col) TABLA_SORT.dir = TABLA_SORT.dir==='asc'?'desc':'asc';
+      else TABLA_SORT = { col: th.dataset.col, dir: th.dataset.col==='dias' ? 'desc' : 'asc' };
+      renderTabla(filtrarDatos());
+    });
+  });
 }
 
 // Umbrales de semaforización por antigüedad (días vacante), igual que el
