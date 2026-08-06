@@ -497,6 +497,31 @@
     color:#4B3430;
     font-weight:800;
   }
+  .vacantes-asesor-legend{
+    display:flex;flex-wrap:wrap;gap:14px;
+    padding:0 20px 10px;
+    font-size:12px;font-weight:700;color:var(--color-gray);
+  }
+  .vacantes-asesor-legend .dot{
+    display:inline-block;width:9px;height:9px;border-radius:50%;
+    margin-right:5px;vertical-align:middle;
+  }
+  .vacantes-asesor-legend .dot.verde{background:#3FB56B}
+  .vacantes-asesor-legend .dot.amarillo{background:#F6B73C}
+  .vacantes-asesor-legend .dot.rojo{background:#D91F2D}
+  .va-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:26px;height:22px;padding:0 6px;border-radius:8px;
+    font-size:12.5px;font-weight:800;
+  }
+  .va-badge.verde{background:rgba(63,181,107,.14);color:#1F7A44}
+  .va-badge.amarillo{background:rgba(246,183,60,.18);color:#8A5A00}
+  .va-badge.rojo{background:rgba(217,31,45,.12);color:#B0182A}
+  .tabla-card .tbl tfoot td{
+    font-weight:900;color:#3B2A20;
+    border-top:2px solid rgba(128,63,38,.14);
+    background:rgba(247,238,228,.5);
+  }
   .tabla-card .tbl tbody td:nth-child(2){
     color:#211514;
     font-family:var(--font-display);
@@ -1340,6 +1365,22 @@
     </div>
   </div>
 
+  <!-- TABLA VACANTES POR ASESOR (dias) -->
+  <div class="card tabla-card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title">Vacantes por Asesor · Días<span class="info-tip" tabindex="0" data-tip="Por cada Asesor (filtros activos aplicados): total de vacantes, días promedio y máximo, y cuántas caen en cada semáforo de antigüedad (Verde ≤3 días, Amarillo ≤6, Rojo &gt;6)."></span></div>
+      <span class="card-badge" id="vacantes-asesor-badge">— asesores</span>
+    </div>
+    <div class="vacantes-asesor-legend">
+      <span><span class="dot verde"></span>Verde: hasta 3 días</span>
+      <span><span class="dot amarillo"></span>Amarillo: hasta 6 días</span>
+      <span><span class="dot rojo"></span>Rojo: más de 6 días</span>
+    </div>
+    <div id="vacantes-asesor-table">
+      <div class="state-box"><div class="spinner"></div></div>
+    </div>
+  </div>
+
   <!-- TABLA DETALLE -->
   <div class="card tabla-card" style="margin-bottom:16px">
     <div class="card-head">
@@ -1864,8 +1905,82 @@ function renderTabla(filtered=filtrarDatos()){
   </table></div>`;
 }
 
+// Umbrales de semaforización por antigüedad (días vacante), igual que el
+// resto del dashboard: verde <= 3, amarillo <= 6, rojo > 6.
+const VA_UMBRAL_VERDE = 3, VA_UMBRAL_AMARILLO = 6;
+function vaColorDias(d){ return d<=VA_UMBRAL_VERDE ? 'verde' : d<=VA_UMBRAL_AMARILLO ? 'amarillo' : 'rojo'; }
+// Tabla "Vacantes por Asesor · Días": por cada asesor (filtros activos),
+// total de posiciones vacantes, dias promedio/maximo, y cuantas caen en
+// cada semaforo de antiguedad. Misma fuente (allData filtrado) que el resto
+// de los paneles de este dashboard, para que nunca diverja del total mostrado.
+function renderVacantesPorAsesorDias(allData){
+  const el = document.getElementById('vacantes-asesor-table');
+  const badge = document.getElementById('vacantes-asesor-badge');
+  if(!el) return;
+  if(!allData.length){ OXXO.showEmpty('vacantes-asesor-table'); if(badge) badge.textContent='0 asesores'; return; }
+
+  const byAsesor = {};
+  allData.forEach(r=>{
+    const a = r.asesor || 'Sin asesor';
+    if(!byAsesor[a]) byAsesor[a] = { count:0, sumDias:0, maxDias:0, verde:0, amarillo:0, rojo:0 };
+    const acc = byAsesor[a];
+    const d = Number(r.dias)||0;
+    acc.count++;
+    acc.sumDias += d;
+    acc.maxDias = Math.max(acc.maxDias, d);
+    acc[vaColorDias(d)]++;
+  });
+
+  const asesores = Object.keys(byAsesor).sort((a,b)=>a.localeCompare(b,'es'));
+  if(badge) badge.textContent = `${asesores.length} asesor${asesores.length===1?'':'es'}`;
+
+  const total = { count:0, sumDias:0, maxDias:0, verde:0, amarillo:0, rojo:0 };
+  const rows = asesores.map(a=>{
+    const v = byAsesor[a];
+    total.count += v.count; total.sumDias += v.sumDias; total.maxDias = Math.max(total.maxDias, v.maxDias);
+    total.verde += v.verde; total.amarillo += v.amarillo; total.rojo += v.rojo;
+    const prom = v.count ? (v.sumDias/v.count).toFixed(1) : '0.0';
+    return `<tr>
+      <td>${OXXO.truncate(a,34)}</td>
+      <td class="text-center">${v.count}</td>
+      <td class="text-center">${prom}</td>
+      <td class="text-center">${v.maxDias}</td>
+      <td class="text-center">${v.verde?`<span class="va-badge verde">${v.verde}</span>`:'—'}</td>
+      <td class="text-center">${v.amarillo?`<span class="va-badge amarillo">${v.amarillo}</span>`:'—'}</td>
+      <td class="text-center">${v.rojo?`<span class="va-badge rojo">${v.rojo}</span>`:'—'}</td>
+    </tr>`;
+  }).join('');
+  const promTotal = total.count ? (total.sumDias/total.count).toFixed(1) : '0.0';
+
+  el.innerHTML = `<div class="tbl-wrap"><table class="tbl">
+    <thead><tr>
+      <th>Asesor</th>
+      <th style="text-align:center">Posiciones vacantes</th>
+      <th style="text-align:center">Días promedio</th>
+      <th style="text-align:center">Días máximo</th>
+      <th style="text-align:center">Verde</th>
+      <th style="text-align:center">Amarillo</th>
+      <th style="text-align:center">Rojo</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr>
+      <td>Total general</td>
+      <td class="text-center">${total.count}</td>
+      <td class="text-center">${promTotal}</td>
+      <td class="text-center">${total.maxDias}</td>
+      <td class="text-center">${total.verde||'—'}</td>
+      <td class="text-center">${total.amarillo||'—'}</td>
+      <td class="text-center">${total.rojo||'—'}</td>
+    </tr></tfoot>
+  </table></div>`;
+}
+
 function refreshDashboard(){
   const filtered = filtrarDatos();
+  // Antes de renderOverview() (que crea el chart de barras): si Chart.js no
+  // cargo por algun motivo, renderOverview() truena y el resto de la funcion
+  // no se ejecuta. Esta tabla no depende de Chart.js, asi que va primero.
+  renderVacantesPorAsesorDias(filtered);
   renderOverview(filtered);
   renderTabla(filtered);
 }
@@ -2129,8 +2244,8 @@ function renderD1Donut(labels, values){
 async function initDashboard(){
   OXXO.renderDownloadButton('hero-download','d1');
   const rawData=await OXXO.fetchSheetData(TAB);
-  if(rawData===null){['kpi-section','tabla-detalle','ranking-container','semaforo-table'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
-  if(rawData.length===0){['kpi-section','tabla-detalle','ranking-container','semaforo-table'].forEach(id=>OXXO.showEmpty(id));return;}
+  if(rawData===null){['kpi-section','tabla-detalle','ranking-container','semaforo-table','vacantes-asesor-table'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
+  if(rawData.length===0){['kpi-section','tabla-detalle','ranking-container','semaforo-table','vacantes-asesor-table'].forEach(id=>OXXO.showEmpty(id));return;}
 
   colMap=buildMap(rawData);
   const asesorCatalog = await OXXO.loadAsesorCatalog();
