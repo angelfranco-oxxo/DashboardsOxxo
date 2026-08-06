@@ -1216,6 +1216,51 @@
       grid-template-columns:repeat(2,minmax(0,1fr)) !important;
     }
   }
+
+  /* Modal de detalle por Asesor (tabla Vacantes por Asesor · Días) */
+  #vacantes-asesor-table .tbl tbody tr{ cursor:pointer; }
+  .am-overlay{
+    position:fixed; inset:0; z-index:1000;
+    background:rgba(30,16,12,.55); backdrop-filter:blur(3px);
+    display:none; align-items:flex-start; justify-content:center;
+    padding:32px 16px; overflow-y:auto;
+  }
+  .am-overlay.open{ display:flex; }
+  .am-dialog{
+    background:var(--color-card,#fff); width:min(760px,100%);
+    border-radius:22px; box-shadow:0 30px 80px rgba(30,16,12,.35);
+    overflow:hidden; animation:amIn .22s ease;
+  }
+  @keyframes amIn{ from{ transform:translateY(14px); opacity:0 } to{ transform:none; opacity:1 } }
+  .am-head{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:20px 26px; background:linear-gradient(135deg,#3B1918,#1F1010); color:#fff;
+  }
+  .am-head__eyebrow{ font-size:11px; letter-spacing:1.5px; text-transform:uppercase; opacity:.7; }
+  .am-head__title h2{ margin:2px 0 0; font-family:var(--font-display,sans-serif); font-size:1.45rem; font-weight:800; color:#fff; }
+  .am-close{
+    background:rgba(255,255,255,.14); border:none; color:#fff; cursor:pointer;
+    width:36px; height:36px; border-radius:10px; font-size:15px; flex-shrink:0;
+    transition:background .15s;
+  }
+  .am-close:hover{ background:rgba(255,255,255,.28); }
+  .am-body{ padding:22px 26px 28px; }
+  .am-kpis{
+    display:grid; grid-template-columns:repeat(4,1fr);
+    gap:14px; margin-bottom:22px;
+  }
+  @media(max-width:600px){ .am-kpis{ grid-template-columns:repeat(2,1fr); } }
+  .am-kpi{
+    background:linear-gradient(180deg,#fff, var(--color-bg,#FBF6F2));
+    border:1px solid var(--color-border,#EEE3DC);
+    border-radius:16px; padding:16px 12px; text-align:center;
+    box-shadow:0 4px 14px rgba(60,20,15,.06);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:84px;
+  }
+  .am-kpi__val{ font-family:var(--font-display,sans-serif); font-size:1.6rem; font-weight:800; line-height:1.05; }
+  .am-kpi__lbl{ font-size:10px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--color-gray,#9a8c84); margin-top:7px; }
+  .am-table-title{ font-size:13px; font-weight:700; margin-bottom:10px; }
 </style>
 
   <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
@@ -1398,6 +1443,19 @@
     <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
   </div>
 
+</div>
+
+<div class="am-overlay" id="asesor-dias-modal" onclick="if(event.target===this)closeAsesorDiasModal()">
+  <div class="am-dialog">
+    <div class="am-head">
+      <div class="am-head__title">
+        <span class="am-head__eyebrow">Detalle del Asesor</span>
+        <h2 id="asesor-dias-modal-title">—</h2>
+      </div>
+      <button class="am-close" onclick="closeAsesorDiasModal()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="am-body" id="asesor-dias-modal-body"></div>
+  </div>
 </div>
 
   <script src="../js/config.js?v=20260805a"></script>
@@ -1909,6 +1967,10 @@ function renderTabla(filtered=filtrarDatos()){
 // resto del dashboard: verde <= 3, amarillo <= 6, rojo > 6.
 const VA_UMBRAL_VERDE = 3, VA_UMBRAL_AMARILLO = 6;
 function vaColorDias(d){ return d<=VA_UMBRAL_VERDE ? 'verde' : d<=VA_UMBRAL_AMARILLO ? 'amarillo' : 'rojo'; }
+function escapeAttr(s){ return String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Filas por asesor de la tabla "Vacantes por Asesor · Dias", guardadas para
+// que el modal de detalle (openAsesorDiasModal) no tenga que recalcular nada.
+let VA_BY_ASESOR = {};
 // Tabla "Vacantes por Asesor · Días": por cada asesor (filtros activos),
 // total de posiciones vacantes, dias promedio/maximo, y cuantas caen en
 // cada semaforo de antiguedad. Misma fuente (allData filtrado) que el resto
@@ -1922,14 +1984,18 @@ function renderVacantesPorAsesorDias(allData){
   const byAsesor = {};
   allData.forEach(r=>{
     const a = r.asesor || 'Sin asesor';
-    if(!byAsesor[a]) byAsesor[a] = { count:0, sumDias:0, maxDias:0, verde:0, amarillo:0, rojo:0 };
+    if(!byAsesor[a]) byAsesor[a] = { count:0, sumDias:0, maxDias:0, verde:0, amarillo:0, rojo:0, rows:[] };
     const acc = byAsesor[a];
     const d = Number(r.dias)||0;
     acc.count++;
     acc.sumDias += d;
     acc.maxDias = Math.max(acc.maxDias, d);
     acc[vaColorDias(d)]++;
+    acc.rows.push(r);
   });
+  // Guardado a nivel modulo para que openAsesorDiasModal() pueda leer las
+  // filas de un asesor al hacer clic, sin tener que recalcular nada.
+  VA_BY_ASESOR = byAsesor;
 
   const asesores = Object.keys(byAsesor).sort((a,b)=>a.localeCompare(b,'es'));
   if(badge) badge.textContent = `${asesores.length} asesor${asesores.length===1?'':'es'}`;
@@ -1940,7 +2006,7 @@ function renderVacantesPorAsesorDias(allData){
     total.count += v.count; total.sumDias += v.sumDias; total.maxDias = Math.max(total.maxDias, v.maxDias);
     total.verde += v.verde; total.amarillo += v.amarillo; total.rojo += v.rojo;
     const prom = v.count ? (v.sumDias/v.count).toFixed(1) : '0.0';
-    return `<tr>
+    return `<tr data-asesor="${escapeAttr(a)}" title="Ver detalle de ${escapeAttr(a)}">
       <td>${OXXO.truncate(a,34)}</td>
       <td class="text-center">${v.count}</td>
       <td class="text-center">${prom}</td>
@@ -1973,7 +2039,52 @@ function renderVacantesPorAsesorDias(allData){
       <td class="text-center">${total.rojo||'—'}</td>
     </tr></tfoot>
   </table></div>`;
+
+  el.querySelectorAll('tbody tr[data-asesor]').forEach(tr=>{
+    tr.addEventListener('click', ()=> openAsesorDiasModal(tr.dataset.asesor));
+  });
 }
+
+function closeAsesorDiasModal(){
+  const ov = document.getElementById('asesor-dias-modal');
+  if(ov) ov.classList.remove('open');
+}
+function openAsesorDiasModal(asesorName){
+  const v = VA_BY_ASESOR[asesorName];
+  if(!v) return;
+  const ov = document.getElementById('asesor-dias-modal');
+  const body = document.getElementById('asesor-dias-modal-body');
+  document.getElementById('asesor-dias-modal-title').textContent = asesorName;
+
+  const prom = v.count ? (v.sumDias/v.count).toFixed(1) : '0.0';
+  const kpi=(label,val,color)=>`<div class="am-kpi">
+    <div class="am-kpi__val" style="${color?`color:${color}`:''}">${val}</div>
+    <div class="am-kpi__lbl">${label}</div></div>`;
+
+  const filas = v.rows.slice().sort((a,b)=>(b.dias||0)-(a.dias||0));
+  const rowsHTML = filas.map(r=>`<tr>
+    <td>${OXXO.truncate(r.tienda||'Sin tienda',28)}</td>
+    <td>${r.puesto||'—'}</td>
+    <td class="text-center">${diasBadge(r)}</td>
+    <td style="font-size:11px;color:var(--color-gray);text-align:center">${r.fecha||'—'}</td>
+  </tr>`).join('');
+
+  body.innerHTML = `
+    <div class="am-kpis">
+      ${kpi('Posiciones vacantes', v.count)}
+      ${kpi('Días promedio', prom)}
+      ${kpi('Días máximo', v.maxDias, v.maxDias>6?'var(--semaforo-rojo)':'')}
+      ${kpi('Rojo (>6 días)', v.rojo, v.rojo>0?'var(--semaforo-rojo)':'var(--color-gray)')}
+    </div>
+    <div class="am-table-title">Vacantes de este asesor (${filas.length})</div>
+    <div class="tbl-wrap" style="max-height:340px;overflow:auto"><table class="tbl">
+      <thead><tr><th>Tienda</th><th>Puesto</th><th style="text-align:center">Antigüedad</th><th style="text-align:center">Fecha</th></tr></thead>
+      <tbody>${rowsHTML}</tbody>
+    </table></div>`;
+
+  ov.classList.add('open');
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAsesorDiasModal(); });
 
 function refreshDashboard(){
   const filtered = filtrarDatos();
