@@ -1214,8 +1214,18 @@ function metricsVal(row, key, fallback = '') {
   const v = key ? row[key] : undefined;
   return (v === undefined || v === null || String(v).trim() === '') ? fallback : v;
 }
+// Google Sheets a veces exporta celdas numericas en formato es-MX (coma
+// decimal, ej. "52,00" en vez de "52.00" — confirmado en la columna "Dias
+// Vacantes" de TODOS los meses de Dashboard_1_Diario). Sin este caso especial,
+// una sola coma seguida de 1-2 digitos se trataba igual que un separador de
+// miles y se eliminaba sin mas: "52,00" se leia como 5200 en vez de 52,
+// disparando el filtro de "tienda nueva" (dias>500) y excluyendo filas
+// validas del total. Un numero con miles reales (ej. "12,345") sigue
+// tratando la coma como separador de miles porque trae 3+ digitos despues.
 function metricsNum(v) {
-  const n = Number(String(v ?? '').replace(/[$,%]/g, '').replace(/,/g, '').trim());
+  const raw = String(v ?? '').replace(/[$%]/g, '').trim();
+  const asDecimal = /^-?\d+,\d{1,2}$/.test(raw) ? raw.replace(',', '.') : raw.replace(/,/g, '');
+  const n = Number(asDecimal);
   return Number.isFinite(n) ? n : 0;
 }
 function metricsNormText(v) {
@@ -1410,8 +1420,10 @@ function metricsDiasVacantesValue(raw) {
     return Math.max(0, Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - base) / 86400000));
   }
   if (/\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/.test(s)) return 0;
-  const n = Number(s.replace(/[^0-9.-]/g, ''));
-  return Number.isFinite(n) && n >= 0 ? n : 0;
+  // Delegado a metricsNum() para heredar el manejo de coma decimal es-MX
+  // (ej. "52,00"), que es justo el formato real de esta columna en el Sheet.
+  const n = metricsNum(s);
+  return n >= 0 ? n : 0;
 }
 // diasMatch()/esTiendaNueva() de dashboard-1.html: el filtro de Antigüedad
 // por defecto selecciona los 6 umbrales ['30','21','15','7','3','1']
