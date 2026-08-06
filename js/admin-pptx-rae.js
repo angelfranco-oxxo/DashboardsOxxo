@@ -233,15 +233,14 @@
     };
   }
 
-  // Replica buildActivosPorCR() de dashboard-7.html: el "Empleados Activos" de
-  // TREO no se toma de su propia columna sino de Dashboard 3 (Estructura
-  // Diaria - Vacante), por CR, tomando solo el corte de la FECHA mas reciente.
-  const buildActivosPorCR = OXXO.metricsBuildActivosPorCR;
+  // Replica la fuente de TREO del dashboard: SAP/Activos/Vacantes se recalculan
+  // desde Dashboard_1_Diario por CR/Tienda para que el reporte coincida con la vista.
+  const buildEstructuraDiariaD1 = OXXO.metricsBuildEstructuraDiariaD1;
 
   async function dataD7(){
-    const [rawSheet, activosPorCR] = await Promise.all([
+    const [rawSheet, estructuraD1] = await Promise.all([
       OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s7),
-      buildActivosPorCR(),
+      buildEstructuraDiariaD1(),
     ]);
     const raw = coerceTreoRowsD7(rawSheet);
     if(!raw || !raw.length) return null;
@@ -252,6 +251,7 @@
     // acertarle a la columna vacia que solo *menciona* el alias.
     const difKey = findDataKey(raw, ['Dif SAP vs Est Optima Final'], 25, true);
     const treoKey = findDataKey(raw, ['Estructura Propuesta TREO P2 Jun - Ago','TREO'], 25, true);
+    const sapKey = findDataKey(raw, ['Estructura SAP','SAP'], 25, true);
     const activosKey = findDataKey(raw, ['Empleados Activos','Activos'], 25, true);
     const vacantesKey = findDataKey(raw, ['Vacantes'], 25, true);
     const asesorKey = findDataKey(raw, ['Asesor']);
@@ -269,9 +269,22 @@
       .filter(r => OXXO.isTiendaValid(asesorCatalog, val(r, tiendaKey), val(r, crKey)))
       .filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ')
       .map(r => {
+        if(!estructuraD1.ready) return r;
         const cr = String(val(r, crKey)||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-        const activosD3 = cr ? activosPorCR.get(cr) : undefined;
-        return activosD3 !== undefined ? { ...r, [activosKey]: activosD3 } : r;
+        const tienda = OXXO.metricsCleanKey ? OXXO.metricsCleanKey(String(val(r, tiendaKey)||'').replace(/^OXXO\s+/i,'').trim()) : String(val(r, tiendaKey)||'').trim().toUpperCase();
+        const src = (cr && estructuraD1.byCr.get(cr)) || (tienda && estructuraD1.byTienda.get(tienda));
+        if(!src) return r;
+        const next = { ...r };
+        const sap = src.sap || 0;
+        const activos = src.activos || 0;
+        const vacantes = Math.max(0, sap - activos);
+        const treo = num(val(r, treoKey));
+        const dif = treo - sap;
+        if(sapKey) next[sapKey] = sap;
+        if(activosKey) next[activosKey] = activos;
+        if(vacantesKey) next[vacantesKey] = vacantes;
+        if(difKey) next[difKey] = dif;
+        return next;
       });
     const total = rows.length;
     let alineadas = 0, subir = 0, bajar = 0, posSubir = 0, posBajar = 0;
@@ -287,7 +300,7 @@
     const cobertura = totalTreo > 0 ? (totalActivos / totalTreo * 100) : 0;
     // "Sub-dotadas"/"Sobre-dotadas" NO son subir/bajar (esas comparan SAP vs
     // Est. Optima via 'dif'): dashboard-7.html las calcula aparte, comparando
-    // Empleados Activos (ya con el override de D3 aplicado) contra el
+    // Empleados Activos (ya con el override de estructura diaria aplicado) contra el
     // objetivo TREO directamente por tienda.
     const subDotadas = rows.filter(r => num(val(r, activosKey)) < num(val(r, treoKey))).length;
     const sobreDotadas = rows.filter(r => num(val(r, activosKey)) > num(val(r, treoKey))).length;
