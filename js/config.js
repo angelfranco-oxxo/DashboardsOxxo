@@ -12,7 +12,7 @@ window.OXXO_CONFIG = {
   CATALOG_SHEET: "Catalogo_Asesores",
 
   // Web App de Apps Script usado por el panel admin para publicar bases.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxhMdcpv56pACzuEXh1p9LnZaVbvvkpyKpDasE9-hn8GPGkjuPE9GeY4rBKLhmVReqI/exec",
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbwBI3Q2eCsdN92S0CDMSeHAQPwIDS7rwGNYK2acQ8oxxOUYgVFpIgFLJl-HZqNSeWwd/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
