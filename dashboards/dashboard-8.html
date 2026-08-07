@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Capacidades 2026 · OXXO Plaza Oaxaca</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <link rel="icon" type="image/png" href="../assets/favicon.png"/>
+  <link rel="apple-touch-icon" href="../assets/favicon.png"/>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/mascota-chat.css?v=20260805d" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+.page{max-width:1500px;margin:0 auto;padding:18px 20px 36px}
+.hero-download-link{ text-decoration:none !important; cursor:pointer; }
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.card{background:var(--color-surface);border-radius:14px;padding:20px;box-shadow:var(--shadow-card)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-border)}
+.card-title{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--color-dark)}
+.card-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--color-bg);color:var(--color-gray)}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.row2-wide{display:grid;grid-template-columns:1.2fr 0.8fr;gap:14px;margin-bottom:16px}
+.chart-wrap{position:relative}
+.chart-md{height:260px}
+.chart-lg{height:320px}
+
+.rank-item{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--color-border)}
+.rank-item:last-child{border-bottom:none}
+.rank-num{font-family:var(--font-display);font-size:13px;font-weight:800;color:var(--color-gray);text-align:center}
+.rank-num.top{color:#FF6B00}
+.rank-name{font-size:12px;font-weight:600;color:var(--color-dark);margin-bottom:3px}
+.rank-sub{font-size:10px;color:var(--color-gray)}
+.rank-bar-bg{height:5px;background:var(--color-border);border-radius:3px;overflow:hidden;margin-top:4px}
+.rank-bar-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.rank-val{font-family:var(--font-display);font-size:15px;font-weight:800;text-align:right;white-space:nowrap}
+
+.tbl-wrap{overflow-x:auto;max-height:460px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#FF6B00 rgba(0,0,0,.06)}
+.tbl-wrap::-webkit-scrollbar{width:5px;height:5px}
+.tbl-wrap::-webkit-scrollbar-thumb{background:#FF6B00;border-radius:3px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl thead th{position:sticky;top:0;z-index:2;background:#2D2D44;color:#fff;padding:9px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;white-space:nowrap;border-right:1px solid rgba(255,255,255,.1)}
+.tbl thead th:last-child{border-right:none}
+.tbl thead th.sortable{cursor:pointer;user-select:none}
+.tbl thead th.sortable:hover{background:#3a3a56}
+.tbl thead th.sort-asc::after{content:' \25B2';font-size:9px}
+.tbl thead th.sort-desc::after{content:' \25BC';font-size:9px}
+.tbl tbody tr{border-bottom:1px solid var(--color-border)}
+.tbl tbody tr:hover{background:var(--color-bg);cursor:pointer}
+.tbl tbody td{padding:8px 12px;color:var(--color-dark);vertical-align:middle}
+.tbl td.center{text-align:center}
+
+#tabla-asesor tbody tr.row-verde{background:rgba(29,185,84,.09);box-shadow:inset 3px 0 0 #1DB954}
+#tabla-asesor tbody tr.row-amarillo{background:rgba(255,193,7,.12);box-shadow:inset 3px 0 0 #FFC107}
+#tabla-asesor tbody tr.row-rojo{background:rgba(217,43,43,.09);box-shadow:inset 3px 0 0 #D92B2B}
+
+.cap-badge{display:inline-flex;align-items:center;justify-content:center;min-width:44px;font-family:var(--font-display);font-weight:800;font-size:11px;padding:3px 8px;border-radius:20px}
+.cap-badge.verde{background:#e8f8f0;color:#138c3e}
+.cap-badge.amarillo{background:#fff4d6;color:#B8860B}
+.cap-badge.rojo{background:#fdeaea;color:#C0393B}
+.cap-badge.na{background:#f0f0f0;color:#999}
+
+.cap-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--color-gray);margin-top:8px}
+.cap-legend span{display:inline-flex;align-items:center;gap:5px}
+.cap-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px 20px;color:var(--color-gray);text-align:center}
+.spinner{width:32px;height:32px;border:3px solid var(--color-border);border-top-color:var(--color-yellow);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Modal */
+.am-overlay{position:fixed;inset:0;background:rgba(20,10,10,.55);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.am-overlay.open{display:flex}
+.am-dialog{background:var(--color-surface);border-radius:16px;max-width:640px;width:100%;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.am-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--color-border)}
+.am-head h3{font-family:var(--font-display);font-size:1.05rem;margin:0}
+.am-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--color-gray);line-height:1}
+.am-body{padding:18px 22px;overflow-y:auto}
+.am-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.am-kpi{background:var(--color-bg);border-radius:10px;padding:12px;text-align:center}
+.am-kpi b{display:block;font-family:var(--font-display);font-size:1.3rem}
+.am-kpi span{font-size:10px;color:var(--color-gray);text-transform:uppercase;letter-spacing:.06em}
+
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.row2,.row2-wide{grid-template-columns:1fr}}
+@media(max-width:600px){.kpis{grid-template-columns:1fr 1fr !important}.row2,.row2-wide{grid-template-columns:1fr}.chart-md{height:200px}.chart-lg{height:240px}}
+</style>
+<link rel="stylesheet" href="../css/dashboard-skin.css"/>
+<style id="d8-extras">
+.hero{flex-direction:column !important;align-items:stretch !important;gap:18px}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px 16px;align-items:end}
+.vac-fbox{display:flex;flex-direction:column;gap:6px;min-width:0}
+.vac-fbox > label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.85)}
+.hero .filtro-select,.hero .filtro-btn{
+  width:100%;box-sizing:border-box;
+  background:rgba(255,255,255,0.14) !important;
+  border:1px solid rgba(255,255,255,0.32) !important;
+  color:#fff !important;font-weight:700;
+  border-radius:999px !important;padding:10px 16px !important;
+  transition:background .2s,color .2s,border-color .2s;
+}
+.hero .filtro-select:focus{outline:none;border-color:#fff !important}
+.hero .filtro-select option{color:#1a1a1a;background:#fff}
+.hero .filtro-btn:hover{background:#fff !important;color:var(--hb-red) !important;border-color:#fff !important}
+.hero .filtro-select,
+.hero .filtro-btn{
+  background:rgba(255,255,255,0.78) !important;
+  border-color:var(--exec-line-strong,rgba(42,27,25,0.2)) !important;
+  color:var(--exec-ink,#181112) !important;
+  -webkit-text-fill-color:var(--exec-ink,#181112) !important;
+}
+.hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
+</style>
+<link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
+  <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
+</head>
+<body>
+<nav class="topbar">
+  <div class="topbar__brand">
+    <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+    <div>
+      <div class="topbar__title">Dashboards Ats</div>
+      <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
+    </div>
+  </div>
+  <div class="topbar__meta">
+    <a href="../index.html" class="topbar__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="hero hero--blue">
+    <div class="hero-top">
+      <div>
+        <h1>Capacidades 2026</h1>
+        <p>Avance de certificaciones y capacitaciones por asesor, puesto y tienda · Plaza Oaxaca</p>
+      </div>
+      <span class="hero-badge" id="corte-badge">⟳ Diario · Plaza Oaxaca</span>
+      <span id="hero-download" style="display:none"></span>
+    </div>
+    <div class="vac-filters">
+      <div class="vac-fbox">
+        <label>Asesor</label>
+        <div id="filtro-asesor"></div>
+      </div>
+      <div class="vac-fbox">
+        <label>Puesto</label>
+        <select class="filtro-select" id="filtro-puesto" onchange="applyFilters()">
+          <option value="">Todos los puestos</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>Certificación</label>
+        <select class="filtro-select" id="filtro-cert" onchange="applyFilters()">
+          <option value="">Todas las certificaciones</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>Filtros</label>
+        <button class="filtro-btn" onclick="limpiarFiltros()">✕ Limpiar</button>
+        <button class="filtro-btn" type="button" onclick="OXXO.handleDownloadButton(this, () => OXXO.downloadSheetTab(TAB, 'dashboard-8-capacidades.csv'))">Descargar base</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpis kpi-grid" id="kpi-section">
+    <div class="kpi-card"><div class="kpi-card__label">Cargando…</div><div class="kpi-card__value"><div class="spinner"></div></div></div>
+  </div>
+
+  <div class="row2 row2-wide">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">📊 Cumplimiento por Certificación<span class="info-tip" tabindex="0" data-tip="Porcentaje de completado (valor=1) sobre los empleados a los que aplica cada certificación (valor no vacío)."></span></div>
+        <span class="card-badge" id="badge-certs">— certificaciones</span>
+      </div>
+      <div class="chart-wrap chart-lg"><canvas id="chart-certs"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">👷 Cumplimiento por Puesto<span class="info-tip" tabindex="0" data-tip="Porcentaje promedio de completado agrupado por Puesto_Correcto."></span></div>
+      </div>
+      <div class="chart-wrap chart-lg"><canvas id="chart-puesto"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title">🧑‍💼 Cumplimiento por Asesor · %<span class="info-tip" tabindex="0" data-tip="Promedio de cumplimiento de todas las certificaciones aplicables, agrupado por asesor. Verde ≥80%, amarillo 50-79%, rojo &lt;50%. Clic en una fila para ver el detalle."></span></div>
+      <span class="card-badge" id="asesor-badge">— asesores</span>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl" id="tabla-asesor">
+        <thead><tr>
+          <th>Asesor</th><th class="center">Empleados</th><th class="center">Aplicables</th><th class="center">Completados</th><th class="center">% Cumplimiento</th>
+        </tr></thead>
+        <tbody><tr><td colspan="5"><div class="state-box"><div class="spinner"></div></div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="cap-legend">
+      <span><i style="background:#1DB954"></i> Verde ≥ 80%</span>
+      <span><i style="background:#FFC107"></i> Amarillo 50–79%</span>
+      <span><i style="background:#D92B2B"></i> Rojo &lt; 50%</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title">🔍 Detalle por Empleado<span class="info-tip" tabindex="0" data-tip="Listado fila por fila de Dashboard_8_Diario con los filtros activos aplicados (Asesor, Puesto, Certificación)."></span></div>
+      <span class="card-badge" id="row-count">— registros</span>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl" id="tabla-detalle">
+        <tbody><tr><td colspan="6"><div class="state-box"><div class="spinner"></div></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="dash-footer">
+    <div class="dash-footer__update"><div class="dash-footer__update-dot"></div>
+      Datos cargados: <span id="load-time">—</span></div>
+    <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
+  </div>
+</div>
+
+<!-- Modal detalle de asesor -->
+<div class="am-overlay" id="asesor-cap-modal" onclick="if(event.target===this)closeAsesorCapModal()">
+  <div class="am-dialog">
+    <div class="am-head">
+      <h3 id="am-title">Asesor</h3>
+      <button class="am-close" onclick="closeAsesorCapModal()">&times;</button>
+    </div>
+    <div class="am-body">
+      <div class="am-kpis" id="am-kpis"></div>
+      <div class="tbl-wrap" style="max-height:340px">
+        <table class="tbl" id="am-table">
+          <thead><tr><th>Certificación</th><th class="center">Aplicables</th><th class="center">Completados</th><th class="center">%</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script src="../js/config.js?v=20260805a"></script>
+  <script src="../js/core.js?v=20260806a"></script>
+<script src="../js/mascota-chat.js?v=20260805d"></script>
+<script>
+const TAB = OXXO.SHEETS_CONFIG.TABS.d8;
+
+const CERT_COLS = [
+  { key:'Promedio de Código de Ética 2026', label:'Código de Ética' },
+  { key:'Promedio de Seguridad en la persona 2026', label:'Seguridad en la Persona' },
+  { key:'Promedio de Cobro dls Sedes Mundialistas 2026', label:'Cobro Dls. Sedes Mundialistas' },
+  { key:'Promedio de Capacidad Tablero Amazon Counter', label:'Tablero Amazon Counter' },
+  { key:'Promedio de PLD2026Certificacion', label:'PLD 2026' },
+  { key:'Promedio de ModuloCercaSiempre2026', label:'Módulo Cerca Siempre' },
+  { key:'Promedio de Resultado Certificación Alimentos y Bebidas 2026', label:'Alimentos y Bebidas' },
+  { key:'Pan Horneado', label:'Pan Horneado' },
+];
+
+const ALIASES_D8 = {
+  plaza:   ['Plaza'],
+  asesor:  ['Asesor_Correcto','Asesor'],
+  unidad:  ['Unidad org.','Unidad org'],
+  cr:      ['Cr de tienda','Cr de Tienda','CR de Tienda'],
+  puesto:  ['Puesto_Correcto','Puesto'],
+  noPers:  ['Nº personal','N personal','No Personal'],
+  empleado:['Empleados','Empleado'],
+};
+function cleanKeyD8(str){ return String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function findRealKeyD8(row, aliases){ return OXXO.metricsFindKey(row, aliases); }
+let C = {};
+let CERT_REAL_KEYS = {}; // label-key -> real column name found in row
+function buildColsD8(sample){
+  const cols = {};
+  Object.entries(ALIASES_D8).forEach(([k,aliases]) => { cols[k] = findRealKeyD8(sample, aliases) || aliases[0]; });
+  CERT_COLS.forEach(c => { CERT_REAL_KEYS[c.key] = findRealKeyD8(sample, [c.key]) || c.key; });
+  return cols;
+}
+
+function capValue(row, certKey){
+  const raw = row[CERT_REAL_KEYS[certKey]];
+  if(raw === undefined || raw === null || String(raw).trim() === '') return null; // no aplica
+  const n = OXXO.metricsNum ? OXXO.metricsNum(raw) : parseFloat(String(raw).replace(',','.'));
+  return Number.isFinite(n) ? n : null;
+}
+function capColorPct(pct){
+  if(pct === null) return 'na';
+  if(pct >= 80) return 'verde';
+  if(pct >= 50) return 'amarillo';
+  return 'rojo';
+}
+
+let BASE_DATA = [];
+let chartCerts = null, chartPuesto = null;
+let SELECTED_ASESORES = null;
+let asesorFilterHandle = null;
+let ASESOR_STATS = {};
+
+function filteredData() {
+  let d = BASE_DATA;
+  const p = document.getElementById('filtro-puesto')?.value;
+  const cert = document.getElementById('filtro-cert')?.value;
+  if(SELECTED_ASESORES) d = d.filter(r => SELECTED_ASESORES.includes(r[C.asesor]));
+  if(p) d = d.filter(r => r[C.puesto] === p);
+  if(cert) d = d.filter(r => capValue(r, cert) !== null);
+  return d;
+}
+
+function computeCertStats(data){
+  return CERT_COLS.map(c => {
+    let aplic = 0, comp = 0;
+    data.forEach(r => { const v = capValue(r, c.key); if(v !== null){ aplic++; if(v >= 1) comp++; } });
+    return { ...c, aplic, comp, pct: aplic ? Math.round(comp/aplic*100) : null };
+  });
+}
+
+function computeAsesorStats(data){
+  const byAs = {};
+  data.forEach(r => {
+    const a = r[C.asesor] || 'Sin Asesor Asignado';
+    if(!byAs[a]) byAs[a] = { emps: new Set(), aplic: 0, comp: 0, porCert: {} };
+    byAs[a].emps.add(r[C.noPers] || r[C.empleado]);
+    CERT_COLS.forEach(c => {
+      const v = capValue(r, c.key);
+      if(v !== null){
+        byAs[a].aplic++;
+        if(!byAs[a].porCert[c.key]) byAs[a].porCert[c.key] = { aplic:0, comp:0 };
+        byAs[a].porCert[c.key].aplic++;
+        if(v >= 1){ byAs[a].comp++; byAs[a].porCert[c.key].comp++; }
+      }
+    });
+  });
+  const out = {};
+  Object.entries(byAs).forEach(([a,v]) => {
+    out[a] = { asesor:a, emps: v.emps.size, aplic: v.aplic, comp: v.comp, pct: v.aplic ? Math.round(v.comp/v.aplic*100) : 0, porCert: v.porCert };
+  });
+  return out;
+}
+
+function renderAll() {
+  const data = filteredData();
+
+  const totalEmps = new Set(data.map(r => r[C.noPers] || r[C.empleado])).size;
+  const certStats = computeCertStats(data);
+  const aplicTotal = certStats.reduce((s,c)=>s+c.aplic,0);
+  const compTotal = certStats.reduce((s,c)=>s+c.comp,0);
+  const pctGlobal = aplicTotal ? Math.round(compTotal/aplicTotal*100) : 0;
+  const critica = certStats.filter(c=>c.pct!==null).sort((a,b)=>a.pct-b.pct)[0];
+  const sinDatos = certStats.filter(c=>c.aplic===0).length;
+  const tiendas = new Set(data.map(r => r[C.unidad])).size;
+
+  document.getElementById('kpi-section').innerHTML = `
+    <div class="kpi-card azul">
+      <div class="kpi-card__label">Empleados<span class="info-tip" tabindex="0" data-tip="Empleados distintos (Nº personal) presentes en el tablero con los filtros activos."></span></div>
+      <div class="kpi-card__value">${totalEmps}</div>
+      <div class="kpi-card__delta neu">${data.length} registros</div>
+      <div class="kpi-card__icon">👥</div>
+    </div>
+    <div class="kpi-card ${pctGlobal>=80?'verde':pctGlobal>=50?'amarillo':'rojo'}">
+      <div class="kpi-card__label">Cumplimiento Global<span class="info-tip" tabindex="0" data-tip="Suma de certificaciones completadas (valor=1) sobre certificaciones aplicables (valor no vacío), de todas las columnas."></span></div>
+      <div class="kpi-card__value">${pctGlobal}%</div>
+      <div class="kpi-card__delta neu">${compTotal} / ${aplicTotal}</div>
+      <div class="kpi-card__icon">✅</div>
+    </div>
+    <div class="kpi-card rojo">
+      <div class="kpi-card__label">Certificación Más Crítica<span class="info-tip" tabindex="0" data-tip="La certificación con el menor % de cumplimiento entre las que tienen al menos un registro aplicable."></span></div>
+      <div class="kpi-card__value" style="font-size:1rem">${critica ? critica.label : '—'}</div>
+      <div class="kpi-card__delta neg">${critica && critica.pct!==null ? critica.pct+'%' : '—'}</div>
+      <div class="kpi-card__icon">🚨</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__label">Tiendas Cubiertas<span class="info-tip" tabindex="0" data-tip="Tiendas distintas (Unidad org.) presentes en el tablero con los filtros activos."></span></div>
+      <div class="kpi-card__value">${tiendas}</div>
+      <div class="kpi-card__delta neu">${sinDatos} certif. sin datos aún</div>
+      <div class="kpi-card__icon">🏪</div>
+    </div>`;
+
+  // ── Barras: cumplimiento por certificación ──
+  const certConDatos = certStats.filter(c=>c.aplic>0);
+  document.getElementById('badge-certs').textContent = certConDatos.length + ' con datos';
+  if(chartCerts) chartCerts.destroy();
+  chartCerts = new Chart(document.getElementById('chart-certs').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: certStats.map(c => OXXO.truncate(c.label,26)),
+      datasets: [{ data: certStats.map(c => c.pct===null?0:c.pct), backgroundColor: certStats.map(c => c.pct===null?'#ccc':(c.pct>=80?'#1DB954':c.pct>=50?'#FFC107':'#D92B2B')), borderColor:'rgba(255,255,255,.68)', borderWidth:1, borderRadius: 999, borderSkipped:false, barPercentage:.76, categoryPercentage:.72 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{display:false}, tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>' '+c.raw+'%'}} },
+      scales:{ x:{min:0,max:100,border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'},callback:v=>v+'%'}}, y:{border:{display:false},grid:{display:false},ticks:{color:'#5A4037',font:{family:'Barlow',size:11,weight:'900'}}} } }
+  });
+
+  // ── Dona: cumplimiento por puesto ──
+  const byPuesto = {};
+  data.forEach(r => {
+    const p = r[C.puesto] || 'Sin puesto';
+    if(!byPuesto[p]) byPuesto[p] = { aplic:0, comp:0 };
+    CERT_COLS.forEach(c => { const v = capValue(r, c.key); if(v!==null){ byPuesto[p].aplic++; if(v>=1) byPuesto[p].comp++; } });
+  });
+  const puestos = Object.entries(byPuesto).map(([k,v])=>({puesto:k,pct: v.aplic? Math.round(v.comp/v.aplic*100):0})).sort((a,b)=>b.pct-a.pct);
+  const pColors = ['#1DB954','#FF6B00','#0066CC','#8B4CF7','#9E9E9E'];
+  if(chartPuesto) chartPuesto.destroy();
+  chartPuesto = new Chart(document.getElementById('chart-puesto').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels:puestos.map(p=>p.puesto), datasets:[{data:puestos.map(p=>p.pct),backgroundColor:pColors,borderWidth:4,borderColor:'#FFF8EE',borderRadius:10,spacing:3,hoverOffset:6}] },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{legend:{position:'right',labels:{color:'#5A4037',usePointStyle:true,pointStyle:'circle',font:{family:'Barlow',size:10,weight:'800'},boxWidth:10}},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>c.label+': '+c.raw+'%'}}}}
+  });
+
+  // ── Tabla cumplimiento por asesor ──
+  ASESOR_STATS = computeAsesorStats(data);
+  const asesores = Object.values(ASESOR_STATS).sort((a,b)=>b.pct-a.pct);
+  document.getElementById('asesor-badge').textContent = asesores.length + ' asesores';
+  document.getElementById('tabla-asesor').querySelector('tbody').innerHTML = asesores.length===0
+    ? '<tr><td colspan="5"><div class="state-box">Sin datos</div></td></tr>'
+    : asesores.map(a => {
+        const color = capColorPct(a.pct);
+        return `<tr class="row-${color}" data-asesor="${escapeAttr(a.asesor)}" onclick="openAsesorCapModal('${escapeAttr(a.asesor)}')">
+          <td>${OXXO.truncate(a.asesor,26)}</td>
+          <td class="center">${a.emps}</td>
+          <td class="center">${a.aplic}</td>
+          <td class="center">${a.comp}</td>
+          <td class="center"><span class="cap-badge ${color}">${a.pct}%</span></td>
+        </tr>`;
+      }).join('');
+
+  // ── Tabla detalle ──
+  const rows = data.map(r => {
+    const certCells = CERT_COLS.map(c => {
+      const v = capValue(r, c.key);
+      const cls = v===null?'na':(v>=1?'verde':(v>0?'amarillo':'rojo'));
+      const txt = v===null?'N/A':(v>=1?'100%':Math.round(v*100)+'%');
+      return `<td class="center"><span class="cap-badge ${cls}" style="font-size:9px;min-width:auto;padding:2px 6px">${txt}</span></td>`;
+    }).join('');
+    return `<tr>
+      <td>${OXXO.truncate(r[C.asesor]||'—',20)}</td>
+      <td>${OXXO.truncate(r[C.empleado]||'—',24)}</td>
+      <td style="font-size:10px">${OXXO.truncate(r[C.puesto]||'—',16)}</td>
+      <td style="font-size:10px">${OXXO.truncate(r[C.unidad]||'—',18)}</td>
+      ${certCells}
+    </tr>`;
+  }).join('');
+  document.getElementById('tabla-detalle').innerHTML = `
+    <thead><tr>
+      <th>Asesor</th><th>Empleado</th><th>Puesto</th><th>Tienda</th>
+      ${CERT_COLS.map(c=>`<th class="center" style="font-size:9px">${c.label}</th>`).join('')}
+    </tr></thead>
+    <tbody>${rows}</tbody>`;
+  document.getElementById('row-count').textContent = `${data.length} registros`;
+
+  requestAnimationFrame(()=>{});
+}
+
+function escapeAttr(s){ return String(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+function openAsesorCapModal(asesor){
+  const s = ASESOR_STATS[asesor];
+  if(!s) return;
+  document.getElementById('am-title').textContent = asesor;
+  document.getElementById('am-kpis').innerHTML = `
+    <div class="am-kpi"><b>${s.emps}</b><span>Empleados</span></div>
+    <div class="am-kpi"><b>${s.pct}%</b><span>Cumplimiento</span></div>
+    <div class="am-kpi"><b>${s.comp}/${s.aplic}</b><span>Completadas</span></div>`;
+  document.getElementById('am-table').querySelector('tbody').innerHTML = CERT_COLS.map(c => {
+    const st = s.porCert[c.key];
+    if(!st || st.aplic===0) return `<tr><td>${c.label}</td><td class="center">0</td><td class="center">0</td><td class="center"><span class="cap-badge na">N/A</span></td></tr>`;
+    const pct = Math.round(st.comp/st.aplic*100);
+    return `<tr><td>${c.label}</td><td class="center">${st.aplic}</td><td class="center">${st.comp}</td><td class="center"><span class="cap-badge ${capColorPct(pct)}">${pct}%</span></td></tr>`;
+  }).join('');
+  document.getElementById('asesor-cap-modal').classList.add('open');
+}
+function closeAsesorCapModal(){ document.getElementById('asesor-cap-modal').classList.remove('open'); }
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeAsesorCapModal(); });
+
+function applyFilters(){ renderAll(); }
+
+function limpiarFiltros(){
+  ['filtro-puesto','filtro-cert'].forEach(id=>{ document.getElementById(id).value=''; });
+  if (asesorFilterHandle) asesorFilterHandle.reset(); else renderAll();
+}
+
+async function initDashboard() {
+  OXXO.renderDownloadButton('hero-download','d8');
+  let data = await OXXO.fetchSheetData(TAB);
+  if(data===null){['kpi-section','tabla-asesor','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
+  if(data.length===0){['kpi-section','tabla-asesor','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
+  C = buildColsD8(data[0]);
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
+  data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.unidad, crKey:C.cr }));
+  data = OXXO.filterValidTiendas(data, asesorCatalog, C.unidad, C.cr);
+  BASE_DATA = data;
+
+  document.getElementById('corte-badge').textContent = `⟳ Foto diaria · Plaza Oaxaca`;
+
+  const asesores = [...new Set(data.map(r=>r[C.asesor]).filter(Boolean))].sort();
+  const puestos  = [...new Set(data.map(r=>r[C.puesto]).filter(Boolean))].sort();
+
+  asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
+    onChange: (selected) => { SELECTED_ASESORES = selected; renderAll(); },
+  });
+  const selP = document.getElementById('filtro-puesto');
+  puestos.forEach(p=>{ const o=document.createElement('option');o.value=p;o.textContent=p;selP.appendChild(o); });
+  const selC = document.getElementById('filtro-cert');
+  CERT_COLS.forEach(c=>{ const o=document.createElement('option');o.value=c.key;o.textContent=c.label;selC.appendChild(o); });
+
+  renderAll();
+  OXXO.updateFooterTime('load-time');
+}
+document.addEventListener('DOMContentLoaded', initDashboard);
+</script>
+</body></html>
