@@ -1160,7 +1160,7 @@ function render(data){
         return `<div style="flex:0 1 30%;min-width:158px;max-width:240px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px 12px;border-radius:16px;background:rgba(0,0,0,.02);transition:transform .16s ease,box-shadow .16s ease" title="${p.plaza}: ${p.aprov.toFixed(2)}%" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 20px rgba(59,25,24,.10)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
           <svg viewBox="0 0 200 128" style="width:100%;max-width:188px;overflow:visible">
             <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c.main}"/><stop offset="1" stop-color="${c.dark}"/></linearGradient></defs>
-            <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="var(--color-border)" stroke-width="${sw}" stroke-linecap="round"/>
+            <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="#F2E6DE" stroke-width="${sw}" stroke-linecap="round"/>
             <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="url(#${gid})" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash} ${len.toFixed(1)}" style="transition:stroke-dasharray 1s cubic-bezier(.4,0,.2,1)"/>
             <line x1="${m1x}" y1="${m1y}" x2="${m2x}" y2="${m2y}" stroke="#3B1918" stroke-width="2" opacity=".5"/>
             <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#3B1918" stroke-width="3" stroke-linecap="round" style="transition:all 1s cubic-bezier(.4,0,.2,1)"/>
@@ -1807,6 +1807,18 @@ function limpiarFiltros(){
 
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAsesorModal(); });
 document.addEventListener('DOMContentLoaded', initDashboard);
+
+window.buildExcelSheets = async function(){
+  return [
+    { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
+    { name: 'Aprovechamiento por Plaza', rows: [...document.querySelectorAll('#tabla-plazas [title]')].map(el => {
+        const m = String(el.title||'').match(/^(.*):\s*([\d.]+)%$/);
+        return m ? { Plaza: m[1], 'Aprovechamiento %': Number(m[2]) } : null;
+      }).filter(Boolean) },
+    { name: 'Resumen por AT', rows: OXXO.scrapeHtmlTable('#tbl-at') },
+    { name: 'Detalle por Tienda', rows: OXXO.scrapeHtmlTable('#tbl-detalle') }
+  ];
+};
 </script>
 </body>
 </html>

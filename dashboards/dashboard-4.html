@@ -753,5 +753,12 @@ async function initDashboard() {
   OXXO.updateFooterTime('load-time');
 }
 document.addEventListener('DOMContentLoaded', initDashboard);
+
+window.buildExcelSheets = async function(){
+  return [
+    { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
+    { name: 'Detalle', rows: OXXO.scrapeHtmlTable('#tabla-detalle') }
+  ];
+};
 </script>
 </body></html>

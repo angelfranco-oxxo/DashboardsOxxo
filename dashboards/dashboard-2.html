@@ -1811,6 +1811,16 @@ window.addEventListener('oxxo-theme-change', () => {
   if (BASE_BAJAS_DATA.length && BAJAS_COLS) renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
 });
 document.addEventListener('DOMContentLoaded', initDashboard);
+
+window.buildExcelSheets = async function(){
+  return [
+    { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
+    { name: 'Compromiso', rows: OXXO.scrapeHtmlTable('#tabla-compromiso table') },
+    { name: 'Otras Plazas', rows: OXXO.scrapeHtmlTable('#tabla-plazas table') },
+    { name: 'Detalle de Bajas', rows: OXXO.scrapeHtmlTable('#tbl-detalle-bajas') },
+    { name: 'Denominaciones', rows: OXXO.scrapeHtmlTable('#tabla-denominaciones table') }
+  ];
+};
 </script>
 </body>
 </html>

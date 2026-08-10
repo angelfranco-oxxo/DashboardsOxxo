@@ -1224,6 +1224,13 @@ async function init(){
 
 document.addEventListener('DOMContentLoaded', init);
 window.addEventListener('oxxo-theme-change', ()=>{ /* charts update if needed */ });
+
+window.buildExcelSheets = async function(){
+  return [
+    { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
+    { name: 'TREO', rows: OXXO.scrapeHtmlTable('#main-tbl') }
+  ];
+};
 </script>
 </body>
 </html>
