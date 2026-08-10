@@ -649,7 +649,7 @@
 </div>
 
   <script src="../js/config.js?v=20260805a"></script>
-  <script src="../js/core.js?v=20260806a"></script>
+  <script src="../js/core.js?v=20260807a"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d2;
@@ -913,8 +913,13 @@ function setFilterBar(data, cols){
     if(!value){
       const allSelected = SELECTED_ASESORES && SELECTED_ASESORES.length === all.length;
       SELECTED_ASESORES = allSelected ? [] : [...all];
+    } else if(!SELECTED_ASESORES || SELECTED_ASESORES.length === all.length){
+      // Estado implicito "Todos": un clic en un asesor puntual selecciona SOLO ese,
+      // en vez de quitarlo del grupo completo (lo cual obligaba a deseleccionar
+      // uno por uno para quedarse con un solo asesor).
+      SELECTED_ASESORES = [value];
     } else {
-      const set = new Set(SELECTED_ASESORES || all);
+      const set = new Set(SELECTED_ASESORES);
       set.has(value) ? set.delete(value) : set.add(value);
       SELECTED_ASESORES = [...set];
     }
