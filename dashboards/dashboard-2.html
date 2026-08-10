@@ -1787,12 +1787,18 @@ async function initDashboard(){
   // asi las bajas se agrupan bajo el asesor que realmente tiene esa tienda hoy,
   // igual que el resto de dashboards. Si la tienda no esta en el catalogo (unidades
   // OPERACIONES/ENTRENAMIENTO), se conserva el asesor original. El renombre
-  // Anadelia->Timoteo va incluido dentro de resolveAsesor.
+  // Anadelia->Timoteo va incluido dentro de resolveAsesor. "Sin Asesor Asignado" se
+  // atribuye directamente a Timoteo (igual que Dashboard 1), sin pasar por catalogo.
   rawSinTimoteo.forEach(row => {
-    if(cols.asesor) row[cols.asesor] = OXXO.resolveAsesor(asesorCatalog, {
+    if(!cols.asesor) return;
+    if(getAsesorValue(row, cols) === SIN_ASESOR){ row[cols.asesor] = 'Timoteo Antonio Perez'; return; }
+    row[cols.asesor] = OXXO.resolveAsesor(asesorCatalog, {
       tienda: cols.tienda ? row[cols.tienda] : '',
       asesor: row[cols.asesor],
     });
+    // El catalogo mismo puede devolver "Sin Asesor Asignado" para tiendas sin
+    // AT vigente: atribuir tambien esas a Timoteo, no solo el valor crudo original.
+    if(getAsesorValue(row, cols) === SIN_ASESOR) row[cols.asesor] = 'Timoteo Antonio Perez';
   });
   const data = filterData(rawSinTimoteo, cols);
   if(!data.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }
