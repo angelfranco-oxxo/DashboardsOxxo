@@ -2671,6 +2671,14 @@ document.addEventListener('DOMContentLoaded', () => {
   initDashboard();
 });
 window.addEventListener('resize', forceKpiLayout);
+
+window.buildExcelSheets = async function(){
+  return [
+    { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
+    { name: 'Vacantes por Asesor', rows: OXXO.scrapeHtmlTable('#vacantes-asesor-table table') },
+    { name: 'Detalle por Tienda', rows: OXXO.scrapeHtmlTable('#tabla-detalle table') }
+  ];
+};
 </script>
 </body>
 </html>

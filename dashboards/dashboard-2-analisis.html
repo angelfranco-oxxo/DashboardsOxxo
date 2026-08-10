@@ -441,6 +441,15 @@ async function init(){
 }
 
 init();
+
+window.buildExcelSheets = async function(){
+  return [
+    { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
+    { name: 'Antiguedad', rows: OXXO.scrapeHtmlTable('#tabla-antiguedad table') },
+    { name: 'Correlacion', rows: OXXO.scrapeHtmlTable('#tabla-correlacion table') },
+    { name: 'Plan de Accion', rows: OXXO.scrapeHtmlTable('#tabla-plan table') }
+  ];
+};
 </script>
 </body>
 </html>

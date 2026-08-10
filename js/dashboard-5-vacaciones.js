@@ -618,3 +618,10 @@ window.addEventListener('oxxo-theme-change', () => {
 });
 
 document.addEventListener('DOMContentLoaded', initDashboard);
+
+window.buildExcelSheets = async function(){
+  return [
+    { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
+    { name: 'Detalle', rows: (state.rows || []).map(r => ({ ...r })) }
+  ];
+};

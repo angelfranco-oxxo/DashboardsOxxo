@@ -155,6 +155,111 @@ async function handleDownloadButton(button, task) {
   }
 }
 
+const XLSX_CDN = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+let xlsxPromise = null;
+
+function loadXLSXLib() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (!xlsxPromise) {
+    xlsxPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = XLSX_CDN;
+      script.async = true;
+      script.onload = () => window.XLSX ? resolve(window.XLSX) : reject(new Error('XLSX no disponible'));
+      script.onerror = () => reject(new Error('No se pudo cargar XLSX'));
+      document.head.appendChild(script);
+    });
+  }
+  return xlsxPromise;
+}
+
+// Nombres de hoja de Excel: maximo 31 caracteres, sin : \ / ? * [ ]
+function safeSheetName(name, used) {
+  let base = String(name || 'Hoja').replace(/[:\\/?*[\]]/g, ' ').trim().slice(0, 31) || 'Hoja';
+  let candidate = base, n = 2;
+  while (used.has(candidate.toLowerCase())) {
+    const suffix = ' (' + n++ + ')';
+    candidate = base.slice(0, 31 - suffix.length) + suffix;
+  }
+  used.add(candidate.toLowerCase());
+  return candidate;
+}
+
+// sheets: [{ name, rows: [{...}] }, ...]. Cada entrada se vuelve una hoja del Excel
+// con json_to_sheet (encabezados = llaves del primer objeto de cada fila).
+async function downloadDashboardExcel(sheets, filename) {
+  const XLSX = await loadXLSXLib();
+  const wb = XLSX.utils.book_new();
+  const used = new Set();
+  (sheets || []).forEach(sheet => {
+    const rows = Array.isArray(sheet?.rows) ? sheet.rows : [];
+    const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ 'Sin datos': '' }]);
+    XLSX.utils.book_append_sheet(wb, ws, safeSheetName(sheet?.name, used));
+  });
+  XLSX.writeFile(wb, filename || ('dashboard-' + timestampForFile() + '.xlsx'));
+}
+
+// Convierte las tarjetas KPI ya renderizadas (.kpi-card dentro de containerId) en filas
+// {Indicador, Valor} para una hoja de Excel, sin duplicar los calculos de cada dashboard.
+function scrapeKpiCards(containerId) {
+  const root = document.getElementById(containerId);
+  if (!root) return [];
+  return [...root.querySelectorAll('.kpi-card')].map(card => ({
+    Indicador: card.querySelector('.kpi-card__label')?.childNodes[0]?.textContent.trim()
+      || card.querySelector('.kpi-card__label')?.textContent.trim() || '',
+    Valor: card.querySelector('.kpi-card__value')?.textContent.trim() || ''
+  })).filter(r => r.Indicador);
+}
+
+// Convierte una tabla HTML ya renderizada (thead th = encabezados, tbody tr/td = filas)
+// en un arreglo de objetos para una hoja de Excel.
+function scrapeHtmlTable(selector) {
+  const table = document.querySelector(selector);
+  if (!table) return [];
+  const headers = [...table.querySelectorAll('thead th')].map((th, i) => th.textContent.trim().replace(/\s+/g, ' ') || ('Columna ' + (i + 1)));
+  if (!headers.length) return [];
+  return [...table.querySelectorAll('tbody tr')].map(tr => {
+    const row = {};
+    [...tr.children].forEach((td, i) => { if (headers[i]) row[headers[i]] = td.textContent.trim().replace(/\s+/g, ' '); });
+    return row;
+  }).filter(row => Object.values(row).some(v => v !== ''));
+}
+
+function initExcelExportControls() {
+  if (!/\/dashboards\//i.test(location.pathname.replace(/\\/g, '/'))) return;
+  if (typeof window.buildExcelSheets !== 'function') return; // dashboard no define exportacion Excel
+  if (document.querySelector('.excel-export-trigger')) return;
+  const meta = document.querySelector('.topbar__meta') || document.querySelector('.topbar');
+  if (!meta) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'topbar__back excel-export-trigger png-export-ui';
+  button.textContent = 'Excel';
+  button.title = 'Descargar el dashboard completo en Excel (una hoja por tabla)';
+  button.addEventListener('click', async () => {
+    const original = button.textContent;
+    button.disabled = true; button.textContent = 'Generando...';
+    try {
+      const sheets = await window.buildExcelSheets();
+      if (!sheets || !sheets.length) throw new Error('Sin datos para exportar');
+      await downloadDashboardExcel(sheets, safeFileName(getDashboardSlug()) + '-' + timestampForFile() + '.xlsx');
+      button.textContent = 'Descargado';
+    } catch (error) {
+      console.error('[OXXO] Error exportando Excel:', error);
+      button.textContent = 'Error al exportar';
+    } finally {
+      setTimeout(() => { button.textContent = original; button.disabled = false; }, 1400);
+    }
+  });
+  meta.appendChild(button);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initExcelExportControls);
+} else {
+  initExcelExportControls();
+}
+
 const HTML2CANVAS_CDN = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
 let html2CanvasPromise = null;
 
@@ -1938,6 +2043,9 @@ window.OXXO = {
   downloadSheetTab,
   downloadElementAsPNG,
   initPngExportControls,
+  downloadDashboardExcel,
+  scrapeKpiCards,
+  scrapeHtmlTable,
   rowsToCSV,
   downloadRowsAsCSV,
   handleDownloadButton,
