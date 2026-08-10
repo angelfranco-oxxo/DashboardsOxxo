@@ -710,7 +710,7 @@
 </div>
 
   <script src="../js/config.js?v=20260805a"></script>
-  <script src="../js/core.js?v=20260806a"></script>
+  <script src="../js/core.js?v=20260807a"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d3;
@@ -1544,7 +1544,11 @@ function bindAsesorChecklist(){
     const btn = e.target.closest('[data-asesor]'); if(!btn) return;
     const value = btn.dataset.asesor;
     if(!value){ setSelectedAsesores(null); return; }
-    let current = selectedAsesorValues ? [...selectedAsesorValues] : [...asesorOptionsData];
+    // Si esta en el estado implicito "Todos" (selectedAsesorValues === null), un clic en un
+    // asesor puntual selecciona SOLO ese, en vez de solo quitarlo del grupo completo (lo cual
+    // obligaba a deseleccionar uno por uno para quedarse con un solo asesor).
+    if(selectedAsesorValues === null){ setSelectedAsesores([value]); return; }
+    let current = [...selectedAsesorValues];
     current = current.includes(value) ? current.filter(v => v !== value) : [...current, value];
     if(current.length === asesorOptionsData.length) setSelectedAsesores(null);
     else setSelectedAsesores(current);

@@ -1858,9 +1858,16 @@ function mountAsesorFilter(rootId, values, options = {}) {
       selected = allSelected ? [] : allValues.slice();
     } else {
       const value = optBtn.dataset.value;
-      const set = new Set(selected);
-      if (set.has(value)) set.delete(value); else set.add(value);
-      selected = allValues.filter((v) => set.has(v));
+      // Si actualmente esta todo seleccionado (estado implicito "Todos"), un clic en un
+      // asesor puntual selecciona SOLO ese (en vez de solo quitarlo del grupo completo,
+      // lo cual obligaba a deseleccionar uno por uno para quedarse con uno solo).
+      if (selected.length === allValues.length) {
+        selected = [value];
+      } else {
+        const set = new Set(selected);
+        if (set.has(value)) set.delete(value); else set.add(value);
+        selected = allValues.filter((v) => set.has(v));
+      }
     }
     renderOptions(search.value);
     emitChange();
