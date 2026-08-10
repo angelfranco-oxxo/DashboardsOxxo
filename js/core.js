@@ -307,6 +307,27 @@ function findPngTargets() {
   return targets.slice(0, 24);
 }
 
+// html2canvas no soporta backdrop-filter: cualquier elemento con blur de fondo (tooltips
+// info-tip, overlays del hero, etc.) se pinta como una mancha gris solida en la captura.
+// Workaround: apagar el backdrop-filter en todo el arbol justo antes de capturar y
+// restaurarlo despues (no afecta lo que ve el usuario, solo el momento de la captura).
+function disableBackdropFilters(root) {
+  const all = [root, ...root.querySelectorAll('*')];
+  const restores = [];
+  all.forEach((el) => {
+    const cs = window.getComputedStyle(el);
+    if ((cs.backdropFilter && cs.backdropFilter !== 'none') || (cs.webkitBackdropFilter && cs.webkitBackdropFilter !== 'none')) {
+      restores.push({ el, backdropFilter: el.style.backdropFilter, webkitBackdropFilter: el.style.webkitBackdropFilter });
+      el.style.setProperty('backdrop-filter', 'none', 'important');
+      el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+    }
+  });
+  return () => restores.forEach(({ el, backdropFilter, webkitBackdropFilter }) => {
+    el.style.backdropFilter = backdropFilter;
+    el.style.webkitBackdropFilter = webkitBackdropFilter;
+  });
+}
+
 // html2canvas clona el DOM para capturarlo; con canvases de Chart.js (gradientes, escala de
 // pixel propia) esa clonacion puede colgarse o salir en blanco. Workaround: sustituir cada
 // <canvas> por una <img> de su bitmap actual justo antes de capturar, y restaurar despues.
@@ -335,6 +356,7 @@ async function downloadElementAsPNG(element, label = 'captura') {
   document.body.classList.add('png-exporting');
   element.classList.add('png-export-target');
   const restoreCanvases = swapCanvasesForImages(element);
+  const restoreBackdrops = disableBackdropFilters(element);
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   try {
     const canvas = await html2canvas(element, {
@@ -351,6 +373,7 @@ async function downloadElementAsPNG(element, label = 'captura') {
     downloadBlob(blob, filename, 'image/png');
   } finally {
     restoreCanvases();
+    restoreBackdrops();
     element.classList.remove('png-export-target');
     document.body.classList.remove('png-exporting');
   }
