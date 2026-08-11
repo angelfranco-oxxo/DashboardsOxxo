@@ -181,28 +181,27 @@
     const motivoKey = K(h, ['Motivo', 'Denominación Motivo', 'Denominacion Motivo']);
     const cat = await OXXO.loadAsesorCatalog();
 
+    // Solo se descartan filas ya etiquetadas como Timoteo en crudo (para no
+    // reprocesarlas); un Asesor vacio se deja pasar, resolveAsesorD1 abajo ya
+    // sabe convertirlo en Timoteo (o en 'Sin Asesor Asignado' si la tienda es
+    // Entrenamiento/Operaciones).
     let base = raw.filter(r => {
-      // Entrenamiento/Operaciones no traen AT real y a veces llegan con Asesor
-      // vacio: se conservan igual, quedan como 'Sin Asesor Asignado' mas abajo.
-      if (OXXO.metricsIsTiendaEntrenamientoOperacionesD2(V(r, tiendaKey))) return true;
       const a = String(V(r, asesorKey) || '').trim();
-      return a && OXXO.metricsNormText(a).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ';
+      return OXXO.metricsNormText(a).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ';
     });
     base = OXXO.metricsFilterBajasD2(base, { medidaKey, plazaKey });
 
     const { mes, rows: rowsMes } = OXXO.metricsFilterLatestMonth(base, r => OXXO.metricsRowMonthKeyD2(r, mesKey, fechaKey));
     // dashboard-2.html arranca con defaultAsesorSelection(), que EXCLUYE
     // 'Sin Asesor Asignado' del total mostrado. Sin replicarlo, el chat
-    // contaba esas bajas de mas (27 vs las 23 del KPI real). Las tiendas de
-    // Entrenamiento/Operaciones tampoco tienen AT real: quedan como 'Sin
-    // Asesor Asignado' (sin fusionarse en Timoteo, igual que initDashboard()
-    // de dashboard-2.html) y por lo tanto se excluyen aqui tambien.
+    // contaba esas bajas de mas (27 vs las 23 del KPI real). resolveAsesorD1
+    // aplica la regla completa (Sin Asesor -> Timoteo, salvo Entrenamiento/
+    // Operaciones que se queda con su propio 'Sin Asesor Asignado'), y ese
+    // bucket se excluye aqui tambien, igual que en el dashboard real.
     const conAsesor = rowsMes
       .map(r => ({
         r,
-        asesor: OXXO.metricsIsTiendaEntrenamientoOperacionesD2(V(r, tiendaKey))
-          ? 'Sin Asesor Asignado'
-          : OXXO.resolveAsesor(cat, { tienda: V(r, tiendaKey), asesor: V(r, asesorKey) }),
+        asesor: OXXO.resolveAsesorD1(cat, { tienda: V(r, tiendaKey), asesor: V(r, asesorKey) }),
       }))
       .filter(x => !norm(x.asesor).includes('sin asesor'));
     const rows = conAsesor.map(x => x.r);

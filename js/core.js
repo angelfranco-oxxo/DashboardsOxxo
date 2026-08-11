@@ -1305,7 +1305,14 @@ function metricsIsSinAsesorD1(value) {
   const t = metricsNormText(value).replace(/[^A-Z]/g, '');
   return !t || t.includes('SINASESOR') || t.includes('NOASIGNADO');
 }
+// Regla general (todos los dashboards): toda tienda "Sin Asesor Asignado"
+// se atribuye a Timoteo Antonio Perez, EXCEPTO las unidades de Entrenamiento/
+// Operaciones (no son tiendas operativas reales) que se quedan con su propio
+// "Sin Asesor Asignado" en vez de sumarse a Timoteo. Este chequeo va primero
+// y sin pasar por catalogo: da igual lo que diga el asesor crudo o el
+// catalogo para esas unidades.
 function resolveAsesorD1(catalog, { cr='', tienda='', asesor='' } = {}) {
+  if (metricsIsTiendaEntrenamientoOperacionesD2(tienda)) return 'Sin Asesor Asignado';
   if (metricsIsSinAsesorD1(asesor)) return 'Timoteo Antonio Perez';
   // El catalogo mismo puede devolver "Sin Asesor Asignado" para tiendas sin
   // AT vigente (no solo el valor crudo original): esas tambien van a Timoteo.
@@ -1313,9 +1320,12 @@ function resolveAsesorD1(catalog, { cr='', tienda='', asesor='' } = {}) {
   if (metricsIsSinAsesorD1(resolved)) return 'Timoteo Antonio Perez';
   return resolved;
 }
+// Todos los consumidores de catalogo (Dashboard 4, 6, 8, etc.) pasan por
+// resolveAsesorD1 para heredar la regla de arriba, no solo el renombre
+// Anadelia->Timoteo que hacia resolveAsesor() por si solo.
 function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) {
   if (!row || !asesorKey) return row;
-  const corrected = resolveAsesor(catalog, { cr: crKey ? row[crKey] : '', tienda: tiendaKey ? row[tiendaKey] : '', asesor: row[asesorKey] });
+  const corrected = resolveAsesorD1(catalog, { cr: crKey ? row[crKey] : '', tienda: tiendaKey ? row[tiendaKey] : '', asesor: row[asesorKey] });
   if (corrected) row[asesorKey] = corrected;
   return row;
 }
@@ -1784,8 +1794,9 @@ async function metricsD1Rows() {
     .filter(r => isTiendaValid(asesorCatalog, metricsVal(r, tiendaKey), metricsVal(r, crKey)))
     .map(r => {
       const copy = { ...r };
-      if (metricsIsSinAsesorD1(metricsVal(copy, asesorKey))) copy[asesorKey] = 'Timoteo Antonio Perez';
-      else applyAsesorCatalog(copy, asesorCatalog, { asesorKey, tiendaKey, crKey });
+      // applyAsesorCatalog ya aplica la regla completa (Sin Asesor -> Timoteo,
+      // salvo Entrenamiento/Operaciones), no hace falta el chequeo previo.
+      applyAsesorCatalog(copy, asesorCatalog, { asesorKey, tiendaKey, crKey });
       return copy;
     });
   const base = metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });

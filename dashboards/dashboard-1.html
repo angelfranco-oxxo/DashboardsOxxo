@@ -1673,9 +1673,9 @@ function asesorCanon(name){
   return t;
 }
 function asesorD1(catalog, { cr='', tienda='', asesor='' } = {}){
-  const original=asesorCanon(asesor);
-  if(original===SIN_ASESOR) return 'Timoteo Antonio Perez';
-  return OXXO.resolveAsesor(catalog, { cr, tienda, asesor: original });
+  // OXXO.resolveAsesorD1 ya aplica la regla completa: Sin Asesor -> Timoteo,
+  // salvo Entrenamiento/Operaciones que se quedan con Sin Asesor Asignado.
+  return OXXO.resolveAsesorD1(catalog, { cr, tienda, asesor });
 }
 function buildAsesorOptions(){
   const set=new Set(allData.map(r=>asesorCanon(r.asesor)));
