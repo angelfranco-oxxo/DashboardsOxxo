@@ -990,8 +990,20 @@ function getTemporalidad(row, cols){
   if(d <= 365) return '6 - 12 meses';
   return '> 1 año';
 }
+// Unidades de Entrenamiento/Operaciones (no son tiendas operativas reales):
+// sus bajas nunca deben contarse en Dashboard 2. Cubre tanto los nombres
+// actuales como cualquier variante futura con el mismo patron (numero
+// romano/arabigo al final).
+function isTiendaExcluidaD2(tienda){
+  const t = cleanText(tienda);
+  if(/^ENTRENAMIENTO OAXACA(\s+(I|II|III|IV|V|VI|VII|VIII|IX|X|\d+))?$/.test(t)) return true;
+  if(/^OPERACIONES\s+\d+\s+OAXACA$/.test(t)) return true;
+  return false;
+}
 function filterData(data, cols){
   let rows = data.filter(r => Object.values(r).some(v => String(v||'').trim() !== ''));
+  // Excluir Entrenamiento/Operaciones: no son tiendas operativas reales.
+  if(cols.tienda) rows = rows.filter(r => !isTiendaExcluidaD2(val(r, cols, 'tienda')));
   // Para base cruda: quedarse solo con movimientos de BAJA.
   if(cols.medida){
     const bajas = rows.filter(r => cleanText(val(r, cols, 'medida')).includes('BAJA'));
