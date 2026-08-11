@@ -1078,7 +1078,7 @@ function renderTotalChart(labels, values){
 }
 
 const COMPROMISOS_AT = [
-  {id:'anadelia', nombre:'Anadelia H.', full:'Anadelia Hernandez Santiago', comp:4},
+  {id:'timoteo', nombre:'Timoteo A.P.', full:'Timoteo Antonio Perez', comp:4},
   {id:'ernesto', nombre:'Ernesto C.M.', full:'Ernesto Cruz Márquez', comp:4},
   {id:'hector', nombre:'Hector D. R.G.', full:'Hector Demetrio Reyes Galo', comp:4},
   {id:'jordan', nombre:'Jordan V.T.', full:'Jordan Vazquez Toala', comp:4},
@@ -1093,7 +1093,11 @@ const COMPROMISOS_AT = [
 
 function asesorId(nombre){
   const n = cleanText(nombre);
-  if(n.includes('ANADELIA')) return 'anadelia';
+  // Anadelia y "Sin Asesor Asignado" quedan fusionados en Timoteo desde el
+  // resto del dashboard (ver initDashboard): esta tabla debe reconocerlo con
+  // el mismo nombre, si no sus bajas quedaban excluidas por completo (bucket
+  // 'otro', descartado) y la fila "Anadelia" se congelaba siempre en 0.
+  if(n.includes('TIMOTEO')) return 'timoteo';
   if(n.includes('ERNESTO')) return 'ernesto';
   if(n.includes('HECTOR')) return 'hector';
   if(n.includes('JORDAN')) return 'jordan';

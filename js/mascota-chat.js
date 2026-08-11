@@ -69,7 +69,12 @@
     return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
   }
-  const has = (t, ...words) => words.some(w => t.includes(w));
+  // Coincidencia por palabra/frase completa, no por substring suelto: con
+  // includes() plano, la keyword corta 'te' (Tiempo Extra) hacia match dentro
+  // de "cuén-te-me", enviando preguntas sin sentido al dashboard equivocado.
+  // t y w ya vienen normalizados (norm()), asi que envolver en espacios basta.
+  const hasWord = (t, w) => (' ' + t + ' ').includes(' ' + w + ' ');
+  const has = (t, ...words) => words.some(w => hasWord(t, w));
 
   // Nombre corto para rankings ("Laura Alejandra Moreno Mayoral" -> "Laura Moreno")
   function shortName(full) {
@@ -359,7 +364,7 @@
     if (has(t, 'aprovechamiento', 'estructura', 'equipo completo', 'ec ', 'cobertura')) return answerEstructura();
 
     // Navegacion
-    const dash = DASHBOARDS.find(d => d.kw.some(k => t.includes(k)));
+    const dash = DASHBOARDS.find(d => d.kw.some(k => hasWord(t, k)));
     if (dash) return { html: `Eso lo ves en ${linkTo(dash)} 👉` };
     if (has(t, 'dashboard', 'donde veo', 'llevame', 'abrir', 'link', 'liga')) {
       return { html: `Estos son los dashboards:${listHTML(DASHBOARDS.map(linkTo))}` };
