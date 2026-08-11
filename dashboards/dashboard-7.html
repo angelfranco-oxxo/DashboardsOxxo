@@ -1094,7 +1094,9 @@ document.querySelectorAll('#main-tbl thead th[data-col]').forEach(th=>{
 // SAP/Activos/Vacantes se recalculan desde Dashboard_1_Diario (estructura diaria)
 // usando la foto mensual mas reciente: SAP = conteo de posiciones por tienda, Activos =
 // filas con Empleados, Vacantes = posiciones sin Empleados. Si una tienda no cruza por CR
-// o nombre, se conserva el dato original de TREO para no romper el dashboard.
+// o nombre, se conserva el dato original de TREO para no romper el dashboard. Las posiciones
+// de Incapacidad (Ayudante/Encargado/Lider Incapacidad) se excluyen del conteo por completo:
+// no cuentan como SAP ni como Activo, TREO no las considera parte de la estructura.
 function d7NormId(value){ return String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,''); }
 function d7NormStore(value){ return cleanKey(String(value||'').replace(/^OXXO\s+/i,'').trim()); }
 function d7MonthKey(row){
@@ -1129,6 +1131,11 @@ async function buildEstructuraDiaria(){
     const cr = d7NormId(pickField(row, ['cr tienda','cr','id tienda','id_tienda']));
     const tiendaKey = d7NormStore(tienda);
     if(!cr && !tiendaKey) return;
+    // Posiciones de Incapacidad (Ayudante/Encargado/Lider Incapacidad) no son
+    // estructura real para TREO: se excluyen del conteo por completo (ni SAP
+    // ni Activos), no solo se restan como vacantes.
+    const puesto = pickField(row, ['descripcion de posicion','descripcion posicion','puesto']);
+    if(cleanKey(puesto).includes('incapacidad')) return;
     const empleado = row[empleadoHeader];
     if(String(empleado||'').trim()) empleadosDetectados++;
     const inc = target => {
