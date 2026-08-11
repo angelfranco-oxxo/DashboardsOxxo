@@ -183,7 +183,7 @@
 
     let base = raw.filter(r => {
       // Entrenamiento/Operaciones no traen AT real y a veces llegan con Asesor
-      // vacio: se conservan igual, se atribuyen a Timoteo mas abajo.
+      // vacio: se conservan igual, quedan como 'Sin Asesor Asignado' mas abajo.
       if (OXXO.metricsIsTiendaEntrenamientoOperacionesD2(V(r, tiendaKey))) return true;
       const a = String(V(r, asesorKey) || '').trim();
       return a && OXXO.metricsNormText(a).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ';
@@ -194,14 +194,14 @@
     // dashboard-2.html arranca con defaultAsesorSelection(), que EXCLUYE
     // 'Sin Asesor Asignado' del total mostrado. Sin replicarlo, el chat
     // contaba esas bajas de mas (27 vs las 23 del KPI real). Las tiendas de
-    // Entrenamiento/Operaciones no pasan por catalogo: se atribuyen directo
-    // a Timoteo (igual que initDashboard() de dashboard-2.html), en vez de
-    // quedar como 'sin asesor' y perderse del conteo.
+    // Entrenamiento/Operaciones tampoco tienen AT real: quedan como 'Sin
+    // Asesor Asignado' (sin fusionarse en Timoteo, igual que initDashboard()
+    // de dashboard-2.html) y por lo tanto se excluyen aqui tambien.
     const conAsesor = rowsMes
       .map(r => ({
         r,
         asesor: OXXO.metricsIsTiendaEntrenamientoOperacionesD2(V(r, tiendaKey))
-          ? 'Timoteo Antonio Perez'
+          ? 'Sin Asesor Asignado'
           : OXXO.resolveAsesor(cat, { tienda: V(r, tiendaKey), asesor: V(r, asesorKey) }),
       }))
       .filter(x => !norm(x.asesor).includes('sin asesor'));
