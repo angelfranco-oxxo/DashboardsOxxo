@@ -182,6 +182,9 @@
     const cat = await OXXO.loadAsesorCatalog();
 
     let base = raw.filter(r => {
+      // Entrenamiento/Operaciones no traen AT real y a veces llegan con Asesor
+      // vacio: se conservan igual, se atribuyen a Timoteo mas abajo.
+      if (OXXO.metricsIsTiendaEntrenamientoOperacionesD2(V(r, tiendaKey))) return true;
       const a = String(V(r, asesorKey) || '').trim();
       return a && OXXO.metricsNormText(a).replace(/[^A-Z]/g, '') !== 'TIMOTEOANTONIOPEREZ';
     });
@@ -190,9 +193,17 @@
     const { mes, rows: rowsMes } = OXXO.metricsFilterLatestMonth(base, r => OXXO.metricsRowMonthKeyD2(r, mesKey, fechaKey));
     // dashboard-2.html arranca con defaultAsesorSelection(), que EXCLUYE
     // 'Sin Asesor Asignado' del total mostrado. Sin replicarlo, el chat
-    // contaba esas bajas de mas (27 vs las 23 del KPI real).
+    // contaba esas bajas de mas (27 vs las 23 del KPI real). Las tiendas de
+    // Entrenamiento/Operaciones no pasan por catalogo: se atribuyen directo
+    // a Timoteo (igual que initDashboard() de dashboard-2.html), en vez de
+    // quedar como 'sin asesor' y perderse del conteo.
     const conAsesor = rowsMes
-      .map(r => ({ r, asesor: OXXO.resolveAsesor(cat, { tienda: V(r, tiendaKey), asesor: V(r, asesorKey) }) }))
+      .map(r => ({
+        r,
+        asesor: OXXO.metricsIsTiendaEntrenamientoOperacionesD2(V(r, tiendaKey))
+          ? 'Timoteo Antonio Perez'
+          : OXXO.resolveAsesor(cat, { tienda: V(r, tiendaKey), asesor: V(r, asesorKey) }),
+      }))
       .filter(x => !norm(x.asesor).includes('sin asesor'));
     const rows = conAsesor.map(x => x.r);
     const rank = rankBy(conAsesor, x => x.asesor);
