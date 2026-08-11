@@ -991,10 +991,12 @@ function getTemporalidad(row, cols){
   return '> 1 año';
 }
 // Unidades de Entrenamiento/Operaciones (no son tiendas operativas reales):
-// sus bajas nunca deben contarse en Dashboard 2. Cubre tanto los nombres
+// sus bajas sí se cuentan en Dashboard 2, pero se atribuyen siempre a
+// "Sin Asesor Asignado" (que luego se fusiona en Timoteo) en vez de a un AT,
+// ya que ninguna tiene un asesor real asignado. Cubre tanto los nombres
 // actuales como cualquier variante futura con el mismo patron (numero
 // romano/arabigo al final).
-function isTiendaExcluidaD2(tienda){
+function isTiendaEntrenamientoOperacionesD2(tienda){
   const t = cleanText(tienda);
   if(/^ENTRENAMIENTO OAXACA(\s+(I|II|III|IV|V|VI|VII|VIII|IX|X|\d+))?$/.test(t)) return true;
   if(/^OPERACIONES\s+\d+\s+OAXACA$/.test(t)) return true;
@@ -1002,8 +1004,6 @@ function isTiendaExcluidaD2(tienda){
 }
 function filterData(data, cols){
   let rows = data.filter(r => Object.values(r).some(v => String(v||'').trim() !== ''));
-  // Excluir Entrenamiento/Operaciones: no son tiendas operativas reales.
-  if(cols.tienda) rows = rows.filter(r => !isTiendaExcluidaD2(val(r, cols, 'tienda')));
   // Para base cruda: quedarse solo con movimientos de BAJA.
   if(cols.medida){
     const bajas = rows.filter(r => cleanText(val(r, cols, 'medida')).includes('BAJA'));
@@ -1801,12 +1801,14 @@ async function initDashboard(){
   const rawSinTimoteo = raw.filter(row => cleanKey(val(row, cols, 'asesor', '')) !== 'timoteoantonioperez');
   // Corregir el asesor de cada baja contra el catalogo por Tienda (D2 no trae CR):
   // asi las bajas se agrupan bajo el asesor que realmente tiene esa tienda hoy,
-  // igual que el resto de dashboards. Si la tienda no esta en el catalogo (unidades
-  // OPERACIONES/ENTRENAMIENTO), se conserva el asesor original. El renombre
-  // Anadelia->Timoteo va incluido dentro de resolveAsesor. "Sin Asesor Asignado" se
-  // atribuye directamente a Timoteo (igual que Dashboard 1), sin pasar por catalogo.
+  // igual que el resto de dashboards. El renombre Anadelia->Timoteo va incluido
+  // dentro de resolveAsesor. "Sin Asesor Asignado" se atribuye directamente a
+  // Timoteo (igual que Dashboard 1), sin pasar por catalogo.
   rawSinTimoteo.forEach(row => {
     if(!cols.asesor) return;
+    // Unidades de Entrenamiento/Operaciones no tienen AT real: se atribuyen
+    // directamente a Timoteo (via Sin Asesor Asignado) sin pasar por catalogo.
+    if(cols.tienda && isTiendaEntrenamientoOperacionesD2(row[cols.tienda])){ row[cols.asesor] = 'Timoteo Antonio Perez'; return; }
     if(getAsesorValue(row, cols) === SIN_ASESOR){ row[cols.asesor] = 'Timoteo Antonio Perez'; return; }
     row[cols.asesor] = OXXO.resolveAsesor(asesorCatalog, {
       tienda: cols.tienda ? row[cols.tienda] : '',
