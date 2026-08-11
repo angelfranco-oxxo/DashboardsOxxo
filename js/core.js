@@ -1608,6 +1608,17 @@ function metricsFilterBajasD2(rows, keys) {
   }
   return base;
 }
+// isTiendaEntrenamientoOperacionesD2() de dashboard-2.html: unidades de
+// Entrenamiento/Operaciones sin AT real. Sus bajas se cuentan mas no se
+// atribuyen a un asesor de catalogo: se fusionan en Timoteo (via Sin Asesor
+// Asignado), igual que el resto de bajas sin AT vigente.
+function metricsIsTiendaEntrenamientoOperacionesD2(tienda) {
+  const t = String(tienda || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().replace(/\s+/g, ' ').trim();
+  if (/^ENTRENAMIENTO OAXACA(\s+(I|II|III|IV|V|VI|VII|VIII|IX|X|\d+))?$/.test(t)) return true;
+  if (/^OPERACIONES\s+\d+\s+OAXACA$/.test(t)) return true;
+  return false;
+}
 // isCompleta/isIncompleta/isCritica de dashboard-3.html: clasificación por
 // texto de Estatus, no por umbral numérico sobre el aprovechamiento crudo.
 function metricsClasificaAprovechamiento(estatus) {
@@ -2121,6 +2132,7 @@ window.OXXO = {
   metricsPasaAntiguedadDefaultD1,
   metricsApplyD1Defaults,
   metricsFilterBajasD2,
+  metricsIsTiendaEntrenamientoOperacionesD2,
   metricsClasificaAprovechamiento,
   metricsCoerceTreoRows,
   metricsBuildEstructuraDiariaD1,
