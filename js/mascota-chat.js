@@ -237,7 +237,10 @@
       else if (c === 'criticas') { criticas++; criticasPorAsesor.push(r); }
     });
     const total = rows.length;
-    const rankCriticas = rankBy(criticasPorAsesor, r => OXXO.resolveAsesor(cat, {
+    // resolveAsesorD1 (generico pese al nombre) atribuye 'Sin Asesor Asignado'
+    // a Timoteo, igual que dashboard-3.html: sin esto, el chat mostraba 'Sin
+    // Asesor' como si fuera un AT mas en el ranking de tiendas criticas.
+    const rankCriticas = rankBy(criticasPorAsesor, r => OXXO.resolveAsesorD1(cat, {
       cr: V(r, crKey), tienda: V(r, tiendaKey), asesor: V(r, asesorKey),
     }));
     return {

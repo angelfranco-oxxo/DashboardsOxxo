@@ -947,7 +947,11 @@ async function initDashboard(){
     plazaAt:   String(gv(r,map,'plaza_at', gv(r,map,'col_plaza',''))).trim(),
   }));
   data.forEach(r => {
-    r.asesor = OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }).toUpperCase();
+    // resolveAsesorD1 (pese al nombre, es generico) atribuye "Sin Asesor
+    // Asignado" directo a Timoteo Antonio Perez antes de consultar el
+    // catalogo, igual que Dashboard 1 y 2: sin esto, esas tiendas aparecian
+    // como su propia fila "Sin Asesor" en vez de sumarse al AT que las cubre.
+    r.asesor = OXXO.resolveAsesorD1(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }).toUpperCase();
   });
 
   // El filtro de 255 tiendas autorizadas se desactivó a petición: Dashboard 3 ahora
@@ -1000,7 +1004,7 @@ async function initDashboard(){
         ausRestTC: gn(r,md,'ausRestTC'),
       })).filter(r=>r.tienda);
     DETALLE_DATA.forEach(r => {
-      r.asesor = OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }).toUpperCase();
+      r.asesor = OXXO.resolveAsesorD1(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }).toUpperCase();
     });
   } catch(e){ DETALLE_DATA = []; }
 
