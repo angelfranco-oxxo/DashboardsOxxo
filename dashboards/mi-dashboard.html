@@ -11,12 +11,12 @@
 <style>
 .page{max-width:1400px;margin:0 auto;padding:18px 20px 40px}
 
-.hero{background:linear-gradient(135deg,#4A148C,#2D0B54);border-radius:18px;padding:26px 28px;color:#fff;margin-bottom:20px;position:relative;overflow:hidden}
+.hero{background:linear-gradient(135deg,#4A148C,#2D0B54);border-radius:18px;padding:26px 28px;color:#fff;margin-bottom:20px;position:relative}
 .hero h1{font-family:var(--font-display);font-size:1.7rem;font-weight:800;margin:0 0 4px}
 .hero p{margin:0;opacity:.88;font-size:13px;max-width:560px}
 .hero-badge{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:12px}
-.selector-wrap{max-width:420px;margin-top:18px}
-.selector-wrap label{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.85);margin-bottom:7px}
+.selector-card{background:var(--color-surface);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow-card);margin-bottom:20px;max-width:420px}
+.selector-card label{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--color-gray);margin-bottom:8px}
 
 .empty-state{background:var(--color-surface);border-radius:16px;padding:60px 24px;text-align:center;color:var(--color-gray);box-shadow:var(--shadow-card)}
 .empty-state .big{font-size:2.4rem;margin-bottom:10px}
@@ -84,10 +84,11 @@
     <h1>👤 Mi Dashboard</h1>
     <p>Elige tu nombre y ve tus datos personales de los 8 dashboards en un solo lugar: vacantes, bajas, aprovechamiento, tiempo extra, vacaciones, ausentismos, TREO y capacidades.</p>
     <span class="hero-badge" id="corte-badge">⟳ Cargando datos…</span>
-    <div class="selector-wrap">
-      <label for="mi-asesor-search">Selecciona tu nombre</label>
-      <div id="mi-asesor-select"></div>
-    </div>
+  </div>
+
+  <div class="selector-card">
+    <label for="mi-asesor-search">Selecciona tu nombre</label>
+    <div id="mi-asesor-select"></div>
   </div>
 
   <div id="mi-empty" class="empty-state">
