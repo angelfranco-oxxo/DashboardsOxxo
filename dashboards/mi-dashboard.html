@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi Dashboard · Dashboards Ats</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <link rel="icon" type="image/png" href="../assets/favicon.png"/>
+  <link rel="apple-touch-icon" href="../assets/favicon.png"/>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/mascota-chat.css?v=20260805d" />
+<style>
+.page{max-width:1400px;margin:0 auto;padding:18px 20px 40px}
+
+.hero{background:linear-gradient(135deg,#4A148C,#2D0B54);border-radius:18px;padding:26px 28px;color:#fff;margin-bottom:20px;position:relative;overflow:hidden}
+.hero h1{font-family:var(--font-display);font-size:1.7rem;font-weight:800;margin:0 0 4px}
+.hero p{margin:0;opacity:.88;font-size:13px;max-width:560px}
+.hero-badge{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:12px}
+.selector-wrap{max-width:420px;margin-top:18px}
+.selector-wrap label{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.85);margin-bottom:7px}
+
+.empty-state{background:var(--color-surface);border-radius:16px;padding:60px 24px;text-align:center;color:var(--color-gray);box-shadow:var(--shadow-card)}
+.empty-state .big{font-size:2.4rem;margin-bottom:10px}
+.empty-state h2{font-family:var(--font-display);color:var(--color-dark);margin:0 0 6px}
+
+.mi-section{background:var(--color-surface);border-radius:14px;padding:20px;box-shadow:var(--shadow-card);margin-bottom:16px;display:none}
+.mi-section.show{display:block}
+.mi-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-border);flex-wrap:wrap}
+.mi-section-title{display:flex;align-items:center;gap:10px}
+.mi-section-title .ico{font-size:1.3rem;line-height:1}
+.mi-section-title h3{font-family:var(--font-display);font-size:1.02rem;font-weight:800;color:var(--color-dark);margin:0}
+.mi-section-title a{font-size:11px;color:var(--color-gray);text-decoration:none;font-weight:600}
+.mi-section-title a:hover{color:var(--color-dark);text-decoration:underline}
+.mi-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--color-bg);color:var(--color-gray)}
+
+.mi-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.mi-stat{background:var(--color-bg);border-radius:12px;padding:12px 14px;text-align:center}
+.mi-stat b{display:block;font-family:var(--font-display);font-size:1.35rem;font-weight:800;color:var(--color-dark);line-height:1.15}
+.mi-stat span{font-size:10px;color:var(--color-gray);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.mi-stat.verde b{color:#138c3e}
+.mi-stat.rojo b{color:#C0393B}
+.mi-stat.amarillo b{color:#B8860B}
+.mi-stat.azul b{color:#1565C0}
+
+.tbl-wrap{overflow-x:auto;max-height:280px;overflow-y:auto;scrollbar-width:thin}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl thead th{position:sticky;top:0;z-index:2;background:#2D2D44;color:#fff;padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+.tbl tbody tr{border-bottom:1px solid var(--color-border)}
+.tbl tbody tr:hover{background:var(--color-bg)}
+.tbl tbody td{padding:7px 12px;color:var(--color-dark);vertical-align:middle}
+.tbl td.center{text-align:center}
+.mi-empty-mini{padding:20px;text-align:center;color:var(--color-gray);font-size:12px}
+
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px 20px;color:var(--color-gray);text-align:center}
+.spinner{width:32px;height:32px;border:3px solid var(--color-border);border-top-color:var(--color-yellow);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.pill-mov{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:10.5px;font-weight:800}
+.pill-mov.subir{background:rgba(255,152,0,.14);color:#B85000}
+.pill-mov.bajar{background:rgba(217,43,43,.12);color:#C0393B}
+.pill-mov.alineada{background:rgba(29,185,84,.14);color:#138c3e}
+
+@media(max-width:700px){.mi-stats{grid-template-columns:1fr 1fr}}
+</style>
+<link rel="stylesheet" href="../css/dashboard-skin.css"/>
+</head>
+<body>
+<nav class="topbar">
+  <div class="topbar__brand">
+    <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+    <div>
+      <div class="topbar__title">Dashboards Ats</div>
+      <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
+    </div>
+  </div>
+  <div class="topbar__meta">
+    <a href="../index.html" class="topbar__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="hero">
+    <h1>👤 Mi Dashboard</h1>
+    <p>Elige tu nombre y ve tus datos personales de los 8 dashboards en un solo lugar: vacantes, bajas, aprovechamiento, tiempo extra, vacaciones, ausentismos, TREO y capacidades.</p>
+    <span class="hero-badge" id="corte-badge">⟳ Cargando datos…</span>
+    <div class="selector-wrap">
+      <label for="mi-asesor-search">Selecciona tu nombre</label>
+      <div id="mi-asesor-select"></div>
+    </div>
+  </div>
+
+  <div id="mi-empty" class="empty-state">
+    <div class="big">🙋</div>
+    <h2>Selecciona tu nombre arriba</h2>
+    <div>En cuanto elijas tu nombre vas a ver aquí mismo tus datos de los 8 dashboards.</div>
+  </div>
+
+  <div id="mi-content" style="display:none">
+
+    <div class="mi-section" id="sec-d1">
+      <div class="mi-section-head">
+        <div class="mi-section-title"><span class="ico">🧩</span><h3>Vacantes Diarias</h3></div>
+        <span class="mi-badge" id="badge-d1">—</span>
+      </div>
+      <div id="stats-d1" class="mi-stats"></div>
+      <div class="tbl-wrap"><table class="tbl" id="tbl-d1"><thead><tr><th>Tienda</th><th>Puesto</th><th class="center">Días</th><th>Fecha</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="mi-section" id="sec-d2">
+      <div class="mi-section-head">
+        <div class="mi-section-title"><span class="ico">📤</span><h3>Bajas Diarias</h3></div>
+        <span class="mi-badge" id="badge-d2">—</span>
+      </div>
+      <div id="stats-d2" class="mi-stats"></div>
+      <div class="tbl-wrap"><table class="tbl" id="tbl-d2"><thead><tr><th>Tienda</th><th>Puesto</th><th>Motivo</th><th>Fecha</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="mi-section" id="sec-d3">
+      <div class="mi-section-head">
+        <div class="mi-section-title"><span class="ico">🧮</span><h3>Aprovechamiento de Estructura</h3></div>
+        <span class="mi-badge" id="badge-d3">—</span>
+      </div>
+      <div id="stats-d3" class="mi-stats"></div>
+      <div class="tbl-wrap"><table class="tbl" id="tbl-d3"><thead><tr><th>Tienda</th><th>Estatus</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="mi-section" id="sec-d4">
+      <div class="mi-section-head">
+        <div class="mi-section-title"><span class="ico">⏱️</span><h3>Tiempo Extra</h3></div>
+        <span class="mi-badge" id="badge-d4">—</span>
+      </div>
+      <div id="stats-d4" class="mi-stats"></div>
+      <div class="tbl-wrap"><table class="tbl" id="tbl-d4"><thead><tr><th>Tienda</th><th class="center">Horas</th><th class="center">Importe</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="mi-section" id="sec-d5">
+      <div class="mi-section-head">
+        <div class="mi-section-title"><span class="ico">🏖️</span><h3>Vacaciones</h3></div>
+        <span class="mi-badge" id="badge-d5">—</span>
+      </div>
+      <div id="stats-d5" class="mi-stats"></div>
+      <div class="tbl-wrap"><table class="tbl" id="tbl-d5"><thead><tr><th>Empleado</th><th>Tienda</th><th class="center">Días restantes</th><th>Vence</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="mi-section" id="sec-d6">
+      <div class="mi-section-head">
+        <div class="mi-section-title"><span class="ico">🩺</span><h3>Ausentismos</h3></div>
+        <span class="mi-badge" id="badge-d6">—</span>
+      </div>
+      <div id="stats-d6" class="mi-stats"></div>
+      <div class="tbl-wrap"><table class="tbl" id="tbl-d6"><thead><tr><th>Empleado</th><th>Tienda</th><th>Tipo</th><th class="center">Días</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="mi-section" id="sec-d7">
+      <div class="mi-section-head">
+        <div class="mi-section-title"><span class="ico">📋</span><h3>TREO</h3></div>
+        <span class="mi-badge" id="badge-d7">—</span>
+      </div>
+      <div id="stats-d7" class="mi-stats"></div>
+      <div class="tbl-wrap"><table class="tbl" id="tbl-d7"><thead><tr><th>Tienda</th><th class="center">SAP</th><th class="center">TREO</th><th class="center">Activos</th><th class="center">Movimiento</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="mi-section" id="sec-d8">
+      <div class="mi-section-head">
+        <div class="mi-section-title"><span class="ico">✅</span><h3>Capacidades 2026</h3></div>
+        <span class="mi-badge" id="badge-d8">—</span>
+      </div>
+      <div id="stats-d8" class="mi-stats"></div>
+      <div class="tbl-wrap"><table class="tbl" id="tbl-d8"><thead><tr><th>Certificación</th><th class="center">Aplicables</th><th class="center">Completados</th><th class="center">%</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+  </div>
+
+  <div class="dash-footer">
+    <div class="dash-footer__update"><div class="dash-footer__update-dot"></div>
+      Datos cargados: <span id="load-time">—</span></div>
+    <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
+  </div>
+</div>
+
+  <script src="../js/config.js?v=20260805a"></script>
+  <script src="../js/core.js?v=20260807a"></script>
+<script src="../js/mascota-chat.js?v=20260805d"></script>
+<script src="../js/mi-dashboard.js?v=1"></script>
+</body></html>
