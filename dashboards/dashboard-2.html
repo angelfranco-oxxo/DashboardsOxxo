@@ -990,18 +990,6 @@ function getTemporalidad(row, cols){
   if(d <= 365) return '6 - 12 meses';
   return '> 1 año';
 }
-// Unidades de Entrenamiento/Operaciones (no son tiendas operativas reales):
-// sus bajas sí se cuentan en Dashboard 2, pero quedan como "Sin Asesor
-// Asignado" en vez de a un AT (y sin fusionarse en Timoteo: no son bajas de
-// una tienda que el cubra hoy). Cubre tanto los nombres actuales como
-// cualquier variante futura con el mismo patron (numero romano/arabigo al
-// final).
-function isTiendaEntrenamientoOperacionesD2(tienda){
-  const t = cleanText(tienda);
-  if(/^ENTRENAMIENTO OAXACA(\s+(I|II|III|IV|V|VI|VII|VIII|IX|X|\d+))?$/.test(t)) return true;
-  if(/^OPERACIONES\s+\d+\s+OAXACA$/.test(t)) return true;
-  return false;
-}
 function filterData(data, cols){
   let rows = data.filter(r => Object.values(r).some(v => String(v||'').trim() !== ''));
   // Para base cruda: quedarse solo con movimientos de BAJA.
@@ -1801,24 +1789,16 @@ async function initDashboard(){
   const rawSinTimoteo = raw.filter(row => cleanKey(val(row, cols, 'asesor', '')) !== 'timoteoantonioperez');
   // Corregir el asesor de cada baja contra el catalogo por Tienda (D2 no trae CR):
   // asi las bajas se agrupan bajo el asesor que realmente tiene esa tienda hoy,
-  // igual que el resto de dashboards. El renombre Anadelia->Timoteo va incluido
-  // dentro de resolveAsesor. "Sin Asesor Asignado" (de una tienda real sin AT
-  // vigente) se atribuye directamente a Timoteo (igual que Dashboard 1), sin
-  // pasar por catalogo.
+  // igual que el resto de dashboards. resolveAsesorD1 aplica la regla completa:
+  // "Sin Asesor Asignado" (de tienda real sin AT vigente, crudo o via catalogo)
+  // se atribuye a Timoteo; Entrenamiento/Operaciones se queda con su propio
+  // "Sin Asesor Asignado" en vez de fusionarse.
   rawSinTimoteo.forEach(row => {
     if(!cols.asesor) return;
-    // Unidades de Entrenamiento/Operaciones no tienen AT real: quedan como
-    // "Sin Asesor Asignado" (bucket propio), sin fusionarse en Timoteo -
-    // no son bajas de una tienda que el hoy cubra.
-    if(cols.tienda && isTiendaEntrenamientoOperacionesD2(row[cols.tienda])){ row[cols.asesor] = SIN_ASESOR; return; }
-    if(getAsesorValue(row, cols) === SIN_ASESOR){ row[cols.asesor] = 'Timoteo Antonio Perez'; return; }
-    row[cols.asesor] = OXXO.resolveAsesor(asesorCatalog, {
+    row[cols.asesor] = OXXO.resolveAsesorD1(asesorCatalog, {
       tienda: cols.tienda ? row[cols.tienda] : '',
       asesor: row[cols.asesor],
     });
-    // El catalogo mismo puede devolver "Sin Asesor Asignado" para tiendas sin
-    // AT vigente: atribuir tambien esas a Timoteo, no solo el valor crudo original.
-    if(getAsesorValue(row, cols) === SIN_ASESOR) row[cols.asesor] = 'Timoteo Antonio Perez';
   });
   const data = filterData(rawSinTimoteo, cols);
   if(!data.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }

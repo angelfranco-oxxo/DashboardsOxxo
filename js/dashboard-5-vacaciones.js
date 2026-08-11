@@ -581,8 +581,10 @@ async function initDashboard() {
   };
 
   const asesorCatalog = await OXXO.loadAsesorCatalog();
+  // resolveAsesorD1 aplica la regla completa: Sin Asesor -> Timoteo, salvo
+  // Entrenamiento/Operaciones que se queda con su propio Sin Asesor Asignado.
   state.rows = raw.map((row) => ({
-    asesor: OXXO.resolveAsesor(asesorCatalog, { asesor: row[cols.asesor], tienda: row[cols.tienda] }),
+    asesor: OXXO.resolveAsesorD1(asesorCatalog, { asesor: row[cols.asesor], tienda: row[cols.tienda] }),
     tienda: String(row[cols.tienda] || '').trim(),
     puesto: String(row[cols.puesto] || '').trim(),
     periodo_anterior: Number(row[cols.periodoAnterior]) || 0,

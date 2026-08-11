@@ -1201,9 +1201,12 @@ async function init(){
   if(footPeriodoEl) footPeriodoEl.textContent = periodo ? `TREO ${periodo}` : 'TREO';
 
   const asesorCatalog = await OXXO.loadAsesorCatalog();
+  // resolveAsesorD1 aplica la regla completa: Sin Asesor -> Timoteo (luego
+  // excluido de esta vista mas abajo), salvo Entrenamiento/Operaciones que
+  // se queda con su propio "Sin Asesor Asignado".
   ALL = coerceTreoRows(rows)
     .map(normalizeRow)
-    .map(r => ({ ...r, asesor: OXXO.resolveAsesor(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }) }))
+    .map(r => ({ ...r, asesor: OXXO.resolveAsesorD1(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }) }))
     .map(r => applyEstructuraDiaria(r, estructuraDiaria))
     .filter(r => r.tienda || r.asesor)
     .filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr))
