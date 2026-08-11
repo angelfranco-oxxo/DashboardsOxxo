@@ -1307,7 +1307,11 @@ function metricsIsSinAsesorD1(value) {
 }
 function resolveAsesorD1(catalog, { cr='', tienda='', asesor='' } = {}) {
   if (metricsIsSinAsesorD1(asesor)) return 'Timoteo Antonio Perez';
-  return resolveAsesor(catalog, { cr, tienda, asesor });
+  // El catalogo mismo puede devolver "Sin Asesor Asignado" para tiendas sin
+  // AT vigente (no solo el valor crudo original): esas tambien van a Timoteo.
+  const resolved = resolveAsesor(catalog, { cr, tienda, asesor });
+  if (metricsIsSinAsesorD1(resolved)) return 'Timoteo Antonio Perez';
+  return resolved;
 }
 function applyAsesorCatalog(row, catalog, { asesorKey, tiendaKey, crKey } = {}) {
   if (!row || !asesorKey) return row;
