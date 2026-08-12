@@ -95,11 +95,13 @@
     $('admin-guidance').textContent=state.validation.ok?`Listo para publicar en ${dash.tab}. Encabezados detectados en fila ${state.headerRow}; se enviaran ${dash.output.length} columnas normalizadas.`:'Revisa la hoja seleccionada o el dashboard destino: faltan columnas criticas o no hay filas Oaxaca.';
     renderPreview(nonEmpty.slice(0,80),dash.output);
   }
-  // d2otras (Bajas otras plazas) ya no aparece en el menu: se calcula sola
-  // al publicar "Bajas diarias" (mismo archivo/hoja), asi no hay que subir
-  // el Excel dos veces. La definicion sigue existiendo en dashboards[] para
-  // que publish() la reutilice.
-  function fillDashboardSelect(){$('dashboard-select').innerHTML=dashboards.filter(d=>d.key!=='d2otras').map(d=>`<option value="${d.key}">${d.label}</option>`).join('');}
+  // d2otras (Bajas otras plazas) y d2denom (Movimientos ABC) ya no aparecen
+  // en el menu: se calculan solos al publicar "Bajas diarias" (mismo
+  // archivo, cada uno con su propia hoja -- "Bajas" y "ABC"), asi no hay que
+  // subir el Excel varias veces. Las definiciones siguen vivas en
+  // dashboards[] para que publish() las reutilice.
+  const HIDDEN_FROM_MENU=['d2otras','d2denom'];
+  function fillDashboardSelect(){$('dashboard-select').innerHTML=dashboards.filter(d=>!HIDDEN_FROM_MENU.includes(d.key)).map(d=>`<option value="${d.key}">${d.label}</option>`).join('');}
   function fillSheets(){const names=state.workbook?state.workbook.SheetNames:[];$('sheet-select').disabled=!names.length;$('sheet-select').innerHTML=names.length?names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join(''):'<option value="">Sube un Excel primero</option>';state.sheetName=names[0]||'';autoSelectSheet();}
   function loadCurrentSheet(){if(!state.workbook||!state.sheetName)return;const dash=dashboard(),sheet=state.workbook.Sheets[state.sheetName],matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});const parsed=rowsFromMatrix(matrix,dash);state.rows=parsed.rows;state.headerRow=parsed.headerRow;state.sourceRows=parsed.sourceRows;state.sourceHeaders=parsed.sourceHeaders;validateRows();}
   // codepage:65001 (UTF-8) evita que un .csv con acentos salga con mojibake
