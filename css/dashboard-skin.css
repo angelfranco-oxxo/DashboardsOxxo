@@ -2859,3 +2859,28 @@ body:has(#main-tbl) .side-panel .stat-card {
   .png-export-dialog { border-radius: 18px; }
   .png-export-list { max-height: 62vh; }
 }
+
+/* ── RESPONSIVE MOVIL: reafirma columna unica ────────────────
+   Varias reglas de arriba en este mismo archivo (.bajas-analisis-grid,
+   .row-main, etc.) fijan "grid-template-columns" con !important y SIN media
+   query, usando columnas con un minimo en pixeles (ej. minmax(360px,...)).
+   Eso le gana en cascada a los breakpoints moviles que cada dashboard ya
+   trae en su propio <style> (misma especificidad, este archivo carga
+   despues) y empujaba paneles completos fuera de la pantalla en celular.
+   Se van agregando aqui, al final del archivo, los casos confirmados con
+   overflow real en celular -- este bloque siempre gana por ser el ultimo
+   en la cascada, sin importar donde se reordenen las reglas de arriba. */
+@media (max-width: 760px) {
+  .bajas-analisis-grid {   /* Dashboard 2: panel "Bajas por Asesor" */
+    grid-template-columns: 1fr !important;
+  }
+  /* Dashboard 7 (TREO): body:has(#main-tbl) .row-main de arriba tiene mas
+     especificidad que un ".row-main" simple (el ID dentro de :has() cuenta
+     como si fuera un selector de ID) y le seguia ganando a un ".row-main"
+     normal aunque estuviera despues en el archivo. Hay que igualar esa
+     misma especificidad aqui para poder ganarle. */
+  .row-main,
+  body:has(#main-tbl) .row-main {
+    grid-template-columns: 1fr !important;
+  }
+}

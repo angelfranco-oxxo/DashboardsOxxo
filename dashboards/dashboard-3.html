@@ -448,6 +448,17 @@
         max-height:360px !important;
       }
     }
+    /* #plaza-ec-row usa grid-template-columns inline (minmax 280px + 220px =
+       500px minimo) sin breakpoint propio -- en celular empujaba la segunda
+       tarjeta ("Aprovechamiento por AT") fuera de la pantalla. Se apila a
+       una columna igual que .d3-top-grid arriba. Necesita !important porque
+       el estilo que se sobreescribe es inline en el HTML (mayor
+       especificidad que una regla externa normal). */
+    @media(max-width:760px){
+      #plaza-ec-row{
+        grid-template-columns:1fr !important;
+      }
+    }
   </style>
   <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
   <style id="d3-dashboard2-header-final">

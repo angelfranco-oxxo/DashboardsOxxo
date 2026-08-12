@@ -20,6 +20,12 @@
 (function () {
   'use strict';
 
+  // Apagado a peticion del usuario (12.08.2026): se deja todo el mecanismo
+  // listo pero desactivado para poder prenderlo de nuevo en el futuro solo
+  // cambiando este flag a true, sin tocar ninguna de las 12 paginas que ya
+  // traen el snippet + <script> de site-lock.js.
+  const LOCK_ENABLED = false;
+
   // SHA-256 de la contrasena compartida (no se guarda en texto plano
   // aqui). Cambiar la contrasena = recalcular este hash y reemplazarlo;
   // no hace falta tocar ninguna otra pagina, todas cargan este mismo
@@ -114,7 +120,7 @@
   }
 
   function init() {
-    if (isUnlocked()) {
+    if (!LOCK_ENABLED || isUnlocked()) {
       document.documentElement.classList.remove('oxxo-locked');
       return;
     }
