@@ -357,8 +357,54 @@
     const d7 = await OXXO.metricsD7Rows();
     if (!d7) { DATA.d7 = null; return; }
     d7.rows.forEach((r) => { r[d7.asesorKey] = OXXO.resolveAsesorD1(CATALOG, { tienda: V(r, d7.tiendaKey), asesor: V(r, d7.asesorKey) }); });
-    DATA.d7 = d7;
+    // Campos extra (no resueltos por OXXO.metricsD7Rows) para la Ficha
+    // Tecnica TREO -- se buscan una sola vez contra la primera fila, el
+    // resto de filas comparte los mismos encabezados.
+    const sample = d7.rows[0] || {};
+    const crKey = K(sample, ['CR', 'ID Tienda', 'ID_Tienda']);
+    const turnosKey = K(sample, ['Turnos']);
+    const antiguedadKey = K(sample, ['Antiguedad', 'Antigüedad']);
+    const accionableKey = K(sample, ['Accionable sugerido TREO', 'Accionable sugerido']);
+    DATA.d7 = { ...d7, crKey, turnosKey, antiguedadKey, accionableKey };
     addTiendas(d7.rows, d7.tiendaKey);
+  }
+  function movInfo(dif) {
+    if (dif === 0) return { cls: 'alineada', arrow: '✔', txt: 'Alineada' };
+    return dif > 0 ? { cls: 'subir', arrow: '↑', txt: 'Subir' } : { cls: 'bajar', arrow: '↓', txt: 'Bajar' };
+  }
+  function fichaRow(label, value) {
+    if (value === undefined || value === null || String(value).trim() === '') return '';
+    return `<div class="ficha-treo__row"><span>${esc(label)}</span><span>${esc(value)}</span></div>`;
+  }
+  function renderFichaTreo(tiendaLabel, d, r) {
+    const sap = V(r, d.sapKey) || '0';
+    const treo = V(r, d.treoKey) || '0';
+    const dif = OXXO.metricsNum(V(r, d.difKey));
+    const mov = movInfo(dif);
+    const difTxt = (dif > 0 ? '+' : '') + dif;
+    return `<div class="ficha-treo">
+      <div class="ficha-treo__head">
+        <div class="ficha-treo__title">${esc(tiendaLabel)}</div>
+        <span class="ficha-treo__badge">Ficha Técnica TREO</span>
+      </div>
+      <div class="ficha-treo__body">
+        <div class="ficha-treo__kpis">
+          <div class="ficha-treo__kpi"><b>${esc(sap)}</b><span>SAP</span></div>
+          <div class="ficha-treo__kpi"><b>${esc(treo)}</b><span>TREO</span></div>
+          <div class="ficha-treo__kpi ${mov.cls}"><b>${esc(difTxt)}</b><span>Dif</span></div>
+        </div>
+        <div class="ficha-treo__mov ${mov.cls}"><span class="arrow">${mov.arrow}</span> Movimiento recomendado: ${mov.txt.toUpperCase()}</div>
+        <div class="ficha-treo__details">
+          ${fichaRow('Asesor / AT', V(r, d.asesorKey))}
+          ${fichaRow('CR', d.crKey ? V(r, d.crKey) : '')}
+          ${fichaRow('Activos', d.activosKey ? V(r, d.activosKey) : '')}
+          ${fichaRow('Vacantes', d.vacantesKey ? V(r, d.vacantesKey) : '')}
+          ${fichaRow('Turnos', d.turnosKey ? V(r, d.turnosKey) : '')}
+          ${fichaRow('Antigüedad', d.antiguedadKey ? V(r, d.antiguedadKey) : '')}
+          ${fichaRow('Accionable sugerido', d.accionableKey ? V(r, d.accionableKey) : '')}
+        </div>
+      </div>
+    </div>`;
   }
   function renderD7(tienda) {
     const d = DATA.d7;
@@ -367,11 +413,31 @@
     const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
     el.classList.add('show');
     document.getElementById('badge-d7').textContent = `${rows.length} registros`;
+    const fichaEl = document.getElementById('ficha-d7');
+    const statsEl = document.getElementById('stats-d7');
+    const tblWrap = document.querySelector('#tbl-d7').closest('.tbl-wrap');
+    // Caso normal: la tienda tiene exactamente un registro en TREO -> se
+    // muestra la Ficha Tecnica en vez de la tabla generica (que tendria una
+    // sola fila, poco util). Si hay 0 o mas de un registro (caso raro) se
+    // conserva el comportamiento anterior de KPIs + tabla, sin romper nada.
+    if (rows.length === 1) {
+      fichaEl.innerHTML = renderFichaTreo(rows[0][d.tiendaKey] || tienda, d, rows[0]);
+      fichaEl.style.display = '';
+      statsEl.style.display = 'none';
+      statsEl.innerHTML = '';
+      tblWrap.style.display = 'none';
+      document.querySelector('#tbl-d7 tbody').innerHTML = '';
+      return;
+    }
+    fichaEl.style.display = 'none';
+    fichaEl.innerHTML = '';
+    statsEl.style.display = '';
+    tblWrap.style.display = '';
     const sumSap = rows.reduce((s, r) => s + (OXXO.metricsNum(V(r, d.sapKey)) || 0), 0);
     const sumTreo = rows.reduce((s, r) => s + (OXXO.metricsNum(V(r, d.treoKey)) || 0), 0);
     const sumAct = rows.reduce((s, r) => s + (OXXO.metricsNum(V(r, d.activosKey)) || 0), 0);
     const cobertura = sumTreo > 0 ? Math.round((sumAct / sumTreo) * 100) : 0;
-    document.getElementById('stats-d7').innerHTML =
+    statsEl.innerHTML =
       statTile(n(sumSap), 'SAP') +
       statTile(n(sumTreo), 'TREO', 'azul') +
       statTile(n(sumAct), 'Activos', 'verde') +
@@ -379,13 +445,14 @@
     const tbody = document.querySelector('#tbl-d7 tbody');
     tbody.innerHTML = rows.length ? rows.map((r) => {
       const dif = OXXO.metricsNum(V(r, d.difKey));
-      const mov = dif === 0 ? { cls: 'alineada', txt: '✔ Alineada' } : dif > 0 ? { cls: 'subir', txt: '▲ Subir' } : { cls: 'bajar', txt: '▼ Bajar' };
+      const mov = movInfo(dif);
+      const movTxt = mov.cls === 'alineada' ? '✔ Alineada' : mov.cls === 'subir' ? '▲ Subir' : '▼ Bajar';
       return `<tr>
         <td>${esc(V(r, d.asesorKey) || '—')}</td>
         <td class="center">${esc(V(r, d.sapKey) || '0')}</td>
         <td class="center">${esc(V(r, d.treoKey) || '0')}</td>
         <td class="center">${esc(V(r, d.activosKey) || '0')}</td>
-        <td class="center"><span class="pill-mov ${mov.cls}">${mov.txt}</span></td>
+        <td class="center"><span class="pill-mov ${mov.cls}">${movTxt}</span></td>
       </tr>`;
     }).join('') : emptyRow(5, 'Tu tienda no aparece en TREO.');
   }
