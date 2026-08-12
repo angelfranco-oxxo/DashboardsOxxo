@@ -1147,7 +1147,7 @@ function render(data){
     const aprovKey = OXXO.metricsFindDataKey(OTRAS_PLAZAS_D3, ['Aprovechamiento de estructura a hoy','Aprovechamiento'], 25, true);
     OTRAS_PLAZAS_D3.forEach(r => {
       const plaza = String(OXXO.metricsVal(r, plazaKey)||'').trim();
-      const aprov = Number(String(OXXO.metricsVal(r, aprovKey)||'').replace(/[^0-9.-]/g,''));
+      const aprov = OXXO.metricsNum(OXXO.metricsVal(r, aprovKey));
       if(plaza && !isNaN(aprov) && aprov > 0 && !plazaData.find(p => p.plaza.toUpperCase() === plaza.toUpperCase())) {
         plazaData.push({ plaza, aprov });
       }
