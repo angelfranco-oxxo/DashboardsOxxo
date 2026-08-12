@@ -14,7 +14,8 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
     getDashboards,
     periodInfo,
     isoDate,
-    getAdminPassword
+    getAdminPassword,
+    rowsFromMatrix
   } = deps;
 
   function isFetchBlocked(error){return /failed to fetch|load failed|networkerror|cors/i.test(String(error?.message||error||''));}
@@ -50,7 +51,52 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
   }
   function updatePublishState(){const el=$('publish-state');if(!el)return;const ready=Boolean(publishUrl());el.textContent=ready?'Publicacion directa lista':'Falta configurar Apps Script una sola vez';el.classList.toggle('ready',ready);}
 
-  async function publish(){const url=publishUrl();if(!url){alert('Falta configurar Apps Script una sola vez. Mientras tanto puedes descargar CSV.');return;}if(!state.validation?.ok){alert('La base aun tiene errores de validacion.');return;}const dash=dashboard(),period=periodInfo(dash,state.validation.rows);$('publish-btn').disabled=true;$('publish-btn').textContent='Publicando...';try{const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows:state.validation.rows,source:'DashboardsOxxo Admin',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};const result=await postAdminPayload(payload);notifyConfigDate(dash.key);alert(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestana reemplazada completa'}.`);}catch(error){alert('No se pudo publicar. Descarga el CSV o revisa la URL de Apps Script.');console.error(error);}finally{$('publish-btn').disabled=false;$('publish-btn').textContent='Publicar en Sheets';}}
+  // d2otras (Bajas otras plazas) ya no tiene su propia opcion en el menu:
+  // sale de la MISMA hoja "Bajas" que ya se subio para publicar d2 (Bajas
+  // diarias), asi que se recalcula y se publica aparte, en automatico,
+  // justo despues de que d2 se publique bien. Si algo falla aqui no se
+  // revierte el publish de d2 (que ya tuvo exito): solo se avisa aparte.
+  async function publishOtrasPlazasFromD2(){
+    if(!state.workbook||!state.sheetName)return null;
+    const d2otras=getDashboards().find(d=>d.key==='d2otras');
+    if(!d2otras)return null;
+    const sheet=state.workbook.Sheets[state.sheetName];
+    const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
+    const parsed=rowsFromMatrix(matrix,d2otras);
+    if(!parsed.rows.length)return null;
+    await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:d2otras.tab,rows:parsed.rows,source:'DashboardsOxxo Admin (auto desde Bajas diarias)',updateMode:'replaceAll'});
+    notifyConfigDate(d2otras.key);
+    return parsed.rows.length;
+  }
+
+  async function publish(){
+    const url=publishUrl();
+    if(!url){alert('Falta configurar Apps Script una sola vez. Mientras tanto puedes descargar CSV.');return;}
+    if(!state.validation?.ok){alert('La base aun tiene errores de validacion.');return;}
+    const dash=dashboard(),period=periodInfo(dash,state.validation.rows);
+    $('publish-btn').disabled=true;$('publish-btn').textContent='Publicando...';
+    try{
+      const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows:state.validation.rows,source:'DashboardsOxxo Admin',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};
+      const result=await postAdminPayload(payload);
+      notifyConfigDate(dash.key);
+      let otrasMsg='';
+      if(dash.key==='d2'){
+        try{
+          const nPlazas=await publishOtrasPlazasFromD2();
+          if(nPlazas)otrasMsg=` Tambien se actualizaron ${nPlazas} plaza(s) del comparativo (Bajas otras plazas).`;
+        }catch(otrasError){
+          console.error('No se pudo publicar Bajas otras plazas automaticamente:',otrasError);
+          otrasMsg=' Ojo: no se pudo actualizar el comparativo de otras plazas, revisalo aparte si hace falta.';
+        }
+      }
+      alert((result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestana reemplazada completa'}.`)+otrasMsg);
+    }catch(error){
+      alert('No se pudo publicar. Descarga el CSV o revisa la URL de Apps Script.');
+      console.error(error);
+    }finally{
+      $('publish-btn').disabled=false;$('publish-btn').textContent='Publicar en Sheets';
+    }
+  }
 
   async function publishManualD2Plan(){
     const url=publishUrl();if(!url){alert('Falta configurar Apps Script.');return;}

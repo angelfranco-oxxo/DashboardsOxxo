@@ -11,7 +11,11 @@ window.OXXO_ADMIN_UI = function createAdminUI(deps){
 
   function renderPreview(rows,headers){$('preview-meta').textContent=`${rows.length} filas en vista previa`;if(!rows.length||!headers.length){$('preview-table').innerHTML='<tbody><tr><td style="padding:28px;text-align:center;color:#7a4a42">Aun no hay datos para mostrar.</td></tr></tbody>';return;}const selectedHeaders=headers.slice(0,16);$('preview-table').innerHTML=`<thead><tr>${selectedHeaders.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${selectedHeaders.map(h=>`<td title="${escapeHtml(row[h])}">${escapeHtml(row[h])}</td>`).join('')}</tr>`).join('')}</tbody>`;}
 
-  function toggleManualSection(){const key=dashboard().key;const sec=$('manual-entry-section');const sec3=$('manual-entry-d3-section');const secPlan=$('manual-entry-d2plan-section');if(sec)sec.classList.toggle('hidden',key!=='d2otras');if(sec3)sec3.classList.toggle('hidden',key!=='d3plazas');if(secPlan)secPlan.classList.toggle('hidden',key!=='d2plan');}
+  // "Bajas otras plazas" (manual-entry-section) ya no tiene su propia opcion
+  // en el menu: se calcula sola al publicar "d2" (Bajas diarias) desde el
+  // mismo archivo. El formulario de 4 casillas se deja visible junto con d2
+  // como respaldo manual, por si hace falta corregir una plaza a mano.
+  function toggleManualSection(){const key=dashboard().key;const sec=$('manual-entry-section');const sec3=$('manual-entry-d3-section');const secPlan=$('manual-entry-d2plan-section');if(sec)sec.classList.toggle('hidden',key!=='d2');if(sec3)sec3.classList.toggle('hidden',key!=='d3plazas');if(secPlan)secPlan.classList.toggle('hidden',key!=='d2plan');}
   function planRowHTML(){return `<tr class="plan-row">
     <td><textarea class="admin-input" rows="2" data-field="Hallazgo" placeholder="Hallazgo relacionado"></textarea></td>
     <td><textarea class="admin-input" rows="2" data-field="Accion" placeholder="Accion propuesta"></textarea></td>
