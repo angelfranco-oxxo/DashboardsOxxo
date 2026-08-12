@@ -497,24 +497,27 @@
     document.getElementById('badge-d7').textContent = `${rows.length} registros`;
     const fichaEl = document.getElementById('ficha-d7');
     const statsEl = document.getElementById('stats-d7');
-    const tblWrap = document.querySelector('#tbl-d7').closest('.tbl-wrap');
+    const detailEl = document.querySelector('#tbl-d7').closest('.mi-detail');
     // Caso normal: la tienda tiene exactamente un registro en TREO -> se
     // muestra la Ficha Tecnica en vez de la tabla generica (que tendria una
-    // sola fila, poco util). Si hay 0 o mas de un registro (caso raro) se
-    // conserva el comportamiento anterior de KPIs + tabla, sin romper nada.
+    // sola fila, poco util). Se oculta tambien el "Ver detalle" (no hay
+    // nada mas que mostrar, la ficha ya trae todos los campos). Si hay 0 o
+    // mas de un registro (caso raro) se conserva el comportamiento anterior
+    // de KPIs + tabla con su propio "Ver detalle", sin romper nada.
     if (rows.length === 1) {
       fichaEl.innerHTML = renderFichaTreo(rows[0][d.tiendaKey] || tienda, d, rows[0]);
       fichaEl.style.display = '';
       statsEl.style.display = 'none';
       statsEl.innerHTML = '';
-      tblWrap.style.display = 'none';
+      detailEl.style.display = 'none';
+      detailEl.open = false;
       document.querySelector('#tbl-d7 tbody').innerHTML = '';
       return;
     }
     fichaEl.style.display = 'none';
     fichaEl.innerHTML = '';
     statsEl.style.display = '';
-    tblWrap.style.display = '';
+    detailEl.style.display = '';
     const sumSap = rows.reduce((s, r) => s + (OXXO.metricsNum(V(r, d.sapKey)) || 0), 0);
     const sumTreo = rows.reduce((s, r) => s + (OXXO.metricsNum(V(r, d.treoKey)) || 0), 0);
     const sumAct = rows.reduce((s, r) => s + (OXXO.metricsNum(V(r, d.activosKey)) || 0), 0);
@@ -601,6 +604,7 @@
     const tienda = tKey(tiendaDisplay);
     document.getElementById('mi-empty').style.display = 'none';
     document.getElementById('mi-content').style.display = 'block';
+    document.getElementById('ficha-tienda-title').textContent = tiendaDisplay;
     renderD1(tienda); renderD2(tienda); renderD3(tienda); renderD4(tienda);
     renderD5(tienda); renderD6(tienda); renderD7(tienda); renderD8(tienda);
   }
