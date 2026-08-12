@@ -52,12 +52,25 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  /* Varios elementos invisibles en reposo (tooltips de .info-tip, paneles
+     que se abren con transform/opacity, etc.) siguen contando para el ancho
+     de scroll del documento aunque nunca se vean asi -- eso generaba scroll
+     horizontal fantasma en celular. Se corta aqui en vez de perseguir cada
+     caso: no recorta nada que si se vea, solo evita el scroll lateral.
+     "clip" (no "hidden") porque "hidden" crea su propio contenedor de
+     scroll y eso rompia el position:sticky de .topbar. */
+  overflow-x: clip;
 }
 
 body {
   font-family: var(--font-body);
   background-color: var(--color-bg);
   color: var(--color-dark);
+  /* "hidden" (a diferencia de "clip") crea su propio contenedor de scroll y
+     eso rompia el position:sticky del .topbar (dejaba de pegarse arriba al
+     hacer scroll). "clip" corta el overflow igual pero sin ese efecto
+     secundario. */
+  overflow-x: clip;
   line-height: 1.5;
   min-height: 100vh;
 }
@@ -602,7 +615,18 @@ body {
 
 @media (max-width: 480px) {
   .kpi-grid { grid-template-columns: 1fr 1fr; }
-  .topbar__meta { display: none; }
+  /* La regla de abajo (.topbar__meta{display:none}) quedo sin efecto hace
+     tiempo: dashboard-skin.css (cargado despues en cada dashboard) trae su
+     propio ".topbar__meta{display:flex}" sin media query, y con la misma
+     especificidad gana por orden de cascada -- asi el link "Inicio" seguia
+     mostrandose de cualquier forma. En vez de intentar re-ocultar todo el
+     contenedor (perdiendo el link "Inicio" en celular), se ocultan solo los
+     botones de exportar (PNG/Excel, clase compartida .png-export-ui) que son
+     los que de verdad no caben en pantallas chicas y no son criticos ahi;
+     "Inicio" se queda visible y usable. Los botones tienen "display:inline-flex
+     !important" propio (dashboard-skin.css), por eso este selector necesita
+     mas especificidad + !important para ganarles. */
+  .topbar__meta .png-export-ui { display: none !important; }
 }
 
 /* ── UTILIDADES ──────────────────────────────────────────── */

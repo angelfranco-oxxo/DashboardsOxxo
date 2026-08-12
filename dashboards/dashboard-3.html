@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
+  <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
+  <script defer src="../js/site-lock.js?v=1"></script>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Aprovechamiento de Estructura · Dashboards Ats</title>
@@ -443,6 +446,17 @@
       }
       #ranking-at{
         max-height:360px !important;
+      }
+    }
+    /* #plaza-ec-row usa grid-template-columns inline (minmax 280px + 220px =
+       500px minimo) sin breakpoint propio -- en celular empujaba la segunda
+       tarjeta ("Aprovechamiento por AT") fuera de la pantalla. Se apila a
+       una columna igual que .d3-top-grid arriba. Necesita !important porque
+       el estilo que se sobreescribe es inline en el HTML (mayor
+       especificidad que una regla externa normal). */
+    @media(max-width:760px){
+      #plaza-ec-row{
+        grid-template-columns:1fr !important;
       }
     }
   </style>
