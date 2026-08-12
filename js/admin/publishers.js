@@ -51,22 +51,39 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
   }
   function updatePublishState(){const el=$('publish-state');if(!el)return;const ready=Boolean(publishUrl());el.textContent=ready?'Publicacion directa lista':'Falta configurar Apps Script una sola vez';el.classList.toggle('ready',ready);}
 
-  // d2otras (Bajas otras plazas) ya no tiene su propia opcion en el menu:
-  // sale de la MISMA hoja "Bajas" que ya se subio para publicar d2 (Bajas
-  // diarias), asi que se recalcula y se publica aparte, en automatico,
-  // justo despues de que d2 se publique bien. Si algo falla aqui no se
+  // Dashboards que ya no tienen su propia opcion en el menu porque salen del
+  // MISMO archivo ABC que ya se sube para "d2" (Bajas diarias): Bajas otras
+  // plazas viene de la hoja "Bajas", Movimientos ABC viene de la hoja "ABC".
+  // Al publicar d2 se recalculan y publican solos, cada uno buscando su
+  // propia hoja preferida dentro del workbook ya cargado (no necesariamente
+  // la misma hoja que quedo seleccionada para d2). Si alguno falla no se
   // revierte el publish de d2 (que ya tuvo exito): solo se avisa aparte.
-  async function publishOtrasPlazasFromD2(){
-    if(!state.workbook||!state.sheetName)return null;
-    const d2otras=getDashboards().find(d=>d.key==='d2otras');
-    if(!d2otras)return null;
-    const sheet=state.workbook.Sheets[state.sheetName];
-    const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
-    const parsed=rowsFromMatrix(matrix,d2otras);
-    if(!parsed.rows.length)return null;
-    await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:d2otras.tab,rows:parsed.rows,source:'DashboardsOxxo Admin (auto desde Bajas diarias)',updateMode:'replaceAll'});
-    notifyConfigDate(d2otras.key);
-    return parsed.rows.length;
+  const D2_AUTO_KEYS=['d2otras','d2denom'];
+  function findSheetInWorkbook(preferredNames){
+    const names=state.workbook?.SheetNames||[];
+    for(const preferred of preferredNames||[]){
+      const found=names.find(n=>n.trim().toLowerCase()===String(preferred).trim().toLowerCase());
+      if(found)return found;
+    }
+    return '';
+  }
+  async function publishAutoFromD2(){
+    if(!state.workbook)return [];
+    const publicados=[];
+    for(const key of D2_AUTO_KEYS){
+      const dashDef=getDashboards().find(d=>d.key===key);
+      if(!dashDef)continue;
+      const sheetName=findSheetInWorkbook(dashDef.preferredSheets)||state.sheetName;
+      const sheet=sheetName?state.workbook.Sheets[sheetName]:null;
+      if(!sheet)continue;
+      const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
+      const parsed=rowsFromMatrix(matrix,dashDef);
+      if(!parsed.rows.length)continue;
+      await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:dashDef.tab,rows:parsed.rows,source:'DashboardsOxxo Admin (auto desde Bajas diarias)',updateMode:'replaceAll'});
+      notifyConfigDate(dashDef.key);
+      publicados.push({label:dashDef.label,count:parsed.rows.length});
+    }
+    return publicados;
   }
 
   async function publish(){
@@ -79,17 +96,17 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows:state.validation.rows,source:'DashboardsOxxo Admin',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};
       const result=await postAdminPayload(payload);
       notifyConfigDate(dash.key);
-      let otrasMsg='';
+      let autoMsg='';
       if(dash.key==='d2'){
         try{
-          const nPlazas=await publishOtrasPlazasFromD2();
-          if(nPlazas)otrasMsg=` Tambien se actualizaron ${nPlazas} plaza(s) del comparativo (Bajas otras plazas).`;
-        }catch(otrasError){
-          console.error('No se pudo publicar Bajas otras plazas automaticamente:',otrasError);
-          otrasMsg=' Ojo: no se pudo actualizar el comparativo de otras plazas, revisalo aparte si hace falta.';
+          const publicados=await publishAutoFromD2();
+          if(publicados.length)autoMsg=' Tambien se actualizaron: '+publicados.map(p=>`${p.label} (${p.count})`).join(', ')+'.';
+        }catch(autoError){
+          console.error('No se pudo publicar los dashboards derivados de d2 automaticamente:',autoError);
+          autoMsg=' Ojo: no se pudo actualizar Bajas otras plazas / Movimientos ABC, revisalos aparte si hace falta.';
         }
       }
-      alert((result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestana reemplazada completa'}.`)+otrasMsg);
+      alert((result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestana reemplazada completa'}.`)+autoMsg);
     }catch(error){
       alert('No se pudo publicar. Descarga el CSV o revisa la URL de Apps Script.');
       console.error(error);
