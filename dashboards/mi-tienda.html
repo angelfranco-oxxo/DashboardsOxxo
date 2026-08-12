@@ -44,6 +44,26 @@
 .mi-stat.amarillo b{color:#B8860B}
 .mi-stat.azul b{color:#1565C0}
 
+/* Visuales "ficha" (medidor + barras) que dan una vista visual rapida de
+   cada seccion antes del detalle en tabla. mi-viz vacio no ocupa espacio
+   (:empty), asi que no rompe nada en secciones donde no aplique. */
+.mi-viz:empty{display:none}
+.mi-viz{margin-bottom:14px}
+.mi-gauge-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.mi-gauge-row .mi-gauge-wrap{flex:0 0 auto;width:180px}
+.mi-gauge-row .mi-stats{flex:1 1 220px;min-width:200px;margin-bottom:0}
+.mi-gauge{width:100%;overflow:visible}
+.mi-gauge__text{font-family:var(--font-display,sans-serif);font-weight:800;font-size:31px}
+.mi-barlist{display:flex;flex-direction:column;gap:8px}
+.mi-barlist__row{display:grid;grid-template-columns:minmax(90px,1fr) minmax(90px,2.4fr) 42px;align-items:center;gap:10px}
+.mi-barlist__label{font-size:11.5px;font-weight:700;color:var(--color-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-barlist__track{height:9px;border-radius:999px;background:var(--color-bg);overflow:hidden}
+.mi-barlist__fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#D91F2D,#821719)}
+.mi-barlist__fill.azul{background:linear-gradient(90deg,#1565C0,#0D47A1)}
+.mi-barlist__fill.naranja{background:linear-gradient(90deg,#F2A52B,#B85000)}
+.mi-barlist__value{font-size:11.5px;font-weight:800;color:var(--color-dark);text-align:right}
+@media(max-width:520px){.mi-gauge-row .mi-gauge-wrap{width:140px;margin:0 auto}.mi-gauge-row .mi-stats{flex:1 1 100%}}
+
 .tbl-wrap{overflow-x:auto;max-height:280px;overflow-y:auto;scrollbar-width:thin}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
 .tbl thead th{position:sticky;top:0;z-index:2;background:#2D2D44;color:#fff;padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
@@ -134,6 +154,7 @@
         <span class="mi-badge" id="badge-d1">—</span>
       </div>
       <div id="stats-d1" class="mi-stats"></div>
+      <div id="viz-d1" class="mi-viz"></div>
       <div class="tbl-wrap"><table class="tbl" id="tbl-d1"><thead><tr><th>Puesto</th><th class="center">Días</th><th>Fecha</th></tr></thead><tbody></tbody></table></div>
     </div>
 
@@ -143,6 +164,7 @@
         <span class="mi-badge" id="badge-d2">—</span>
       </div>
       <div id="stats-d2" class="mi-stats"></div>
+      <div id="viz-d2" class="mi-viz"></div>
       <div class="tbl-wrap"><table class="tbl" id="tbl-d2"><thead><tr><th>Puesto</th><th>Motivo</th><th>Fecha</th></tr></thead><tbody></tbody></table></div>
     </div>
 
@@ -151,6 +173,7 @@
         <div class="mi-section-title"><span class="ico">🧮</span><h3>Aprovechamiento de Estructura</h3></div>
         <span class="mi-badge" id="badge-d3">—</span>
       </div>
+      <div id="viz-d3" class="mi-viz"></div>
       <div id="stats-d3" class="mi-stats"></div>
       <div class="tbl-wrap"><table class="tbl" id="tbl-d3"><thead><tr><th>Asesor</th><th>Estatus</th></tr></thead><tbody></tbody></table></div>
     </div>
@@ -161,6 +184,7 @@
         <span class="mi-badge" id="badge-d4">—</span>
       </div>
       <div id="stats-d4" class="mi-stats"></div>
+      <div id="viz-d4" class="mi-viz"></div>
       <div class="tbl-wrap"><table class="tbl" id="tbl-d4"><thead><tr><th>Empleado</th><th class="center">Horas</th><th class="center">Importe</th></tr></thead><tbody></tbody></table></div>
     </div>
 
@@ -170,6 +194,7 @@
         <span class="mi-badge" id="badge-d5">—</span>
       </div>
       <div id="stats-d5" class="mi-stats"></div>
+      <div id="viz-d5" class="mi-viz"></div>
       <div class="tbl-wrap"><table class="tbl" id="tbl-d5"><thead><tr><th>Empleado</th><th class="center">Días restantes</th><th>Vence</th></tr></thead><tbody></tbody></table></div>
     </div>
 
@@ -179,6 +204,7 @@
         <span class="mi-badge" id="badge-d6">—</span>
       </div>
       <div id="stats-d6" class="mi-stats"></div>
+      <div id="viz-d6" class="mi-viz"></div>
       <div class="tbl-wrap"><table class="tbl" id="tbl-d6"><thead><tr><th>Empleado</th><th>Tipo</th><th class="center">Días</th></tr></thead><tbody></tbody></table></div>
     </div>
 
@@ -197,6 +223,7 @@
         <div class="mi-section-title"><span class="ico">✅</span><h3>Capacidades 2026</h3></div>
         <span class="mi-badge" id="badge-d8">—</span>
       </div>
+      <div id="viz-d8" class="mi-viz"></div>
       <div id="stats-d8" class="mi-stats"></div>
       <div class="tbl-wrap"><table class="tbl" id="tbl-d8"><thead><tr><th>Certificación</th><th class="center">Aplicables</th><th class="center">Completados</th><th class="center">%</th></tr></thead><tbody></tbody></table></div>
     </div>

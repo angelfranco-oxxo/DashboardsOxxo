@@ -89,6 +89,63 @@
     return `<tr><td colspan="${colspan}"><div class="mi-empty-mini">${esc(msg || 'Sin registros con tu tienda en este periodo.')}</div></td></tr>`;
   }
 
+  // ── Medidor semicircular (mismo diseño que "Aprovechamiento por Plaza"
+  // de dashboard-3.html) — reutilizable para cualquier % 0-100. ──
+  let gaugeSeq = 0;
+  function gaugeSVG(value, meta) {
+    const v = Math.max(0, Math.min(100, Number(value) || 0));
+    const color = meta != null
+      ? (v >= meta ? 'verde' : v >= meta - 10 ? 'amarillo' : 'rojo')
+      : (v >= 80 ? 'verde' : v >= 50 ? 'amarillo' : 'rojo');
+    const c = color === 'verde' ? { main: '#1DB954', dark: '#15943f', txt: '#15803D' }
+      : color === 'amarillo' ? { main: '#E8B004', dark: '#C68A00', txt: '#A87400' }
+      : { main: '#EF4444', dark: '#C0181F', txt: '#C0181F' };
+    const cx = 100, cy = 104, r = 76, sw = 15, len = Math.PI * r;
+    const dash = (len * v / 100).toFixed(1);
+    const ang = Math.PI * (1 - v / 100);
+    const nx = (cx + (r - 6) * Math.cos(ang)).toFixed(1), ny = (cy - (r - 6) * Math.sin(ang)).toFixed(1);
+    const gid = 'mtg' + (gaugeSeq++);
+    let metaLine = '';
+    if (meta != null) {
+      const ma = Math.PI * (1 - meta / 100);
+      const m1x = (cx + (r - sw / 2 - 1) * Math.cos(ma)).toFixed(1), m1y = (cy - (r - sw / 2 - 1) * Math.sin(ma)).toFixed(1);
+      const m2x = (cx + (r + sw / 2 + 3) * Math.cos(ma)).toFixed(1), m2y = (cy - (r + sw / 2 + 3) * Math.sin(ma)).toFixed(1);
+      metaLine = `<line x1="${m1x}" y1="${m1y}" x2="${m2x}" y2="${m2y}" stroke="#3B1918" stroke-width="2" opacity=".5"/>`;
+    }
+    return `<svg viewBox="0 0 200 128" class="mi-gauge">
+      <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c.main}"/><stop offset="1" stop-color="${c.dark}"/></linearGradient></defs>
+      <path d="M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}" fill="none" stroke="#F2E6DE" stroke-width="${sw}" stroke-linecap="round"/>
+      <path d="M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}" fill="none" stroke="url(#${gid})" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash} ${len.toFixed(1)}"/>
+      ${metaLine}
+      <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#3B1918" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${cy}" r="7" fill="#fff" stroke="#3B1918" stroke-width="2.5"/>
+      <text x="${cx}" y="92" text-anchor="middle" class="mi-gauge__text" style="fill:${c.txt}">${v.toFixed(0)}<tspan style="font-size:16px" dy="-1">%</tspan></text>
+    </svg>`;
+  }
+  // Envuelve un medidor + tiles de detalle en una sola fila (usado por
+  // Aprovechamiento y Capacidades). label va debajo del medidor.
+  function gaugeRowHTML(value, meta, label, tilesHtml) {
+    return `<div class="mi-gauge-row">
+      <div class="mi-gauge-wrap">
+        ${gaugeSVG(value, meta)}
+        <div style="text-align:center;font-size:11px;font-weight:800;color:var(--color-gray);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">${esc(label)}</div>
+      </div>
+      <div class="mi-stats">${tilesHtml}</div>
+    </div>`;
+  }
+  // ── Barras horizontales para desgloses (motivos, puestos, tipos...) ──
+  function barListHTML(items, colorClass) {
+    const filtered = items.filter((it) => it.value > 0).sort((a, b) => b.value - a.value).slice(0, 6);
+    if (!filtered.length) return '';
+    const max = Math.max(...filtered.map((it) => it.value));
+    return `<div class="mi-barlist">${filtered.map((it) => `
+      <div class="mi-barlist__row">
+        <span class="mi-barlist__label" title="${esc(it.label)}">${esc(it.label)}</span>
+        <div class="mi-barlist__track"><div class="mi-barlist__fill ${colorClass || ''}" style="width:${max ? Math.max(4, Math.round(it.value / max * 100)) : 0}%"></div></div>
+        <span class="mi-barlist__value">${typeof it.display === 'string' ? esc(it.display) : n(it.value)}</span>
+      </div>`).join('')}</div>`;
+  }
+
   // ── Estado global (se carga una sola vez) ─────────────
   let CATALOG = null;
   const TIENDAS = new Map(); // normKey -> nombre a mostrar (canonico del catalogo si existe, si no el nombre crudo)
@@ -129,6 +186,12 @@
       statTile(n(byPuesto.Lider), 'Líder') +
       statTile(n(byPuesto.Encargado), 'Encargado') +
       statTile(n(byPuesto.Ayudante), 'Ayudante');
+    document.getElementById('viz-d1').innerHTML = barListHTML([
+      { label: 'Líder', value: byPuesto.Lider },
+      { label: 'Encargado', value: byPuesto.Encargado },
+      { label: 'Ayudante', value: byPuesto.Ayudante },
+      { label: 'Otro', value: byPuesto.Otro },
+    ]);
     const tbody = document.querySelector('#tbl-d1 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
         <td>${esc(V(r, d.puestoKey) || '—')}</td>
@@ -176,6 +239,9 @@
     document.getElementById('stats-d2').innerHTML =
       statTile(n(rows.length), 'Bajas del mes', 'rojo') +
       statTile(topMotivo ? OXXO.truncate(topMotivo[0], 22) : '—', 'Motivo más frecuente', 'amarillo');
+    document.getElementById('viz-d2').innerHTML = barListHTML(
+      Object.entries(porMotivo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
+    );
     const tbody = document.querySelector('#tbl-d2 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
         <td>${esc(V(r, d.puestoKey) || '—')}</td>
@@ -214,11 +280,12 @@
       if (c === 'completas') completas++; else if (c === 'incompletas') incompletas++; else if (c === 'criticas') criticas++;
     });
     const ec = rows.length ? Math.round((completas / rows.length) * 100) : 0;
-    document.getElementById('stats-d3').innerHTML =
-      statTile(ec + '%', 'EC · Equipo Completo', ec >= 80 ? 'verde' : ec >= 50 ? 'amarillo' : 'rojo') +
+    document.getElementById('stats-d3').innerHTML = '';
+    document.getElementById('viz-d3').innerHTML = rows.length ? gaugeRowHTML(ec, null, 'EC · Equipo Completo',
       statTile(n(completas), 'Completas', 'verde') +
       statTile(n(incompletas), 'Incompletas', 'amarillo') +
-      statTile(n(criticas), 'Críticas', 'rojo');
+      statTile(n(criticas), 'Críticas', 'rojo')
+    ) : '';
     const tbody = document.querySelector('#tbl-d3 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
         <td>${esc(V(r, d.asesorKey) || '—')}</td>
@@ -268,6 +335,11 @@
       statTile(n(totHoras), 'Horas TE', 'rojo') +
       statTile('$' + n(totGasto), 'Gasto TE', 'naranja') +
       statTile(n(rows.length), 'Registros');
+    const porEmpleado = {};
+    rows.forEach((r) => { const nom = V(r, d.nombreKey) || 'Sin nombre'; porEmpleado[nom] = (porEmpleado[nom] || 0) + numParse(V(r, d.horasKey)); });
+    document.getElementById('viz-d4').innerHTML = barListHTML(
+      Object.entries(porEmpleado).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value })), 'naranja'
+    );
     const sorted = [...rows].sort((a, b) => numParse(V(b, d.importeKey)) - numParse(V(a, d.importeKey)));
     const tbody = document.querySelector('#tbl-d4 tbody');
     tbody.innerHTML = sorted.length ? sorted.slice(0, 200).map((r) => `<tr>
@@ -305,6 +377,11 @@
       statTile(n(totDias), 'Días restantes', 'azul') +
       statTile(n(vencidos), 'Ya vencidos', vencidos > 0 ? 'rojo' : '') +
       statTile(n(proximos), 'Vencen 0-50 días', proximos > 0 ? 'amarillo' : '');
+    document.getElementById('viz-d5').innerHTML = barListHTML([
+      { label: 'Ya vencidos', value: vencidos },
+      { label: 'Vencen 0-50 días', value: proximos },
+      { label: 'Resto de colaboradores', value: Math.max(0, rows.length - vencidos - proximos) },
+    ], 'azul');
     const tbody = document.querySelector('#tbl-d5 tbody');
     const sorted = [...rows].sort((a, b) => (Number(V(b, d.diasRestKey)) || 0) - (Number(V(a, d.diasRestKey)) || 0));
     tbody.innerHTML = sorted.length ? sorted.slice(0, 200).map((r) => `<tr>
@@ -344,6 +421,11 @@
       statTile(n(empleados), 'Empleados ausentes', 'rojo') +
       statTile(n(totDias), 'Días ausentes', 'naranja') +
       statTile(n(faltas), 'Faltas', faltas > 0 ? 'rojo' : '');
+    const porTipo = {};
+    rows.forEach((r) => { const tipo = V(r, d.tipoKey) || 'Sin tipo'; porTipo[tipo] = (porTipo[tipo] || 0) + (parseFloat(V(r, d.diasKey)) || 0); });
+    document.getElementById('viz-d6').innerHTML = barListHTML(
+      Object.entries(porTipo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
+    );
     const tbody = document.querySelector('#tbl-d6 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
         <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 26))}</td>
@@ -501,9 +583,9 @@
     const aplicTotal = certStats.reduce((s, c) => s + c.aplic, 0);
     const compTotal = certStats.reduce((s, c) => s + c.comp, 0);
     const pctGlobal = aplicTotal ? Math.round((compTotal / aplicTotal) * 100) : 0;
-    document.getElementById('stats-d8').innerHTML =
-      statTile(n(empleados), 'Empleados') +
-      statTile(pctGlobal + '%', 'Cumplimiento global', pctGlobal >= 80 ? 'verde' : pctGlobal >= 50 ? 'amarillo' : 'rojo');
+    document.getElementById('stats-d8').innerHTML = '';
+    const certBars = barListHTML(certStats.filter((c) => c.pct !== null).map((c) => ({ label: c.label, value: c.pct, display: c.pct + '%' })), 'verde');
+    document.getElementById('viz-d8').innerHTML = rows.length ? gaugeRowHTML(pctGlobal, null, 'Cumplimiento global', statTile(n(empleados), 'Empleados')) + certBars : '';
     const tbody = document.querySelector('#tbl-d8 tbody');
     tbody.innerHTML = certStats.length ? certStats.map((c) => `<tr>
         <td>${esc(c.label)}</td>
