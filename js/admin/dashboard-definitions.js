@@ -39,10 +39,16 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
   // por lo que ya recibe el PLAZAS renombrado (p.ej. "ISTMO", no "COSTA ISTMO").
   // El set tiene que construirse con el nombre ya renombrado o la fila se pierde.
   const PEER_SET_D3=new Set(PEER_PLAZAS_D3.map(p=>normPlazaNombre(PEER_RENAME_D3[normPlazaNombre(p)]||p)));
+  // Si la celda en Excel tiene formato de porcentaje, XLSX.js (raw:false) la
+  // entrega como texto "72.40%" en vez de 0.724 -- Number() de eso da NaN y
+  // por eso se estaba publicando 0 en todas las plazas. Se limpia el simbolo
+  // antes de convertir, igual que ya hace toNumber()/pctValue() en
+  // normalizers.js para el resto de columnas numericas del panel.
+  function toNumberD3(value){const n=Number(String(value??'').replace(/[$,%]/g,'').trim());return Number.isFinite(n)?n:NaN;}
   function deriveD3Plazas(row){
     const nombreCrudo=String(row.PLAZAS||'').trim();
     const nombre=PEER_RENAME_D3[normPlazaNombre(nombreCrudo)]||nombreCrudo;
-    const raw=Number(row['Aprovechamiento de estructura a hoy']);
+    const raw=toNumberD3(row['Aprovechamiento de estructura a hoy']);
     // La hoja PLAZAS trae fraccion (0.9086); un re-upload del formato viejo
     // ya publicado vendria en porcentaje (90.86) -- se detecta por magnitud.
     const valor=Number.isFinite(raw)?Math.round((raw>0&&raw<=1?raw*100:raw)*100)/100:0;
