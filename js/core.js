@@ -471,7 +471,7 @@ function parseCSV(text) {
     const row = {};
     headers.forEach((h, idx) => {
       let val = (values[idx] || "").trim().replace(/^"|"$/g, '');
-      row[h] = val;
+      row[h] = fixMojibake(val);
     });
     rows.push(row);
   }
@@ -1157,6 +1157,31 @@ if (document.readyState === 'loading') {
 let asesorCatalogPromise = null;
 function stripAccents(value) {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+// Repara "mojibake": texto UTF-8 que en el origen (captura manual, copiar-
+// pegar entre programas) se guardo mal -- se interpreto como Latin-1 y se
+// re-guardo como UTF-8 -- y llega a la hoja con la enie (u otro acento)
+// convertida en dos caracteres sueltos en vez del caracter acentuado real
+// (confirmado en una tienda real: "5 Senores" llegaba corrupto solo desde
+// la hoja de TREO, con acento real en las demas hojas, y el mismatch de
+// texto hacia que esa tienda no calzara entre dashboards). Solo actua si
+// el texto cabe entero en un byte por caracter Y si al reinterpretar esos
+// bytes como UTF-8 el resultado es valido; un texto ya limpio casi nunca
+// cumple la segunda condicion (un caracter acentuado suelto seguido de una
+// letra normal no forma una secuencia UTF-8 valida), asi que es seguro
+// aplicarlo a cualquier valor sin revisar caso por caso.
+function fixMojibake(value) {
+  const text = String(value ?? '');
+  if (!/[\u0080-\u00ff]/.test(text)) return text;
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) > 0xff) return text;
+  }
+  try {
+    const bytes = Uint8Array.from(text.split('').map(ch => ch.charCodeAt(0)));
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch (e) {
+    return text;
+  }
 }
 function normalizeCatalogCr(value) {
   return stripAccents(value).toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -2106,6 +2131,7 @@ window.OXXO = {
   filterValidTiendas,
   normalizeCatalogCr,
   normalizeCatalogTienda,
+  fixMojibake,
   loadSystemConfig,
   showLoading,
   showError,
