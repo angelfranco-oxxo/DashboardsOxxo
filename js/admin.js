@@ -98,9 +98,11 @@
   // d2otras (Bajas otras plazas) y d2denom (Movimientos ABC) ya no aparecen
   // en el menu: se calculan solos al publicar "Bajas diarias" (mismo
   // archivo, cada uno con su propia hoja -- "Bajas" y "ABC"), asi no hay que
-  // subir el Excel varias veces. Las definiciones siguen vivas en
+  // subir el Excel varias veces. d3plazas (Aprovechamiento otras plazas)
+  // sigue el mismo patron: se calcula sola al publicar "Estructura" desde
+  // la hoja "PLAZAS" del mismo Excel. Las definiciones siguen vivas en
   // dashboards[] para que publish() las reutilice.
-  const HIDDEN_FROM_MENU=['d2otras','d2denom'];
+  const HIDDEN_FROM_MENU=['d2otras','d2denom','d3plazas'];
   function fillDashboardSelect(){$('dashboard-select').innerHTML=dashboards.filter(d=>!HIDDEN_FROM_MENU.includes(d.key)).map(d=>`<option value="${d.key}">${d.label}</option>`).join('');}
   function fillSheets(){const names=state.workbook?state.workbook.SheetNames:[];$('sheet-select').disabled=!names.length;$('sheet-select').innerHTML=names.length?names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join(''):'<option value="">Sube un Excel primero</option>';state.sheetName=names[0]||'';autoSelectSheet();}
   function loadCurrentSheet(){if(!state.workbook||!state.sheetName)return;const dash=dashboard(),sheet=state.workbook.Sheets[state.sheetName],matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});const parsed=rowsFromMatrix(matrix,dash);state.rows=parsed.rows;state.headerRow=parsed.headerRow;state.sourceRows=parsed.sourceRows;state.sourceHeaders=parsed.sourceHeaders;validateRows();}

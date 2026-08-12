@@ -52,13 +52,15 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
   function updatePublishState(){const el=$('publish-state');if(!el)return;const ready=Boolean(publishUrl());el.textContent=ready?'Publicacion directa lista':'Falta configurar Apps Script una sola vez';el.classList.toggle('ready',ready);}
 
   // Dashboards que ya no tienen su propia opcion en el menu porque salen del
-  // MISMO archivo ABC que ya se sube para "d2" (Bajas diarias): Bajas otras
-  // plazas viene de la hoja "Bajas", Movimientos ABC viene de la hoja "ABC".
-  // Al publicar d2 se recalculan y publican solos, cada uno buscando su
-  // propia hoja preferida dentro del workbook ya cargado (no necesariamente
-  // la misma hoja que quedo seleccionada para d2). Si alguno falla no se
-  // revierte el publish de d2 (que ya tuvo exito): solo se avisa aparte.
-  const D2_AUTO_KEYS=['d2otras','d2denom'];
+  // MISMO archivo que ya se sube para su dashboard "padre": Bajas otras
+  // plazas y Movimientos ABC salen del mismo Excel de d2 (hojas "Bajas" y
+  // "ABC"); Aprovechamiento otras plazas sale del mismo Excel de d3 (hoja
+  // "PLAZAS"). Al publicar el padre se recalculan y publican solos, cada
+  // uno buscando su propia hoja preferida dentro del workbook ya cargado
+  // (no necesariamente la misma hoja seleccionada para el padre). Si alguno
+  // falla no se revierte el publish del padre (que ya tuvo exito): solo se
+  // avisa aparte.
+  const AUTO_PUBLISH_MAP={d2:['d2otras','d2denom'],d3:['d3plazas']};
   function findSheetInWorkbook(preferredNames){
     const names=state.workbook?.SheetNames||[];
     for(const preferred of preferredNames||[]){
@@ -67,10 +69,11 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
     }
     return '';
   }
-  async function publishAutoFromD2(){
+  async function publishAutoFor(parentKey){
     if(!state.workbook)return [];
+    const keys=AUTO_PUBLISH_MAP[parentKey]||[];
     const publicados=[];
-    for(const key of D2_AUTO_KEYS){
+    for(const key of keys){
       const dashDef=getDashboards().find(d=>d.key===key);
       if(!dashDef)continue;
       const sheetName=findSheetInWorkbook(dashDef.preferredSheets)||state.sheetName;
@@ -79,7 +82,7 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
       const parsed=rowsFromMatrix(matrix,dashDef);
       if(!parsed.rows.length)continue;
-      await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:dashDef.tab,rows:parsed.rows,source:'DashboardsOxxo Admin (auto desde Bajas diarias)',updateMode:'replaceAll'});
+      await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:dashDef.tab,rows:parsed.rows,source:`DashboardsOxxo Admin (auto desde ${parentKey})`,updateMode:'replaceAll'});
       notifyConfigDate(dashDef.key);
       publicados.push({label:dashDef.label,count:parsed.rows.length});
     }
@@ -97,13 +100,13 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       const result=await postAdminPayload(payload);
       notifyConfigDate(dash.key);
       let autoMsg='';
-      if(dash.key==='d2'){
+      if(AUTO_PUBLISH_MAP[dash.key]){
         try{
-          const publicados=await publishAutoFromD2();
+          const publicados=await publishAutoFor(dash.key);
           if(publicados.length)autoMsg=' Tambien se actualizaron: '+publicados.map(p=>`${p.label} (${p.count})`).join(', ')+'.';
         }catch(autoError){
-          console.error('No se pudo publicar los dashboards derivados de d2 automaticamente:',autoError);
-          autoMsg=' Ojo: no se pudo actualizar Bajas otras plazas / Movimientos ABC, revisalos aparte si hace falta.';
+          console.error(`No se pudo publicar los dashboards derivados de ${dash.key} automaticamente:`,autoError);
+          autoMsg=' Ojo: no se pudieron actualizar los dashboards derivados, revisalos aparte si hace falta.';
         }
       }
       alert((result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestana reemplazada completa'}.`)+autoMsg);
