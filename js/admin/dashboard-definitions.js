@@ -45,13 +45,24 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
   // antes de convertir, igual que ya hace toNumber()/pctValue() en
   // normalizers.js para el resto de columnas numericas del panel.
   function toNumberD3(value){const n=Number(String(value??'').replace(/[$,%]/g,'').trim());return Number.isFinite(n)?n:NaN;}
+  // El Excel de origen no siempre trae la misma escala/formato mes a mes:
+  // - Fraccion sin formato (0.9086) -> falta multiplicar por 100.
+  // - Ya en porcentaje (90.86, o texto "90.86%") -> se deja igual.
+  // - Celda con formato de Porcentaje aplicado a un valor QUE YA ERA
+  //   porcentaje (error comun de captura en Excel): el numero real en la
+  //   celda es 94.29 pero Excel lo muestra/exporta como "9429.00%" (lo
+  //   multiplica de mas). Un aprovechamiento nunca pasa de 100%, asi que
+  //   cualquier resultado por encima de eso se divide entre 100 una vez mas.
+  function pctD3(raw){
+    if(!Number.isFinite(raw))return 0;
+    let valor=raw>0&&raw<=1?raw*100:raw;
+    if(valor>100)valor=valor/100;
+    return Math.round(valor*100)/100;
+  }
   function deriveD3Plazas(row){
     const nombreCrudo=String(row.PLAZAS||'').trim();
     const nombre=PEER_RENAME_D3[normPlazaNombre(nombreCrudo)]||nombreCrudo;
-    const raw=toNumberD3(row['Aprovechamiento de estructura a hoy']);
-    // La hoja PLAZAS trae fraccion (0.9086); un re-upload del formato viejo
-    // ya publicado vendria en porcentaje (90.86) -- se detecta por magnitud.
-    const valor=Number.isFinite(raw)?Math.round((raw>0&&raw<=1?raw*100:raw)*100)/100:0;
+    const valor=pctD3(toNumberD3(row['Aprovechamiento de estructura a hoy']));
     return {...row,PLAZAS:nombre,'Aprovechamiento de estructura a hoy':valor,Actualizado:todayIsoAdmin()};
   }
   function deriveD2Otras(row){
