@@ -27,7 +27,27 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
   function normPlazaNombre(v){return String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toUpperCase();}
   const PEER_PLAZAS_D2OTRAS=['Chontalpa','Villahermosa','Costa Istmo','Tuxtla'];
   const PEER_SET_D2OTRAS=new Set(PEER_PLAZAS_D2OTRAS.map(normPlazaNombre));
-  function todayIsoD2Otras(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+  function todayIsoAdmin(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+  // d3plazas: mismas 4 plazas que ya se capturaban a mano (Tuxtla, Istmo,
+  // Villahermosa, Chontalpa) para el ranking comparativo del Dashboard 3.
+  // El Excel de Aprovechamiento (ZCS) ya trae una hoja "PLAZAS" con el
+  // aprovechamiento pre-calculado por plaza (fraccion 0-1): solo hay que
+  // leerla, filtrar las 4 conocidas y pasar a porcentaje.
+  const PEER_PLAZAS_D3=['Tuxtla','Costa Istmo','Villahermosa','Chontalpa'];
+  const PEER_RENAME_D3={'COSTA ISTMO':'ISTMO'}; // nombre publicado historicamente
+  // El filter corre DESPUES del derive (ver rowsFromMatrix en normalizers.js),
+  // por lo que ya recibe el PLAZAS renombrado (p.ej. "ISTMO", no "COSTA ISTMO").
+  // El set tiene que construirse con el nombre ya renombrado o la fila se pierde.
+  const PEER_SET_D3=new Set(PEER_PLAZAS_D3.map(p=>normPlazaNombre(PEER_RENAME_D3[normPlazaNombre(p)]||p)));
+  function deriveD3Plazas(row){
+    const nombreCrudo=String(row.PLAZAS||'').trim();
+    const nombre=PEER_RENAME_D3[normPlazaNombre(nombreCrudo)]||nombreCrudo;
+    const raw=Number(row['Aprovechamiento de estructura a hoy']);
+    // La hoja PLAZAS trae fraccion (0.9086); un re-upload del formato viejo
+    // ya publicado vendria en porcentaje (90.86) -- se detecta por magnitud.
+    const valor=Number.isFinite(raw)?Math.round((raw>0&&raw<=1?raw*100:raw)*100)/100:0;
+    return {...row,PLAZAS:nombre,'Aprovechamiento de estructura a hoy':valor,Actualizado:todayIsoAdmin()};
+  }
   function deriveD2Otras(row){
     // Fila ya agregada (formato viejo: Plazas + Bajas Plaza con numero) se
     // deja intacta. Fila cruda (una baja, columna Plaza) se marca para que
@@ -46,7 +66,7 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
       const suma=yaAgregada?bajasNum:1;
       porPlaza.set(nombre,(porPlaza.get(nombre)||0)+suma);
     });
-    const hoy=todayIsoD2Otras();
+    const hoy=todayIsoAdmin();
     return [...porPlaza.entries()]
       .map(([Plazas,Bajas])=>({Plazas,'Bajas Plaza':Bajas,Actualizado:hoy}))
       .sort((a,b)=>b['Bajas Plaza']-a['Bajas Plaza']);
@@ -69,7 +89,10 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
       notes:'Ranking comparativo de bajas por plaza (Chontalpa, Villahermosa, Costa Istmo, Tuxtla) para el Dashboard 2. Sube la hoja "Bajas" del Excel ABC completo (una fila por baja, columna Plaza): se agrupan y cuentan solas, Oaxaca se excluye porque ya la cubre el Dashboard 2 principal. Tambien acepta el formato viejo ya agregado (columnas Plazas + Bajas Plaza).'},
     {key:'d2denom',label:'Dashboard 2 - Movimientos ABC',tab:OXXO.SHEETS_CONFIG.TABS.d2denom,periodColumn:'',preferredSheets:['ABC'],output:['Plaza','Asesor','Mes','Denominacion Medida','Denominacion Motivo','Nombre del empleado','F.Crea','Denominacion Posicion Anterior','Denominacion Posicion Actual','Denominacion Funcion Anterior','Denominacion Funcion Actual','Denominacion U.Org. Actual'],required:['Plaza','Asesor','Denominacion Medida','Nombre del empleado','F.Crea','Denominacion Funcion Anterior','Denominacion Funcion Actual'],filter:r=>containsOaxaca(r.Plaza)&&/cambio\s+de\s+puesto/i.test(String(r['Denominacion Medida']||'')),derive:deriveD2Denom,notes:'Detalle ABC: solo CAMBIO DE PUESTO. Mes se toma del nombre del archivo si trae fecha; ascenso/descenso lo calcula el dashboard.'},
     {key:'d2plan',label:'Dashboard 2 - Plan de accion (Analisis de Bajas)',tab:OXXO.SHEETS_CONFIG.TABS.d2plan,periodColumn:'',preferredSheets:['Plan de Accion'],output:['Hallazgo','Accion','Responsable','Plazo','Indicador','Prioridad'],required:['Hallazgo','Accion'],filter:r=>Boolean(String(r.Hallazgo||'').trim()),derive:r=>r,notes:'Plan de accion mensual del Analisis de Bajas. Captura manual: Hallazgo, Accion, Responsable, Plazo, Indicador de exito, Prioridad.'},
-    {key:'d3plazas',label:'Dashboard 3 - Aprovechamiento otras plazas',tab:OXXO.SHEETS_CONFIG.TABS.d3plazas,periodColumn:'',preferredSheets:['Medicion'],output:['PLAZAS','Aprovechamiento de estructura a hoy'],required:['PLAZAS','Aprovechamiento de estructura a hoy'],filter:r=>Boolean(String(r.PLAZAS||'').trim()),derive:r=>r,notes:'Aprovechamiento por plaza para el ranking comparativo del Dashboard 3. Columnas: PLAZAS y Aprovechamiento de estructura a hoy (valor entre 0 y 100).'},
+    {key:'d3plazas',label:'Dashboard 3 - Aprovechamiento otras plazas',tab:OXXO.SHEETS_CONFIG.TABS.d3plazas,periodColumn:'',preferredSheets:['PLAZAS'],output:['PLAZAS','Aprovechamiento de estructura a hoy','Actualizado'],required:['PLAZAS','Aprovechamiento de estructura a hoy'],
+      filter:r=>PEER_SET_D3.has(normPlazaNombre(r.PLAZAS)),
+      derive:deriveD3Plazas,
+      notes:'Ranking comparativo de aprovechamiento por plaza (Tuxtla, Istmo, Villahermosa, Chontalpa) para el Dashboard 3. Sube el Excel de Aprovechamiento (ZCS) completo: la hoja "PLAZAS" ya trae el aprovechamiento pre-calculado por plaza, solo se filtran las 4 conocidas y se pasa a porcentaje. Oaxaca se excluye porque ya la cubre el Dashboard 3 principal.'},
     {key:'d3',label:'Dashboard 3 - Estructura',tab:OXXO.SHEETS_CONFIG.TABS.d3,periodColumn:'',preferredSheets:['Medicion'],output:['Plaza','CR TIENDA','UO','Asesor','Tienda','Esquema','Estructura Diaria','AUSENTISMOS','Vacante','LIDER','ENCARGADO','AYUDANTE','Vacantes','Aprovechamiento Estructura','Aprovechamiento Binario','Estatus Con impacto Ausentismo','EC SIN AUSENTISMO','FECHA'],required:['Plaza','CR TIENDA','Asesor','Tienda','Estructura Diaria','Aprovechamiento Estructura','Estatus Con impacto Ausentismo','FECHA'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD3,notes:'Regla D3: Aprovechamiento Estructura >= 95% cuenta como 100%, menor a 95% cuenta como 0%. Cada carga reemplaza toda la pestana (es una foto diaria, no un historico por periodo).'},
     {key:'s4',label:'Dashboard 4 - Tiempo extra',tab:OXXO.SHEETS_CONFIG.TABS.s4,periodColumn:'Semana',preferredSheets:['Base de datos TE'],output:['Zona','Region','Plaza','Asesor','Numero de personal','Nombre del empleado o candidato','Esquema','Textos homologados','Texto breve de unidad organizativa','Cr de Tienda','Cantidad','Importe','Ano','Mes','Semana'],required:['Plaza','Asesor','Nombre del empleado o candidato','Textos homologados','Texto breve de unidad organizativa','Cantidad','Importe','Semana'],filter:r=>containsOaxaca(r.Plaza),derive:r=>r,notes:'Base limpia de tiempo extra. Usar Cantidad como horas e Importe como gasto.'},
     {key:'s5',label:'Dashboard 5 - Vacaciones',tab:OXXO.SHEETS_CONFIG.TABS.s5,preferredSheets:['Vacaciones Op'],output:['Region','Plaza','Asesor','Tienda','Puesto','Posicion','Area','No. De Empleado','Nombre','Fecha_Inicio','Fecha_Fin','Periodo_Anterior','Periodo_Actual','Dias_Restantes','Bucket_Ant','Bucket_Act','Tipo de Conting.'],required:['Plaza','Asesor','Tienda','Puesto','No. De Empleado','Nombre','Dias_Restantes'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD5,notes:'Vacaciones Op. El indicador principal es Total dias restantes.'},
