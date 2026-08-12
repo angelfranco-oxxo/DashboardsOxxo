@@ -51,15 +51,24 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
 
   function findHeaderRow(matrix,dash){const limit=Math.min(matrix.length,40);let best={index:0,score:-1};for(let i=0;i<limit;i++){const cells=(matrix[i]||[]).map(norm).filter(Boolean);const score=dash.required.reduce((total,col)=>total+(aliasesFor(col).some(alias=>cells.includes(alias))?1:0),0)+Math.min(cells.length,12)/100;if(score>best.score)best={index:i,score};}return best;}
   function buildSourceMap(sourceHeaders){const sourceMap=new Map();sourceHeaders.forEach((header,index)=>{const key=norm(header);if(key&&!sourceMap.has(key))sourceMap.set(key,index);});return sourceMap;}
-  function matchColumns(sourceMap,dash){const matched={};dash.output.forEach(col=>{const exact=aliasesFor(col).find(alias=>sourceMap.has(alias));if(exact)matched[col]=sourceMap.get(exact);});return matched;}
+  function matchColumns(sourceMap,columns){const matched={};columns.forEach(col=>{const exact=aliasesFor(col).find(alias=>sourceMap.has(alias));if(exact)matched[col]=sourceMap.get(exact);});return matched;}
+  // dash.sourceColumns: columnas a extraer del Excel crudo, cuando difieren de
+  // dash.output (ej. d2otras extrae la columna cruda "Plaza" ademas de
+  // "Plazas"/"Bajas Plaza"). Si no se define, se extraen las mismas columnas
+  // que el output final (comportamiento previo, sin cambios para el resto).
+  // dash.aggregate: transforma las filas ya filtradas/derivadas (una por fila
+  // de origen) en las filas finales a publicar, cuando el dashboard necesita
+  // agrupar/contar en vez de mapear 1 a 1 (ej. bajas por plaza).
   function rowsFromMatrix(matrix,dash){
     if(!matrix.length)return{rows:[],headers:[],headerRow:0,sourceRows:0,sourceHeaders:[]};
     const headerInfo=findHeaderRow(matrix,dash);
     const sourceHeaders=(matrix[headerInfo.index]||[]).map((value,index)=>String(value||`Columna ${index+1}`).trim());
-    const matched=matchColumns(buildSourceMap(sourceHeaders),dash);
-    const rawRows=matrix.slice(headerInfo.index+1).map(line=>{const row={};dash.output.forEach(col=>{row[col]=matched[col]!==undefined?(line[matched[col]]??''):'';});return row;}).filter(row=>Object.values(row).some(v=>String(v??'').trim()!==''));
-    const filtered=rawRows.map(row=>dash.derive?dash.derive(row):row).filter(row=>!dash.filter||dash.filter(row)).map(row=>{const cleaned={};dash.output.forEach(col=>{cleaned[col]=row[col]??'';});return cleaned;});
-    return{rows:filtered,headers:dash.output,headerRow:headerInfo.index+1,sourceRows:rawRows.length,sourceHeaders};
+    const extractColumns=dash.sourceColumns||dash.output;
+    const matched=matchColumns(buildSourceMap(sourceHeaders),extractColumns);
+    const rawRows=matrix.slice(headerInfo.index+1).map(line=>{const row={};extractColumns.forEach(col=>{row[col]=matched[col]!==undefined?(line[matched[col]]??''):'';});return row;}).filter(row=>Object.values(row).some(v=>String(v??'').trim()!==''));
+    const filtered=rawRows.map(row=>dash.derive?dash.derive(row):row).filter(row=>!dash.filter||dash.filter(row)).map(row=>{const cleaned={};extractColumns.forEach(col=>{cleaned[col]=row[col]??'';});return cleaned;});
+    const finalRows=dash.aggregate?dash.aggregate(filtered):filtered;
+    return{rows:finalRows,headers:dash.output,headerRow:headerInfo.index+1,sourceRows:rawRows.length,sourceHeaders};
   }
   function evaluateSheet(name,dash){const sheet=state.workbook.Sheets[name];const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});const parsed=rowsFromMatrix(matrix,dash);const missing=dash.required.filter(col=>!parsed.rows.some(row=>String(row[col]??'').trim()!==''));const preference=(dash.preferredSheets||[]).some(s=>norm(s)===norm(name))?1000:0;return{name,parsed,missing,score:preference+parsed.rows.length-missing.length*100};}
   function autoSelectSheet(){if(!state.workbook)return;const dash=dashboard();const evaluations=state.workbook.SheetNames.map(name=>evaluateSheet(name,dash)).sort((a,b)=>b.score-a.score);const best=evaluations[0];if(best&&best.name&&$('sheet-select').value!==best.name){$('sheet-select').value=best.name;state.sheetName=best.name;}}

@@ -19,10 +19,54 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
     deriveCatalog
   } = deps;
 
+  // d2otras: mismas 4 plazas que ya se capturaban a mano en el formulario
+  // manual (Chontalpa, Villahermosa, Costa Istmo, Tuxtla) para el ranking
+  // comparativo del Dashboard 2. Ahora se cuentan solas desde la hoja "Bajas"
+  // del Excel ABC (una fila por baja, columna Plaza), agrupando y sumando 1
+  // por fila -- ya no hace falta escribirlas a mano cada vez.
+  function normPlazaNombre(v){return String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toUpperCase();}
+  const PEER_PLAZAS_D2OTRAS=['Chontalpa','Villahermosa','Costa Istmo','Tuxtla'];
+  const PEER_SET_D2OTRAS=new Set(PEER_PLAZAS_D2OTRAS.map(normPlazaNombre));
+  function todayIsoD2Otras(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+  function deriveD2Otras(row){
+    // Fila ya agregada (formato viejo: Plazas + Bajas Plaza con numero) se
+    // deja intacta. Fila cruda (una baja, columna Plaza) se marca para que
+    // el filtro/aggregate sepan tratarla como "1 baja de esa plaza".
+    const bajasNum=Number(row['Bajas Plaza']);
+    const yaAgregada=Number.isFinite(bajasNum)&&bajasNum>0&&String(row['Bajas Plaza']||'').trim()!==''&&String(row.Plazas||'').trim()!=='';
+    return yaAgregada?row:{...row,Plaza:String(row.Plaza||'').trim()};
+  }
+  function aggregateD2Otras(rows){
+    const porPlaza=new Map();
+    rows.forEach(row=>{
+      const bajasNum=Number(row['Bajas Plaza']);
+      const yaAgregada=Number.isFinite(bajasNum)&&bajasNum>0&&String(row['Bajas Plaza']||'').trim()!==''&&String(row.Plazas||'').trim()!=='';
+      const nombre=yaAgregada?String(row.Plazas).trim():String(row.Plaza||'').trim();
+      if(!nombre)return;
+      const suma=yaAgregada?bajasNum:1;
+      porPlaza.set(nombre,(porPlaza.get(nombre)||0)+suma);
+    });
+    const hoy=todayIsoD2Otras();
+    return [...porPlaza.entries()]
+      .map(([Plazas,Bajas])=>({Plazas,'Bajas Plaza':Bajas,Actualizado:hoy}))
+      .sort((a,b)=>b['Bajas Plaza']-a['Bajas Plaza']);
+  }
+
   return [
     {key:'d1',label:'Dashboard 1 - Vacantes diarias',tab:OXXO.SHEETS_CONFIG.TABS.d1,periodColumn:'Mes',preferredSheets:['Estructura','Dashboard_1_Diario'],output:['Plaza','Asesor','Unidad org','CR TIENDA','ID posiciones','Descripcion de Posicion','Status ocupacion','Empleados','Fecha','Dias Vacantes','Mes'],required:['Plaza','Asesor','Unidad org','ID posiciones','Descripcion de Posicion','Status ocupacion'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD1,notes:'Estructura cruda. Mes se toma del nombre del archivo; Dias Vacantes se deriva del texto vacante si no viene en el archivo. Se publican TODAS las posiciones (no solo vacantes) para que TREO calcule SAP/Activos por tienda; Dashboard 1 filtra por su cuenta las que son vacante (Status/Empleados vacio).'},
     {key:'d2',label:'Dashboard 2 - Bajas diarias',tab:OXXO.SHEETS_CONFIG.TABS.d2,periodColumn:'Mes',preferredSheets:['Bajas'],output:['Plaza','Asesor','Nombre del empleado','No Personal','Fecha','Mes','Semana','Temporalidad','Rot_Temp','Puesto','Tienda','Motivo','Detalle','Edad','Genero'],required:['Plaza','Asesor','Nombre del empleado','Fecha','Semana','Temporalidad','Rot_Temp','Puesto','Tienda'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD2,notes:'Base principal de bajas. Mes se toma del nombre del archivo si trae fecha; si no, se calcula con F. Validez/Fecha.'},
-    {key:'d2otras',label:'Dashboard 2 - Bajas otras plazas',tab:OXXO.SHEETS_CONFIG.TABS.d2otras,periodColumn:'',preferredSheets:['Bajas'],output:['Plazas','Bajas Plaza'],required:['Plazas','Bajas Plaza'],filter:r=>Boolean(String(r.Plazas||'').trim()),derive:r=>r,notes:'Totales de bajas por plaza para el ranking comparativo del Dashboard 2. Solo necesita columnas Plazas y Bajas Plaza.'},
+    {key:'d2otras',label:'Dashboard 2 - Bajas otras plazas',tab:OXXO.SHEETS_CONFIG.TABS.d2otras,periodColumn:'',preferredSheets:['Bajas'],sourceColumns:['Plazas','Bajas Plaza','Plaza'],output:['Plazas','Bajas Plaza','Actualizado'],required:['Plazas','Bajas Plaza'],
+      filter:r=>{
+        const bajasNum=Number(r['Bajas Plaza']);
+        const yaAgregada=Number.isFinite(bajasNum)&&bajasNum>0&&String(r['Bajas Plaza']||'').trim()!==''&&String(r.Plazas||'').trim()!=='';
+        if(yaAgregada)return true;
+        const plaza=String(r.Plaza||'').trim();
+        if(!plaza||containsOaxaca(plaza))return false;
+        return PEER_SET_D2OTRAS.has(normPlazaNombre(plaza));
+      },
+      derive:deriveD2Otras,
+      aggregate:aggregateD2Otras,
+      notes:'Ranking comparativo de bajas por plaza (Chontalpa, Villahermosa, Costa Istmo, Tuxtla) para el Dashboard 2. Sube la hoja "Bajas" del Excel ABC completo (una fila por baja, columna Plaza): se agrupan y cuentan solas, Oaxaca se excluye porque ya la cubre el Dashboard 2 principal. Tambien acepta el formato viejo ya agregado (columnas Plazas + Bajas Plaza).'},
     {key:'d2denom',label:'Dashboard 2 - Movimientos ABC',tab:OXXO.SHEETS_CONFIG.TABS.d2denom,periodColumn:'',preferredSheets:['ABC'],output:['Plaza','Asesor','Mes','Denominacion Medida','Denominacion Motivo','Nombre del empleado','F.Crea','Denominacion Posicion Anterior','Denominacion Posicion Actual','Denominacion Funcion Anterior','Denominacion Funcion Actual','Denominacion U.Org. Actual'],required:['Plaza','Asesor','Denominacion Medida','Nombre del empleado','F.Crea','Denominacion Funcion Anterior','Denominacion Funcion Actual'],filter:r=>containsOaxaca(r.Plaza)&&/cambio\s+de\s+puesto/i.test(String(r['Denominacion Medida']||'')),derive:deriveD2Denom,notes:'Detalle ABC: solo CAMBIO DE PUESTO. Mes se toma del nombre del archivo si trae fecha; ascenso/descenso lo calcula el dashboard.'},
     {key:'d2plan',label:'Dashboard 2 - Plan de accion (Analisis de Bajas)',tab:OXXO.SHEETS_CONFIG.TABS.d2plan,periodColumn:'',preferredSheets:['Plan de Accion'],output:['Hallazgo','Accion','Responsable','Plazo','Indicador','Prioridad'],required:['Hallazgo','Accion'],filter:r=>Boolean(String(r.Hallazgo||'').trim()),derive:r=>r,notes:'Plan de accion mensual del Analisis de Bajas. Captura manual: Hallazgo, Accion, Responsable, Plazo, Indicador de exito, Prioridad.'},
     {key:'d3plazas',label:'Dashboard 3 - Aprovechamiento otras plazas',tab:OXXO.SHEETS_CONFIG.TABS.d3plazas,periodColumn:'',preferredSheets:['Medicion'],output:['PLAZAS','Aprovechamiento de estructura a hoy'],required:['PLAZAS','Aprovechamiento de estructura a hoy'],filter:r=>Boolean(String(r.PLAZAS||'').trim()),derive:r=>r,notes:'Aprovechamiento por plaza para el ranking comparativo del Dashboard 3. Columnas: PLAZAS y Aprovechamiento de estructura a hoy (valor entre 0 y 100).'},
