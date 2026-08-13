@@ -277,8 +277,13 @@
   }
   .smart-filter__label{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .smart-filter__chev{ color:#8f3737; flex:0 0 auto; font-size:12px; }
+  /* El menu se ensancha mas alla de su columna: los nombres de tienda
+     ("OXXO SAN DIONISIO OAX") no caben en el ancho del boton, y menos
+     con el boton "Solo" al lado. Se ancla a la izquierda y se limita al
+     viewport para que en celular no se salga de la pantalla. */
   .smart-filter__menu{
-    position:absolute; left:0; right:0; top:calc(100% + 8px); z-index:50;
+    position:absolute; left:0; right:auto; top:calc(100% + 8px); z-index:50;
+    width:max(100%,272px); max-width:calc(100vw - 32px);
     display:none; max-height:320px; overflow:hidden;
     border-radius:18px; border:1px solid rgba(255,255,255,.76);
     background:rgba(255,250,246,.96); color:#241413;
@@ -308,6 +313,21 @@
   .smart-filter__option.is-active .smart-filter__check{ background:#d91f2d; border-color:#d91f2d; }
   .smart-filter__option.is-active .smart-filter__check::before{ content:"✓"; }
   .smart-filter__empty{ padding:16px; color:#8b6a5f; font-size:12px; font-weight:800; text-align:center; }
+  /* Cada opcion trae dos acciones: el renglon agrega/quita (multi) y
+     "Solo" deja unicamente esa. Se muestra siempre (no en :hover) para
+     que tambien se pueda usar en celular, donde no hay hover. */
+  .sf-row{ display:flex; align-items:center; gap:4px; }
+  .sf-row .smart-filter__option{ flex:1 1 auto; min-width:0; }
+  .sf-row .sf-text{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sf-only{
+    flex:0 0 auto; border:1px solid rgba(181,18,28,.24); background:rgba(255,255,255,.86);
+    color:#b5121c; border-radius:9px; padding:5px 8px; cursor:pointer;
+    font-family:var(--font-body); font-size:9.5px; font-weight:800; line-height:1;
+    letter-spacing:.06em; text-transform:uppercase; opacity:.62; transition:opacity .15s ease, background .15s ease;
+  }
+  .sf-row:hover .sf-only{ opacity:1; }
+  .sf-only:hover{ background:#d91f2d; border-color:#d91f2d; color:#fff; opacity:1; }
+  .sf-only:focus-visible{ outline:2px solid #d91f2d; outline-offset:1px; opacity:1; }
   .hero .hero-badge{
     background:rgba(255,255,255,0.16) !important;
     border-color:rgba(255,255,255,0.34) !important;
@@ -1721,10 +1741,7 @@ function renderAsesorOptions(query=''){
     .concat(filtered.map(v=>({value:v,label:v,isAll:false})))
     .map(opt=>{
       const active=opt.isAll ? allSelected : (selectedAsesorValues ? selectedAsesorValues.includes(opt.value) : true);
-      return `<button type="button" class="smart-filter__option ${active?'is-active':''}" data-asesor="${esc(opt.value)}">
-        <span class="smart-filter__check"></span>
-        <span>${esc(opt.label)}</span>
-      </button>`;
+      return sfRow({ attr:'asesor', value:opt.value, label:opt.label, active, isAll:opt.isAll });
     }).join('');
   wrap.innerHTML=rows || '<div class="smart-filter__empty">Sin resultados</div>';
 }
@@ -1859,6 +1876,20 @@ function normalizeSearchText(value){
   return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 }
 
+// Fila de filtro con dos acciones: el renglon completo agrega/quita
+// (multiseleccion de siempre) y "Solo" deja unicamente esa opcion.
+// Sin el boton "Solo" no habia forma practica de ver una sola tienda:
+// el filtro arranca con las ~250 tiendas operativas seleccionadas, asi
+// que quedarse con una sola exigia des-seleccionar las otras 249 a mano.
+function sfRow({ attr, value, label, active, isAll }){
+  const opt=`<button type="button" class="smart-filter__option ${active?'is-active':''}" data-${attr}="${esc(value)}">
+      <span class="smart-filter__check"></span>
+      <span class="sf-text">${esc(label)}</span>
+    </button>`;
+  if(isAll) return `<div class="sf-row">${opt}</div>`;
+  return `<div class="sf-row">${opt}<button type="button" class="sf-only" data-solo-${attr}="${esc(value)}" title="Ver solo ${esc(label)}">Solo</button></div>`;
+}
+
 function renderTiendaOptions(query=''){
   const wrap=document.getElementById('tienda-options');
   if(!wrap) return;
@@ -1867,12 +1898,24 @@ function renderTiendaOptions(query=''){
   const rows=['',...filtered.slice(0,80)].map(value=>{
     const isAll=value==='';
     const active=isAll?isDefaultTiendaSelection():selectedTiendaValues.includes(value);
-    return `<button type="button" class="smart-filter__option ${active?'is-active':''}" data-tienda="${esc(value)}">
-      <span class="smart-filter__check"></span>
-      <span>${isAll?'Tiendas operativas':esc(value)}</span>
-    </button>`;
+    return sfRow({ attr:'tienda', value, label:isAll?'Tiendas operativas':value, active, isAll });
   }).join('');
   wrap.innerHTML=rows || '<div class="smart-filter__empty">Sin resultados</div>';
+}
+
+// El menu es mas ancho que su columna (para que quepan los nombres de
+// tienda), asi que en pantallas angostas el de la columna derecha se
+// salia de la pantalla. Se recorre lo justo para que quede dentro.
+function fitSmartFilterMenu(box){
+  const menu=box?.querySelector('.smart-filter__menu');
+  if(!menu) return;
+  menu.style.marginLeft='0px';
+  const r=menu.getBoundingClientRect();
+  const margen=8;
+  let shift=0;
+  if(r.right>window.innerWidth-margen) shift=window.innerWidth-margen-r.right;
+  if(r.left+shift<margen) shift=margen-r.left;
+  if(shift) menu.style.marginLeft=Math.round(shift)+'px';
 }
 
 function closeSmartFilters(exceptId=''){
@@ -2185,6 +2228,7 @@ function poblarFiltros(){
     const willOpen=!box.classList.contains('open');
     closeSmartFilters(willOpen ? 'dias-filter' : '');
     box.classList.toggle('open', willOpen);
+    if(willOpen) fitSmartFilterMenu(box);
   });
   document.getElementById('dias-options').addEventListener('click', e => {
     const btn=e.target.closest('[data-dias]');
@@ -2201,6 +2245,7 @@ function poblarFiltros(){
     const willOpen=!box.classList.contains('open');
     closeSmartFilters(willOpen ? 'puesto-filter' : '');
     box.classList.toggle('open', willOpen);
+    if(willOpen) fitSmartFilterMenu(box);
   });
 
   document.getElementById('puesto-options').addEventListener('click', e => {
@@ -2225,6 +2270,7 @@ function poblarFiltros(){
     const willOpen=!box.classList.contains('open');
     closeSmartFilters(willOpen ? 'asesor-filter' : '');
     box.classList.toggle('open', willOpen);
+    if(willOpen) fitSmartFilterMenu(box);
     if(willOpen) setTimeout(()=>document.getElementById('asesor-search').focus(),0);
   });
 
@@ -2233,6 +2279,13 @@ function poblarFiltros(){
   });
 
   document.getElementById('asesor-options').addEventListener('click', e => {
+    const solo=e.target.closest('[data-solo-asesor]');
+    if(solo){
+      e.stopPropagation();
+      setSelectedAsesores([solo.dataset.soloAsesor]);
+      refreshDashboard();
+      return;
+    }
     const btn=e.target.closest('[data-asesor]');
     if(!btn) return;
     e.stopPropagation();
@@ -2254,6 +2307,7 @@ function poblarFiltros(){
     const willOpen=!box.classList.contains('open');
     closeSmartFilters(willOpen ? 'tienda-filter' : '');
     box.classList.toggle('open', willOpen);
+    if(willOpen) fitSmartFilterMenu(box);
     if(willOpen) setTimeout(()=>document.getElementById('tienda-search').focus(),0);
   });
 
@@ -2262,6 +2316,13 @@ function poblarFiltros(){
   });
 
   document.getElementById('tienda-options').addEventListener('click', e => {
+    const solo=e.target.closest('[data-solo-tienda]');
+    if(solo){
+      e.stopPropagation();
+      setSelectedTiendas([solo.dataset.soloTienda]);
+      refreshDashboard();
+      return;
+    }
     const btn=e.target.closest('[data-tienda]');
     if(!btn) return;
     e.stopPropagation();
