@@ -15,7 +15,8 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
     periodInfo,
     isoDate,
     getAdminPassword,
-    rowsFromMatrix
+    rowsFromMatrix,
+    getSheetMatrix
   } = deps;
 
   function isFetchBlocked(error){return /failed to fetch|load failed|networkerror|cors/i.test(String(error?.message||error||''));}
@@ -77,9 +78,9 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       const dashDef=getDashboards().find(d=>d.key===key);
       if(!dashDef)continue;
       const sheetName=findSheetInWorkbook(dashDef.preferredSheets)||state.sheetName;
-      const sheet=sheetName?state.workbook.Sheets[sheetName]:null;
-      if(!sheet)continue;
-      const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
+      if(!sheetName)continue;
+      const matrix=getSheetMatrix(sheetName);
+      if(!matrix.length)continue;
       const parsed=rowsFromMatrix(matrix,dashDef);
       if(!parsed.rows.length)continue;
       await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:dashDef.tab,rows:parsed.rows,source:`DashboardsOxxo Admin (auto desde ${parentKey})`,updateMode:'replaceAll'});
