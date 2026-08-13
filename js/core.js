@@ -1330,20 +1330,24 @@ function metricsIsSinAsesorD1(value) {
   const t = metricsNormText(value).replace(/[^A-Z]/g, '');
   return !t || t.includes('SINASESOR') || t.includes('NOASIGNADO');
 }
-// Regla general (todos los dashboards): toda tienda "Sin Asesor Asignado"
-// se atribuye a Timoteo Antonio Perez, EXCEPTO las unidades de Entrenamiento/
-// Operaciones (no son tiendas operativas reales) que se quedan con su propio
-// "Sin Asesor Asignado" en vez de sumarse a Timoteo. Este chequeo va primero
-// y sin pasar por catalogo: da igual lo que diga el asesor crudo o el
-// catalogo para esas unidades.
+// Regla general (todos los dashboards): toda tienda sin un AT vigente en el
+// catalogo se atribuye a Timoteo Antonio Perez SOLO si el archivo de origen
+// SI traia un nombre real (ej. "Anadelia Hernandez Santiago", alguien que ya
+// no trabaja aqui y cuya estructura se hereda a Timoteo). Si la celda del
+// archivo vino genuinamente vacia -- nunca hubo un nombre que capturar --
+// se deja como "Sin Asesor Asignado" tal cual, sin inventarle dueño a
+// Timoteo. Las unidades de Entrenamiento/Operaciones (no son tiendas
+// operativas reales) siempre se quedan con su propio "Sin Asesor Asignado",
+// sin pasar por catalogo ni por esta distincion.
 function resolveAsesorD1(catalog, { cr='', tienda='', asesor='' } = {}) {
   if (metricsIsTiendaEntrenamientoOperacionesD2(tienda)) return 'Sin Asesor Asignado';
-  if (metricsIsSinAsesorD1(asesor)) return 'Timoteo Antonio Perez';
-  // El catalogo mismo puede devolver "Sin Asesor Asignado" para tiendas sin
-  // AT vigente (no solo el valor crudo original): esas tambien van a Timoteo.
+  const archivoVacio = metricsIsSinAsesorD1(asesor);
+  // El catalogo se intenta siempre, aunque el archivo venga vacio: puede
+  // traer un AT real vigente que el archivo de origen simplemente no
+  // actualizo.
   const resolved = resolveAsesor(catalog, { cr, tienda, asesor });
-  if (metricsIsSinAsesorD1(resolved)) return 'Timoteo Antonio Perez';
-  return resolved;
+  if (!metricsIsSinAsesorD1(resolved)) return resolved;
+  return archivoVacio ? 'Sin Asesor Asignado' : 'Timoteo Antonio Perez';
 }
 // Todos los consumidores de catalogo (Dashboard 4, 6, 8, etc.) pasan por
 // resolveAsesorD1 para heredar la regla de arriba, no solo el renombre
