@@ -70,7 +70,21 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
     const finalRows=dash.aggregate?dash.aggregate(filtered):filtered;
     return{rows:finalRows,headers:dash.output,headerRow:headerInfo.index+1,sourceRows:rawRows.length,sourceHeaders};
   }
-  function evaluateSheet(name,dash){const sheet=state.workbook.Sheets[name];const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});const parsed=rowsFromMatrix(matrix,dash);const missing=dash.required.filter(col=>!parsed.rows.some(row=>String(row[col]??'').trim()!==''));const preference=(dash.preferredSheets||[]).some(s=>norm(s)===norm(name))?1000:0;return{name,parsed,missing,score:preference+parsed.rows.length-missing.length*100};}
+  // Convertir una hoja de Excel a matriz (XLSX.utils.sheet_to_json) es caro en
+  // hojas grandes (se han visto hojas reales de 6000+ filas / 100+ columnas),
+  // y sin cache se repetia en cada cambio de dashboard/hoja ademas de dentro
+  // de evaluateSheet para CADA hoja del workbook -- eso trababa el panel al
+  // subir archivos grandes. Se cachea por nombre de hoja; state.sheetMatrixCache
+  // se reinicia solo cuando se sube un archivo nuevo (ver handleFile en admin.js).
+  function getSheetMatrix(name){
+    if(!state.workbook)return [];
+    if(state.sheetMatrixCache.has(name))return state.sheetMatrixCache.get(name);
+    const sheet=state.workbook.Sheets[name];
+    const matrix=sheet?XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false}):[];
+    state.sheetMatrixCache.set(name,matrix);
+    return matrix;
+  }
+  function evaluateSheet(name,dash){const matrix=getSheetMatrix(name);const parsed=rowsFromMatrix(matrix,dash);const missing=dash.required.filter(col=>!parsed.rows.some(row=>String(row[col]??'').trim()!==''));const preference=(dash.preferredSheets||[]).some(s=>norm(s)===norm(name))?1000:0;return{name,parsed,missing,score:preference+parsed.rows.length-missing.length*100};}
   function autoSelectSheet(){if(!state.workbook)return;const dash=dashboard();const evaluations=state.workbook.SheetNames.map(name=>evaluateSheet(name,dash)).sort((a,b)=>b.score-a.score);const best=evaluations[0];if(best&&best.name&&$('sheet-select').value!==best.name){$('sheet-select').value=best.name;state.sheetName=best.name;}}
 
   function periodInfo(dash,rows){const column=dash.periodColumn||'';const values=column?[...new Set(rows.map(row=>String(row[column]??'').trim()).filter(Boolean))]:[];return{column,values,enabled:Boolean(column&&values.length)};}
@@ -100,6 +114,7 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
     buildSourceMap,
     matchColumns,
     rowsFromMatrix,
+    getSheetMatrix,
     evaluateSheet,
     autoSelectSheet,
     periodInfo
