@@ -157,17 +157,54 @@
       </div>`).join('')}</div>`;
   }
 
+  // Barras para comparar porcentajes entre si: a diferencia de
+  // barListHTML, respeta el orden dado, no descarta los valores en 0 (un
+  // "0%" tiene que verse) y mide contra 100, no contra el mayor del grupo.
+  function pctBarsHTML(items) {
+    return `<div class="mi-barlist">${items.map((it) => {
+      const v = Math.max(0, Math.min(100, Number(it.value) || 0));
+      const tone = gaugeTone(v, null);
+      const cls = tone === 'verde' ? 'verde' : tone === 'amarillo' ? 'naranja' : '';
+      return `<div class="mi-barlist__row">
+        <span class="mi-barlist__label" title="${esc(it.label)}">${esc(it.label)}</span>
+        <div class="mi-barlist__track"><div class="mi-barlist__fill ${cls}" style="width:${Math.max(2, v)}%"></div></div>
+        <span class="mi-barlist__value">${v}%</span>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
   // ── Estado global (se carga una sola vez) ─────────────
   let CATALOG = null;
   const TIENDAS = new Map(); // normKey -> nombre a mostrar (canonico del catalogo si existe, si no el nombre crudo)
   const DATA = {};
 
-  function addTiendas(rows, tiendaKey) {
+  // El nombre de tienda no viene igual en todas las bases, y en 7 casos ni
+  // siquiera empata al normalizar: TREO manda "Bacocho OAX" donde el resto
+  // manda "OXXO BACHOCO" (mismo CR 50BKC); igual con Dos Oceanos/Dos
+  // Oceanis, Gas Huatulco/Huatulco, Gas Transistmica/Transoceanica, etc.
+  // Asi la tienda salia partida en dos entradas del buscador, cada una con
+  // datos a medias (una con todo menos TREO, la otra solo con TREO).
+  // El CR es la llave real y el catalogo tiene el nombre bueno de cada CR:
+  // si la fila trae CR se resuelve por ahi; si no, por nombre (D2 y D5 no
+  // traen CR, pero nombran igual que el catalogo).
+  function canonKey(cr, nombre) {
+    const crk = cr ? OXXO.normalizeCatalogCr(cr) : '';
+    const hit = crk ? CATALOG?.byCr?.get(crk) : null;
+    if (hit && hit.tienda) return tKey(hit.tienda);
+    return tKey(nombre);
+  }
+  function rowKey(row, d) {
+    return canonKey(d.crKey ? V(row, d.crKey) : '', V(row, d.tiendaKey));
+  }
+  function rowsFor(d, tienda) {
+    return d.rows.filter((r) => rowKey(r, d) === tienda);
+  }
+  function addTiendas(rows, tiendaKey, crKey) {
     if (!tiendaKey) return;
     rows.forEach((r) => {
       const raw = String(V(r, tiendaKey) || '').trim();
       if (!raw) return;
-      const key = tKey(raw);
+      const key = canonKey(crKey ? V(r, crKey) : '', raw);
       if (!key || TIENDAS.has(key)) return;
       const canon = CATALOG?.byTienda?.get(key)?.tienda;
       TIENDAS.set(key, canon || raw);
@@ -180,14 +217,15 @@
     if (!d1) { DATA.d1 = null; return; }
     const diasKey = d1.rows[0] ? K(d1.rows[0], ['Dias Vacantes', 'Dias_Vacantes']) : null;
     const fechaKey = d1.rows[0] ? K(d1.rows[0], ['Fecha']) : null;
-    DATA.d1 = { ...d1, diasKey, fechaKey };
-    addTiendas(d1.rows, d1.tiendaKey);
+    const crKey = d1.rows[0] ? K(d1.rows[0], ['CR TIENDA', 'CR']) : null;
+    DATA.d1 = { ...d1, diasKey, fechaKey, crKey };
+    addTiendas(d1.rows, d1.tiendaKey, crKey);
   }
   function renderD1(tienda) {
     const d = DATA.d1;
     const el = document.getElementById('sec-d1');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
+    const rows = rowsFor(d, tienda);
     el.classList.add('show');
     document.getElementById('badge-d1').textContent = OXXO.metricsMesKeyFromDate ? (d.mes || '—') : '—';
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
@@ -247,7 +285,7 @@
     const d = DATA.d2;
     const el = document.getElementById('sec-d2');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
+    const rows = rowsFor(d, tienda);
     el.classList.add('show');
     document.getElementById('badge-d2').textContent = d.mes || '—';
     const porMotivo = {};
@@ -282,39 +320,69 @@
     const tiendaKey = K(h, ['Tienda']);
     const crKey = K(h, ['CR', 'CR Tienda', 'CR TIENDA']);
     const estatusKey = K(h, ['Clas Aprov', 'Estatus Con impacto Ausentismo', 'Estatus']);
+    // Misma columna que usa la ficha de tienda de dashboard-3.html: trae el
+    // estatus recalculado descontando los ausentismos, con el mismo
+    // vocabulario ("Equipo Completo"/"Equipo Incompleto"/"Tienda Critica"),
+    // asi que se clasifica con el mismo helper.
+    const ecSinAusKey = K(h, ['EC SIN AUSENTISMO', 'EC sin ausentismo', 'EC Sin Ausentismo']);
     const semanaKey = K(h, ['Mes Semana', 'Semana', 'Fecha', 'FECHA']);
     raw.forEach((r) => { r[asesorKey] = OXXO.resolveAsesorD1(CATALOG, { cr: V(r, crKey), tienda: V(r, tiendaKey), asesor: V(r, asesorKey) }); });
     const semanas = [...new Set(raw.map((r) => String(V(r, semanaKey) || '').trim()).filter(Boolean))].sort();
     const semana = semanas[semanas.length - 1] || '';
     const rows = semana ? raw.filter((r) => String(V(r, semanaKey) || '').trim() === semana) : raw;
-    DATA.d3 = { rows, semana, asesorKey, tiendaKey, estatusKey };
-    addTiendas(rows, tiendaKey);
+    DATA.d3 = { rows, semana, asesorKey, tiendaKey, crKey, estatusKey, ecSinAusKey };
+    addTiendas(rows, tiendaKey, crKey);
   }
   function renderD3(tienda) {
     const d = DATA.d3;
     const el = document.getElementById('sec-d3');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
+    const rows = rowsFor(d, tienda);
     el.classList.add('show');
     document.getElementById('badge-d3').textContent = d.semana || '—';
     let completas = 0, incompletas = 0, criticas = 0;
+    let sinCompletas = 0, sinTotal = 0;
     rows.forEach((r) => {
       const c = OXXO.metricsClasificaAprovechamiento(V(r, d.estatusKey));
       if (c === 'completas') completas++; else if (c === 'incompletas') incompletas++; else if (c === 'criticas') criticas++;
+      if (d.ecSinAusKey) {
+        const s = OXXO.metricsClasificaAprovechamiento(V(r, d.ecSinAusKey));
+        if (s) { sinTotal++; if (s === 'completas') sinCompletas++; }
+      }
     });
     const ec = rows.length ? Math.round((completas / rows.length) * 100) : 0;
+    const ecSin = sinTotal ? Math.round((sinCompletas / sinTotal) * 100) : null;
     document.getElementById('stats-d3').innerHTML = '';
-    document.getElementById('viz-d3').innerHTML = rows.length ? gaugeRowHTML(ec, null, 'EC · Equipo Completo',
-      statTile(n(completas), 'Completas', 'verde') +
-      statTile(n(incompletas), 'Incompletas', 'amarillo') +
-      statTile(n(criticas), 'Críticas', 'rojo')
-    ) : noneBox('Tu tienda no aparece en la semana vigente');
+    document.getElementById('viz-d3').innerHTML = rows.length
+      ? gaugeRowHTML(ec, null, 'EC · Equipo Completo',
+          statTile(n(completas), 'Completas', 'verde') +
+          statTile(n(incompletas), 'Incompletas', 'amarillo') +
+          statTile(n(criticas), 'Críticas', 'rojo')
+        ) + (ecSin !== null ? pctBarsHTML([
+          { label: 'Con ausentismo', value: ec },
+          { label: 'Sin ausentismo', value: ecSin },
+        ]) : '')
+      : noneBox('Tu tienda no aparece en la semana vigente');
     const tbody = document.querySelector('#tbl-d3 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
         <td>${esc(V(r, d.asesorKey) || '—')}</td>
-        <td>${esc(V(r, d.estatusKey) || '—')}</td>
-      </tr>`).join('') : emptyRow(2, 'Sin datos de estructura para tu tienda en la semana vigente.');
-    return rows.length ? { ec, completas, incompletas, criticas } : null;
+        ${estatusCell(V(r, d.estatusKey))}
+        ${estatusCell(d.ecSinAusKey ? V(r, d.ecSinAusKey) : '')}
+      </tr>`).join('') : emptyRow(3, 'Sin datos de estructura para tu tienda en la semana vigente.');
+    return rows.length ? { ec, ecSin, completas, incompletas, criticas } : null;
+  }
+
+  // Celda de estatus de estructura: con dos columnas ("con" y "sin"
+  // ausentismo) en un panel angosto, el texto completo partia el
+  // renglon en 4 lineas. Se muestra corto y con color, el valor
+  // original queda en el title.
+  function estatusCell(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '<td class="center">—</td>';
+    const c = OXXO.metricsClasificaAprovechamiento(raw);
+    const txt = raw.replace(/^equipo\s+/i, '').replace(/^tienda\s+/i, '');
+    const cls = c === 'completas' ? 'alineada' : c === 'criticas' ? 'bajar' : c === 'incompletas' ? 'subir' : '';
+    return `<td class="center" title="${esc(raw)}">${cls ? `<span class="pill-mov ${cls}">${esc(txt)}</span>` : esc(txt)}</td>`;
   }
 
   // ── D4 · Tiempo Extra (mismo pipeline que dashboard-4.html) ──
@@ -334,8 +402,8 @@
     semanas.sort((a, b) => semanaRank(b) - semanaRank(a));
     const semana = semanas[0] || '';
     const rows = semana ? raw.filter((r) => String(V(r, semanaKey) || '').trim() === semana) : raw;
-    DATA.d4 = { rows, semana, asesorKey, tiendaKey, nombreKey, horasKey, importeKey };
-    addTiendas(rows, tiendaKey);
+    DATA.d4 = { rows, semana, asesorKey, tiendaKey, crKey, nombreKey, horasKey, importeKey };
+    addTiendas(rows, tiendaKey, crKey);
   }
   function semanaRank(value) {
     const v = String(value || '').trim();
@@ -350,7 +418,7 @@
     const d = DATA.d4;
     const el = document.getElementById('sec-d4');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
+    const rows = rowsFor(d, tienda);
     el.classList.add('show');
     document.getElementById('badge-d4').textContent = d.semana ? (/sem/i.test(d.semana) ? d.semana : 'Sem ' + d.semana) : '—';
     const totHoras = rows.reduce((s, r) => s + numParse(V(r, d.horasKey)), 0);
@@ -397,7 +465,7 @@
     const d = DATA.d5;
     const el = document.getElementById('sec-d5');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
+    const rows = rowsFor(d, tienda);
     el.classList.add('show');
     document.getElementById('badge-d5').textContent = plural(rows.length, 'colaborador', 'colaboradores');
     const totDias = rows.reduce((s, r) => s + (Number(V(r, d.diasRestKey)) || 0), 0);
@@ -440,14 +508,14 @@
     const nombreKey = K(h, ['Nombre del empleado o candidato', 'Nombre del empleado']);
     const noPersKey = K(h, ['N de personal', 'N de Personal', 'No de personal', 'N° de personal']);
     raw.forEach((r) => OXXO.applyAsesorCatalog(r, CATALOG, { asesorKey, tiendaKey, crKey }));
-    DATA.d6 = { rows: raw, asesorKey, tiendaKey, tipoKey, diasKey, nombreKey, noPersKey };
-    addTiendas(raw, tiendaKey);
+    DATA.d6 = { rows: raw, asesorKey, tiendaKey, crKey, tipoKey, diasKey, nombreKey, noPersKey };
+    addTiendas(raw, tiendaKey, crKey);
   }
   function renderD6(tienda) {
     const d = DATA.d6;
     const el = document.getElementById('sec-d6');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
+    const rows = rowsFor(d, tienda);
     el.classList.add('show');
     document.getElementById('badge-d6').textContent = plural(rows.length, 'registro', 'registros');
     const empleados = new Set(rows.map((r) => V(r, d.noPersKey) || V(r, d.nombreKey))).size;
@@ -490,7 +558,7 @@
     const antiguedadKey = K(sample, ['Antiguedad', 'Antigüedad']);
     const accionableKey = K(sample, ['Accionable sugerido TREO', 'Accionable sugerido']);
     DATA.d7 = { ...d7, crKey, turnosKey, antiguedadKey, accionableKey };
-    addTiendas(d7.rows, d7.tiendaKey);
+    addTiendas(d7.rows, d7.tiendaKey, crKey);
   }
   function movInfo(dif) {
     if (dif === 0) return { cls: 'alineada', arrow: '✔', txt: 'Alineada' };
@@ -532,7 +600,7 @@
     const d = DATA.d7;
     const el = document.getElementById('sec-d7');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
+    const rows = rowsFor(d, tienda);
     el.classList.add('show');
     document.getElementById('badge-d7').textContent = plural(rows.length, 'registro', 'registros');
     const fichaEl = document.getElementById('ficha-d7');
@@ -565,6 +633,19 @@
         dif: dif0,
         mov: movInfo(dif0),
       };
+    }
+    // Sin registros no se pintan KPIs en cero (se leian como "SAP 0,
+    // TREO 0" cuando en realidad la tienda no esta en esa base), igual
+    // que en los demas paneles.
+    if (!rows.length) {
+      fichaEl.style.display = '';
+      fichaEl.innerHTML = noneBox('Tu tienda no aparece en TREO');
+      statsEl.style.display = 'none';
+      statsEl.innerHTML = '';
+      detailEl.style.display = 'none';
+      detailEl.open = false;
+      document.querySelector('#tbl-d7 tbody').innerHTML = '';
+      return null;
     }
     fichaEl.style.display = 'none';
     fichaEl.innerHTML = '';
@@ -622,8 +703,8 @@
     const certRealKeys = {};
     CERT_COLS.forEach((c) => { certRealKeys[c.key] = K(h, [c.key]) || c.key; });
     raw.forEach((r) => OXXO.applyAsesorCatalog(r, CATALOG, { asesorKey, tiendaKey: unidadKey, crKey }));
-    DATA.d8 = { rows: raw, asesorKey, unidadKey, noPersKey, empleadoKey, certRealKeys };
-    addTiendas(raw, unidadKey);
+    DATA.d8 = { rows: raw, asesorKey, unidadKey, tiendaKey: unidadKey, crKey, noPersKey, empleadoKey, certRealKeys };
+    addTiendas(raw, unidadKey, crKey);
   }
   function capValue(row, certKey, certRealKeys) {
     const raw = row[certRealKeys[certKey]];
@@ -635,7 +716,7 @@
     const d = DATA.d8;
     const el = document.getElementById('sec-d8');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = d.rows.filter((r) => tKey(V(r, d.unidadKey)) === tienda);
+    const rows = rowsFor(d, tienda);
     el.classList.add('show');
     const empleados = new Set(rows.map((r) => V(r, d.noPersKey) || V(r, d.empleadoKey))).size;
     document.getElementById('badge-d8').textContent = plural(empleados, 'empleado', 'empleados');
@@ -684,7 +765,8 @@
     const tiles = [];
     if (S.d1) tiles.push(rkTile(n(S.d1.vacantes), 'Vacantes', toneByCount(S.d1.vacantes)));
     if (S.d2) tiles.push(rkTile(n(S.d2.bajas), 'Bajas del mes', toneByCount(S.d2.bajas)));
-    if (S.d3) tiles.push(rkTile(S.d3.ec + '%', 'Equipo completo', tonePct(S.d3.ec, 80, 50)));
+    if (S.d3) tiles.push(rkTile(S.d3.ec + '%', 'Equipo completo', tonePct(S.d3.ec, 80, 50),
+      S.d3.ecSin !== null && S.d3.ecSin !== undefined ? `sin ausentismo: ${S.d3.ecSin}%` : ''));
     if (S.d4) tiles.push(rkTile(n(S.d4.horas), 'Horas extra', toneByCount(S.d4.horas, 20), S.d4.gasto ? '$' + n(S.d4.gasto) : ''));
     if (S.d6) tiles.push(rkTile(n(S.d6.diasAus), 'Días ausentismo', toneByCount(S.d6.diasAus, 20), S.d6.ausentes ? S.d6.ausentes + ' empleados' : ''));
     if (S.d5) tiles.push(rkTile(n(S.d5.vencidos), 'Vacaciones vencidas', toneByCount(S.d5.vencidos, 2), S.d5.colaboradores ? 'de ' + S.d5.colaboradores : ''));

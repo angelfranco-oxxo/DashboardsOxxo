@@ -90,7 +90,11 @@
 /* Paneles por dashboard */
 .ficha__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(304px,1fr));align-items:start;gap:12px;padding:14px 16px 18px}
 
-.mi-section{background:var(--mt-tile);border:1px solid var(--mt-line);border-radius:14px;padding:13px 14px;display:none}
+/* min-width:0 — sin esto el item de grid toma min-width:auto y una tabla
+   ancha (ej. Aprovechamiento con sus dos columnas de estatus) estira la
+   columna mas alla de la pantalla en celular, en vez de dejar que
+   .tbl-wrap haga su propio scroll horizontal. */
+.mi-section{background:var(--mt-tile);border:1px solid var(--mt-line);border-radius:14px;padding:13px 14px;display:none;min-width:0}
 .mi-section.show{display:block}
 .mi-section-head{display:flex;align-items:center;gap:9px;margin-bottom:11px}
 .mi-section-title{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
@@ -277,7 +281,7 @@
       <div id="viz-d3" class="mi-viz"></div>
       <div id="stats-d3" class="mi-stats"></div>
       <details class="mi-detail"><summary></summary>
-        <div class="tbl-wrap"><table class="tbl" id="tbl-d3"><thead><tr><th>Asesor</th><th>Estatus</th></tr></thead><tbody></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl" id="tbl-d3"><thead><tr><th>Asesor</th><th class="center">Con aus.</th><th class="center">Sin aus.</th></tr></thead><tbody></tbody></table></div>
       </details>
     </div>
 
@@ -355,5 +359,5 @@
   <script src="../js/config.js?v=20260805a"></script>
   <script src="../js/core.js?v=20260807a"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
-<script src="../js/mi-tienda.js?v=2"></script>
+<script src="../js/mi-tienda.js?v=4"></script>
 </body></html>
