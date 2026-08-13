@@ -1206,16 +1206,19 @@ async function init(){
   if(footPeriodoEl) footPeriodoEl.textContent = periodo ? `TREO ${periodo}` : 'TREO';
 
   const asesorCatalog = await OXXO.loadAsesorCatalog();
-  // resolveAsesorD1 aplica la regla completa: Sin Asesor -> Timoteo (luego
-  // excluido de esta vista mas abajo), salvo Entrenamiento/Operaciones que
-  // se queda con su propio "Sin Asesor Asignado".
+  // resolveAsesorD1 aplica la regla completa: tiendas de un asesor que ya
+  // no trabaja aqui (ej. Anadelia) se atribuyen a Timoteo Antonio Perez, que
+  // hereda esa estructura y por lo tanto SI aparece aqui como un AT mas
+  // (con sus tiendas, en el selector y en los rankings). Las tiendas que
+  // vinieron genuinamente vacias en el archivo quedan como "Sin Asesor
+  // Asignado" -- esas si se excluyen de las vistas "por AT" mas abajo,
+  // salvo Entrenamiento/Operaciones que siempre se queda asi.
   ALL = coerceTreoRows(rows)
     .map(normalizeRow)
     .map(r => ({ ...r, asesor: OXXO.resolveAsesorD1(asesorCatalog, { cr:r.cr, tienda:r.tienda, asesor:r.asesor }) }))
     .map(r => applyEstructuraDiaria(r, estructuraDiaria))
     .filter(r => r.tienda || r.asesor)
-    .filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr))
-    .filter(r => cleanKey(r.asesor) !== 'timoteoantonioperez');
+    .filter(r => OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr));
 
   const footTiendaCountEl = document.getElementById('foot-tienda-count');
   if(footTiendaCountEl) footTiendaCountEl.textContent = String(ALL.length);
