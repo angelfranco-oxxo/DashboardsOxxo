@@ -88,38 +88,49 @@
   function emptyRow(colspan, msg) {
     return `<tr><td colspan="${colspan}"><div class="mi-empty-mini">${esc(msg || 'Sin registros con tu tienda en este periodo.')}</div></td></tr>`;
   }
+  // Cuando un panel no tiene registros hay dos lecturas distintas que antes
+  // se veian igual (una reja de ceros): "no hay nada que atender" (bueno) y
+  // "esta tienda no aparece en esa base" (sin dato). Se separan.
+  function clearBox(msg) { return `<div class="mt-clear">✓ ${esc(msg)}</div>`; }
+  function noneBox(msg) { return `<div class="mt-none">— ${esc(msg)}</div>`; }
+  const plural = (count, sing, plur) => `${count} ${count === 1 ? sing : plur}`;
 
-  // ── Medidor semicircular (mismo diseño que "Aprovechamiento por Plaza"
-  // de dashboard-3.html) — reutilizable para cualquier % 0-100. ──
+  // ── Medidor semicircular reutilizable para cualquier % 0-100 ──
+  // Sin aguja: a este tamano (120px) la aguja cruzaba por encima del
+  // numero y del arco y ensuciaba la lectura, sobre todo en valores
+  // bajos. Se sustituye por un punto al final del arco, que marca el
+  // avance igual pero no se encima con nada.
   let gaugeSeq = 0;
-  function gaugeSVG(value, meta) {
-    const v = Math.max(0, Math.min(100, Number(value) || 0));
-    const color = meta != null
+  function gaugeTone(v, meta) {
+    return meta != null
       ? (v >= meta ? 'verde' : v >= meta - 10 ? 'amarillo' : 'rojo')
       : (v >= 80 ? 'verde' : v >= 50 ? 'amarillo' : 'rojo');
-    const c = color === 'verde' ? { main: '#1DB954', dark: '#15943f', txt: '#15803D' }
-      : color === 'amarillo' ? { main: '#E8B004', dark: '#C68A00', txt: '#A87400' }
-      : { main: '#EF4444', dark: '#C0181F', txt: '#C0181F' };
-    const cx = 100, cy = 104, r = 76, sw = 15, len = Math.PI * r;
+  }
+  function gaugeSVG(value, meta) {
+    const v = Math.max(0, Math.min(100, Number(value) || 0));
+    const color = gaugeTone(v, meta);
+    const c = color === 'verde' ? { main: '#3ECF6D', dark: '#12813F', txt: '#12813F' }
+      : color === 'amarillo' ? { main: '#F2A52B', dark: '#B87400', txt: '#9A6A00' }
+      : { main: '#E85A60', dark: '#C0181F', txt: '#C0181F' };
+    const cx = 100, cy = 100, r = 74, sw = 16, len = Math.PI * r;
     const dash = (len * v / 100).toFixed(1);
     const ang = Math.PI * (1 - v / 100);
-    const nx = (cx + (r - 6) * Math.cos(ang)).toFixed(1), ny = (cy - (r - 6) * Math.sin(ang)).toFixed(1);
+    const px = (cx + r * Math.cos(ang)).toFixed(1), py = (cy - r * Math.sin(ang)).toFixed(1);
     const gid = 'mtg' + (gaugeSeq++);
     let metaLine = '';
     if (meta != null) {
       const ma = Math.PI * (1 - meta / 100);
       const m1x = (cx + (r - sw / 2 - 1) * Math.cos(ma)).toFixed(1), m1y = (cy - (r - sw / 2 - 1) * Math.sin(ma)).toFixed(1);
       const m2x = (cx + (r + sw / 2 + 3) * Math.cos(ma)).toFixed(1), m2y = (cy - (r + sw / 2 + 3) * Math.sin(ma)).toFixed(1);
-      metaLine = `<line x1="${m1x}" y1="${m1y}" x2="${m2x}" y2="${m2y}" stroke="#3B1918" stroke-width="2" opacity=".5"/>`;
+      metaLine = `<line x1="${m1x}" y1="${m1y}" x2="${m2x}" y2="${m2y}" stroke="#3B1918" stroke-width="2" opacity=".45"/>`;
     }
-    return `<svg viewBox="0 0 200 128" class="mi-gauge">
+    return `<svg viewBox="0 0 200 112" class="mi-gauge">
       <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c.main}"/><stop offset="1" stop-color="${c.dark}"/></linearGradient></defs>
-      <path d="M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}" fill="none" stroke="#F2E6DE" stroke-width="${sw}" stroke-linecap="round"/>
+      <path d="M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}" fill="none" stroke="rgba(130,54,38,.11)" stroke-width="${sw}" stroke-linecap="round"/>
       <path d="M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}" fill="none" stroke="url(#${gid})" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash} ${len.toFixed(1)}"/>
       ${metaLine}
-      <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#3B1918" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="${cx}" cy="${cy}" r="7" fill="#fff" stroke="#3B1918" stroke-width="2.5"/>
-      <text x="${cx}" y="92" text-anchor="middle" class="mi-gauge__text" style="fill:${c.txt}">${v.toFixed(0)}<tspan style="font-size:16px" dy="-1">%</tspan></text>
+      <circle cx="${px}" cy="${py}" r="5.5" fill="#fff" stroke="${c.dark}" stroke-width="3"/>
+      <text x="${cx}" y="${cy - 4}" text-anchor="middle" class="mi-gauge__text" style="fill:${c.txt}">${v.toFixed(0)}<tspan style="font-size:18px" dy="-2">%</tspan></text>
     </svg>`;
   }
   // Envuelve un medidor + tiles de detalle en una sola fila (usado por
@@ -128,14 +139,14 @@
     return `<div class="mi-gauge-row">
       <div class="mi-gauge-wrap">
         ${gaugeSVG(value, meta)}
-        <div style="text-align:center;font-size:11px;font-weight:800;color:var(--color-gray);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">${esc(label)}</div>
+        <div class="mi-gauge__cap">${esc(label)}</div>
       </div>
       <div class="mi-stats">${tilesHtml}</div>
     </div>`;
   }
   // ── Barras horizontales para desgloses (motivos, puestos, tipos...) ──
   function barListHTML(items, colorClass) {
-    const filtered = items.filter((it) => it.value > 0).sort((a, b) => b.value - a.value).slice(0, 6);
+    const filtered = items.filter((it) => it.value > 0).sort((a, b) => b.value - a.value).slice(0, 4);
     if (!filtered.length) return '';
     const max = Math.max(...filtered.map((it) => it.value));
     return `<div class="mi-barlist">${filtered.map((it) => `
@@ -175,29 +186,35 @@
   function renderD1(tienda) {
     const d = DATA.d1;
     const el = document.getElementById('sec-d1');
-    if (!d) { el.classList.remove('show'); return; }
+    if (!d) { el.classList.remove('show'); return null; }
     const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
     el.classList.add('show');
     document.getElementById('badge-d1').textContent = OXXO.metricsMesKeyFromDate ? (d.mes || '—') : '—';
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach((r) => { byPuesto[OXXO.metricsTipoPuesto(V(r, d.puestoKey))]++; });
-    document.getElementById('stats-d1').innerHTML =
-      statTile(n(rows.length), 'Vacantes totales', 'rojo') +
-      statTile(n(byPuesto.Lider), 'Líder') +
-      statTile(n(byPuesto.Encargado), 'Encargado') +
-      statTile(n(byPuesto.Ayudante), 'Ayudante');
-    document.getElementById('viz-d1').innerHTML = barListHTML([
-      { label: 'Líder', value: byPuesto.Lider },
-      { label: 'Encargado', value: byPuesto.Encargado },
-      { label: 'Ayudante', value: byPuesto.Ayudante },
-      { label: 'Otro', value: byPuesto.Otro },
-    ]);
+    if (!rows.length) {
+      document.getElementById('stats-d1').innerHTML = '';
+      document.getElementById('viz-d1').innerHTML = clearBox('Sin vacantes activas este mes');
+    } else {
+      document.getElementById('stats-d1').innerHTML =
+        statTile(n(rows.length), 'Vacantes', 'rojo') +
+        statTile(n(byPuesto.Lider), 'Líder') +
+        statTile(n(byPuesto.Encargado), 'Encargado') +
+        statTile(n(byPuesto.Ayudante), 'Ayudante');
+      document.getElementById('viz-d1').innerHTML = barListHTML([
+        { label: 'Líder', value: byPuesto.Lider },
+        { label: 'Encargado', value: byPuesto.Encargado },
+        { label: 'Ayudante', value: byPuesto.Ayudante },
+        { label: 'Otro', value: byPuesto.Otro },
+      ]);
+    }
     const tbody = document.querySelector('#tbl-d1 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
         <td>${esc(V(r, d.puestoKey) || '—')}</td>
         <td class="center">${d.diasKey ? esc(OXXO.metricsDiasVacantesValue(V(r, d.diasKey))) : '—'}</td>
         <td>${esc(d.fechaKey ? V(r, d.fechaKey) || '—' : '—')}</td>
       </tr>`).join('') : emptyRow(3, 'Sin vacantes activas en el mes vigente. 🎉');
+    return { vacantes: rows.length };
   }
 
   // ── D2 · Bajas Diarias (mismo pipeline que dashboard-2.html) ──
@@ -229,25 +246,31 @@
   function renderD2(tienda) {
     const d = DATA.d2;
     const el = document.getElementById('sec-d2');
-    if (!d) { el.classList.remove('show'); return; }
+    if (!d) { el.classList.remove('show'); return null; }
     const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
     el.classList.add('show');
     document.getElementById('badge-d2').textContent = d.mes || '—';
     const porMotivo = {};
     rows.forEach((r) => { const m = V(r, d.detalleKey) || V(r, d.motivoKey) || 'Sin motivo'; porMotivo[m] = (porMotivo[m] || 0) + 1; });
     const topMotivo = Object.entries(porMotivo).sort((a, b) => b[1] - a[1])[0];
-    document.getElementById('stats-d2').innerHTML =
-      statTile(n(rows.length), 'Bajas del mes', 'rojo') +
-      statTile(topMotivo ? OXXO.truncate(topMotivo[0], 22) : '—', 'Motivo más frecuente', 'amarillo');
-    document.getElementById('viz-d2').innerHTML = barListHTML(
-      Object.entries(porMotivo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
-    );
+    if (!rows.length) {
+      document.getElementById('stats-d2').innerHTML = '';
+      document.getElementById('viz-d2').innerHTML = clearBox('Sin bajas este mes');
+    } else {
+      document.getElementById('stats-d2').innerHTML =
+        statTile(n(rows.length), 'Bajas del mes', 'rojo') +
+        statTile(topMotivo ? OXXO.truncate(topMotivo[0], 22) : '—', 'Motivo más frecuente', 'amarillo txt');
+      document.getElementById('viz-d2').innerHTML = barListHTML(
+        Object.entries(porMotivo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
+      );
+    }
     const tbody = document.querySelector('#tbl-d2 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
         <td>${esc(V(r, d.puestoKey) || '—')}</td>
         <td>${esc(OXXO.truncate(String(V(r, d.detalleKey) || V(r, d.motivoKey) || '—'), 26))}</td>
         <td>${esc(V(r, d.fechaKey) || '—')}</td>
       </tr>`).join('') : emptyRow(3, 'Sin bajas en el mes vigente. 🎉');
+    return { bajas: rows.length, motivo: topMotivo ? topMotivo[0] : '' };
   }
 
   // ── D3 · Aprovechamiento de Estructura (mismo pipeline que dashboard-3.html) ──
@@ -270,7 +293,7 @@
   function renderD3(tienda) {
     const d = DATA.d3;
     const el = document.getElementById('sec-d3');
-    if (!d) { el.classList.remove('show'); return; }
+    if (!d) { el.classList.remove('show'); return null; }
     const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
     el.classList.add('show');
     document.getElementById('badge-d3').textContent = d.semana || '—';
@@ -285,12 +308,13 @@
       statTile(n(completas), 'Completas', 'verde') +
       statTile(n(incompletas), 'Incompletas', 'amarillo') +
       statTile(n(criticas), 'Críticas', 'rojo')
-    ) : '';
+    ) : noneBox('Tu tienda no aparece en la semana vigente');
     const tbody = document.querySelector('#tbl-d3 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
         <td>${esc(V(r, d.asesorKey) || '—')}</td>
         <td>${esc(V(r, d.estatusKey) || '—')}</td>
       </tr>`).join('') : emptyRow(2, 'Sin datos de estructura para tu tienda en la semana vigente.');
+    return rows.length ? { ec, completas, incompletas, criticas } : null;
   }
 
   // ── D4 · Tiempo Extra (mismo pipeline que dashboard-4.html) ──
@@ -325,21 +349,26 @@
   function renderD4(tienda) {
     const d = DATA.d4;
     const el = document.getElementById('sec-d4');
-    if (!d) { el.classList.remove('show'); return; }
+    if (!d) { el.classList.remove('show'); return null; }
     const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
     el.classList.add('show');
     document.getElementById('badge-d4').textContent = d.semana ? (/sem/i.test(d.semana) ? d.semana : 'Sem ' + d.semana) : '—';
     const totHoras = rows.reduce((s, r) => s + numParse(V(r, d.horasKey)), 0);
     const totGasto = rows.reduce((s, r) => s + numParse(V(r, d.importeKey)), 0);
-    document.getElementById('stats-d4').innerHTML =
-      statTile(n(totHoras), 'Horas TE', 'rojo') +
-      statTile('$' + n(totGasto), 'Gasto TE', 'naranja') +
-      statTile(n(rows.length), 'Registros');
     const porEmpleado = {};
     rows.forEach((r) => { const nom = V(r, d.nombreKey) || 'Sin nombre'; porEmpleado[nom] = (porEmpleado[nom] || 0) + numParse(V(r, d.horasKey)); });
-    document.getElementById('viz-d4').innerHTML = barListHTML(
-      Object.entries(porEmpleado).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value })), 'naranja'
-    );
+    if (!rows.length) {
+      document.getElementById('stats-d4').innerHTML = '';
+      document.getElementById('viz-d4').innerHTML = clearBox('Sin tiempo extra esta semana');
+    } else {
+      document.getElementById('stats-d4').innerHTML =
+        statTile(n(totHoras), 'Horas TE', 'amarillo') +
+        statTile('$' + n(totGasto), 'Gasto TE', 'rojo') +
+        statTile(n(rows.length), 'Registros');
+      document.getElementById('viz-d4').innerHTML = barListHTML(
+        Object.entries(porEmpleado).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value })), 'naranja'
+      );
+    }
     const sorted = [...rows].sort((a, b) => numParse(V(b, d.importeKey)) - numParse(V(a, d.importeKey)));
     const tbody = document.querySelector('#tbl-d4 tbody');
     tbody.innerHTML = sorted.length ? sorted.slice(0, 200).map((r) => `<tr>
@@ -347,6 +376,7 @@
         <td class="center">${n(numParse(V(r, d.horasKey)))}</td>
         <td class="center">$${n(numParse(V(r, d.importeKey)))}</td>
       </tr>`).join('') : emptyRow(3, 'Sin tiempo extra en la semana vigente. 🎉');
+    return { horas: totHoras, gasto: totGasto };
   }
 
   // ── D5 · Vacaciones (mismo pipeline que js/dashboard-5-vacaciones.js) ──
@@ -366,22 +396,27 @@
   function renderD5(tienda) {
     const d = DATA.d5;
     const el = document.getElementById('sec-d5');
-    if (!d) { el.classList.remove('show'); return; }
+    if (!d) { el.classList.remove('show'); return null; }
     const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
     el.classList.add('show');
-    document.getElementById('badge-d5').textContent = `${rows.length} colaboradores`;
+    document.getElementById('badge-d5').textContent = plural(rows.length, 'colaborador', 'colaboradores');
     const totDias = rows.reduce((s, r) => s + (Number(V(r, d.diasRestKey)) || 0), 0);
     const vencidos = rows.filter((r) => OXXO.metricsNormText(V(r, d.bucketKey)).includes('VENCIERON')).length;
     const proximos = rows.filter((r) => { const b = OXXO.metricsNormText(V(r, d.bucketKey)); return b.includes('0 A 50') || b.includes('0A50'); }).length;
-    document.getElementById('stats-d5').innerHTML =
-      statTile(n(totDias), 'Días restantes', 'azul') +
-      statTile(n(vencidos), 'Ya vencidos', vencidos > 0 ? 'rojo' : '') +
-      statTile(n(proximos), 'Vencen 0-50 días', proximos > 0 ? 'amarillo' : '');
-    document.getElementById('viz-d5').innerHTML = barListHTML([
-      { label: 'Ya vencidos', value: vencidos },
-      { label: 'Vencen 0-50 días', value: proximos },
-      { label: 'Resto de colaboradores', value: Math.max(0, rows.length - vencidos - proximos) },
-    ], 'azul');
+    if (!rows.length) {
+      document.getElementById('stats-d5').innerHTML = '';
+      document.getElementById('viz-d5').innerHTML = noneBox('Sin colaboradores con saldo de vacaciones');
+    } else {
+      document.getElementById('stats-d5').innerHTML =
+        statTile(n(totDias), 'Días restantes', 'azul') +
+        statTile(n(vencidos), 'Ya vencidos', vencidos > 0 ? 'rojo' : 'verde') +
+        statTile(n(proximos), 'Vencen 0-50 d', proximos > 0 ? 'amarillo' : 'verde');
+      document.getElementById('viz-d5').innerHTML = barListHTML([
+        { label: 'Ya vencidos', value: vencidos },
+        { label: 'Vencen 0-50 días', value: proximos },
+        { label: 'Resto del equipo', value: Math.max(0, rows.length - vencidos - proximos) },
+      ], 'azul');
+    }
     const tbody = document.querySelector('#tbl-d5 tbody');
     const sorted = [...rows].sort((a, b) => (Number(V(b, d.diasRestKey)) || 0) - (Number(V(a, d.diasRestKey)) || 0));
     tbody.innerHTML = sorted.length ? sorted.slice(0, 200).map((r) => `<tr>
@@ -389,6 +424,7 @@
         <td class="center">${esc(V(r, d.diasRestKey) || '0')}</td>
         <td>${esc(V(r, d.bucketKey) || '—')}</td>
       </tr>`).join('') : emptyRow(3, 'Sin colaboradores con saldo de vacaciones.');
+    return { colaboradores: rows.length, diasVac: totDias, vencidos, proximos };
   }
 
   // ── D6 · Ausentismos (mismo pipeline que dashboard-6.html; sin filtro de semana por defecto) ──
@@ -410,28 +446,34 @@
   function renderD6(tienda) {
     const d = DATA.d6;
     const el = document.getElementById('sec-d6');
-    if (!d) { el.classList.remove('show'); return; }
+    if (!d) { el.classList.remove('show'); return null; }
     const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
     el.classList.add('show');
-    document.getElementById('badge-d6').textContent = `${rows.length} registros`;
+    document.getElementById('badge-d6').textContent = plural(rows.length, 'registro', 'registros');
     const empleados = new Set(rows.map((r) => V(r, d.noPersKey) || V(r, d.nombreKey))).size;
     const totDias = rows.reduce((s, r) => s + (parseFloat(V(r, d.diasKey)) || 0), 0);
     const faltas = rows.filter((r) => OXXO.metricsNormText(V(r, d.tipoKey)).includes('FALTA')).length;
-    document.getElementById('stats-d6').innerHTML =
-      statTile(n(empleados), 'Empleados ausentes', 'rojo') +
-      statTile(n(totDias), 'Días ausentes', 'naranja') +
-      statTile(n(faltas), 'Faltas', faltas > 0 ? 'rojo' : '');
     const porTipo = {};
     rows.forEach((r) => { const tipo = V(r, d.tipoKey) || 'Sin tipo'; porTipo[tipo] = (porTipo[tipo] || 0) + (parseFloat(V(r, d.diasKey)) || 0); });
-    document.getElementById('viz-d6').innerHTML = barListHTML(
-      Object.entries(porTipo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
-    );
+    if (!rows.length) {
+      document.getElementById('stats-d6').innerHTML = '';
+      document.getElementById('viz-d6').innerHTML = clearBox('Sin ausentismos registrados');
+    } else {
+      document.getElementById('stats-d6').innerHTML =
+        statTile(n(empleados), 'Empleados', 'rojo') +
+        statTile(n(totDias), 'Días ausentes', 'amarillo') +
+        statTile(n(faltas), 'Faltas', faltas > 0 ? 'rojo' : 'verde');
+      document.getElementById('viz-d6').innerHTML = barListHTML(
+        Object.entries(porTipo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
+      );
+    }
     const tbody = document.querySelector('#tbl-d6 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
         <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 26))}</td>
         <td>${esc(V(r, d.tipoKey) || '—')}</td>
         <td class="center">${esc(V(r, d.diasKey) || '—')}</td>
       </tr>`).join('') : emptyRow(3, 'Sin ausentismos registrados. 🎉');
+    return { ausentes: empleados, diasAus: totDias, faltas };
   }
 
   // ── D7 · TREO (mismo pipeline que dashboard-7.html) ──
@@ -454,9 +496,9 @@
     if (dif === 0) return { cls: 'alineada', arrow: '✔', txt: 'Alineada' };
     return dif > 0 ? { cls: 'subir', arrow: '↑', txt: 'Subir' } : { cls: 'bajar', arrow: '↓', txt: 'Bajar' };
   }
-  function fichaRow(label, value) {
+  function fichaRow(label, value, wide) {
     if (value === undefined || value === null || String(value).trim() === '') return '';
-    return `<div class="ficha-treo__row"><span>${esc(label)}</span><span>${esc(value)}</span></div>`;
+    return `<div class="ficha-treo__row${wide ? ' ficha-treo__row--wide' : ''}"><span>${esc(label)}</span><span>${esc(value)}</span></div>`;
   }
   function renderFichaTreo(tiendaLabel, d, r) {
     const sap = V(r, d.sapKey) || '0';
@@ -477,13 +519,11 @@
         </div>
         <div class="ficha-treo__mov ${mov.cls}"><span class="arrow">${mov.arrow}</span> Movimiento recomendado: ${mov.txt.toUpperCase()}</div>
         <div class="ficha-treo__details">
-          ${fichaRow('Asesor / AT', V(r, d.asesorKey))}
-          ${fichaRow('CR', d.crKey ? V(r, d.crKey) : '')}
           ${fichaRow('Activos', d.activosKey ? V(r, d.activosKey) : '')}
           ${fichaRow('Vacantes', d.vacantesKey ? V(r, d.vacantesKey) : '')}
           ${fichaRow('Turnos', d.turnosKey ? V(r, d.turnosKey) : '')}
           ${fichaRow('Antigüedad', d.antiguedadKey ? V(r, d.antiguedadKey) : '')}
-          ${fichaRow('Accionable sugerido', d.accionableKey ? V(r, d.accionableKey) : '')}
+          ${fichaRow('Accionable sugerido', d.accionableKey ? V(r, d.accionableKey) : '', true)}
         </div>
       </div>
     </div>`;
@@ -491,10 +531,10 @@
   function renderD7(tienda) {
     const d = DATA.d7;
     const el = document.getElementById('sec-d7');
-    if (!d) { el.classList.remove('show'); return; }
+    if (!d) { el.classList.remove('show'); return null; }
     const rows = d.rows.filter((r) => tKey(V(r, d.tiendaKey)) === tienda);
     el.classList.add('show');
-    document.getElementById('badge-d7').textContent = `${rows.length} registros`;
+    document.getElementById('badge-d7').textContent = plural(rows.length, 'registro', 'registros');
     const fichaEl = document.getElementById('ficha-d7');
     const statsEl = document.getElementById('stats-d7');
     const detailEl = document.querySelector('#tbl-d7').closest('.mi-detail');
@@ -512,7 +552,19 @@
       detailEl.style.display = 'none';
       detailEl.open = false;
       document.querySelector('#tbl-d7 tbody').innerHTML = '';
-      return;
+      const r0 = rows[0];
+      const dif0 = OXXO.metricsNum(V(r0, d.difKey));
+      return {
+        asesor: V(r0, d.asesorKey) || '',
+        cr: d.crKey ? V(r0, d.crKey) : '',
+        turnos: d.turnosKey ? V(r0, d.turnosKey) : '',
+        antiguedad: d.antiguedadKey ? V(r0, d.antiguedadKey) : '',
+        sap: OXXO.metricsNum(V(r0, d.sapKey)),
+        treo: OXXO.metricsNum(V(r0, d.treoKey)),
+        activos: d.activosKey ? OXXO.metricsNum(V(r0, d.activosKey)) : 0,
+        dif: dif0,
+        mov: movInfo(dif0),
+      };
     }
     fichaEl.style.display = 'none';
     fichaEl.innerHTML = '';
@@ -540,6 +592,15 @@
         <td class="center"><span class="pill-mov ${mov.cls}">${movTxt}</span></td>
       </tr>`;
     }).join('') : emptyRow(5, 'Tu tienda no aparece en TREO.');
+    if (!rows.length) return null;
+    const difTot = sumSap - sumTreo;
+    return {
+      asesor: V(rows[0], d.asesorKey) || '',
+      cr: d.crKey ? V(rows[0], d.crKey) : '',
+      turnos: '', antiguedad: '',
+      sap: sumSap, treo: sumTreo, activos: sumAct, cobertura,
+      dif: difTot, mov: movInfo(difTot),
+    };
   }
 
   // ── D8 · Capacidades 2026 (mismo pipeline que dashboard-8.html) ──
@@ -573,11 +634,11 @@
   function renderD8(tienda) {
     const d = DATA.d8;
     const el = document.getElementById('sec-d8');
-    if (!d) { el.classList.remove('show'); return; }
+    if (!d) { el.classList.remove('show'); return null; }
     const rows = d.rows.filter((r) => tKey(V(r, d.unidadKey)) === tienda);
     el.classList.add('show');
     const empleados = new Set(rows.map((r) => V(r, d.noPersKey) || V(r, d.empleadoKey))).size;
-    document.getElementById('badge-d8').textContent = `${empleados} empleados`;
+    document.getElementById('badge-d8').textContent = plural(empleados, 'empleado', 'empleados');
     const certStats = CERT_COLS.map((c) => {
       let aplic = 0, comp = 0;
       rows.forEach((r) => { const v = capValue(r, c.key, d.certRealKeys); if (v !== null) { aplic++; if (v >= 1) comp++; } });
@@ -588,7 +649,9 @@
     const pctGlobal = aplicTotal ? Math.round((compTotal / aplicTotal) * 100) : 0;
     document.getElementById('stats-d8').innerHTML = '';
     const certBars = barListHTML(certStats.filter((c) => c.pct !== null).map((c) => ({ label: c.label, value: c.pct, display: c.pct + '%' })), 'verde');
-    document.getElementById('viz-d8').innerHTML = rows.length ? gaugeRowHTML(pctGlobal, null, 'Cumplimiento global', statTile(n(empleados), 'Empleados')) + certBars : '';
+    document.getElementById('viz-d8').innerHTML = rows.length
+      ? gaugeRowHTML(pctGlobal, null, 'Cumplimiento global', statTile(n(empleados), 'Empleados')) + certBars
+      : noneBox('Tu tienda no aparece en capacidades');
     const tbody = document.querySelector('#tbl-d8 tbody');
     tbody.innerHTML = certStats.length ? certStats.map((c) => `<tr>
         <td>${esc(c.label)}</td>
@@ -596,6 +659,73 @@
         <td class="center">${n(c.comp)}</td>
         <td class="center">${c.pct === null ? 'N/A' : c.pct + '%'}</td>
       </tr>`).join('') : emptyRow(4, 'Sin datos de certificaciones.');
+    return rows.length ? { capPct: pctGlobal, empleados } : null;
+  }
+
+  // ── Resumen y alertas ──────────────────────────────────
+  // Antes habia que leer los 8 paneles para saber si la tienda estaba
+  // bien o mal. Estos dos bloques responden eso de una: el resumen trae
+  // los titulares de cada dashboard con su semaforo, y las alertas solo
+  // listan lo que necesita atencion (si no hay nada, se dice explicito).
+  function rkTile(value, label, tone, hint) {
+    return `<div class="rk ${tone || ''}">
+      <b>${value}</b><span>${esc(label)}</span>${hint ? `<i>${esc(hint)}</i>` : ''}
+    </div>`;
+  }
+  function toneByCount(count, warnAt) {
+    if (!count) return 'is-ok';
+    return count >= (warnAt || 3) ? 'is-bad' : 'is-warn';
+  }
+  function tonePct(pct, okAt, warnAt) {
+    if (pct >= okAt) return 'is-ok';
+    return pct >= warnAt ? 'is-warn' : 'is-bad';
+  }
+  function renderResumen(S) {
+    const tiles = [];
+    if (S.d1) tiles.push(rkTile(n(S.d1.vacantes), 'Vacantes', toneByCount(S.d1.vacantes)));
+    if (S.d2) tiles.push(rkTile(n(S.d2.bajas), 'Bajas del mes', toneByCount(S.d2.bajas)));
+    if (S.d3) tiles.push(rkTile(S.d3.ec + '%', 'Equipo completo', tonePct(S.d3.ec, 80, 50)));
+    if (S.d4) tiles.push(rkTile(n(S.d4.horas), 'Horas extra', toneByCount(S.d4.horas, 20), S.d4.gasto ? '$' + n(S.d4.gasto) : ''));
+    if (S.d6) tiles.push(rkTile(n(S.d6.diasAus), 'Días ausentismo', toneByCount(S.d6.diasAus, 20), S.d6.ausentes ? S.d6.ausentes + ' empleados' : ''));
+    if (S.d5) tiles.push(rkTile(n(S.d5.vencidos), 'Vacaciones vencidas', toneByCount(S.d5.vencidos, 2), S.d5.colaboradores ? 'de ' + S.d5.colaboradores : ''));
+    if (S.d8) tiles.push(rkTile(S.d8.capPct + '%', 'Capacidades', tonePct(S.d8.capPct, 90, 60)));
+    document.getElementById('ficha-resumen').innerHTML = tiles.join('');
+  }
+  function renderAlertas(S) {
+    const a = [];
+    if (S.d1 && S.d1.vacantes) a.push({ t: S.d1.vacantes >= 3 ? 'is-bad' : 'is-warn', txt: `${S.d1.vacantes} vacante${S.d1.vacantes > 1 ? 's' : ''} por cubrir` });
+    if (S.d2 && S.d2.bajas) a.push({ t: S.d2.bajas >= 3 ? 'is-bad' : 'is-warn', txt: `${S.d2.bajas} baja${S.d2.bajas > 1 ? 's' : ''} este mes${S.d2.motivo ? ' · ' + OXXO.truncate(S.d2.motivo, 26) : ''}` });
+    if (S.d3 && S.d3.criticas) a.push({ t: 'is-bad', txt: `${S.d3.criticas} registro${S.d3.criticas > 1 ? 's' : ''} de estructura crítica` });
+    if (S.d4 && S.d4.gasto) a.push({ t: S.d4.horas >= 20 ? 'is-bad' : 'is-warn', txt: `$${n(S.d4.gasto)} en tiempo extra (${n(S.d4.horas)} h)` });
+    if (S.d6 && S.d6.faltas) a.push({ t: 'is-bad', txt: `${S.d6.faltas} falta${S.d6.faltas > 1 ? 's' : ''} registrada${S.d6.faltas > 1 ? 's' : ''}` });
+    if (S.d5 && S.d5.vencidos) a.push({ t: 'is-warn', txt: `${S.d5.vencidos} con vacaciones ya vencidas` });
+    if (S.d5 && S.d5.proximos) a.push({ t: 'is-warn', txt: `${S.d5.proximos} vencen en 0-50 días` });
+    if (S.d7 && S.d7.dif) a.push({ t: 'is-info', txt: `TREO: ${S.d7.mov.txt.toLowerCase()} ${Math.abs(S.d7.dif)} posición${Math.abs(S.d7.dif) > 1 ? 'es' : ''}` });
+    if (S.d8 && S.d8.capPct < 100) a.push({ t: S.d8.capPct < 60 ? 'is-bad' : 'is-warn', txt: `Capacidades al ${S.d8.capPct}%` });
+    const el = document.getElementById('ficha-alertas');
+    el.innerHTML = a.length
+      ? a.map((x) => `<span class="chip ${x.t}">${esc(x.txt)}</span>`).join('')
+      : '<span class="chip is-ok">✓ Sin alertas: tu tienda está en orden</span>';
+  }
+  function renderIdentidad(tiendaDisplay, S) {
+    document.getElementById('ficha-tienda-title').textContent = tiendaDisplay;
+    const d7 = S.d7 || {};
+    const meta = [
+      ['Asesor / AT', d7.asesor],
+      ['CR', d7.cr],
+      ['Turnos', d7.turnos],
+      ['Antigüedad', d7.antiguedad],
+      ['Colaboradores', S.d5 && S.d5.colaboradores ? String(S.d5.colaboradores) : ''],
+    ].filter(([, v]) => String(v || '').trim() !== '');
+    document.getElementById('ficha-meta').innerHTML = meta
+      .map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
+    const st = document.getElementById('ficha-status');
+    if (d7.mov) {
+      st.textContent = d7.mov.cls === 'alineada' ? '✔ Estructura alineada'
+        : `${d7.mov.arrow} ${d7.mov.txt} ${Math.abs(d7.dif)}`;
+    } else {
+      st.textContent = 'Ficha de tienda';
+    }
   }
 
   // ── Orquestacion ───────────────────────────────────────
@@ -604,9 +734,13 @@
     const tienda = tKey(tiendaDisplay);
     document.getElementById('mi-empty').style.display = 'none';
     document.getElementById('mi-content').style.display = 'block';
-    document.getElementById('ficha-tienda-title').textContent = tiendaDisplay;
-    renderD1(tienda); renderD2(tienda); renderD3(tienda); renderD4(tienda);
-    renderD5(tienda); renderD6(tienda); renderD7(tienda); renderD8(tienda);
+    const S = {
+      d1: renderD1(tienda), d2: renderD2(tienda), d3: renderD3(tienda), d4: renderD4(tienda),
+      d5: renderD5(tienda), d6: renderD6(tienda), d7: renderD7(tienda), d8: renderD8(tienda),
+    };
+    renderIdentidad(tiendaDisplay, S);
+    renderResumen(S);
+    renderAlertas(S);
   }
 
   async function init() {

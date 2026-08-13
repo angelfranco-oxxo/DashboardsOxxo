@@ -12,115 +12,185 @@
   <link rel="stylesheet" href="../css/global.css"/>
   <link rel="stylesheet" href="../css/mascota-chat.css?v=20260805d" />
 <style>
-.page{max-width:1400px;margin:0 auto;padding:18px 20px 40px}
+/* ==========================================================
+   MI TIENDA — ficha unica por tienda
+   Paleta local: los tokens globales colapsan verde/azul/gris a
+   rojo o dorado de marca (--color-green es dorado, --color-blue
+   es rojo), asi que aqui se declaran colores semanticos propios:
+   el rojo debe significar "atencion", no "es un numero". El rojo
+   de marca se reserva para la cabecera y los acentos.
+   ========================================================== */
+.page{max-width:1320px;margin:0 auto;padding:14px 20px 40px}
 
-.hero{background:linear-gradient(135deg,#4A148C,#2D0B54);border-radius:18px;padding:26px 28px;color:#fff;margin-bottom:20px;position:relative}
-.hero h1{font-family:var(--font-display);font-size:1.7rem;font-weight:800;margin:0 0 4px}
-.hero p{margin:0;opacity:.88;font-size:13px;max-width:560px}
-.hero-badge{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:12px}
-.selector-card{background:var(--color-surface);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow-card);margin-bottom:20px;max-width:420px}
-.selector-card label{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--color-gray);margin-bottom:8px}
+:root{
+  --mt-ink:#211510;
+  --mt-muted:#7d6a61;
+  --mt-line:rgba(130,54,38,.14);
+  --mt-tile:rgba(255,255,255,.62);
+  --mt-tile-2:rgba(255,247,240,.72);
+  --mt-ok:#12813F;      --mt-ok-bg:rgba(29,185,84,.13);
+  --mt-warn:#9A6A00;    --mt-warn-bg:rgba(242,165,43,.18);
+  --mt-bad:#C0181F;     --mt-bad-bg:rgba(239,68,68,.12);
+  --mt-info:#12608F;    --mt-info-bg:rgba(21,101,192,.11);
+}
 
-.empty-state{background:var(--color-surface);border-radius:16px;padding:60px 24px;text-align:center;color:var(--color-gray);box-shadow:var(--shadow-card)}
+/* ── Encabezado de pagina + buscador ─────────────────────── */
+.hero{padding:16px 22px;margin-bottom:14px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.hero h1{font-family:var(--font-display);font-size:1.5rem;font-weight:800;margin:0;line-height:1.1}
+.hero p{margin:3px 0 0;opacity:.9;font-size:12.5px;max-width:620px}
+.hero-badge{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);padding:6px 14px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+
+.mt-picker{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.mt-picker__label{font-size:10.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--mt-muted)}
+#mi-tienda-select{flex:0 1 360px;min-width:240px}
+
+.empty-state{background:var(--mt-tile);border:1px solid var(--mt-line);border-radius:18px;padding:56px 24px;text-align:center;color:var(--mt-muted)}
 .empty-state .big{font-size:2.4rem;margin-bottom:10px}
-.empty-state h2{font-family:var(--font-display);color:var(--color-dark);margin:0 0 6px}
+.empty-state h2{font-family:var(--font-display);color:var(--mt-ink);margin:0 0 6px}
 
-/* Ficha de Tienda: UNA sola tarjeta compacta con cabecera roja + grid de
-   mini-paneles (uno por dashboard), en vez de 8 secciones largas
-   apiladas. Cada mini-panel trae solo lo esencial (numeros + grafica
-   chica); el detalle en tabla va detras de <details>/<summary> nativos
-   ("Ver detalle"), sin JS extra para el toggle. */
-.ficha-tienda{background:var(--color-surface);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-card);margin-bottom:20px}
-.ficha-tienda__head{background:linear-gradient(126deg,#FF2430 0%,#D91F2D 52%,#821719 100%);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.ficha-tienda__title{font-family:var(--font-display);font-size:1.2rem;font-weight:800}
-.ficha-tienda__badge{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.32);border-radius:999px;padding:5px 14px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
-.ficha-tienda__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1px;background:var(--color-border)}
+/* ── Ficha: una sola tarjeta ──────────────────────────────
+   Cabecera (identidad) → resumen (los numeros que importan) →
+   alertas (solo lo que necesita atencion) → paneles por
+   dashboard. Los paneles son tiles con gap y align-items:start:
+   antes compartian filas de grid y se estiraban a la altura del
+   mas alto, dejando huecos grandes en los paneles cortos. */
+.ficha{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(22px) saturate(118%);backdrop-filter:blur(22px) saturate(118%);border:1px solid rgba(255,255,255,.7);border-radius:20px;overflow:hidden;box-shadow:0 16px 44px rgba(117,23,23,.12);margin-bottom:18px}
 
-.mi-section{background:var(--color-surface);padding:16px 18px;display:none}
+.ficha__head{background:linear-gradient(126deg,#E30613 0%,#C1101B 54%,#8E0008 100%);color:#fff;padding:16px 22px}
+.ficha__head-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ficha__name{font-family:var(--font-display);font-size:1.5rem;font-weight:800;line-height:1.1;letter-spacing:.01em}
+.ficha__status{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.34);border-radius:999px;padding:5px 14px;font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+.ficha__meta{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:9px}
+.ficha__meta div{font-size:11.5px;line-height:1.35}
+.ficha__meta span{display:block;font-size:9px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;opacity:.72}
+.ficha__meta b{font-weight:700}
+
+/* Resumen: los titulares de los 8 dashboards en una sola fila */
+.ficha__resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:var(--mt-line);border-bottom:1px solid var(--mt-line)}
+.rk{background:var(--mt-tile-2);padding:13px 14px 12px;position:relative}
+.rk::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--mt-line)}
+.rk.is-ok::before{background:var(--mt-ok)}
+.rk.is-warn::before{background:#E0A21C}
+.rk.is-bad::before{background:var(--mt-bad)}
+.rk b{display:block;font-family:var(--font-display);font-size:1.75rem;font-weight:800;line-height:1;color:var(--mt-ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.rk.is-ok b{color:var(--mt-ok)}
+.rk.is-warn b{color:var(--mt-warn)}
+.rk.is-bad b{color:var(--mt-bad)}
+.rk span{display:block;margin-top:4px;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--mt-muted)}
+.rk i{display:block;margin-top:2px;font-size:10.5px;font-style:normal;color:var(--mt-muted);opacity:.85}
+
+/* Alertas: solo aparecen las que aplican */
+.ficha__alertas{display:flex;flex-wrap:wrap;gap:7px;padding:12px 18px;border-bottom:1px solid var(--mt-line);background:rgba(255,255,255,.34)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:700;line-height:1.3;border:1px solid transparent}
+.chip.is-ok{background:var(--mt-ok-bg);color:var(--mt-ok);border-color:rgba(29,185,84,.28)}
+.chip.is-warn{background:var(--mt-warn-bg);color:var(--mt-warn);border-color:rgba(242,165,43,.4)}
+.chip.is-bad{background:var(--mt-bad-bg);color:var(--mt-bad);border-color:rgba(239,68,68,.3)}
+.chip.is-info{background:var(--mt-info-bg);color:var(--mt-info);border-color:rgba(21,101,192,.24)}
+
+/* Paneles por dashboard */
+.ficha__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(304px,1fr));align-items:start;gap:12px;padding:14px 16px 18px}
+
+.mi-section{background:var(--mt-tile);border:1px solid var(--mt-line);border-radius:14px;padding:13px 14px;display:none}
 .mi-section.show{display:block}
-.mi-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-.mi-section-title{display:flex;align-items:center;gap:8px}
-.mi-section-title .ico{font-size:1.05rem;line-height:1}
-.mi-section-title h3{font-family:var(--font-display);font-size:.86rem;font-weight:800;color:var(--color-dark);margin:0}
-.mi-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--color-bg);color:var(--color-gray);white-space:nowrap}
+.mi-section-head{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.mi-section-title{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.mi-section-title .ico{width:26px;height:26px;flex:0 0 26px;display:grid;place-items:center;border-radius:8px;background:rgba(227,6,19,.09);font-size:.92rem;line-height:1}
+.mi-section-title h3{font-family:var(--font-display);font-size:.95rem;font-weight:800;color:var(--mt-ink);margin:0;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-badge{font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:rgba(130,54,38,.07);color:var(--mt-muted);white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
 
-.mi-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px;margin-bottom:10px}
-.mi-stat{background:var(--color-bg);border-radius:10px;padding:9px 8px;text-align:center}
-.mi-stat b{display:block;font-family:var(--font-display);font-size:1.08rem;font-weight:800;color:var(--color-dark);line-height:1.15}
-.mi-stat span{font-size:8.5px;color:var(--color-gray);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
-.mi-stat.verde b{color:#138c3e}
-.mi-stat.rojo b{color:#C0393B}
-.mi-stat.amarillo b{color:#B8860B}
-.mi-stat.azul b{color:#1565C0}
+.mi-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(58px,1fr));gap:6px;margin-bottom:10px}
+.mi-stat{background:rgba(255,255,255,.72);border:1px solid var(--mt-line);border-radius:10px;padding:8px 4px;text-align:center;min-width:0}
+.mi-stat b{display:block;font-family:var(--font-display);font-size:1.18rem;font-weight:800;color:var(--mt-ink);line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-stat span{display:block;margin-top:3px;font-size:8px;color:var(--mt-muted);text-transform:uppercase;letter-spacing:.03em;font-weight:800;line-height:1.25}
+.mi-stat.verde b{color:var(--mt-ok)}
+.mi-stat.rojo b{color:var(--mt-bad)}
+.mi-stat.amarillo b{color:var(--mt-warn)}
+.mi-stat.azul b{color:var(--mt-info)}
+.mi-stat.naranja b{color:var(--mt-warn)}
+/* Valor de texto (no numero): se baja el tamano para que quepa */
+.mi-stat.txt b{font-size:.82rem;font-family:var(--font-body);font-weight:700;white-space:normal;line-height:1.2}
 
-/* Visuales "ficha" (medidor + barras) que dan una vista visual rapida de
-   cada mini-panel. mi-viz vacio no ocupa espacio (:empty), asi que no
-   rompe nada en secciones sin datos para graficar. */
+/* Estado "todo en orden": sustituye la reja de ceros cuando el
+   panel no tiene registros (antes se veian 4 tiles en 0 y una
+   grafica vacia, que se leia igual que "sin datos"). */
+.mt-clear{display:flex;align-items:center;gap:7px;background:var(--mt-ok-bg);color:var(--mt-ok);border:1px solid rgba(29,185,84,.24);border-radius:10px;padding:9px 11px;font-size:11.5px;font-weight:700}
+.mt-none{display:flex;align-items:center;gap:7px;background:rgba(130,54,38,.05);color:var(--mt-muted);border:1px solid var(--mt-line);border-radius:10px;padding:9px 11px;font-size:11.5px;font-weight:600}
+
 .mi-viz:empty{display:none}
-.mi-viz{margin-bottom:10px}
+.mi-viz{margin-bottom:9px}
 .mi-gauge-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.mi-gauge-row .mi-gauge-wrap{flex:0 0 auto;width:112px}
-.mi-gauge-row .mi-stats{flex:1 1 140px;min-width:120px;margin-bottom:0}
-.mi-gauge{width:100%;overflow:visible}
-.mi-gauge__text{font-family:var(--font-display,sans-serif);font-weight:800;font-size:31px}
-.mi-barlist{display:flex;flex-direction:column;gap:6px}
-.mi-barlist__row{display:grid;grid-template-columns:minmax(64px,1fr) minmax(60px,2fr) 36px;align-items:center;gap:8px}
-.mi-barlist__label{font-size:10.5px;font-weight:700;color:var(--color-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mi-barlist__track{height:7px;border-radius:999px;background:var(--color-bg);overflow:hidden}
-.mi-barlist__fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#D91F2D,#821719)}
-.mi-barlist__fill.azul{background:linear-gradient(90deg,#1565C0,#0D47A1)}
-.mi-barlist__fill.naranja{background:linear-gradient(90deg,#F2A52B,#B85000)}
-.mi-barlist__value{font-size:10.5px;font-weight:800;color:var(--color-dark);text-align:right}
+.mi-gauge-row .mi-gauge-wrap{flex:0 0 auto;width:120px}
+.mi-gauge-row .mi-stats{flex:1 1 130px;min-width:110px;margin-bottom:0}
+.mi-gauge{width:100%;overflow:visible;display:block}
+.mi-gauge__text{font-family:var(--font-display,sans-serif);font-weight:800;font-size:38px}
+.mi-gauge__cap{text-align:center;font-size:9.5px;font-weight:800;color:var(--mt-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;line-height:1.25}
 
-/* "Ver detalle" nativo: <details> no necesita JS para abrir/cerrar. */
-.mi-detail{margin-top:2px}
-.mi-detail summary{cursor:pointer;font-size:11px;font-weight:800;color:var(--color-red,#D91F2D);list-style:none;padding:4px 0;user-select:none}
+.mi-barlist{display:flex;flex-direction:column;gap:6px}
+.mi-barlist__row{display:grid;grid-template-columns:minmax(58px,1fr) minmax(52px,1.7fr) 34px;align-items:center;gap:8px}
+.mi-barlist__label{font-size:10.5px;font-weight:700;color:var(--mt-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-barlist__track{height:6px;border-radius:999px;background:rgba(130,54,38,.09);overflow:hidden}
+.mi-barlist__fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#E85A60,#C0181F)}
+.mi-barlist__fill.azul{background:linear-gradient(90deg,#4A90D9,#12608F)}
+.mi-barlist__fill.naranja{background:linear-gradient(90deg,#F2A52B,#B87400)}
+.mi-barlist__fill.verde{background:linear-gradient(90deg,#3ECF6D,#12813F)}
+.mi-barlist__value{font-size:10.5px;font-weight:800;color:var(--mt-ink);text-align:right;font-variant-numeric:tabular-nums}
+
+.mi-detail{margin-top:4px;border-top:1px solid var(--mt-line);padding-top:4px}
+.mi-detail summary{cursor:pointer;font-size:10.5px;font-weight:800;color:#C1101B;list-style:none;padding:4px 0;user-select:none;letter-spacing:.03em}
 .mi-detail summary::-webkit-details-marker{display:none}
 .mi-detail summary::before{content:'Ver detalle ▾';}
 .mi-detail[open] summary::before{content:'Ocultar detalle ▴';}
-.mi-detail[open] summary{margin-bottom:8px}
+.mi-detail[open] summary{margin-bottom:7px}
 
-.tbl-wrap{overflow-x:auto;max-height:220px;overflow-y:auto;scrollbar-width:thin;border-radius:10px}
+.tbl-wrap{overflow-x:auto;max-height:220px;overflow-y:auto;scrollbar-width:thin;border-radius:10px;border:1px solid var(--mt-line)}
 .tbl{width:100%;border-collapse:collapse;font-size:11px}
-.tbl thead th{position:sticky;top:0;z-index:2;background:#2D2D44;color:#fff;padding:6px 9px;text-align:left;font-size:8.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap}
-.tbl tbody tr{border-bottom:1px solid var(--color-border)}
-.tbl tbody tr:hover{background:var(--color-bg)}
-.tbl tbody td{padding:5px 9px;color:var(--color-dark);vertical-align:middle}
+.tbl thead th{position:sticky;top:0;z-index:2;background:#3B2A24;color:#fff;padding:6px 9px;text-align:left;font-size:8.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap}
+.tbl tbody tr{border-bottom:1px solid var(--mt-line)}
+.tbl tbody tr:last-child{border-bottom:none}
+.tbl tbody tr:hover{background:rgba(255,255,255,.7)}
+.tbl tbody td{padding:5px 9px;color:var(--mt-ink);vertical-align:middle}
 .tbl td.center{text-align:center}
-.mi-empty-mini{padding:14px;text-align:center;color:var(--color-gray);font-size:11px}
+.mi-empty-mini{padding:14px;text-align:center;color:var(--mt-muted);font-size:11px}
 
-.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px 16px;color:var(--color-gray);text-align:center}
-.spinner{width:26px;height:26px;border:3px solid var(--color-border);border-top-color:var(--color-yellow);border-radius:50%;animation:spin .7s linear infinite}
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px 16px;color:var(--mt-muted);text-align:center}
+.spinner{width:26px;height:26px;border:3px solid var(--mt-line);border-top-color:#E0A21C;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 .pill-mov{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:10.5px;font-weight:800}
-.pill-mov.subir{background:rgba(255,152,0,.14);color:#B85000}
-.pill-mov.bajar{background:rgba(217,43,43,.12);color:#C0393B}
-.pill-mov.alineada{background:rgba(29,185,84,.14);color:#138c3e}
+.pill-mov.subir{background:var(--mt-warn-bg);color:var(--mt-warn)}
+.pill-mov.bajar{background:var(--mt-bad-bg);color:var(--mt-bad)}
+.pill-mov.alineada{background:var(--mt-ok-bg);color:var(--mt-ok)}
 
-/* Ficha Tecnica TREO (dentro del mini-panel de TREO): ya no trae su
-   propia cabecera roja (el mini-panel ya tiene icono+titulo), solo el
-   cuerpo compacto. Reusa los mismos colores de mov que pill-mov arriba. */
+/* Ficha TREO dentro de su panel: el panel ya trae icono+titulo,
+   asi que aqui solo va el cuerpo. */
 .ficha-treo__head{display:none}
 .ficha-treo__body{padding:0}
-.ficha-treo__kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.ficha-treo__kpi{background:var(--color-bg);border-radius:10px;padding:9px 6px;text-align:center}
-.ficha-treo__kpi b{display:block;font-family:var(--font-display);font-size:1.1rem;font-weight:800;color:var(--color-dark);line-height:1.1}
-.ficha-treo__kpi span{font-size:8.5px;color:var(--color-gray);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
-.ficha-treo__kpi.subir b{color:#B85000}
-.ficha-treo__kpi.bajar b{color:#C0393B}
-.ficha-treo__kpi.alineada b{color:#138c3e}
-.ficha-treo__mov{border-radius:10px;padding:8px 10px;margin-bottom:10px;display:flex;align-items:baseline;gap:6px;font-family:var(--font-display);font-size:.82rem;font-weight:800}
-.ficha-treo__mov .arrow{font-size:1.05rem;line-height:1}
-.ficha-treo__mov.subir{background:rgba(255,152,0,.14);color:#B85000}
-.ficha-treo__mov.bajar{background:rgba(217,43,43,.12);color:#C0393B}
-.ficha-treo__mov.alineada{background:rgba(29,185,84,.14);color:#138c3e}
-.ficha-treo__details{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}
-.ficha-treo__row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--color-border);font-size:11px}
-.ficha-treo__row span:first-child{color:var(--color-gray);font-weight:600}
-.ficha-treo__row span:last-child{color:var(--color-dark);font-weight:800;text-align:right}
+.ficha-treo__kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}
+.ficha-treo__kpi{background:rgba(255,255,255,.72);border:1px solid var(--mt-line);border-radius:10px;padding:8px 6px;text-align:center}
+.ficha-treo__kpi b{display:block;font-family:var(--font-display);font-size:1.18rem;font-weight:800;color:var(--mt-ink);line-height:1.1;font-variant-numeric:tabular-nums}
+.ficha-treo__kpi span{display:block;margin-top:3px;font-size:8.5px;color:var(--mt-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:800}
+.ficha-treo__kpi.subir b{color:var(--mt-warn)}
+.ficha-treo__kpi.bajar b{color:var(--mt-bad)}
+.ficha-treo__kpi.alineada b{color:var(--mt-ok)}
+.ficha-treo__mov{border-radius:10px;padding:8px 11px;margin-bottom:9px;display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800}
+.ficha-treo__mov .arrow{font-size:1rem;line-height:1}
+.ficha-treo__mov.subir{background:var(--mt-warn-bg);color:var(--mt-warn)}
+.ficha-treo__mov.bajar{background:var(--mt-bad-bg);color:var(--mt-bad)}
+.ficha-treo__mov.alineada{background:var(--mt-ok-bg);color:var(--mt-ok)}
+.ficha-treo__details{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.ficha-treo__row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--mt-line);font-size:11px}
+.ficha-treo__row span:first-child{color:var(--mt-muted);font-weight:600}
+.ficha-treo__row span:last-child{color:var(--mt-ink);font-weight:800;text-align:right}
+.ficha-treo__row--wide{grid-column:1/-1}
+.ficha-treo__row--wide span:last-child{font-weight:700}
 
-@media(max-width:640px){.ficha-tienda__grid{grid-template-columns:1fr}}
+@media(max-width:720px){
+  .ficha__grid{grid-template-columns:1fr;padding:12px}
+  .ficha__resumen{grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
+  .ficha__name{font-size:1.28rem}
+  .ficha-treo__details{grid-template-columns:1fr}
+  #mi-tienda-select{flex:1 1 100%}
+}
 </style>
 <link rel="stylesheet" href="../css/dashboard-skin.css"/>
 </head>
@@ -142,29 +212,38 @@
 <div class="page">
 
   <div class="hero">
-    <h1>🏬 Mi Tienda</h1>
-    <p>Busca tu tienda y ve sus datos de los 8 dashboards en un solo lugar: vacantes, bajas, aprovechamiento, tiempo extra, vacaciones, ausentismos, TREO y capacidades.</p>
+    <div>
+      <h1>🏬 Mi Tienda</h1>
+      <p>Todo lo de tu tienda en una sola ficha: vacantes, bajas, estructura, tiempo extra, vacaciones, ausentismos, TREO y capacidades.</p>
+    </div>
     <span class="hero-badge" id="corte-badge">⟳ Cargando datos…</span>
   </div>
 
-  <div class="selector-card">
-    <label for="mi-tienda-search">Busca tu tienda</label>
+  <div class="mt-picker">
+    <span class="mt-picker__label" id="mi-tienda-label">Busca tu tienda</span>
     <div id="mi-tienda-select"></div>
   </div>
 
   <div id="mi-empty" class="empty-state">
     <div class="big">🏬</div>
     <h2>Busca tu tienda arriba</h2>
-    <div>En cuanto elijas tu tienda vas a ver aquí mismo sus datos de los 8 dashboards.</div>
+    <div>En cuanto elijas tu tienda vas a ver aquí mismo su ficha completa.</div>
   </div>
 
   <div id="mi-content" style="display:none">
-   <div class="ficha-tienda">
-    <div class="ficha-tienda__head">
-      <div class="ficha-tienda__title" id="ficha-tienda-title">—</div>
-      <span class="ficha-tienda__badge">Ficha de Tienda</span>
+   <div class="ficha">
+    <div class="ficha__head">
+      <div class="ficha__head-top">
+        <div class="ficha__name" id="ficha-tienda-title">—</div>
+        <span class="ficha__status" id="ficha-status">—</span>
+      </div>
+      <div class="ficha__meta" id="ficha-meta"></div>
     </div>
-    <div class="ficha-tienda__grid">
+
+    <div class="ficha__resumen" id="ficha-resumen"></div>
+    <div class="ficha__alertas" id="ficha-alertas"></div>
+
+    <div class="ficha__grid">
 
     <div class="mi-section" id="sec-d1">
       <div class="mi-section-head">
@@ -192,7 +271,7 @@
 
     <div class="mi-section" id="sec-d3">
       <div class="mi-section-head">
-        <div class="mi-section-title"><span class="ico">🧮</span><h3>Aprovechamiento de Estructura</h3></div>
+        <div class="mi-section-title"><span class="ico">🧮</span><h3>Aprovechamiento</h3></div>
         <span class="mi-badge" id="badge-d3">—</span>
       </div>
       <div id="viz-d3" class="mi-viz"></div>
@@ -276,5 +355,5 @@
   <script src="../js/config.js?v=20260805a"></script>
   <script src="../js/core.js?v=20260807a"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
-<script src="../js/mi-tienda.js?v=1"></script>
+<script src="../js/mi-tienda.js?v=2"></script>
 </body></html>
