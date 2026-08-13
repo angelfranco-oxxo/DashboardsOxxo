@@ -804,7 +804,9 @@ function renderDonut(data){
 // Render Rankings por asesor
 function renderRankAsesor(data, containerId, movFiltro, barColor){
   const map = {};
-  data.filter(r => !movFiltro || r.mov === movFiltro).forEach(r=>{
+  // "Sin Asesor Asignado" no es un AT real -- se deja fuera de los rankings
+  // "por AT" (mismo criterio que el selector de asesor de arriba).
+  data.filter(r => !movFiltro || r.mov === movFiltro).filter(r => cleanKey(r.asesor) !== 'sinasesorasignado').forEach(r=>{
     if(!map[r.asesor]) map[r.asesor] = 0;
     map[r.asesor]++;
   });
@@ -1218,9 +1220,12 @@ async function init(){
   const footTiendaCountEl = document.getElementById('foot-tienda-count');
   if(footTiendaCountEl) footTiendaCountEl.textContent = String(ALL.length);
 
-  // Poblar selector de asesor (dedupe por nombre normalizado, prefiriendo la grafía con acentos)
+  // Poblar selector de asesor (dedupe por nombre normalizado, prefiriendo la grafía con acentos).
+  // "Sin Asesor Asignado" se queda visible en la tabla/KPIs (para saber que esas tiendas existen
+  // y no tienen AT), pero no es un AT real -- no tiene caso que aparezca seleccionable aqui ni en
+  // los rankings "por AT" de abajo.
   const asesorPorClave = new Map();
-  ALL.map(r=>r.asesor).filter(Boolean).forEach(a=>{
+  ALL.map(r=>r.asesor).filter(Boolean).filter(a=>cleanKey(a)!=='sinasesorasignado').forEach(a=>{
     const k = cleanKey(a);
     const actual = asesorPorClave.get(k);
     if (!actual || (a.length >= actual.length && /[À-ÿ]/.test(a))) asesorPorClave.set(k, a);
