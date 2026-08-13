@@ -157,6 +157,22 @@
       </div>`).join('')}</div>`;
   }
 
+  // Barras para comparar porcentajes entre si: a diferencia de
+  // barListHTML, respeta el orden dado, no descarta los valores en 0 (un
+  // "0%" tiene que verse) y mide contra 100, no contra el mayor del grupo.
+  function pctBarsHTML(items) {
+    return `<div class="mi-barlist">${items.map((it) => {
+      const v = Math.max(0, Math.min(100, Number(it.value) || 0));
+      const tone = gaugeTone(v, null);
+      const cls = tone === 'verde' ? 'verde' : tone === 'amarillo' ? 'naranja' : '';
+      return `<div class="mi-barlist__row">
+        <span class="mi-barlist__label" title="${esc(it.label)}">${esc(it.label)}</span>
+        <div class="mi-barlist__track"><div class="mi-barlist__fill ${cls}" style="width:${Math.max(2, v)}%"></div></div>
+        <span class="mi-barlist__value">${v}%</span>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
   // ── Estado global (se carga una sola vez) ─────────────
   let CATALOG = null;
   const TIENDAS = new Map(); // normKey -> nombre a mostrar (canonico del catalogo si existe, si no el nombre crudo)
@@ -282,12 +298,17 @@
     const tiendaKey = K(h, ['Tienda']);
     const crKey = K(h, ['CR', 'CR Tienda', 'CR TIENDA']);
     const estatusKey = K(h, ['Clas Aprov', 'Estatus Con impacto Ausentismo', 'Estatus']);
+    // Misma columna que usa la ficha de tienda de dashboard-3.html: trae el
+    // estatus recalculado descontando los ausentismos, con el mismo
+    // vocabulario ("Equipo Completo"/"Equipo Incompleto"/"Tienda Critica"),
+    // asi que se clasifica con el mismo helper.
+    const ecSinAusKey = K(h, ['EC SIN AUSENTISMO', 'EC sin ausentismo', 'EC Sin Ausentismo']);
     const semanaKey = K(h, ['Mes Semana', 'Semana', 'Fecha', 'FECHA']);
     raw.forEach((r) => { r[asesorKey] = OXXO.resolveAsesorD1(CATALOG, { cr: V(r, crKey), tienda: V(r, tiendaKey), asesor: V(r, asesorKey) }); });
     const semanas = [...new Set(raw.map((r) => String(V(r, semanaKey) || '').trim()).filter(Boolean))].sort();
     const semana = semanas[semanas.length - 1] || '';
     const rows = semana ? raw.filter((r) => String(V(r, semanaKey) || '').trim() === semana) : raw;
-    DATA.d3 = { rows, semana, asesorKey, tiendaKey, estatusKey };
+    DATA.d3 = { rows, semana, asesorKey, tiendaKey, estatusKey, ecSinAusKey };
     addTiendas(rows, tiendaKey);
   }
   function renderD3(tienda) {
@@ -298,23 +319,48 @@
     el.classList.add('show');
     document.getElementById('badge-d3').textContent = d.semana || '—';
     let completas = 0, incompletas = 0, criticas = 0;
+    let sinCompletas = 0, sinTotal = 0;
     rows.forEach((r) => {
       const c = OXXO.metricsClasificaAprovechamiento(V(r, d.estatusKey));
       if (c === 'completas') completas++; else if (c === 'incompletas') incompletas++; else if (c === 'criticas') criticas++;
+      if (d.ecSinAusKey) {
+        const s = OXXO.metricsClasificaAprovechamiento(V(r, d.ecSinAusKey));
+        if (s) { sinTotal++; if (s === 'completas') sinCompletas++; }
+      }
     });
     const ec = rows.length ? Math.round((completas / rows.length) * 100) : 0;
+    const ecSin = sinTotal ? Math.round((sinCompletas / sinTotal) * 100) : null;
     document.getElementById('stats-d3').innerHTML = '';
-    document.getElementById('viz-d3').innerHTML = rows.length ? gaugeRowHTML(ec, null, 'EC · Equipo Completo',
-      statTile(n(completas), 'Completas', 'verde') +
-      statTile(n(incompletas), 'Incompletas', 'amarillo') +
-      statTile(n(criticas), 'Críticas', 'rojo')
-    ) : noneBox('Tu tienda no aparece en la semana vigente');
+    document.getElementById('viz-d3').innerHTML = rows.length
+      ? gaugeRowHTML(ec, null, 'EC · Equipo Completo',
+          statTile(n(completas), 'Completas', 'verde') +
+          statTile(n(incompletas), 'Incompletas', 'amarillo') +
+          statTile(n(criticas), 'Críticas', 'rojo')
+        ) + (ecSin !== null ? pctBarsHTML([
+          { label: 'Con ausentismo', value: ec },
+          { label: 'Sin ausentismo', value: ecSin },
+        ]) : '')
+      : noneBox('Tu tienda no aparece en la semana vigente');
     const tbody = document.querySelector('#tbl-d3 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
         <td>${esc(V(r, d.asesorKey) || '—')}</td>
-        <td>${esc(V(r, d.estatusKey) || '—')}</td>
-      </tr>`).join('') : emptyRow(2, 'Sin datos de estructura para tu tienda en la semana vigente.');
-    return rows.length ? { ec, completas, incompletas, criticas } : null;
+        ${estatusCell(V(r, d.estatusKey))}
+        ${estatusCell(d.ecSinAusKey ? V(r, d.ecSinAusKey) : '')}
+      </tr>`).join('') : emptyRow(3, 'Sin datos de estructura para tu tienda en la semana vigente.');
+    return rows.length ? { ec, ecSin, completas, incompletas, criticas } : null;
+  }
+
+  // Celda de estatus de estructura: con dos columnas ("con" y "sin"
+  // ausentismo) en un panel angosto, el texto completo partia el
+  // renglon en 4 lineas. Se muestra corto y con color, el valor
+  // original queda en el title.
+  function estatusCell(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '<td class="center">—</td>';
+    const c = OXXO.metricsClasificaAprovechamiento(raw);
+    const txt = raw.replace(/^equipo\s+/i, '').replace(/^tienda\s+/i, '');
+    const cls = c === 'completas' ? 'alineada' : c === 'criticas' ? 'bajar' : c === 'incompletas' ? 'subir' : '';
+    return `<td class="center" title="${esc(raw)}">${cls ? `<span class="pill-mov ${cls}">${esc(txt)}</span>` : esc(txt)}</td>`;
   }
 
   // ── D4 · Tiempo Extra (mismo pipeline que dashboard-4.html) ──
@@ -566,6 +612,19 @@
         mov: movInfo(dif0),
       };
     }
+    // Sin registros no se pintan KPIs en cero (se leian como "SAP 0,
+    // TREO 0" cuando en realidad la tienda no esta en esa base), igual
+    // que en los demas paneles.
+    if (!rows.length) {
+      fichaEl.style.display = '';
+      fichaEl.innerHTML = noneBox('Tu tienda no aparece en TREO');
+      statsEl.style.display = 'none';
+      statsEl.innerHTML = '';
+      detailEl.style.display = 'none';
+      detailEl.open = false;
+      document.querySelector('#tbl-d7 tbody').innerHTML = '';
+      return null;
+    }
     fichaEl.style.display = 'none';
     fichaEl.innerHTML = '';
     statsEl.style.display = '';
@@ -684,7 +743,8 @@
     const tiles = [];
     if (S.d1) tiles.push(rkTile(n(S.d1.vacantes), 'Vacantes', toneByCount(S.d1.vacantes)));
     if (S.d2) tiles.push(rkTile(n(S.d2.bajas), 'Bajas del mes', toneByCount(S.d2.bajas)));
-    if (S.d3) tiles.push(rkTile(S.d3.ec + '%', 'Equipo completo', tonePct(S.d3.ec, 80, 50)));
+    if (S.d3) tiles.push(rkTile(S.d3.ec + '%', 'Equipo completo', tonePct(S.d3.ec, 80, 50),
+      S.d3.ecSin !== null && S.d3.ecSin !== undefined ? `sin ausentismo: ${S.d3.ecSin}%` : ''));
     if (S.d4) tiles.push(rkTile(n(S.d4.horas), 'Horas extra', toneByCount(S.d4.horas, 20), S.d4.gasto ? '$' + n(S.d4.gasto) : ''));
     if (S.d6) tiles.push(rkTile(n(S.d6.diasAus), 'Días ausentismo', toneByCount(S.d6.diasAus, 20), S.d6.ausentes ? S.d6.ausentes + ' empleados' : ''));
     if (S.d5) tiles.push(rkTile(n(S.d5.vencidos), 'Vacaciones vencidas', toneByCount(S.d5.vencidos, 2), S.d5.colaboradores ? 'de ' + S.d5.colaboradores : ''));
