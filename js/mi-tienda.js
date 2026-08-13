@@ -13,165 +13,19 @@
 (function () {
   'use strict';
 
-  const esc = (s) => String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-
-  // ── Combobox de una sola tienda (busca + selecciona una) ──────
-  function mountSingleTiendaSelect(rootId, values, { onChange, placeholder } = {}) {
-    const root = document.getElementById(rootId);
-    if (!root) return null;
-    const allValues = [...new Set(values)].sort((a, b) => String(a).localeCompare(String(b), 'es'));
-    let selected = '';
-    const ph = placeholder || 'Busca tu tienda';
-
-    root.innerHTML = `
-      <div class="smart-filter" id="${rootId}-filter">
-        <button class="smart-filter__button" type="button" id="${rootId}-button">
-          <span class="smart-filter__label" id="${rootId}-label">${esc(ph)}</span>
-          <span class="smart-filter__chev">▾</span>
-        </button>
-        <div class="smart-filter__menu" id="${rootId}-menu">
-          <input class="smart-filter__search" id="mi-tienda-search" type="search" placeholder="Buscar tienda..." autocomplete="off">
-          <div class="smart-filter__list" id="${rootId}-options"></div>
-        </div>
-      </div>`;
-
-    const wrap = document.getElementById(`${rootId}-filter`);
-    const label = document.getElementById(`${rootId}-label`);
-    const button = document.getElementById(`${rootId}-button`);
-    const search = document.getElementById('mi-tienda-search');
-    const list = document.getElementById(`${rootId}-options`);
-
-    function renderOptions(query = '') {
-      const q = String(query || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-      const filtered = allValues.filter((v) => !q || String(v).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().includes(q));
-      list.innerHTML = filtered.length
-        ? filtered.map((v) => `<button type="button" class="smart-filter__option ${v === selected ? 'is-active' : ''}" data-value="${esc(v)}">
-            <span class="smart-filter__check"></span><span>${esc(v)}</span>
-          </button>`).join('')
-        : '<div class="smart-filter__empty">Sin resultados</div>';
-    }
-
-    list.addEventListener('click', (e) => {
-      const btn = e.target.closest('.smart-filter__option');
-      if (!btn) return;
-      selected = btn.dataset.value;
-      label.textContent = selected;
-      wrap.classList.remove('open');
-      renderOptions(search.value);
-      if (typeof onChange === 'function') onChange(selected);
-    });
-    search.addEventListener('input', () => renderOptions(search.value));
-    button.addEventListener('click', () => {
-      const opening = !wrap.classList.contains('open');
-      wrap.classList.toggle('open', opening);
-      if (opening) { search.value = ''; renderOptions(); search.focus(); }
-    });
-    document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) wrap.classList.remove('open'); });
-
-    renderOptions();
-    return {
-      get value() { return selected; },
-      setValue(v) { selected = v || ''; label.textContent = selected || ph; renderOptions(); },
-    };
-  }
-
   // ── Utilidades compartidas ────────────────────────────
+  const {
+    esc, plural, statTile, emptyRow, clearBox, noneBox,
+    gaugeTone, gaugeSVG, gaugeRowHTML, barListHTML, pctBarsHTML,
+    movInfo, movPill, estatusCell, rkTile, toneByCount, tonePct,
+    chipsHTML, metaHTML, mountSingleSelect,
+  } = window.OXXO_FICHA;
   const V = (row, key) => OXXO.metricsVal(row, key);
   const K = (row, aliases) => OXXO.metricsFindKey(row, aliases);
   const n = (v) => OXXO.formatNum(Math.round(Number(v) || 0));
   const tKey = (v) => OXXO.normalizeCatalogTienda(v);
-  function statTile(value, label, cls) {
-    return `<div class="mi-stat ${cls || ''}"><b>${value}</b><span>${esc(label)}</span></div>`;
-  }
-  function emptyRow(colspan, msg) {
-    return `<tr><td colspan="${colspan}"><div class="mi-empty-mini">${esc(msg || 'Sin registros con tu tienda en este periodo.')}</div></td></tr>`;
-  }
-  // Cuando un panel no tiene registros hay dos lecturas distintas que antes
-  // se veian igual (una reja de ceros): "no hay nada que atender" (bueno) y
-  // "esta tienda no aparece en esa base" (sin dato). Se separan.
-  function clearBox(msg) { return `<div class="mt-clear">✓ ${esc(msg)}</div>`; }
-  function noneBox(msg) { return `<div class="mt-none">— ${esc(msg)}</div>`; }
-  const plural = (count, sing, plur) => `${count} ${count === 1 ? sing : plur}`;
 
-  // ── Medidor semicircular reutilizable para cualquier % 0-100 ──
-  // Sin aguja: a este tamano (120px) la aguja cruzaba por encima del
-  // numero y del arco y ensuciaba la lectura, sobre todo en valores
-  // bajos. Se sustituye por un punto al final del arco, que marca el
-  // avance igual pero no se encima con nada.
-  let gaugeSeq = 0;
-  function gaugeTone(v, meta) {
-    return meta != null
-      ? (v >= meta ? 'verde' : v >= meta - 10 ? 'amarillo' : 'rojo')
-      : (v >= 80 ? 'verde' : v >= 50 ? 'amarillo' : 'rojo');
-  }
-  function gaugeSVG(value, meta) {
-    const v = Math.max(0, Math.min(100, Number(value) || 0));
-    const color = gaugeTone(v, meta);
-    const c = color === 'verde' ? { main: '#3ECF6D', dark: '#12813F', txt: '#12813F' }
-      : color === 'amarillo' ? { main: '#F2A52B', dark: '#B87400', txt: '#9A6A00' }
-      : { main: '#E85A60', dark: '#C0181F', txt: '#C0181F' };
-    const cx = 100, cy = 100, r = 74, sw = 16, len = Math.PI * r;
-    const dash = (len * v / 100).toFixed(1);
-    const ang = Math.PI * (1 - v / 100);
-    const px = (cx + r * Math.cos(ang)).toFixed(1), py = (cy - r * Math.sin(ang)).toFixed(1);
-    const gid = 'mtg' + (gaugeSeq++);
-    let metaLine = '';
-    if (meta != null) {
-      const ma = Math.PI * (1 - meta / 100);
-      const m1x = (cx + (r - sw / 2 - 1) * Math.cos(ma)).toFixed(1), m1y = (cy - (r - sw / 2 - 1) * Math.sin(ma)).toFixed(1);
-      const m2x = (cx + (r + sw / 2 + 3) * Math.cos(ma)).toFixed(1), m2y = (cy - (r + sw / 2 + 3) * Math.sin(ma)).toFixed(1);
-      metaLine = `<line x1="${m1x}" y1="${m1y}" x2="${m2x}" y2="${m2y}" stroke="#3B1918" stroke-width="2" opacity=".45"/>`;
-    }
-    return `<svg viewBox="0 0 200 112" class="mi-gauge">
-      <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c.main}"/><stop offset="1" stop-color="${c.dark}"/></linearGradient></defs>
-      <path d="M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}" fill="none" stroke="rgba(130,54,38,.11)" stroke-width="${sw}" stroke-linecap="round"/>
-      <path d="M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}" fill="none" stroke="url(#${gid})" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash} ${len.toFixed(1)}"/>
-      ${metaLine}
-      <circle cx="${px}" cy="${py}" r="5.5" fill="#fff" stroke="${c.dark}" stroke-width="3"/>
-      <text x="${cx}" y="${cy - 4}" text-anchor="middle" class="mi-gauge__text" style="fill:${c.txt}">${v.toFixed(0)}<tspan style="font-size:18px" dy="-2">%</tspan></text>
-    </svg>`;
-  }
-  // Envuelve un medidor + tiles de detalle en una sola fila (usado por
-  // Aprovechamiento y Capacidades). label va debajo del medidor.
-  function gaugeRowHTML(value, meta, label, tilesHtml) {
-    return `<div class="mi-gauge-row">
-      <div class="mi-gauge-wrap">
-        ${gaugeSVG(value, meta)}
-        <div class="mi-gauge__cap">${esc(label)}</div>
-      </div>
-      <div class="mi-stats">${tilesHtml}</div>
-    </div>`;
-  }
-  // ── Barras horizontales para desgloses (motivos, puestos, tipos...) ──
-  function barListHTML(items, colorClass) {
-    const filtered = items.filter((it) => it.value > 0).sort((a, b) => b.value - a.value).slice(0, 4);
-    if (!filtered.length) return '';
-    const max = Math.max(...filtered.map((it) => it.value));
-    return `<div class="mi-barlist">${filtered.map((it) => `
-      <div class="mi-barlist__row">
-        <span class="mi-barlist__label" title="${esc(it.label)}">${esc(it.label)}</span>
-        <div class="mi-barlist__track"><div class="mi-barlist__fill ${colorClass || ''}" style="width:${max ? Math.max(4, Math.round(it.value / max * 100)) : 0}%"></div></div>
-        <span class="mi-barlist__value">${typeof it.display === 'string' ? esc(it.display) : n(it.value)}</span>
-      </div>`).join('')}</div>`;
-  }
 
-  // Barras para comparar porcentajes entre si: a diferencia de
-  // barListHTML, respeta el orden dado, no descarta los valores en 0 (un
-  // "0%" tiene que verse) y mide contra 100, no contra el mayor del grupo.
-  function pctBarsHTML(items) {
-    return `<div class="mi-barlist">${items.map((it) => {
-      const v = Math.max(0, Math.min(100, Number(it.value) || 0));
-      const tone = gaugeTone(v, null);
-      const cls = tone === 'verde' ? 'verde' : tone === 'amarillo' ? 'naranja' : '';
-      return `<div class="mi-barlist__row">
-        <span class="mi-barlist__label" title="${esc(it.label)}">${esc(it.label)}</span>
-        <div class="mi-barlist__track"><div class="mi-barlist__fill ${cls}" style="width:${Math.max(2, v)}%"></div></div>
-        <span class="mi-barlist__value">${v}%</span>
-      </div>`;
-    }).join('')}</div>`;
-  }
 
   // ── Estado global (se carga una sola vez) ─────────────
   let CATALOG = null;
@@ -372,18 +226,6 @@
     return rows.length ? { ec, ecSin, completas, incompletas, criticas } : null;
   }
 
-  // Celda de estatus de estructura: con dos columnas ("con" y "sin"
-  // ausentismo) en un panel angosto, el texto completo partia el
-  // renglon en 4 lineas. Se muestra corto y con color, el valor
-  // original queda en el title.
-  function estatusCell(value) {
-    const raw = String(value ?? '').trim();
-    if (!raw) return '<td class="center">—</td>';
-    const c = OXXO.metricsClasificaAprovechamiento(raw);
-    const txt = raw.replace(/^equipo\s+/i, '').replace(/^tienda\s+/i, '');
-    const cls = c === 'completas' ? 'alineada' : c === 'criticas' ? 'bajar' : c === 'incompletas' ? 'subir' : '';
-    return `<td class="center" title="${esc(raw)}">${cls ? `<span class="pill-mov ${cls}">${esc(txt)}</span>` : esc(txt)}</td>`;
-  }
 
   // ── D4 · Tiempo Extra (mismo pipeline que dashboard-4.html) ──
   async function loadD4() {
@@ -559,10 +401,6 @@
     const accionableKey = K(sample, ['Accionable sugerido TREO', 'Accionable sugerido']);
     DATA.d7 = { ...d7, crKey, turnosKey, antiguedadKey, accionableKey };
     addTiendas(d7.rows, d7.tiendaKey, crKey);
-  }
-  function movInfo(dif) {
-    if (dif === 0) return { cls: 'alineada', arrow: '✔', txt: 'Alineada' };
-    return dif > 0 ? { cls: 'subir', arrow: '↑', txt: 'Subir' } : { cls: 'bajar', arrow: '↓', txt: 'Bajar' };
   }
   function fichaRow(label, value, wide) {
     if (value === undefined || value === null || String(value).trim() === '') return '';
@@ -748,19 +586,6 @@
   // bien o mal. Estos dos bloques responden eso de una: el resumen trae
   // los titulares de cada dashboard con su semaforo, y las alertas solo
   // listan lo que necesita atencion (si no hay nada, se dice explicito).
-  function rkTile(value, label, tone, hint) {
-    return `<div class="rk ${tone || ''}">
-      <b>${value}</b><span>${esc(label)}</span>${hint ? `<i>${esc(hint)}</i>` : ''}
-    </div>`;
-  }
-  function toneByCount(count, warnAt) {
-    if (!count) return 'is-ok';
-    return count >= (warnAt || 3) ? 'is-bad' : 'is-warn';
-  }
-  function tonePct(pct, okAt, warnAt) {
-    if (pct >= okAt) return 'is-ok';
-    return pct >= warnAt ? 'is-warn' : 'is-bad';
-  }
   function renderResumen(S) {
     const tiles = [];
     if (S.d1) tiles.push(rkTile(n(S.d1.vacantes), 'Vacantes', toneByCount(S.d1.vacantes)));
@@ -784,23 +609,18 @@
     if (S.d5 && S.d5.proximos) a.push({ t: 'is-warn', txt: `${S.d5.proximos} vencen en 0-50 días` });
     if (S.d7 && S.d7.dif) a.push({ t: 'is-info', txt: `TREO: ${S.d7.mov.txt.toLowerCase()} ${Math.abs(S.d7.dif)} posición${Math.abs(S.d7.dif) > 1 ? 'es' : ''}` });
     if (S.d8 && S.d8.capPct < 100) a.push({ t: S.d8.capPct < 60 ? 'is-bad' : 'is-warn', txt: `Capacidades al ${S.d8.capPct}%` });
-    const el = document.getElementById('ficha-alertas');
-    el.innerHTML = a.length
-      ? a.map((x) => `<span class="chip ${x.t}">${esc(x.txt)}</span>`).join('')
-      : '<span class="chip is-ok">✓ Sin alertas: tu tienda está en orden</span>';
+    document.getElementById('ficha-alertas').innerHTML = chipsHTML(a, 'Sin alertas: tu tienda está en orden');
   }
   function renderIdentidad(tiendaDisplay, S) {
     document.getElementById('ficha-tienda-title').textContent = tiendaDisplay;
     const d7 = S.d7 || {};
-    const meta = [
+    document.getElementById('ficha-meta').innerHTML = metaHTML([
       ['Asesor / AT', d7.asesor],
       ['CR', d7.cr],
       ['Turnos', d7.turnos],
       ['Antigüedad', d7.antiguedad],
       ['Colaboradores', S.d5 && S.d5.colaboradores ? String(S.d5.colaboradores) : ''],
-    ].filter(([, v]) => String(v || '').trim() !== '');
-    document.getElementById('ficha-meta').innerHTML = meta
-      .map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
+    ]);
     const st = document.getElementById('ficha-status');
     if (d7.mov) {
       st.textContent = d7.mov.cls === 'alineada' ? '✔ Estructura alineada'
@@ -829,8 +649,10 @@
     CATALOG = await OXXO.loadAsesorCatalog();
     await Promise.all([loadD1(), loadD2(), loadD3(), loadD4(), loadD5(), loadD6(), loadD7(), loadD8()]);
     document.getElementById('corte-badge').textContent = '⟳ Datos en vivo · Plaza Oaxaca';
-    mountSingleTiendaSelect('mi-tienda-select', [...TIENDAS.values()], {
+    mountSingleSelect('mi-tienda-select', [...TIENDAS.values()], {
       placeholder: 'Busca tu tienda',
+      searchId: 'mi-tienda-search',
+      searchPlaceholder: 'Buscar tienda...',
       onChange: renderFor,
     });
     OXXO.updateFooterTime('load-time');

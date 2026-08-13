@@ -1,89 +1,33 @@
 /* ==========================================================
    MI DASHBOARD — vista personal por asesor
-   Un asesor elige su nombre y ve, en una sola pagina, sus datos
+   Un asesor elige su nombre y ve, en una sola ficha, sus datos
    de los 8 dashboards (Vacantes, Bajas, Aprovechamiento, Tiempo
    Extra, Vacaciones, Ausentismos, TREO y Capacidades), usando la
    MISMA logica de resolucion de asesor (OXXO.resolveAsesorD1 /
    OXXO.applyAsesorCatalog) que ya usa cada dashboard real, para
    que los numeros aqui coincidan con los que se ven alla.
+
+   Es la hermana de js/mi-tienda.js: misma ficha (cabecera de
+   identidad, resumen con semaforo, alertas y un panel por
+   dashboard) agrupando por asesor en vez de por tienda. Las
+   piezas visuales salen de js/mi-ficha-ui.js para que las dos
+   paginas no se desincronicen.
    ========================================================== */
 (function () {
   'use strict';
 
-  const esc = (s) => String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-
-  // ── Combobox de un solo asesor (busca + selecciona uno) ──────
-  function mountSingleAsesorSelect(rootId, values, { onChange, placeholder } = {}) {
-    const root = document.getElementById(rootId);
-    if (!root) return null;
-    const allValues = [...new Set(values)].sort((a, b) => String(a).localeCompare(String(b), 'es'));
-    let selected = '';
-    const ph = placeholder || 'Selecciona tu nombre';
-
-    root.innerHTML = `
-      <div class="smart-filter" id="${rootId}-filter">
-        <button class="smart-filter__button" type="button" id="${rootId}-button">
-          <span class="smart-filter__label" id="${rootId}-label">${esc(ph)}</span>
-          <span class="smart-filter__chev">▾</span>
-        </button>
-        <div class="smart-filter__menu" id="${rootId}-menu">
-          <input class="smart-filter__search" id="mi-asesor-search" type="search" placeholder="Buscar tu nombre..." autocomplete="off">
-          <div class="smart-filter__list" id="${rootId}-options"></div>
-        </div>
-      </div>`;
-
-    const wrap = document.getElementById(`${rootId}-filter`);
-    const label = document.getElementById(`${rootId}-label`);
-    const button = document.getElementById(`${rootId}-button`);
-    const search = document.getElementById('mi-asesor-search');
-    const list = document.getElementById(`${rootId}-options`);
-
-    function renderOptions(query = '') {
-      const q = String(query || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-      const filtered = allValues.filter((v) => !q || String(v).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().includes(q));
-      list.innerHTML = filtered.length
-        ? filtered.map((v) => `<button type="button" class="smart-filter__option ${v === selected ? 'is-active' : ''}" data-value="${esc(v)}">
-            <span class="smart-filter__check"></span><span>${esc(v)}</span>
-          </button>`).join('')
-        : '<div class="smart-filter__empty">Sin resultados</div>';
-    }
-
-    list.addEventListener('click', (e) => {
-      const btn = e.target.closest('.smart-filter__option');
-      if (!btn) return;
-      selected = btn.dataset.value;
-      label.textContent = selected;
-      wrap.classList.remove('open');
-      renderOptions(search.value);
-      if (typeof onChange === 'function') onChange(selected);
-    });
-    search.addEventListener('input', () => renderOptions(search.value));
-    button.addEventListener('click', () => {
-      const opening = !wrap.classList.contains('open');
-      wrap.classList.toggle('open', opening);
-      if (opening) { search.value = ''; renderOptions(); search.focus(); }
-    });
-    document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) wrap.classList.remove('open'); });
-
-    renderOptions();
-    return {
-      get value() { return selected; },
-      setValue(v) { selected = v || ''; label.textContent = selected || ph; renderOptions(); },
-    };
-  }
-
   // ── Utilidades compartidas ────────────────────────────
+  const {
+    esc, plural, statTile, emptyRow, clearBox, noneBox,
+    gaugeRowHTML, barListHTML, pctBarsHTML,
+    movInfo, movPill, estatusCell, rkTile, toneByCount, tonePct,
+    chipsHTML, metaHTML, mountSingleSelect,
+  } = window.OXXO_FICHA;
   const V = (row, key) => OXXO.metricsVal(row, key);
   const K = (row, aliases) => OXXO.metricsFindKey(row, aliases);
   const n = (v) => OXXO.formatNum(Math.round(Number(v) || 0));
-  function statTile(value, label, cls) {
-    return `<div class="mi-stat ${cls || ''}"><b>${value}</b><span>${esc(label)}</span></div>`;
-  }
-  function emptyRow(colspan, msg) {
-    return `<tr><td colspan="${colspan}"><div class="mi-empty-mini">${esc(msg || 'Sin registros con tus filtros de este periodo.')}</div></td></tr>`;
-  }
+  const tName = (v, len) => OXXO.truncate(String(v || '—'), len || 24);
+
   function semanaRank(value) {
     const v = String(value || '').trim();
     const sem = v.match(/(?:sem|semana)\s*(\d{1,2})/i);
@@ -92,10 +36,11 @@
     const nums = v.match(/\d+/g);
     return nums ? Number(nums[nums.length - 1]) : -1;
   }
+  function numParse(v) { const x = parseFloat(String(v ?? '').replace(/,/g, '')); return isNaN(x) ? 0 : x; }
 
   // ── Estado global (se carga una sola vez) ─────────────
   let CATALOG = null;
-  let ASESORES = new Set();
+  const ASESORES = new Set();
   const DATA = {};
 
   function addAsesores(names) {
@@ -104,6 +49,9 @@
       if (!t || /sin asesor/i.test(t)) return;
       ASESORES.add(t);
     });
+  }
+  function rowsFor(d, asesor) {
+    return d.rows.filter((r) => V(r, d.asesorKey) === asesor);
   }
 
   // ── D1 · Vacantes Diarias (mismo pipeline que dashboard-1.html) ──
@@ -118,24 +66,36 @@
   function renderD1(asesor) {
     const d = DATA.d1;
     const el = document.getElementById('sec-d1');
-    if (!d) { el.classList.remove('show'); return; }
-    const rows = d.rows.filter((r) => V(r, d.asesorKey) === asesor);
+    if (!d) { el.classList.remove('show'); return null; }
+    const rows = rowsFor(d, asesor);
     el.classList.add('show');
-    document.getElementById('badge-d1').textContent = OXXO.metricsMesKeyFromDate ? (d.mes || '—') : '—';
+    document.getElementById('badge-d1').textContent = d.mes || '—';
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach((r) => { byPuesto[OXXO.metricsTipoPuesto(V(r, d.puestoKey))]++; });
-    document.getElementById('stats-d1').innerHTML =
-      statTile(n(rows.length), 'Vacantes totales', 'rojo') +
-      statTile(n(byPuesto.Lider), 'Líder') +
-      statTile(n(byPuesto.Encargado), 'Encargado') +
-      statTile(n(byPuesto.Ayudante), 'Ayudante');
+    if (!rows.length) {
+      document.getElementById('stats-d1').innerHTML = '';
+      document.getElementById('viz-d1').innerHTML = clearBox('Sin vacantes activas este mes');
+    } else {
+      document.getElementById('stats-d1').innerHTML =
+        statTile(n(rows.length), 'Vacantes', 'rojo') +
+        statTile(n(byPuesto.Lider), 'Líder') +
+        statTile(n(byPuesto.Encargado), 'Encargado') +
+        statTile(n(byPuesto.Ayudante), 'Ayudante');
+      // Por tienda: a un asesor le sirve mas saber DONDE estan sus vacantes
+      // que el desglose por puesto, que ya viene en los tiles de arriba.
+      const porTienda = {};
+      rows.forEach((r) => { const t = V(r, d.tiendaKey) || 'Sin tienda'; porTienda[t] = (porTienda[t] || 0) + 1; });
+      document.getElementById('viz-d1').innerHTML = barListHTML(
+        Object.entries(porTienda).map(([label, value]) => ({ label: tName(label, 22), value }))
+      );
+    }
     const tbody = document.querySelector('#tbl-d1 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
-        <td>${esc(OXXO.truncate(String(V(r, d.tiendaKey) || '—'), 30))}</td>
+        <td>${esc(tName(V(r, d.tiendaKey), 26))}</td>
         <td>${esc(V(r, d.puestoKey) || '—')}</td>
         <td class="center">${d.diasKey ? esc(OXXO.metricsDiasVacantesValue(V(r, d.diasKey))) : '—'}</td>
-        <td>${esc(d.fechaKey ? V(r, d.fechaKey) || '—' : '—')}</td>
-      </tr>`).join('') : emptyRow(4, 'Sin vacantes activas en el mes vigente. 🎉');
+      </tr>`).join('') : emptyRow(3, 'Sin vacantes activas en el mes vigente. 🎉');
+    return { vacantes: rows.length, tiendasConVacante: new Set(rows.map((r) => V(r, d.tiendaKey))).size };
   }
 
   // ── D2 · Bajas Diarias (mismo pipeline que dashboard-2.html) ──
@@ -167,23 +127,31 @@
   function renderD2(asesor) {
     const d = DATA.d2;
     const el = document.getElementById('sec-d2');
-    if (!d) { el.classList.remove('show'); return; }
-    const rows = d.rows.filter((r) => V(r, d.asesorKey) === asesor);
+    if (!d) { el.classList.remove('show'); return null; }
+    const rows = rowsFor(d, asesor);
     el.classList.add('show');
     document.getElementById('badge-d2').textContent = d.mes || '—';
     const porMotivo = {};
     rows.forEach((r) => { const m = V(r, d.detalleKey) || V(r, d.motivoKey) || 'Sin motivo'; porMotivo[m] = (porMotivo[m] || 0) + 1; });
     const topMotivo = Object.entries(porMotivo).sort((a, b) => b[1] - a[1])[0];
-    document.getElementById('stats-d2').innerHTML =
-      statTile(n(rows.length), 'Bajas del mes', 'rojo') +
-      statTile(topMotivo ? OXXO.truncate(topMotivo[0], 22) : '—', 'Motivo más frecuente', 'amarillo');
+    if (!rows.length) {
+      document.getElementById('stats-d2').innerHTML = '';
+      document.getElementById('viz-d2').innerHTML = clearBox('Sin bajas este mes');
+    } else {
+      document.getElementById('stats-d2').innerHTML =
+        statTile(n(rows.length), 'Bajas del mes', 'rojo') +
+        statTile(topMotivo ? OXXO.truncate(topMotivo[0], 22) : '—', 'Motivo más frecuente', 'amarillo txt');
+      document.getElementById('viz-d2').innerHTML = barListHTML(
+        Object.entries(porMotivo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
+      );
+    }
     const tbody = document.querySelector('#tbl-d2 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
-        <td>${esc(OXXO.truncate(String(V(r, d.tiendaKey) || '—'), 26))}</td>
+        <td>${esc(tName(V(r, d.tiendaKey), 22))}</td>
         <td>${esc(V(r, d.puestoKey) || '—')}</td>
-        <td>${esc(OXXO.truncate(String(V(r, d.detalleKey) || V(r, d.motivoKey) || '—'), 26))}</td>
-        <td>${esc(V(r, d.fechaKey) || '—')}</td>
-      </tr>`).join('') : emptyRow(4, 'Sin bajas en el mes vigente. 🎉');
+        <td>${esc(OXXO.truncate(String(V(r, d.detalleKey) || V(r, d.motivoKey) || '—'), 22))}</td>
+      </tr>`).join('') : emptyRow(3, 'Sin bajas en el mes vigente. 🎉');
+    return { bajas: rows.length, motivo: topMotivo ? topMotivo[0] : '' };
   }
 
   // ── D3 · Aprovechamiento de Estructura (mismo pipeline que dashboard-3.html) ──
@@ -195,37 +163,54 @@
     const tiendaKey = K(h, ['Tienda']);
     const crKey = K(h, ['CR', 'CR Tienda', 'CR TIENDA']);
     const estatusKey = K(h, ['Clas Aprov', 'Estatus Con impacto Ausentismo', 'Estatus']);
+    // Misma columna que usa la ficha de dashboard-3.html: el estatus
+    // recalculado descontando ausentismos, con el mismo vocabulario.
+    const ecSinAusKey = K(h, ['EC SIN AUSENTISMO', 'EC sin ausentismo', 'EC Sin Ausentismo']);
     const semanaKey = K(h, ['Mes Semana', 'Semana', 'Fecha', 'FECHA']);
     raw.forEach((r) => { r[asesorKey] = OXXO.resolveAsesorD1(CATALOG, { cr: V(r, crKey), tienda: V(r, tiendaKey), asesor: V(r, asesorKey) }); });
     const semanas = [...new Set(raw.map((r) => String(V(r, semanaKey) || '').trim()).filter(Boolean))].sort();
     const semana = semanas[semanas.length - 1] || '';
     const rows = semana ? raw.filter((r) => String(V(r, semanaKey) || '').trim() === semana) : raw;
-    DATA.d3 = { rows, semana, asesorKey, tiendaKey, estatusKey };
+    DATA.d3 = { rows, semana, asesorKey, tiendaKey, estatusKey, ecSinAusKey };
     addAsesores(rows.map((r) => V(r, asesorKey)));
   }
   function renderD3(asesor) {
     const d = DATA.d3;
     const el = document.getElementById('sec-d3');
-    if (!d) { el.classList.remove('show'); return; }
-    const rows = d.rows.filter((r) => V(r, d.asesorKey) === asesor);
+    if (!d) { el.classList.remove('show'); return null; }
+    const rows = rowsFor(d, asesor);
     el.classList.add('show');
     document.getElementById('badge-d3').textContent = d.semana || '—';
     let completas = 0, incompletas = 0, criticas = 0;
+    let sinCompletas = 0, sinTotal = 0;
     rows.forEach((r) => {
       const c = OXXO.metricsClasificaAprovechamiento(V(r, d.estatusKey));
       if (c === 'completas') completas++; else if (c === 'incompletas') incompletas++; else if (c === 'criticas') criticas++;
+      if (d.ecSinAusKey) {
+        const s = OXXO.metricsClasificaAprovechamiento(V(r, d.ecSinAusKey));
+        if (s) { sinTotal++; if (s === 'completas') sinCompletas++; }
+      }
     });
     const ec = rows.length ? Math.round((completas / rows.length) * 100) : 0;
-    document.getElementById('stats-d3').innerHTML =
-      statTile(ec + '%', 'EC · Equipo Completo', ec >= 80 ? 'verde' : ec >= 50 ? 'amarillo' : 'rojo') +
-      statTile(n(completas), 'Completas', 'verde') +
-      statTile(n(incompletas), 'Incompletas', 'amarillo') +
-      statTile(n(criticas), 'Críticas', 'rojo');
+    const ecSin = sinTotal ? Math.round((sinCompletas / sinTotal) * 100) : null;
+    document.getElementById('stats-d3').innerHTML = '';
+    document.getElementById('viz-d3').innerHTML = rows.length
+      ? gaugeRowHTML(ec, null, 'EC · Equipo Completo',
+          statTile(n(completas), 'Completas', 'verde') +
+          statTile(n(incompletas), 'Incompletas', 'amarillo') +
+          statTile(n(criticas), 'Críticas', 'rojo')
+        ) + (ecSin !== null ? pctBarsHTML([
+          { label: 'Con ausentismo', value: ec },
+          { label: 'Sin ausentismo', value: ecSin },
+        ]) : '')
+      : noneBox('Sin tiendas asignadas en la semana vigente');
     const tbody = document.querySelector('#tbl-d3 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
-        <td>${esc(OXXO.truncate(String(V(r, d.tiendaKey) || '—'), 30))}</td>
-        <td>${esc(V(r, d.estatusKey) || '—')}</td>
-      </tr>`).join('') : emptyRow(2, 'Sin tiendas asignadas en la semana vigente.');
+        <td>${esc(tName(V(r, d.tiendaKey), 24))}</td>
+        ${estatusCell(V(r, d.estatusKey))}
+        ${estatusCell(d.ecSinAusKey ? V(r, d.ecSinAusKey) : '')}
+      </tr>`).join('') : emptyRow(3, 'Sin tiendas asignadas en la semana vigente.');
+    return rows.length ? { ec, ecSin, completas, incompletas, criticas, tiendas: rows.length } : null;
   }
 
   // ── D4 · Tiempo Extra (mismo pipeline que dashboard-4.html) ──
@@ -247,12 +232,11 @@
     DATA.d4 = { rows, semana, asesorKey, tiendaKey, horasKey, importeKey };
     addAsesores(rows.map((r) => V(r, asesorKey)));
   }
-  function numParse(v) { const x = parseFloat(String(v ?? '').replace(/,/g, '')); return isNaN(x) ? 0 : x; }
   function renderD4(asesor) {
     const d = DATA.d4;
     const el = document.getElementById('sec-d4');
-    if (!d) { el.classList.remove('show'); return; }
-    const rows = d.rows.filter((r) => V(r, d.asesorKey) === asesor);
+    if (!d) { el.classList.remove('show'); return null; }
+    const rows = rowsFor(d, asesor);
     el.classList.add('show');
     document.getElementById('badge-d4').textContent = d.semana ? (/sem/i.test(d.semana) ? d.semana : 'Sem ' + d.semana) : '—';
     const totHoras = rows.reduce((s, r) => s + numParse(V(r, d.horasKey)), 0);
@@ -265,16 +249,25 @@
       porTienda[t].gasto += numParse(V(r, d.importeKey));
     });
     const tiendas = Object.entries(porTienda).sort((a, b) => b[1].gasto - a[1].gasto);
-    document.getElementById('stats-d4').innerHTML =
-      statTile(n(totHoras), 'Horas TE', 'rojo') +
-      statTile('$' + n(totGasto), 'Gasto TE', 'naranja') +
-      statTile(n(tiendas.length), 'Tiendas con TE');
+    if (!rows.length) {
+      document.getElementById('stats-d4').innerHTML = '';
+      document.getElementById('viz-d4').innerHTML = clearBox('Sin tiempo extra esta semana');
+    } else {
+      document.getElementById('stats-d4').innerHTML =
+        statTile(n(totHoras), 'Horas TE', 'amarillo') +
+        statTile('$' + n(totGasto), 'Gasto TE', 'rojo') +
+        statTile(n(tiendas.length), 'Tiendas');
+      document.getElementById('viz-d4').innerHTML = barListHTML(
+        tiendas.map(([label, v]) => ({ label: tName(label, 22), value: v.horas })), 'naranja'
+      );
+    }
     const tbody = document.querySelector('#tbl-d4 tbody');
     tbody.innerHTML = tiendas.length ? tiendas.map(([t, v]) => `<tr>
-        <td>${esc(OXXO.truncate(t, 30))}</td>
+        <td>${esc(tName(t, 24))}</td>
         <td class="center">${n(v.horas)}</td>
         <td class="center">$${n(v.gasto)}</td>
       </tr>`).join('') : emptyRow(3, 'Sin tiempo extra en la semana vigente. 🎉');
+    return { horas: totHoras, gasto: totGasto, tiendasConTE: tiendas.length };
   }
 
   // ── D5 · Vacaciones (mismo pipeline que js/dashboard-5-vacaciones.js) ──
@@ -294,25 +287,35 @@
   function renderD5(asesor) {
     const d = DATA.d5;
     const el = document.getElementById('sec-d5');
-    if (!d) { el.classList.remove('show'); return; }
-    const rows = d.rows.filter((r) => V(r, d.asesorKey) === asesor);
+    if (!d) { el.classList.remove('show'); return null; }
+    const rows = rowsFor(d, asesor);
     el.classList.add('show');
-    document.getElementById('badge-d5').textContent = `${rows.length} colaboradores`;
+    document.getElementById('badge-d5').textContent = plural(rows.length, 'colaborador', 'colaboradores');
     const totDias = rows.reduce((s, r) => s + (Number(V(r, d.diasRestKey)) || 0), 0);
     const vencidos = rows.filter((r) => OXXO.metricsNormText(V(r, d.bucketKey)).includes('VENCIERON')).length;
     const proximos = rows.filter((r) => { const b = OXXO.metricsNormText(V(r, d.bucketKey)); return b.includes('0 A 50') || b.includes('0A50'); }).length;
-    document.getElementById('stats-d5').innerHTML =
-      statTile(n(totDias), 'Días restantes', 'azul') +
-      statTile(n(vencidos), 'Ya vencidos', vencidos > 0 ? 'rojo' : '') +
-      statTile(n(proximos), 'Vencen 0-50 días', proximos > 0 ? 'amarillo' : '');
+    if (!rows.length) {
+      document.getElementById('stats-d5').innerHTML = '';
+      document.getElementById('viz-d5').innerHTML = noneBox('Sin colaboradores con saldo de vacaciones');
+    } else {
+      document.getElementById('stats-d5').innerHTML =
+        statTile(n(totDias), 'Días restantes', 'azul') +
+        statTile(n(vencidos), 'Ya vencidos', vencidos > 0 ? 'rojo' : 'verde') +
+        statTile(n(proximos), 'Vencen 0-50 d', proximos > 0 ? 'amarillo' : 'verde');
+      document.getElementById('viz-d5').innerHTML = barListHTML([
+        { label: 'Ya vencidos', value: vencidos },
+        { label: 'Vencen 0-50 días', value: proximos },
+        { label: 'Resto del equipo', value: Math.max(0, rows.length - vencidos - proximos) },
+      ], 'azul');
+    }
     const tbody = document.querySelector('#tbl-d5 tbody');
     const sorted = [...rows].sort((a, b) => (Number(V(b, d.diasRestKey)) || 0) - (Number(V(a, d.diasRestKey)) || 0));
     tbody.innerHTML = sorted.length ? sorted.slice(0, 200).map((r) => `<tr>
-        <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 26))}</td>
-        <td>${esc(OXXO.truncate(String(V(r, d.tiendaKey) || '—'), 22))}</td>
+        <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 22))}</td>
+        <td>${esc(tName(V(r, d.tiendaKey), 20))}</td>
         <td class="center">${esc(V(r, d.diasRestKey) || '0')}</td>
-        <td>${esc(V(r, d.bucketKey) || '—')}</td>
-      </tr>`).join('') : emptyRow(4, 'Sin colaboradores con saldo de vacaciones.');
+      </tr>`).join('') : emptyRow(3, 'Sin colaboradores con saldo de vacaciones.');
+    return { colaboradores: rows.length, diasVac: totDias, vencidos, proximos };
   }
 
   // ── D6 · Ausentismos (mismo pipeline que dashboard-6.html; sin filtro de semana por defecto) ──
@@ -334,24 +337,34 @@
   function renderD6(asesor) {
     const d = DATA.d6;
     const el = document.getElementById('sec-d6');
-    if (!d) { el.classList.remove('show'); return; }
-    const rows = d.rows.filter((r) => V(r, d.asesorKey) === asesor);
+    if (!d) { el.classList.remove('show'); return null; }
+    const rows = rowsFor(d, asesor);
     el.classList.add('show');
-    document.getElementById('badge-d6').textContent = `${rows.length} registros`;
+    document.getElementById('badge-d6').textContent = plural(rows.length, 'registro', 'registros');
     const empleados = new Set(rows.map((r) => V(r, d.noPersKey) || V(r, d.nombreKey))).size;
     const totDias = rows.reduce((s, r) => s + (parseFloat(V(r, d.diasKey)) || 0), 0);
     const faltas = rows.filter((r) => OXXO.metricsNormText(V(r, d.tipoKey)).includes('FALTA')).length;
-    document.getElementById('stats-d6').innerHTML =
-      statTile(n(empleados), 'Empleados ausentes', 'rojo') +
-      statTile(n(totDias), 'Días ausentes', 'naranja') +
-      statTile(n(faltas), 'Faltas', faltas > 0 ? 'rojo' : '');
+    const porTipo = {};
+    rows.forEach((r) => { const tipo = V(r, d.tipoKey) || 'Sin tipo'; porTipo[tipo] = (porTipo[tipo] || 0) + (parseFloat(V(r, d.diasKey)) || 0); });
+    if (!rows.length) {
+      document.getElementById('stats-d6').innerHTML = '';
+      document.getElementById('viz-d6').innerHTML = clearBox('Sin ausentismos registrados');
+    } else {
+      document.getElementById('stats-d6').innerHTML =
+        statTile(n(empleados), 'Empleados', 'rojo') +
+        statTile(n(totDias), 'Días ausentes', 'amarillo') +
+        statTile(n(faltas), 'Faltas', faltas > 0 ? 'rojo' : 'verde');
+      document.getElementById('viz-d6').innerHTML = barListHTML(
+        Object.entries(porTipo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
+      );
+    }
     const tbody = document.querySelector('#tbl-d6 tbody');
     tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
-        <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 26))}</td>
-        <td>${esc(OXXO.truncate(String(V(r, d.tiendaKey) || '—'), 22))}</td>
-        <td>${esc(V(r, d.tipoKey) || '—')}</td>
+        <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 22))}</td>
+        <td>${esc(tName(V(r, d.tiendaKey), 20))}</td>
         <td class="center">${esc(V(r, d.diasKey) || '—')}</td>
-      </tr>`).join('') : emptyRow(4, 'Sin ausentismos registrados. 🎉');
+      </tr>`).join('') : emptyRow(3, 'Sin ausentismos registrados. 🎉');
+    return { ausentes: empleados, diasAus: totDias, faltas };
   }
 
   // ── D7 · TREO (mismo pipeline que dashboard-7.html) ──
@@ -365,31 +378,43 @@
   function renderD7(asesor) {
     const d = DATA.d7;
     const el = document.getElementById('sec-d7');
-    if (!d) { el.classList.remove('show'); return; }
-    const rows = d.rows.filter((r) => V(r, d.asesorKey) === asesor);
+    if (!d) { el.classList.remove('show'); return null; }
+    const rows = rowsFor(d, asesor);
     el.classList.add('show');
-    document.getElementById('badge-d7').textContent = `${rows.length} tiendas`;
+    document.getElementById('badge-d7').textContent = plural(rows.length, 'tienda', 'tiendas');
+    if (!rows.length) {
+      document.getElementById('stats-d7').innerHTML = '';
+      document.getElementById('viz-d7').innerHTML = noneBox('No tienes tiendas en TREO');
+      document.querySelector('#tbl-d7 tbody').innerHTML = emptyRow(5, 'No tienes tiendas asignadas en TREO.');
+      return null;
+    }
     const sumSap = rows.reduce((s, r) => s + (OXXO.metricsNum(V(r, d.sapKey)) || 0), 0);
     const sumTreo = rows.reduce((s, r) => s + (OXXO.metricsNum(V(r, d.treoKey)) || 0), 0);
     const sumAct = rows.reduce((s, r) => s + (OXXO.metricsNum(V(r, d.activosKey)) || 0), 0);
     const cobertura = sumTreo > 0 ? Math.round((sumAct / sumTreo) * 100) : 0;
+    let subir = 0, bajar = 0, alineadas = 0;
+    rows.forEach((r) => {
+      const dif = OXXO.metricsNum(V(r, d.difKey));
+      if (dif > 0) subir++; else if (dif < 0) bajar++; else alineadas++;
+    });
+    document.getElementById('viz-d7').innerHTML = gaugeRowHTML(cobertura, null, 'Cobertura TREO',
+      statTile(n(alineadas), 'Alineadas', 'verde') +
+      statTile(n(subir), 'A subir', subir > 0 ? 'amarillo' : 'verde') +
+      statTile(n(bajar), 'A bajar', bajar > 0 ? 'rojo' : 'verde')
+    );
     document.getElementById('stats-d7').innerHTML =
       statTile(n(sumSap), 'SAP') +
       statTile(n(sumTreo), 'TREO', 'azul') +
-      statTile(n(sumAct), 'Activos', 'verde') +
-      statTile(cobertura + '%', 'Cobertura', cobertura >= 98 ? 'verde' : cobertura >= 90 ? 'amarillo' : 'rojo');
+      statTile(n(sumAct), 'Activos', 'verde');
     const tbody = document.querySelector('#tbl-d7 tbody');
-    tbody.innerHTML = rows.length ? rows.map((r) => {
-      const dif = OXXO.metricsNum(V(r, d.difKey));
-      const mov = dif === 0 ? { cls: 'alineada', txt: '✔ Alineada' } : dif > 0 ? { cls: 'subir', txt: '▲ Subir' } : { cls: 'bajar', txt: '▼ Bajar' };
-      return `<tr>
-        <td>${esc(OXXO.truncate(String(V(r, d.tiendaKey) || '—'), 28))}</td>
+    tbody.innerHTML = rows.map((r) => `<tr>
+        <td>${esc(tName(V(r, d.tiendaKey), 22))}</td>
         <td class="center">${esc(V(r, d.sapKey) || '0')}</td>
         <td class="center">${esc(V(r, d.treoKey) || '0')}</td>
         <td class="center">${esc(V(r, d.activosKey) || '0')}</td>
-        <td class="center"><span class="pill-mov ${mov.cls}">${mov.txt}</span></td>
-      </tr>`;
-    }).join('') : emptyRow(5, 'No tienes tiendas asignadas en TREO.');
+        <td class="center">${movPill(OXXO.metricsNum(V(r, d.difKey)))}</td>
+      </tr>`).join('');
+    return { tiendas: rows.length, sap: sumSap, treo: sumTreo, activos: sumAct, cobertura, subir, bajar, alineadas };
   }
 
   // ── D8 · Capacidades 2026 (mismo pipeline que dashboard-8.html) ──
@@ -423,11 +448,11 @@
   function renderD8(asesor) {
     const d = DATA.d8;
     const el = document.getElementById('sec-d8');
-    if (!d) { el.classList.remove('show'); return; }
-    const rows = d.rows.filter((r) => V(r, d.asesorKey) === asesor);
+    if (!d) { el.classList.remove('show'); return null; }
+    const rows = rowsFor(d, asesor);
     el.classList.add('show');
     const empleados = new Set(rows.map((r) => V(r, d.noPersKey) || V(r, d.empleadoKey))).size;
-    document.getElementById('badge-d8').textContent = `${empleados} empleados`;
+    document.getElementById('badge-d8').textContent = plural(empleados, 'empleado', 'empleados');
     const certStats = CERT_COLS.map((c) => {
       let aplic = 0, comp = 0;
       rows.forEach((r) => { const v = capValue(r, c.key, d.certRealKeys); if (v !== null) { aplic++; if (v >= 1) comp++; } });
@@ -436,9 +461,11 @@
     const aplicTotal = certStats.reduce((s, c) => s + c.aplic, 0);
     const compTotal = certStats.reduce((s, c) => s + c.comp, 0);
     const pctGlobal = aplicTotal ? Math.round((compTotal / aplicTotal) * 100) : 0;
-    document.getElementById('stats-d8').innerHTML =
-      statTile(n(empleados), 'Empleados') +
-      statTile(pctGlobal + '%', 'Cumplimiento global', pctGlobal >= 80 ? 'verde' : pctGlobal >= 50 ? 'amarillo' : 'rojo');
+    document.getElementById('stats-d8').innerHTML = '';
+    const certBars = barListHTML(certStats.filter((c) => c.pct !== null).map((c) => ({ label: c.label, value: c.pct, display: c.pct + '%' })), 'verde');
+    document.getElementById('viz-d8').innerHTML = rows.length
+      ? gaugeRowHTML(pctGlobal, null, 'Cumplimiento global', statTile(n(empleados), 'Empleados')) + certBars
+      : noneBox('No apareces en capacidades');
     const tbody = document.querySelector('#tbl-d8 tbody');
     tbody.innerHTML = certStats.length ? certStats.map((c) => `<tr>
         <td>${esc(c.label)}</td>
@@ -446,6 +473,65 @@
         <td class="center">${n(c.comp)}</td>
         <td class="center">${c.pct === null ? 'N/A' : c.pct + '%'}</td>
       </tr>`).join('') : emptyRow(4, 'Sin datos de certificaciones.');
+    return rows.length ? { capPct: pctGlobal, empleados } : null;
+  }
+
+  // ── Resumen y alertas ──────────────────────────────────
+  // Antes habia que leer los 8 paneles para saber como venia el asesor.
+  // El resumen trae los titulares con su semaforo y las alertas listan
+  // solo lo que necesita atencion (si no hay nada, se dice explicito).
+  function renderResumen(S) {
+    const tiles = [];
+    if (S.d1) tiles.push(rkTile(n(S.d1.vacantes), 'Vacantes', toneByCount(S.d1.vacantes, 5),
+      S.d1.tiendasConVacante ? `en ${plural(S.d1.tiendasConVacante, 'tienda', 'tiendas')}` : ''));
+    if (S.d2) tiles.push(rkTile(n(S.d2.bajas), 'Bajas del mes', toneByCount(S.d2.bajas, 5)));
+    if (S.d3) tiles.push(rkTile(S.d3.ec + '%', 'Equipo completo', tonePct(S.d3.ec, 80, 50),
+      S.d3.ecSin !== null && S.d3.ecSin !== undefined ? `sin ausentismo: ${S.d3.ecSin}%` : ''));
+    if (S.d4) tiles.push(rkTile(n(S.d4.horas), 'Horas extra', toneByCount(S.d4.horas, 40), S.d4.gasto ? '$' + n(S.d4.gasto) : ''));
+    if (S.d6) tiles.push(rkTile(n(S.d6.diasAus), 'Días ausentismo', toneByCount(S.d6.diasAus, 40),
+      S.d6.ausentes ? `${S.d6.ausentes} empleados` : ''));
+    if (S.d5) tiles.push(rkTile(n(S.d5.vencidos), 'Vacaciones vencidas', toneByCount(S.d5.vencidos, 3),
+      S.d5.colaboradores ? 'de ' + S.d5.colaboradores : ''));
+    if (S.d7) tiles.push(rkTile(S.d7.cobertura + '%', 'Cobertura TREO', tonePct(S.d7.cobertura, 98, 90),
+      `${S.d7.tiendas} tiendas`));
+    if (S.d8) tiles.push(rkTile(S.d8.capPct + '%', 'Capacidades', tonePct(S.d8.capPct, 90, 60)));
+    document.getElementById('ficha-resumen').innerHTML = tiles.join('');
+  }
+  function renderAlertas(S) {
+    const a = [];
+    if (S.d1 && S.d1.vacantes) a.push({ t: S.d1.vacantes >= 5 ? 'is-bad' : 'is-warn', txt: `${S.d1.vacantes} vacante${S.d1.vacantes > 1 ? 's' : ''} por cubrir` });
+    if (S.d2 && S.d2.bajas) a.push({ t: S.d2.bajas >= 5 ? 'is-bad' : 'is-warn', txt: `${S.d2.bajas} baja${S.d2.bajas > 1 ? 's' : ''} este mes${S.d2.motivo ? ' · ' + OXXO.truncate(S.d2.motivo, 24) : ''}` });
+    if (S.d3 && S.d3.criticas) a.push({ t: 'is-bad', txt: `${S.d3.criticas} tienda${S.d3.criticas > 1 ? 's' : ''} en estructura crítica` });
+    if (S.d3 && S.d3.incompletas) a.push({ t: 'is-warn', txt: `${S.d3.incompletas} con equipo incompleto` });
+    if (S.d4 && S.d4.gasto) a.push({ t: S.d4.horas >= 40 ? 'is-bad' : 'is-warn', txt: `$${n(S.d4.gasto)} en tiempo extra (${n(S.d4.horas)} h)` });
+    if (S.d6 && S.d6.faltas) a.push({ t: 'is-bad', txt: `${S.d6.faltas} falta${S.d6.faltas > 1 ? 's' : ''} registrada${S.d6.faltas > 1 ? 's' : ''}` });
+    if (S.d5 && S.d5.vencidos) a.push({ t: 'is-warn', txt: `${S.d5.vencidos} con vacaciones ya vencidas` });
+    if (S.d7 && (S.d7.subir || S.d7.bajar)) {
+      const partes = [];
+      if (S.d7.subir) partes.push(`subir en ${S.d7.subir}`);
+      if (S.d7.bajar) partes.push(`bajar en ${S.d7.bajar}`);
+      a.push({ t: 'is-info', txt: `TREO: ${partes.join(' y ')}` });
+    }
+    if (S.d8 && S.d8.capPct < 100) a.push({ t: S.d8.capPct < 60 ? 'is-bad' : 'is-warn', txt: `Capacidades al ${S.d8.capPct}%` });
+    document.getElementById('ficha-alertas').innerHTML = chipsHTML(a, 'Sin alertas: tus tiendas están en orden');
+  }
+  function renderIdentidad(asesor, S) {
+    document.getElementById('ficha-asesor-title').textContent = asesor;
+    document.getElementById('ficha-meta').innerHTML = metaHTML([
+      ['Tiendas', S.d7 && S.d7.tiendas ? String(S.d7.tiendas) : (S.d3 && S.d3.tiendas ? String(S.d3.tiendas) : '')],
+      ['Colaboradores', S.d5 && S.d5.colaboradores ? String(S.d5.colaboradores) : ''],
+      ['Estructura SAP', S.d7 && S.d7.sap ? String(S.d7.sap) : ''],
+      ['Activos', S.d7 && S.d7.activos ? String(S.d7.activos) : ''],
+    ]);
+    const st = document.getElementById('ficha-status');
+    if (S.d7) {
+      const pend = S.d7.subir + S.d7.bajar;
+      st.textContent = pend === 0
+        ? '✔ Estructura alineada'
+        : `${S.d7.alineadas} de ${S.d7.tiendas} alineadas`;
+    } else {
+      st.textContent = 'Ficha del asesor';
+    }
   }
 
   // ── Orquestacion ───────────────────────────────────────
@@ -453,16 +539,23 @@
     if (!asesor) return;
     document.getElementById('mi-empty').style.display = 'none';
     document.getElementById('mi-content').style.display = 'block';
-    renderD1(asesor); renderD2(asesor); renderD3(asesor); renderD4(asesor);
-    renderD5(asesor); renderD6(asesor); renderD7(asesor); renderD8(asesor);
+    const S = {
+      d1: renderD1(asesor), d2: renderD2(asesor), d3: renderD3(asesor), d4: renderD4(asesor),
+      d5: renderD5(asesor), d6: renderD6(asesor), d7: renderD7(asesor), d8: renderD8(asesor),
+    };
+    renderIdentidad(asesor, S);
+    renderResumen(S);
+    renderAlertas(S);
   }
 
   async function init() {
     CATALOG = await OXXO.loadAsesorCatalog();
     await Promise.all([loadD1(), loadD2(), loadD3(), loadD4(), loadD5(), loadD6(), loadD7(), loadD8()]);
     document.getElementById('corte-badge').textContent = '⟳ Datos en vivo · Plaza Oaxaca';
-    mountSingleAsesorSelect('mi-asesor-select', [...ASESORES], {
+    mountSingleSelect('mi-asesor-select', [...ASESORES], {
       placeholder: 'Selecciona tu nombre',
+      searchId: 'mi-asesor-search',
+      searchPlaceholder: 'Buscar tu nombre...',
       onChange: renderFor,
     });
     OXXO.updateFooterTime('load-time');
