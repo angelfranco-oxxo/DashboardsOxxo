@@ -259,6 +259,28 @@
     <section class="admin-card">
       <h2>Reasignaciones · Tiendas sin asesor vigente</h2>
       <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Cuando un asesor deja la empresa, sus tiendas quedan "Sin Asesor Asignado" en el catálogo hasta que se les asigne un AT nuevo. Mientras tanto, agrega aquí quién las cubre para que todos los dashboards (Mi Tienda, Mi Dashboard, reportes, etc.) muestren lo mismo — sin esperar a que alguien edite código. Los cambios no aplican hasta que le des <strong>Publicar</strong>.</p>
+    </section>
+    <section class="admin-card" style="margin-top:18px">
+      <h2>Asignación masiva</h2>
+      <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 12px">Tiendas que hoy salen "Sin Asesor Asignado" en el catálogo y todavía no tienen reasignación. Marca las que le tocan a un mismo asesor entrante (ej. todas las de alguien que acaba de salir) y agrégalas juntas en vez de escribirlas una por una.</p>
+      <div class="admin-actions" style="margin-bottom:10px">
+        <button class="admin-btn" type="button" id="reas-bulk-select-all">Seleccionar todas</button>
+        <button class="admin-btn" type="button" id="reas-bulk-select-none">Ninguna</button>
+      </div>
+      <div class="table-wrap" id="reas-huerfanas-wrap" style="margin-bottom:14px;max-height:280px">
+        <table class="preview-table">
+          <thead><tr><th style="width:30px"></th><th>Tienda</th><th>CR</th></tr></thead>
+          <tbody id="reas-huerfanas-list"><tr><td colspan="3" style="padding:16px;text-align:center;color:#9b6b60">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="admin-actions" style="align-items:center;gap:10px">
+        <select class="admin-input" id="reas-bulk-asesor" style="max-width:260px"><option value="">Asesor entrante…</option></select>
+        <input class="admin-input" type="text" id="reas-bulk-nota" placeholder="Nota (opcional, aplica a todas)" style="max-width:260px" />
+        <button class="admin-btn primary" type="button" id="reas-bulk-add">+ Agregar seleccionadas a la tabla</button>
+      </div>
+    </section>
+    <section class="admin-card" style="margin-top:18px">
+      <h2>Tabla a publicar</h2>
       <div class="table-wrap" style="margin-bottom:16px;max-height:none">
         <table class="preview-table" id="reas-table">
           <thead><tr><th style="min-width:220px">Tienda</th><th style="min-width:200px">Asesor entrante</th><th style="min-width:180px">Nota (opcional)</th><th></th></tr></thead>
