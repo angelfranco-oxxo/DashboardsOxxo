@@ -90,7 +90,7 @@
       const plural = currentRows.length === 1 ? 'reasignación activa' : 'reasignaciones activas';
       setStatus(currentRows.length
         ? `${currentRows.length} ${plural}. Agrega, edita o quita filas y publica para actualizar.`
-        : 'Sin reasignaciones activas todavía. Si es la primera vez que usas esta pantalla, al publicar se crea la fila inicial (o la pestaña "Reasignaciones" del Sheet, si tu Apps Script la crea sola; si no, créala una vez a mano con encabezados: CR, Tienda, Asesor_Entrante, Nota).');
+        : 'Sin reasignaciones activas todavía. La pestaña "Reasignaciones" se crea sola en el Sheet la primera vez que publiques (si tu Apps Script tiene "Reasignaciones" agregado a ALLOWED_SHEETS).');
     } catch (err) {
       console.error(err);
       renderRows([]);
@@ -144,7 +144,15 @@
         : `${rows.length} ${plural}. Ya están vivas en todos los dashboards.`);
     } catch (error) {
       console.error(error);
-      alert('No se pudo publicar: ' + error.message + '\n\nSi la pestaña "Reasignaciones" todavía no existe en el Sheet, créala una vez a mano con encabezados: CR, Tienda, Asesor_Entrante, Nota.');
+      // El Apps Script (fuera de este repo) valida targetSheet contra una
+      // lista blanca (ALLOWED_SHEETS) antes de crear la hoja -- si
+      // "Reasignaciones" no esta ahi, rechaza el publish aunque la pestana
+      // ya exista o el Apps Script la pudiera crear solo. Es un ajuste de
+      // una linea en el Apps Script, no algo que se arregle desde aqui.
+      const esRechazoPermiso = /no permitido/i.test(error.message || '');
+      alert(esRechazoPermiso
+        ? 'Tu Apps Script todavía no acepta la pestaña "Reasignaciones".\n\nAgrega \'Reasignaciones\' a la lista ALLOWED_SHEETS en el Apps Script (Extensiones > Apps Script en tu Google Sheet), guarda y crea una nueva versión del deployment (Implementar > Administrar implementaciones > Editar > Versión: Nueva versión). No hace falta crear la pestaña a mano: el script la crea solo en el primer publish.'
+        : 'No se pudo publicar: ' + error.message);
     } finally {
       btn.disabled = false; btn.textContent = 'Publicar';
     }
