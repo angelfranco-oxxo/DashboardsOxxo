@@ -1330,24 +1330,37 @@ function metricsIsSinAsesorD1(value) {
   const t = metricsNormText(value).replace(/[^A-Z]/g, '');
   return !t || t.includes('SINASESOR') || t.includes('NOASIGNADO');
 }
+// Snapshot fijo (por CR, la llave estable) de las tiendas que eran de
+// Anadelia Hernandez Santiago cuando dejo la empresa. Antes, resolveAsesorD1
+// decidia Timoteo-vs-Sin-Asesor mirando si la celda CRUDA de asesor de ESE
+// archivo en particular traia su nombre o venia vacia -- pero los 8 origenes
+// de datos se mantienen por separado y no todos se "limpian" al mismo
+// tiempo: unos ya traen la celda en blanco, otros siguen con su nombre
+// escrito. Resultado real medido: 27 tiendas salian como Timoteo en unos
+// dashboards y como Sin Asesor Asignado en otros, a veces hasta entre filas
+// del MISMO archivo. Con este snapshot fijo (construido una vez cruzando las
+// 8 bases) la misma tienda sale igual sin importar que base mires, y no
+// cambia aunque algun archivo termine de limpiar el nombre viejo.
+const ANADELIA_CR = new Set(['50XUE','50C10','50A49','50XUP','50DXH','50D6F','50LIY','50ZP4','50JT5','507SP','50ALK','50K5Z','507EF','50G0Y','5094V','50E1V','50H1A','501OP','5084R','50C62','50JTQ','50LPB','502WQ','5000K','50T5X','50XUA','50NK1'].map(normalizeCatalogCr));
+const ANADELIA_TIENDA = new Set(['OXXO CALENDA','OXXO JALPAN OAX','OXXO MARIA ARISTA OAX','OXXO MORELOS','OXXO JP GARCIA OAX','OXXO LLANO OAX','OXXO RINCONADAS OAX','OXXO ALCALA OAX','OXXO TERAN OAX','OXXO LA SALLE VSA','OXXO VENUS OAX','OXXO XOXO OAX','OXXO MI RANCHITO OAX','OXXO DIAZ OAX','OXXO TEQUIO OAX','OXXO ANTEQUERA G500 VSA','OXXO LORDCAST VSA','OXXO ZAACHILA VSA','OXXO LA CIÉNEGA VSA','OXXO CARRILLO OAX','OXXO GALA','OXXO HINOJOSA OAX','OXXO MARIA MORELOS OAX','OXXO NUNO DEL MERCADO VSA','OXXO PIPILA OAX','OXXO SANTA ANITA','OXXO SANTA ELENA OAX'].map(normalizeCatalogTienda));
+function esTiendaDeAnadelia(cr, tienda) {
+  const crKey = normalizeCatalogCr(cr);
+  if (crKey && ANADELIA_CR.has(crKey)) return true;
+  const tiendaKey = normalizeCatalogTienda(tienda);
+  return Boolean(tiendaKey && ANADELIA_TIENDA.has(tiendaKey));
+}
 // Regla general (todos los dashboards): toda tienda sin un AT vigente en el
-// catalogo se atribuye a Timoteo Antonio Perez SOLO si el archivo de origen
-// SI traia un nombre real (ej. "Anadelia Hernandez Santiago", alguien que ya
-// no trabaja aqui y cuya estructura se hereda a Timoteo). Si la celda del
-// archivo vino genuinamente vacia -- nunca hubo un nombre que capturar --
-// se deja como "Sin Asesor Asignado" tal cual, sin inventarle dueño a
-// Timoteo. Las unidades de Entrenamiento/Operaciones (no son tiendas
-// operativas reales) siempre se quedan con su propio "Sin Asesor Asignado",
-// sin pasar por catalogo ni por esta distincion.
+// catalogo se atribuye a Timoteo Antonio Perez si era una tienda de Anadelia
+// (snapshot fijo de arriba); si nunca fue suya, se deja como "Sin Asesor
+// Asignado" tal cual, sin inventarle dueño a Timoteo. Las unidades de
+// Entrenamiento/Operaciones (no son tiendas operativas reales) siempre se
+// quedan con su propio "Sin Asesor Asignado", sin pasar por catalogo ni por
+// esta distincion.
 function resolveAsesorD1(catalog, { cr='', tienda='', asesor='' } = {}) {
   if (metricsIsTiendaEntrenamientoOperacionesD2(tienda)) return 'Sin Asesor Asignado';
-  const archivoVacio = metricsIsSinAsesorD1(asesor);
-  // El catalogo se intenta siempre, aunque el archivo venga vacio: puede
-  // traer un AT real vigente que el archivo de origen simplemente no
-  // actualizo.
   const resolved = resolveAsesor(catalog, { cr, tienda, asesor });
   if (!metricsIsSinAsesorD1(resolved)) return resolved;
-  return archivoVacio ? 'Sin Asesor Asignado' : 'Timoteo Antonio Perez';
+  return esTiendaDeAnadelia(cr, tienda) ? 'Timoteo Antonio Perez' : 'Sin Asesor Asignado';
 }
 // Todos los consumidores de catalogo (Dashboard 4, 6, 8, etc.) pasan por
 // resolveAsesorD1 para heredar la regla de arriba, no solo el renombre

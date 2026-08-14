@@ -20,7 +20,7 @@
   const {
     esc, plural, statTile, emptyRow, clearBox, noneBox,
     gaugeRowHTML, barListHTML, pctBarsHTML,
-    movInfo, movPill, estatusCell, rkTile, toneByCount, tonePct,
+    movInfo, movPill, estatusCell, rkTile,
     chipsHTML, metaHTML, mountSingleSelect,
   } = window.OXXO_FICHA;
   const V = (row, key) => OXXO.metricsVal(row, key);
@@ -476,44 +476,144 @@
     return rows.length ? { capPct: pctGlobal, empleados } : null;
   }
 
-  // ── Resumen y alertas ──────────────────────────────────
-  // Antes habia que leer los 8 paneles para saber como venia el asesor.
-  // El resumen trae los titulares con su semaforo y las alertas listan
-  // solo lo que necesita atencion (si no hay nada, se dice explicito).
+  // ── Referencia de plaza ────────────────────────────────
+  // Los mismos indicadores calculados sobre TODOS los asesores juntos.
+  // Sirven de vara de medir: un asesor con 21 tiendas siempre va a tener
+  // vacantes, bajas y horas extra, asi que el numero crudo no dice nada;
+  // lo que importa es como va contra el resto de la plaza. Se calcula una
+  // sola vez, al terminar de cargar.
+  let PLAZA = null;
+  function filasDeAsesores(d) {
+    if (!d) return [];
+    return d.rows.filter((r) => ASESORES.has(String(V(r, d.asesorKey) || '').trim()));
+  }
+  function computePlaza() {
+    const r1 = filasDeAsesores(DATA.d1), r2 = filasDeAsesores(DATA.d2), r3 = filasDeAsesores(DATA.d3);
+    const r4 = filasDeAsesores(DATA.d4), r5 = filasDeAsesores(DATA.d5), r6 = filasDeAsesores(DATA.d6);
+    const r7 = filasDeAsesores(DATA.d7), r8 = filasDeAsesores(DATA.d8);
+    const P = {
+      vacantes: r1.length,
+      bajas: r2.length,
+      horas: r4.reduce((s, r) => s + numParse(V(r, DATA.d4.horasKey)), 0),
+      diasAus: r6.reduce((s, r) => s + (parseFloat(V(r, DATA.d6.diasKey)) || 0), 0),
+      colaboradores: r5.length,
+      vencidos: r5.filter((r) => OXXO.metricsNormText(V(r, DATA.d5.bucketKey)).includes('VENCIERON')).length,
+      tiendas: r7.length,
+      treo: r7.reduce((s, r) => s + (OXXO.metricsNum(V(r, DATA.d7.treoKey)) || 0), 0),
+      activos: r7.reduce((s, r) => s + (OXXO.metricsNum(V(r, DATA.d7.activosKey)) || 0), 0),
+    };
+    let completas = 0;
+    r3.forEach((r) => { if (OXXO.metricsClasificaAprovechamiento(V(r, DATA.d3.estatusKey)) === 'completas') completas++; });
+    P.ec = r3.length ? Math.round((completas / r3.length) * 100) : 0;
+    P.cobertura = P.treo ? Math.round((P.activos / P.treo) * 100) : 0;
+    let aplic = 0, comp = 0;
+    if (DATA.d8) {
+      CERT_COLS.forEach((c) => {
+        r8.forEach((r) => { const v = capValue(r, c.key, DATA.d8.certRealKeys); if (v !== null) { aplic++; if (v >= 1) comp++; } });
+      });
+    }
+    P.capPct = aplic ? Math.round((comp / aplic) * 100) : 0;
+    return P;
+  }
+
+  // Indicadores normalizados: cada uno se mide por colaborador, por tienda
+  // o por posicion, para que el tamaño de la cartera no decida el resultado.
+  // "peor" dice hacia donde esta lo malo.
+  const RATIO = (a, b) => (b ? a / b : null);
+  const INDICADORES = [
+    { id: 'vacancia', label: 'Vacantes', peor: 'alto', fmt: (v) => v.toFixed(1) + '%',
+      mio: (S) => RATIO((S.d1 && S.d1.vacantes) * 100, S.d7 && S.d7.treo),
+      plaza: (P) => RATIO(P.vacantes * 100, P.treo),
+      chip: (v, p) => `Vacancia ${v.toFixed(1)}% · plaza ${p.toFixed(1)}%` },
+    { id: 'rotacion', label: 'Bajas del mes', peor: 'alto', fmt: (v) => v.toFixed(1) + '%',
+      mio: (S) => RATIO((S.d2 && S.d2.bajas) * 100, S.d7 && S.d7.activos),
+      plaza: (P) => RATIO(P.bajas * 100, P.activos),
+      chip: (v, p) => `Rotación ${v.toFixed(1)}% · plaza ${p.toFixed(1)}%` },
+    { id: 'ec', label: 'Equipo completo', peor: 'bajo', fmt: (v) => Math.round(v) + '%',
+      mio: (S) => (S.d3 ? S.d3.ec : null), plaza: (P) => P.ec,
+      chip: (v, p) => `Equipo completo ${Math.round(v)}% · plaza ${Math.round(p)}%` },
+    { id: 'te', label: 'Horas extra', peor: 'alto', fmt: (v) => v.toFixed(1) + ' h',
+      mio: (S) => RATIO(S.d4 && S.d4.horas, S.d7 && S.d7.activos),
+      plaza: (P) => RATIO(P.horas, P.activos),
+      chip: (v, p) => `Tiempo extra ${v.toFixed(1)} h/colab. · plaza ${p.toFixed(1)}` },
+    { id: 'aus', label: 'Días ausentismo', peor: 'alto', fmt: (v) => v.toFixed(1) + ' d',
+      mio: (S) => RATIO(S.d6 && S.d6.diasAus, S.d7 && S.d7.activos),
+      plaza: (P) => RATIO(P.diasAus, P.activos),
+      chip: (v, p) => `Ausentismo ${v.toFixed(1)} d/colab. · plaza ${p.toFixed(1)}` },
+    { id: 'venc', label: 'Vacaciones vencidas', peor: 'alto', fmt: (v) => v.toFixed(1) + '%',
+      mio: (S) => RATIO((S.d5 && S.d5.vencidos) * 100, S.d5 && S.d5.colaboradores),
+      plaza: (P) => RATIO(P.vencidos * 100, P.colaboradores),
+      chip: (v, p) => `Vacaciones vencidas ${v.toFixed(1)}% · plaza ${p.toFixed(1)}%` },
+    { id: 'cob', label: 'Cobertura TREO', peor: 'bajo', fmt: (v) => Math.round(v) + '%',
+      mio: (S) => (S.d7 ? S.d7.cobertura : null), plaza: (P) => P.cobertura,
+      chip: (v, p) => `Cobertura TREO ${Math.round(v)}% · plaza ${Math.round(p)}%` },
+    { id: 'cap', label: 'Capacidades', peor: 'bajo', fmt: (v) => Math.round(v) + '%',
+      mio: (S) => (S.d8 ? S.d8.capPct : null), plaza: (P) => P.capPct,
+      chip: (v, p) => `Capacidades ${Math.round(v)}% · plaza ${Math.round(p)}%` },
+  ];
+  // Que tan lejos de la plaza, en positivo = peor. Se usa la desviacion
+  // relativa para que sirva igual con horas, dias o porcentajes.
+  function desviacion(ind, S) {
+    const v = ind.mio(S), p = ind.plaza(PLAZA);
+    if (v === null || v === undefined || !Number.isFinite(v)) return null;
+    if (p === null || p === undefined || !Number.isFinite(p)) return null;
+    // Plaza en cero (ej. nadie tiene vacaciones vencidas): no se puede
+    // dividir, pero igual hay respuesta — si tu tambien estas en cero vas
+    // bien, y si no, eres el unico con el problema.
+    if (p === 0) {
+      const d = v === 0 ? 0 : (ind.peor === 'alto' ? 1 : -1);
+      return { valor: v, plaza: p, d };
+    }
+    const d = ind.peor === 'alto' ? (v - p) / p : (p - v) / p;
+    return { valor: v, plaza: p, d };
+  }
+  function tonoPorDesvio(d) {
+    if (d >= 0.35) return 'is-bad';
+    if (d >= 0.12) return 'is-warn';
+    return 'is-ok';
+  }
+
   function renderResumen(S) {
-    const tiles = [];
-    if (S.d1) tiles.push(rkTile(n(S.d1.vacantes), 'Vacantes', toneByCount(S.d1.vacantes, 5),
-      S.d1.tiendasConVacante ? `en ${plural(S.d1.tiendasConVacante, 'tienda', 'tiendas')}` : ''));
-    if (S.d2) tiles.push(rkTile(n(S.d2.bajas), 'Bajas del mes', toneByCount(S.d2.bajas, 5)));
-    if (S.d3) tiles.push(rkTile(S.d3.ec + '%', 'Equipo completo', tonePct(S.d3.ec, 80, 50),
-      S.d3.ecSin !== null && S.d3.ecSin !== undefined ? `sin ausentismo: ${S.d3.ecSin}%` : ''));
-    if (S.d4) tiles.push(rkTile(n(S.d4.horas), 'Horas extra', toneByCount(S.d4.horas, 40), S.d4.gasto ? '$' + n(S.d4.gasto) : ''));
-    if (S.d6) tiles.push(rkTile(n(S.d6.diasAus), 'Días ausentismo', toneByCount(S.d6.diasAus, 40),
-      S.d6.ausentes ? `${S.d6.ausentes} empleados` : ''));
-    if (S.d5) tiles.push(rkTile(n(S.d5.vencidos), 'Vacaciones vencidas', toneByCount(S.d5.vencidos, 3),
-      S.d5.colaboradores ? 'de ' + S.d5.colaboradores : ''));
-    if (S.d7) tiles.push(rkTile(S.d7.cobertura + '%', 'Cobertura TREO', tonePct(S.d7.cobertura, 98, 90),
-      `${S.d7.tiendas} tiendas`));
-    if (S.d8) tiles.push(rkTile(S.d8.capPct + '%', 'Capacidades', tonePct(S.d8.capPct, 90, 60)));
+    // El titular sigue siendo el numero crudo (es lo concreto), pero el
+    // semaforo y la nota salen de la comparacion contra la plaza.
+    const cifras = {
+      vacancia: S.d1 ? n(S.d1.vacantes) : null,
+      rotacion: S.d2 ? n(S.d2.bajas) : null,
+      ec: S.d3 ? S.d3.ec + '%' : null,
+      te: S.d4 ? n(S.d4.horas) : null,
+      aus: S.d6 ? n(S.d6.diasAus) : null,
+      venc: S.d5 ? n(S.d5.vencidos) : null,
+      cob: S.d7 ? S.d7.cobertura + '%' : null,
+      cap: S.d8 ? S.d8.capPct + '%' : null,
+    };
+    const tiles = INDICADORES.map((ind) => {
+      const valor = cifras[ind.id];
+      if (valor === null) return '';
+      const cmp = desviacion(ind, S);
+      const tono = cmp ? tonoPorDesvio(cmp.d) : '';
+      const nota = cmp ? `${ind.fmt(cmp.valor)} · plaza ${ind.fmt(cmp.plaza)}` : '';
+      return rkTile(valor, ind.label, tono, nota);
+    });
     document.getElementById('ficha-resumen').innerHTML = tiles.join('');
   }
+
   function renderAlertas(S) {
+    // Solo se listan los indicadores donde el asesor va peor que la plaza,
+    // ordenados por que tan lejos esta. Antes se listaba todo lo que fuera
+    // distinto de cero, asi que 10 de 11 asesores mostraban 7 u 8 alertas
+    // y la seccion no distinguia a nadie.
+    const desvios = INDICADORES
+      .map((ind) => ({ ind, cmp: desviacion(ind, S) }))
+      .filter((x) => x.cmp && x.cmp.d >= 0.12)
+      .sort((a, b) => b.cmp.d - a.cmp.d)
+      .slice(0, 5)
+      .map((x) => ({ t: tonoPorDesvio(x.cmp.d), txt: x.ind.chip(x.cmp.valor, x.cmp.plaza) }));
+    // Las tiendas criticas se avisan siempre: no es cuestion de promedios,
+    // una tienda en ese estado hay que atenderla aunque la plaza este igual.
     const a = [];
-    if (S.d1 && S.d1.vacantes) a.push({ t: S.d1.vacantes >= 5 ? 'is-bad' : 'is-warn', txt: `${S.d1.vacantes} vacante${S.d1.vacantes > 1 ? 's' : ''} por cubrir` });
-    if (S.d2 && S.d2.bajas) a.push({ t: S.d2.bajas >= 5 ? 'is-bad' : 'is-warn', txt: `${S.d2.bajas} baja${S.d2.bajas > 1 ? 's' : ''} este mes${S.d2.motivo ? ' · ' + OXXO.truncate(S.d2.motivo, 24) : ''}` });
     if (S.d3 && S.d3.criticas) a.push({ t: 'is-bad', txt: `${S.d3.criticas} tienda${S.d3.criticas > 1 ? 's' : ''} en estructura crítica` });
-    if (S.d3 && S.d3.incompletas) a.push({ t: 'is-warn', txt: `${S.d3.incompletas} con equipo incompleto` });
-    if (S.d4 && S.d4.gasto) a.push({ t: S.d4.horas >= 40 ? 'is-bad' : 'is-warn', txt: `$${n(S.d4.gasto)} en tiempo extra (${n(S.d4.horas)} h)` });
-    if (S.d6 && S.d6.faltas) a.push({ t: 'is-bad', txt: `${S.d6.faltas} falta${S.d6.faltas > 1 ? 's' : ''} registrada${S.d6.faltas > 1 ? 's' : ''}` });
-    if (S.d5 && S.d5.vencidos) a.push({ t: 'is-warn', txt: `${S.d5.vencidos} con vacaciones ya vencidas` });
-    if (S.d7 && (S.d7.subir || S.d7.bajar)) {
-      const partes = [];
-      if (S.d7.subir) partes.push(`subir en ${S.d7.subir}`);
-      if (S.d7.bajar) partes.push(`bajar en ${S.d7.bajar}`);
-      a.push({ t: 'is-info', txt: `TREO: ${partes.join(' y ')}` });
-    }
-    if (S.d8 && S.d8.capPct < 100) a.push({ t: S.d8.capPct < 60 ? 'is-bad' : 'is-warn', txt: `Capacidades al ${S.d8.capPct}%` });
-    document.getElementById('ficha-alertas').innerHTML = chipsHTML(a, 'Sin alertas: tus tiendas están en orden');
+    a.push(...desvios);
+    document.getElementById('ficha-alertas').innerHTML = chipsHTML(a, 'Vas igual o mejor que la plaza en todo');
   }
   function renderIdentidad(asesor, S) {
     document.getElementById('ficha-asesor-title').textContent = asesor;
@@ -551,6 +651,7 @@
   async function init() {
     CATALOG = await OXXO.loadAsesorCatalog();
     await Promise.all([loadD1(), loadD2(), loadD3(), loadD4(), loadD5(), loadD6(), loadD7(), loadD8()]);
+    PLAZA = computePlaza();
     document.getElementById('corte-badge').textContent = '⟳ Datos en vivo · Plaza Oaxaca';
     mountSingleSelect('mi-asesor-select', [...ASESORES], {
       placeholder: 'Selecciona tu nombre',
