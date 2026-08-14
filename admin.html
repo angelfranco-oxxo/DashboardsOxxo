@@ -112,6 +112,7 @@
       <button class="admin-tab active" type="button" role="tab" aria-selected="true" data-tab="upload">📤 Cargar y Publicar Bases</button>
       <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="presentaciones">📊 Presentaciones</button>
       <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="excels">📥 Excels</button>
+      <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="reasignaciones">🔁 Reasignaciones</button>
     </nav>
     <section class="admin-tabpanel" id="tabpanel-upload" role="tabpanel">
     <section class="admin-grid">
@@ -254,6 +255,24 @@
       <div class="helper-box" id="indicadores-status" style="margin-top:12px"></div>
     </section>
     </section>
+    <section class="admin-tabpanel hidden" id="tabpanel-reasignaciones" role="tabpanel">
+    <section class="admin-card">
+      <h2>Reasignaciones · Tiendas sin asesor vigente</h2>
+      <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Cuando un asesor deja la empresa, sus tiendas quedan "Sin Asesor Asignado" en el catálogo hasta que se les asigne un AT nuevo. Mientras tanto, agrega aquí quién las cubre para que todos los dashboards (Mi Tienda, Mi Dashboard, reportes, etc.) muestren lo mismo — sin esperar a que alguien edite código. Los cambios no aplican hasta que le des <strong>Publicar</strong>.</p>
+      <div class="table-wrap" style="margin-bottom:16px;max-height:none">
+        <table class="preview-table" id="reas-table">
+          <thead><tr><th style="min-width:220px">Tienda</th><th style="min-width:200px">Asesor entrante</th><th style="min-width:180px">Nota (opcional)</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <datalist id="reas-tiendas-list"></datalist>
+      <div class="admin-actions">
+        <button class="admin-btn" type="button" id="reas-add-row">+ Agregar fila</button>
+        <button class="admin-btn primary" type="button" id="reas-publish-btn">Publicar</button>
+      </div>
+      <div class="helper-box" id="reas-status" style="margin-top:12px">Cargando reasignaciones actuales…</div>
+    </section>
+    </section>
   </main>
   <script src="js/config.js?v=20260805a"></script>
   <script src="js/core.js?v=20260807a"></script>
@@ -267,6 +286,7 @@
   <script src="js/admin-pptx-rae.js?v=20260806a"></script>
   <script src="js/admin-indicadores.js?v=20260805c"></script>
   <script src="js/admin-pptx-asesor.js?v=20260805c"></script>
+  <script src="js/admin-reasignaciones.js?v=1"></script>
   <script>
     (function(){
       var tabs = document.querySelectorAll('.admin-tab');

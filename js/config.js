@@ -10,6 +10,12 @@ window.OXXO_CONFIG = {
   // Pestanas base.
   CONFIG_SHEET: "Configuracion",
   CATALOG_SHEET: "Catalogo_Asesores",
+  // Quien hereda las tiendas de un asesor que ya no esta (ej. Anadelia -> Timoteo).
+  // Se administra desde el panel admin, pestana "Reasignaciones" -- no requiere
+  // tocar codigo cuando otro asesor deje la empresa. Si la pestana aun no
+  // existe en el Sheet, el sistema sigue funcionando igual que antes (cae al
+  // respaldo fijo que ya trae core.js).
+  REASIGNACIONES_SHEET: "Reasignaciones",
 
   // Web App de Apps Script usado por el panel admin para publicar bases.
   ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbwBI3Q2eCsdN92S0CDMSeHAQPwIDS7rwGNYK2acQ8oxxOUYgVFpIgFLJl-HZqNSeWwd/exec",
