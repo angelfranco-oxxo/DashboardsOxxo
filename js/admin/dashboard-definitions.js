@@ -7,6 +7,7 @@
 window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
   const {
     OXXO,
+    state,
     containsOaxaca,
     isVacancyRow,
     deriveD1,
@@ -113,13 +114,25 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
   // consistente en los 3 meses verificados -- positivo=Faltante (la tienda
   // debe dinero), negativo=Sobrante (credito a favor).
   // Semana viene vacia en ~30 filas por mes (traspasos de saldo entre meses,
-  // ej. "SALDO DE JUNIO"): son movimientos reales, no basura. El Apps Script
-  // descarta en silencio las filas con periodColumn vacio en modo
-  // replacePeriod (no puede reconciliarlas en publicaciones futuras), asi
-  // que se rellenan aqui con un valor derivado de su propia Fecha (mismo mes,
-  // "sem 0") para que no se pierdan.
+  // ej. "SALDO DE JUNIO" cargado en la hoja de junio pero fechado en julio):
+  // son movimientos reales, no basura. El Apps Script descarta en silencio
+  // las filas con periodColumn vacio en modo replacePeriod (no puede
+  // reconciliarlas en publicaciones futuras), asi que se rellenan aqui.
+  // Se usa el MES DE LA HOJA (state.sheetName, ej. "06JUN"), no el de la
+  // propia Fecha de la fila: probado con datos reales que usar la Fecha
+  // etiquetaba estas filas de junio como "Jul 26 sem 0" (su Fecha real cae
+  // en julio) -- ese bucket coincidia con filas reales del mes de julio, y
+  // la siguiente publicacion (07JUL) las reemplazaba/perdia por compartir
+  // el mismo periodo. Anclarlas al mes de la hoja les da un bucket que solo
+  // esa hoja publica, evitando la colision entre meses.
   const MESES_D9=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const MES_ABBR_D9={ENE:0,FEB:1,MAR:2,ABR:3,MAY:4,JUN:5,JUL:6,AGO:7,SEP:8,OCT:9,NOV:10,DIC:11};
   function semanaFallbackD9(isoFecha){
+    const anioFecha=String(isoFecha||'').match(/^(\d{4})-/);
+    const anio=anioFecha?anioFecha[1].slice(2):'';
+    const tab=String((state&&state.sheetName)||'').trim().toUpperCase().match(/^\d{1,2}([A-Z]{3})/);
+    const mesIdx=tab&&MES_ABBR_D9[tab[1]]!==undefined?MES_ABBR_D9[tab[1]]:null;
+    if(mesIdx!==null&&anio)return `${MESES_D9[mesIdx]} ${anio} sem 0`;
     const m=String(isoFecha||'').match(/^(\d{4})-(\d{2})-\d{2}$/);
     return m?`${MESES_D9[Number(m[2])-1]} ${m[1].slice(2)} sem 0`:'';
   }
