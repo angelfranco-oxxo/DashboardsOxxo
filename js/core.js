@@ -1877,8 +1877,11 @@ function metricsMatchShortName(shortName, fullNames) {
 // reimplementar el pipeline de filtros otra vez.
 
 // Filas de Dashboard 1 (Vacantes) ya filtradas al mes mas reciente con los
-// 3 defaults reales del dashboard.
-async function metricsD1Rows() {
+// 3 defaults reales del dashboard. allMonths=true se salta ese ultimo
+// filtro y regresa TODOS los meses cargados (usado por Mi Tienda para el
+// desglose historico por mes; el resto de los llamadores no lo pasan y
+// siguen viendo solo el mes vigente, sin cambios).
+async function metricsD1Rows(allMonths = false) {
   const raw = await fetchSheetData(SHEETS_CONFIG.TABS.d1);
   if (!raw || !raw.length) return null;
   const mesKey = metricsFindKey(raw[0], ['Mes']);
@@ -1903,8 +1906,9 @@ async function metricsD1Rows() {
       return copy;
     });
   const base = metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
+  if (allMonths) return { rows: base, mes: '', asesorKey, puestoKey, tiendaKey, mesKey, fechaKey };
   const { mes, rows } = metricsFilterLatestMonth(base, r => metricsRowMonthKeyD1(r, mesKey, fechaKey));
-  return { rows, mes, asesorKey, puestoKey, tiendaKey };
+  return { rows, mes, asesorKey, puestoKey, tiendaKey, mesKey, fechaKey };
 }
 
 // Vacantes por Asesor: mismo pipeline verificado de dataD1(), pero regresa

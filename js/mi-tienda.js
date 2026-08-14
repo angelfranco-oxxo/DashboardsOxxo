@@ -25,7 +25,44 @@
   const n = (v) => OXXO.formatNum(Math.round(Number(v) || 0));
   const tKey = (v) => OXXO.normalizeCatalogTienda(v);
 
-
+  // ── Acordeon mensual compartido ────────────────────────
+  // Varios paneles (Vacantes, Bajas, Tiempo Extra, Ausentismos,
+  // Faltantes/Sobrantes) guardan varios meses en su hoja pero antes solo se
+  // mostraba el mas reciente. monthsAccordionHTML arma un <details> por mes
+  // (mas reciente primero) reusando la misma pieza visual para todos.
+  const MESES_NOMBRE = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  function mesLabel(ym) {
+    const m = String(ym || '').match(/^(\d{4})-(\d{2})$/);
+    return m ? `${MESES_NOMBRE[Number(m[2]) - 1]} ${m[1]}` : 'Sin fecha';
+  }
+  // Columnas "Mes"/"Ano" de Tiempo Extra y Ausentismos vienen como
+  // "08.- Agosto" / "2026" -- OXXO.metricsNormalizeMonthKey (pensado para
+  // "ago-26" o fechas completas) no reconoce ese formato y regresa ''. Como
+  // el numero de mes ya viene al inicio del texto, es mas simple y confiable
+  // leerlo directo que intentar generalizar el helper compartido.
+  function mesKeyFromMesAno(mesRaw, anoRaw) {
+    const mm = String(mesRaw || '').match(/^(\d{1,2})/);
+    const yyyy = String(anoRaw || '').match(/(\d{4})/);
+    return (mm && yyyy) ? `${yyyy[1]}-${mm[1].padStart(2, '0')}` : '';
+  }
+  function monthsAccordionHTML(rows, monthKeyFn, { summaryHtml, theadHtml, rowsHtml }) {
+    const porMes = new Map();
+    rows.forEach((r) => {
+      const ym = monthKeyFn(r);
+      if (!porMes.has(ym)) porMes.set(ym, []);
+      porMes.get(ym).push(r);
+    });
+    return [...porMes.keys()].sort().reverse().map((ym) => {
+      const mrows = porMes.get(ym);
+      return `<details class="mi-month">
+        <summary>
+          <span class="mi-month__name">${esc(mesLabel(ym))}</span>
+          <span class="mi-month__nums">${summaryHtml(mrows)}</span>
+        </summary>
+        <div class="tbl-wrap"><table class="tbl"><thead>${theadHtml}</thead><tbody>${rowsHtml(mrows)}</tbody></table></div>
+      </details>`;
+    }).join('');
+  }
 
   // ── Estado global (se carga una sola vez) ─────────────
   let CATALOG = null;
@@ -67,7 +104,7 @@
 
   // ── D1 · Vacantes Diarias (mismo pipeline que dashboard-1.html) ──
   async function loadD1() {
-    const d1 = await OXXO.metricsD1Rows();
+    const d1 = await OXXO.metricsD1Rows(true);
     if (!d1) { DATA.d1 = null; return; }
     const diasKey = d1.rows[0] ? K(d1.rows[0], ['Dias Vacantes', 'Dias_Vacantes']) : null;
     const fechaKey = d1.rows[0] ? K(d1.rows[0], ['Fecha']) : null;
@@ -79,9 +116,11 @@
     const d = DATA.d1;
     const el = document.getElementById('sec-d1');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = rowsFor(d, tienda);
+    const allRows = rowsFor(d, tienda);
     el.classList.add('show');
-    document.getElementById('badge-d1').textContent = OXXO.metricsMesKeyFromDate ? (d.mes || '—') : '—';
+    const mesKeyFn = (r) => OXXO.metricsRowMonthKeyD1(r, d.mesKey, d.fechaKey);
+    const { mes, rows } = OXXO.metricsFilterLatestMonth(allRows, mesKeyFn);
+    document.getElementById('badge-d1').textContent = mes ? mesLabel(mes) : '—';
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach((r) => { byPuesto[OXXO.metricsTipoPuesto(V(r, d.puestoKey))]++; });
     if (!rows.length) {
@@ -100,12 +139,15 @@
         { label: 'Otro', value: byPuesto.Otro },
       ]);
     }
-    const tbody = document.querySelector('#tbl-d1 tbody');
-    tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
-        <td>${esc(V(r, d.puestoKey) || '—')}</td>
-        <td class="center">${d.diasKey ? esc(OXXO.metricsDiasVacantesValue(V(r, d.diasKey))) : '—'}</td>
-        <td>${esc(d.fechaKey ? V(r, d.fechaKey) || '—' : '—')}</td>
-      </tr>`).join('') : emptyRow(3, 'Sin vacantes activas en el mes vigente. 🎉');
+    document.getElementById('months-d1').innerHTML = allRows.length ? monthsAccordionHTML(allRows, mesKeyFn, {
+      summaryHtml: (mrows) => `<b class="rojo">${n(mrows.length)}</b> vacantes`,
+      theadHtml: '<tr><th>Puesto</th><th class="center">Días</th><th>Fecha</th></tr>',
+      rowsHtml: (mrows) => mrows.map((r) => `<tr>
+          <td>${esc(V(r, d.puestoKey) || '—')}</td>
+          <td class="center">${d.diasKey ? esc(OXXO.metricsDiasVacantesValue(V(r, d.diasKey))) : '—'}</td>
+          <td>${esc(d.fechaKey ? V(r, d.fechaKey) || '—' : '—')}</td>
+        </tr>`).join(''),
+    }) : '';
     return { vacantes: rows.length };
   }
 
@@ -131,17 +173,18 @@
       const operativos = base.filter((r) => { const p = OXXO.metricsNormText(V(r, puestoKey)); return p.includes('AYUDANTE') || p.includes('ENCARGADO') || p.includes('LIDER') || p.includes('LÍDER'); });
       if (operativos.length) base = operativos;
     }
-    const { mes, rows } = OXXO.metricsFilterLatestMonth(base, (r) => OXXO.metricsRowMonthKeyD2(r, mesKey, fechaKey));
-    DATA.d2 = { rows, mes, asesorKey, tiendaKey, puestoKey, motivoKey, detalleKey, fechaKey };
-    addTiendas(rows, tiendaKey);
+    DATA.d2 = { rows: base, asesorKey, tiendaKey, puestoKey, motivoKey, detalleKey, fechaKey, mesKey };
+    addTiendas(base, tiendaKey);
   }
   function renderD2(tienda) {
     const d = DATA.d2;
     const el = document.getElementById('sec-d2');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = rowsFor(d, tienda);
+    const allRows = rowsFor(d, tienda);
     el.classList.add('show');
-    document.getElementById('badge-d2').textContent = d.mes || '—';
+    const mesKeyFn = (r) => OXXO.metricsRowMonthKeyD2(r, d.mesKey, d.fechaKey);
+    const { mes, rows } = OXXO.metricsFilterLatestMonth(allRows, mesKeyFn);
+    document.getElementById('badge-d2').textContent = mes ? mesLabel(mes) : '—';
     const porMotivo = {};
     rows.forEach((r) => { const m = V(r, d.detalleKey) || V(r, d.motivoKey) || 'Sin motivo'; porMotivo[m] = (porMotivo[m] || 0) + 1; });
     const topMotivo = Object.entries(porMotivo).sort((a, b) => b[1] - a[1])[0];
@@ -156,12 +199,15 @@
         Object.entries(porMotivo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
       );
     }
-    const tbody = document.querySelector('#tbl-d2 tbody');
-    tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
-        <td>${esc(V(r, d.puestoKey) || '—')}</td>
-        <td>${esc(OXXO.truncate(String(V(r, d.detalleKey) || V(r, d.motivoKey) || '—'), 26))}</td>
-        <td>${esc(V(r, d.fechaKey) || '—')}</td>
-      </tr>`).join('') : emptyRow(3, 'Sin bajas en el mes vigente. 🎉');
+    document.getElementById('months-d2').innerHTML = allRows.length ? monthsAccordionHTML(allRows, mesKeyFn, {
+      summaryHtml: (mrows) => `<b class="rojo">${n(mrows.length)}</b> bajas`,
+      theadHtml: '<tr><th>Puesto</th><th>Motivo</th><th>Fecha</th></tr>',
+      rowsHtml: (mrows) => mrows.map((r) => `<tr>
+          <td>${esc(V(r, d.puestoKey) || '—')}</td>
+          <td>${esc(OXXO.truncate(String(V(r, d.detalleKey) || V(r, d.motivoKey) || '—'), 26))}</td>
+          <td>${esc(V(r, d.fechaKey) || '—')}</td>
+        </tr>`).join(''),
+    }) : '';
     return { bajas: rows.length, motivo: topMotivo ? topMotivo[0] : '' };
   }
 
@@ -237,15 +283,13 @@
     const crKey = K(h, ['Cr de Tienda', 'CR de Tienda']);
     const nombreKey = K(h, ['Nombre del empleado o candidato']);
     const semanaKey = K(h, ['Semana']);
+    const mesKey = K(h, ['Mes']);
+    const anoKey = K(h, ['Ano', 'Año']);
     const horasKey = K(h, ['Cantidad']);
     const importeKey = K(h, ['Importe']);
     raw.forEach((r) => OXXO.applyAsesorCatalog(r, CATALOG, { asesorKey, tiendaKey, crKey }));
-    const semanas = [...new Set(raw.map((r) => String(V(r, semanaKey) || '').trim()).filter(Boolean))];
-    semanas.sort((a, b) => semanaRank(b) - semanaRank(a));
-    const semana = semanas[0] || '';
-    const rows = semana ? raw.filter((r) => String(V(r, semanaKey) || '').trim() === semana) : raw;
-    DATA.d4 = { rows, semana, asesorKey, tiendaKey, crKey, nombreKey, horasKey, importeKey };
-    addTiendas(rows, tiendaKey, crKey);
+    DATA.d4 = { rows: raw, asesorKey, tiendaKey, crKey, nombreKey, semanaKey, mesKey, anoKey, horasKey, importeKey };
+    addTiendas(raw, tiendaKey, crKey);
   }
   function semanaRank(value) {
     const v = String(value || '').trim();
@@ -260,9 +304,21 @@
     const d = DATA.d4;
     const el = document.getElementById('sec-d4');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = rowsFor(d, tienda);
+    const allRows = rowsFor(d, tienda);
     el.classList.add('show');
-    document.getElementById('badge-d4').textContent = d.semana ? (/sem/i.test(d.semana) ? d.semana : 'Sem ' + d.semana) : '—';
+    const mesKeyFn = (r) => mesKeyFromMesAno(V(r, d.mesKey), V(r, d.anoKey));
+    // Semana solo se usa para elegir "la mas reciente" DENTRO del mes vigente
+    // (sus valores no traen mes, comparar el numero de semana entre meses
+    // distintos daria un resultado incorrecto -- ago sem 1 "perderia" contra
+    // jul sem 4 aunque agosto sea mas reciente).
+    const meses = [...new Set(allRows.map(mesKeyFn).filter(Boolean))].sort();
+    const mesVigente = meses[meses.length - 1] || '';
+    const rowsMes = mesVigente ? allRows.filter((r) => mesKeyFn(r) === mesVigente) : allRows;
+    const semanas = [...new Set(rowsMes.map((r) => String(V(r, d.semanaKey) || '').trim()).filter(Boolean))];
+    semanas.sort((a, b) => semanaRank(b) - semanaRank(a));
+    const semana = semanas[0] || '';
+    const rows = semana ? rowsMes.filter((r) => String(V(r, d.semanaKey) || '').trim() === semana) : rowsMes;
+    document.getElementById('badge-d4').textContent = semana ? (/sem/i.test(semana) ? semana : 'Sem ' + semana) : '—';
     const totHoras = rows.reduce((s, r) => s + numParse(V(r, d.horasKey)), 0);
     const totGasto = rows.reduce((s, r) => s + numParse(V(r, d.importeKey)), 0);
     const porEmpleado = {};
@@ -279,13 +335,29 @@
         Object.entries(porEmpleado).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value })), 'naranja'
       );
     }
-    const sorted = [...rows].sort((a, b) => numParse(V(b, d.importeKey)) - numParse(V(a, d.importeKey)));
-    const tbody = document.querySelector('#tbl-d4 tbody');
-    tbody.innerHTML = sorted.length ? sorted.slice(0, 200).map((r) => `<tr>
-        <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 30))}</td>
-        <td class="center">${n(numParse(V(r, d.horasKey)))}</td>
-        <td class="center">$${n(numParse(V(r, d.importeKey)))}</td>
-      </tr>`).join('') : emptyRow(3, 'Sin tiempo extra en la semana vigente. 🎉');
+    document.getElementById('months-d4').innerHTML = allRows.length ? monthsAccordionHTML(allRows, mesKeyFn, {
+      summaryHtml: (mrows) => {
+        const horas = mrows.reduce((s, r) => s + numParse(V(r, d.horasKey)), 0);
+        const gasto = mrows.reduce((s, r) => s + numParse(V(r, d.importeKey)), 0);
+        return `<span><b class="amarillo">${n(horas)}</b> h</span><span><b class="rojo">$${n(gasto)}</b></span>`;
+      },
+      theadHtml: '<tr><th>Empleado</th><th class="center">Horas</th><th class="center">Importe</th></tr>',
+      rowsHtml: (mrows) => {
+        const porEmp = new Map();
+        mrows.forEach((r) => {
+          const nom = V(r, d.nombreKey) || 'Sin nombre';
+          const cur = porEmp.get(nom) || { horas: 0, importe: 0 };
+          cur.horas += numParse(V(r, d.horasKey));
+          cur.importe += numParse(V(r, d.importeKey));
+          porEmp.set(nom, cur);
+        });
+        return [...porEmp.entries()].sort((a, b) => b[1].importe - a[1].importe).map(([nom, v]) => `<tr>
+            <td>${esc(OXXO.truncate(nom, 30))}</td>
+            <td class="center">${n(v.horas)}</td>
+            <td class="center">$${n(v.importe)}</td>
+          </tr>`).join('');
+      },
+    }) : '';
     return { horas: totHoras, gasto: totGasto };
   }
 
@@ -337,7 +409,7 @@
     return { colaboradores: rows.length, diasVac: totDias, vencidos, proximos };
   }
 
-  // ── D6 · Ausentismos (mismo pipeline que dashboard-6.html; sin filtro de semana por defecto) ──
+  // ── D6 · Ausentismos (mismo pipeline que dashboard-6.html) ──
   async function loadD6() {
     const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s6);
     if (!raw || !raw.length) { DATA.d6 = null; return; }
@@ -349,17 +421,23 @@
     const diasKey = K(h, ['Dias', 'Días']);
     const nombreKey = K(h, ['Nombre del empleado o candidato', 'Nombre del empleado']);
     const noPersKey = K(h, ['N de personal', 'N de Personal', 'No de personal', 'N° de personal']);
+    const mesKey = K(h, ['Mes']);
+    const anoKey = K(h, ['Ano', 'Año']);
     raw.forEach((r) => OXXO.applyAsesorCatalog(r, CATALOG, { asesorKey, tiendaKey, crKey }));
-    DATA.d6 = { rows: raw, asesorKey, tiendaKey, crKey, tipoKey, diasKey, nombreKey, noPersKey };
+    DATA.d6 = { rows: raw, asesorKey, tiendaKey, crKey, tipoKey, diasKey, nombreKey, noPersKey, mesKey, anoKey };
     addTiendas(raw, tiendaKey, crKey);
   }
   function renderD6(tienda) {
     const d = DATA.d6;
     const el = document.getElementById('sec-d6');
     if (!d) { el.classList.remove('show'); return null; }
-    const rows = rowsFor(d, tienda);
+    const allRows = rowsFor(d, tienda);
     el.classList.add('show');
-    document.getElementById('badge-d6').textContent = plural(rows.length, 'registro', 'registros');
+    const mesKeyFn = (r) => mesKeyFromMesAno(V(r, d.mesKey), V(r, d.anoKey));
+    const meses = [...new Set(allRows.map(mesKeyFn).filter(Boolean))].sort();
+    const mesVigente = meses[meses.length - 1] || '';
+    const rows = mesVigente ? allRows.filter((r) => mesKeyFn(r) === mesVigente) : allRows;
+    document.getElementById('badge-d6').textContent = mesVigente ? mesLabel(mesVigente) : plural(rows.length, 'registro', 'registros');
     const empleados = new Set(rows.map((r) => V(r, d.noPersKey) || V(r, d.nombreKey))).size;
     const totDias = rows.reduce((s, r) => s + (parseFloat(V(r, d.diasKey)) || 0), 0);
     const faltas = rows.filter((r) => OXXO.metricsNormText(V(r, d.tipoKey)).includes('FALTA')).length;
@@ -367,7 +445,7 @@
     rows.forEach((r) => { const tipo = V(r, d.tipoKey) || 'Sin tipo'; porTipo[tipo] = (porTipo[tipo] || 0) + (parseFloat(V(r, d.diasKey)) || 0); });
     if (!rows.length) {
       document.getElementById('stats-d6').innerHTML = '';
-      document.getElementById('viz-d6').innerHTML = clearBox('Sin ausentismos registrados');
+      document.getElementById('viz-d6').innerHTML = clearBox('Sin ausentismos registrados este mes');
     } else {
       document.getElementById('stats-d6').innerHTML =
         statTile(n(empleados), 'Empleados', 'rojo') +
@@ -377,12 +455,19 @@
         Object.entries(porTipo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
       );
     }
-    const tbody = document.querySelector('#tbl-d6 tbody');
-    tbody.innerHTML = rows.length ? rows.slice(0, 200).map((r) => `<tr>
-        <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 26))}</td>
-        <td>${esc(V(r, d.tipoKey) || '—')}</td>
-        <td class="center">${esc(V(r, d.diasKey) || '—')}</td>
-      </tr>`).join('') : emptyRow(3, 'Sin ausentismos registrados. 🎉');
+    document.getElementById('months-d6').innerHTML = allRows.length ? monthsAccordionHTML(allRows, mesKeyFn, {
+      summaryHtml: (mrows) => {
+        const dias = mrows.reduce((s, r) => s + (parseFloat(V(r, d.diasKey)) || 0), 0);
+        const mFaltas = mrows.filter((r) => OXXO.metricsNormText(V(r, d.tipoKey)).includes('FALTA')).length;
+        return `<span><b class="amarillo">${n(dias)}</b> días</span><span><b class="rojo">${n(mFaltas)}</b> faltas</span>`;
+      },
+      theadHtml: '<tr><th>Empleado</th><th>Tipo</th><th class="center">Días</th></tr>',
+      rowsHtml: (mrows) => mrows.map((r) => `<tr>
+          <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 26))}</td>
+          <td>${esc(V(r, d.tipoKey) || '—')}</td>
+          <td class="center">${esc(V(r, d.diasKey) || '—')}</td>
+        </tr>`).join(''),
+    }) : '';
     return { ausentes: empleados, diasAus: totDias, faltas };
   }
 
@@ -598,11 +683,6 @@
     DATA.d9 = { rows, crKey, tiendaKey, importeKey, tipoKey, fechaKey, meses: ultimos3 };
     addTiendas(raw, tiendaKey, crKey);
   }
-  const MESES_NOMBRE_D9 = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-  function mesLabelD9(ym) {
-    const m = String(ym || '').match(/^(\d{4})-(\d{2})$/);
-    return m ? `${MESES_NOMBRE_D9[Number(m[2]) - 1]} ${m[1]}` : (ym || 'Sin fecha');
-  }
   function sumaFaltanteSobrante(rows, importeKey) {
     let faltante = 0, sobrante = 0;
     rows.forEach((r) => {
@@ -632,29 +712,19 @@
       statTile('$' + n(sobrante), 'Sobrante') +
       statTile((neto >= 0 ? '$' : '-$') + n(Math.abs(neto)), 'Neto');
     document.getElementById('viz-d9').innerHTML = '';
-    const porMes = new Map();
-    rows.forEach((r) => {
-      const ym = String(V(r, d.fechaKey) || '').slice(0, 7);
-      if (!porMes.has(ym)) porMes.set(ym, []);
-      porMes.get(ym).push(r);
+    const mesKeyFn = (r) => String(V(r, d.fechaKey) || '').slice(0, 7);
+    monthsEl.innerHTML = monthsAccordionHTML(rows, mesKeyFn, {
+      summaryHtml: (mrows) => {
+        const { faltante: mf, sobrante: ms } = sumaFaltanteSobrante(mrows, d.importeKey);
+        return `<span><b class="rojo">$${n(mf)}</b> falt</span><span><b class="verde">$${n(ms)}</b> sobr</span>`;
+      },
+      theadHtml: '<tr><th>Fecha</th><th>Tipo</th><th class="center">Importe</th></tr>',
+      rowsHtml: (mrows) => [...mrows].sort((a, b) => String(V(b, d.fechaKey)).localeCompare(String(V(a, d.fechaKey)))).map((r) => `<tr>
+          <td>${esc(V(r, d.fechaKey) || '—')}</td>
+          <td>${esc(V(r, d.tipoKey) || '—')}</td>
+          <td class="center">$${n(Math.abs(OXXO.metricsNum(V(r, d.importeKey))))}</td>
+        </tr>`).join(''),
     });
-    monthsEl.innerHTML = [...porMes.keys()].sort().reverse().map((ym) => {
-      const mrows = [...porMes.get(ym)].sort((a, b) => String(V(b, d.fechaKey)).localeCompare(String(V(a, d.fechaKey))));
-      const { faltante: mf, sobrante: ms } = sumaFaltanteSobrante(mrows, d.importeKey);
-      return `<details class="mi-month">
-        <summary>
-          <span class="mi-month__name">${esc(mesLabelD9(ym))}</span>
-          <span class="mi-month__nums"><span><b class="rojo">$${n(mf)}</b> falt</span><span><b class="verde">$${n(ms)}</b> sobr</span></span>
-        </summary>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Tipo</th><th class="center">Importe</th></tr></thead><tbody>${
-          mrows.map((r) => `<tr>
-            <td>${esc(V(r, d.fechaKey) || '—')}</td>
-            <td>${esc(V(r, d.tipoKey) || '—')}</td>
-            <td class="center">$${n(Math.abs(OXXO.metricsNum(V(r, d.importeKey))))}</td>
-          </tr>`).join('')
-        }</tbody></table></div>
-      </details>`;
-    }).join('');
     return { faltante, sobrante, neto };
   }
 

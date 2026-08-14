@@ -151,6 +151,7 @@
 .mi-month__nums b{font-weight:800}
 .mi-month__nums b.rojo{color:var(--mt-bad)}
 .mi-month__nums b.verde{color:var(--mt-ok)}
+.mi-month__nums b.amarillo{color:var(--mt-warn)}
 .mi-month .tbl-wrap{margin-bottom:8px}
 
 .tbl-wrap{overflow-x:auto;max-height:220px;overflow-y:auto;scrollbar-width:thin;border-radius:10px;border:1px solid var(--mt-line)}
