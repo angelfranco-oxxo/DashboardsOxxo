@@ -18,7 +18,11 @@ window.OXXO_CONFIG = {
   REASIGNACIONES_SHEET: "Reasignaciones",
 
   // Web App de Apps Script usado por el panel admin para publicar bases.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbwBI3Q2eCsdN92S0CDMSeHAQPwIDS7rwGNYK2acQ8oxxOUYgVFpIgFLJl-HZqNSeWwd/exec",
+  // Redeploy 2026-08-14: se agrego "Reasignaciones" a ALLOWED_SHEETS en el
+  // Apps Script. La URL anterior quedo inactiva con ese redeploy (dejo de
+  // responder, "Page Not Found"), asi que ademas de agregar la pestana
+  // hubo que actualizar esta URL a la nueva.
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbyC1_KR0Ux59_Y_rT8cF799Syn7uW6Lc-EK9UMaSRFXxeFEmg711e3Za7Dyf65JMUro/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
