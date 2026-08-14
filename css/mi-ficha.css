@@ -137,6 +137,22 @@
 .mi-detail[open] summary::before{content:'Ocultar detalle ▴';}
 .mi-detail[open] summary{margin-bottom:7px}
 
+/* Faltantes y Sobrantes: un acordeon por mes en vez de una tabla plana --
+   cada mes se abre por separado para ver su detalle sin perder el resumen
+   de los demas meses. */
+.mi-months{display:flex;flex-direction:column;gap:6px}
+.mi-month{background:rgba(255,255,255,.55);border:1px solid var(--mt-line);border-radius:10px;padding:0 10px}
+.mi-month summary{cursor:pointer;list-style:none;user-select:none;display:flex;align-items:center;gap:8px;padding:8px 0;flex-wrap:wrap}
+.mi-month summary::-webkit-details-marker{display:none}
+.mi-month summary::after{content:'▾';font-size:9px;color:var(--mt-muted);margin-left:4px}
+.mi-month[open] summary::after{content:'▴'}
+.mi-month__name{flex:1 1 auto;font-size:11.5px;font-weight:800;color:var(--mt-ink)}
+.mi-month__nums{font-size:10.5px;font-weight:700;color:var(--mt-muted);display:flex;gap:8px;white-space:nowrap}
+.mi-month__nums b{font-weight:800}
+.mi-month__nums b.rojo{color:var(--mt-bad)}
+.mi-month__nums b.verde{color:var(--mt-ok)}
+.mi-month .tbl-wrap{margin-bottom:8px}
+
 .tbl-wrap{overflow-x:auto;max-height:220px;overflow-y:auto;scrollbar-width:thin;border-radius:10px;border:1px solid var(--mt-line)}
 .tbl{width:100%;border-collapse:collapse;font-size:11px}
 .tbl thead th{position:sticky;top:0;z-index:2;background:#3B2A24;color:#fff;padding:6px 9px;text-align:left;font-size:8.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap}

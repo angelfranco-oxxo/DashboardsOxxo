@@ -598,6 +598,19 @@
     DATA.d9 = { rows, crKey, tiendaKey, importeKey, tipoKey, fechaKey, meses: ultimos3 };
     addTiendas(raw, tiendaKey, crKey);
   }
+  const MESES_NOMBRE_D9 = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  function mesLabelD9(ym) {
+    const m = String(ym || '').match(/^(\d{4})-(\d{2})$/);
+    return m ? `${MESES_NOMBRE_D9[Number(m[2]) - 1]} ${m[1]}` : (ym || 'Sin fecha');
+  }
+  function sumaFaltanteSobrante(rows, importeKey) {
+    let faltante = 0, sobrante = 0;
+    rows.forEach((r) => {
+      const importe = OXXO.metricsNum(V(r, importeKey));
+      if (importe >= 0) faltante += importe; else sobrante += Math.abs(importe);
+    });
+    return { faltante, sobrante };
+  }
   function renderD9(tienda) {
     const d = DATA.d9;
     const el = document.getElementById('sec-d9');
@@ -605,30 +618,44 @@
     const rows = rowsFor(d, tienda);
     el.classList.add('show');
     document.getElementById('badge-d9').textContent = d.meses.length ? plural(d.meses.length, 'mes', 'meses') : '—';
-    let faltante = 0, sobrante = 0;
-    rows.forEach((r) => {
-      const importe = OXXO.metricsNum(V(r, d.importeKey));
-      if (importe >= 0) faltante += importe; else sobrante += Math.abs(importe);
-    });
+    const { faltante, sobrante } = sumaFaltanteSobrante(rows, d.importeKey);
     const neto = faltante - sobrante;
+    const monthsEl = document.getElementById('months-d9');
     if (!rows.length) {
       document.getElementById('stats-d9').innerHTML = '';
       document.getElementById('viz-d9').innerHTML = clearBox('Sin faltantes ni sobrantes en el periodo');
-    } else {
-      document.getElementById('stats-d9').innerHTML =
-        statTile('$' + n(faltante), 'Faltante') +
-        statTile('$' + n(sobrante), 'Sobrante') +
-        statTile((neto >= 0 ? '$' : '-$') + n(Math.abs(neto)), 'Neto');
-      document.getElementById('viz-d9').innerHTML = '';
+      monthsEl.innerHTML = '';
+      return null;
     }
-    const sorted = [...rows].sort((a, b) => String(V(b, d.fechaKey)).localeCompare(String(V(a, d.fechaKey))));
-    const tbody = document.querySelector('#tbl-d9 tbody');
-    tbody.innerHTML = sorted.length ? sorted.slice(0, 200).map((r) => `<tr>
-        <td>${esc(V(r, d.fechaKey) || '—')}</td>
-        <td>${esc(V(r, d.tipoKey) || '—')}</td>
-        <td class="center">$${n(Math.abs(OXXO.metricsNum(V(r, d.importeKey))))}</td>
-      </tr>`).join('') : emptyRow(3, 'Sin movimientos.');
-    return rows.length ? { faltante, sobrante, neto } : null;
+    document.getElementById('stats-d9').innerHTML =
+      statTile('$' + n(faltante), 'Faltante') +
+      statTile('$' + n(sobrante), 'Sobrante') +
+      statTile((neto >= 0 ? '$' : '-$') + n(Math.abs(neto)), 'Neto');
+    document.getElementById('viz-d9').innerHTML = '';
+    const porMes = new Map();
+    rows.forEach((r) => {
+      const ym = String(V(r, d.fechaKey) || '').slice(0, 7);
+      if (!porMes.has(ym)) porMes.set(ym, []);
+      porMes.get(ym).push(r);
+    });
+    monthsEl.innerHTML = [...porMes.keys()].sort().reverse().map((ym) => {
+      const mrows = [...porMes.get(ym)].sort((a, b) => String(V(b, d.fechaKey)).localeCompare(String(V(a, d.fechaKey))));
+      const { faltante: mf, sobrante: ms } = sumaFaltanteSobrante(mrows, d.importeKey);
+      return `<details class="mi-month">
+        <summary>
+          <span class="mi-month__name">${esc(mesLabelD9(ym))}</span>
+          <span class="mi-month__nums"><span><b class="rojo">$${n(mf)}</b> falt</span><span><b class="verde">$${n(ms)}</b> sobr</span></span>
+        </summary>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Tipo</th><th class="center">Importe</th></tr></thead><tbody>${
+          mrows.map((r) => `<tr>
+            <td>${esc(V(r, d.fechaKey) || '—')}</td>
+            <td>${esc(V(r, d.tipoKey) || '—')}</td>
+            <td class="center">$${n(Math.abs(OXXO.metricsNum(V(r, d.importeKey))))}</td>
+          </tr>`).join('')
+        }</tbody></table></div>
+      </details>`;
+    }).join('');
+    return { faltante, sobrante, neto };
   }
 
   // ── Resumen y alertas ──────────────────────────────────
