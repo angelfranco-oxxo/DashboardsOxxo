@@ -581,6 +581,56 @@
     return rows.length ? { capPct: pctGlobal, empleados } : null;
   }
 
+  // ── D9 · Faltantes y Sobrantes (ultimos 3 meses con datos) ──
+  async function loadD9() {
+    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.s9);
+    if (!raw || !raw.length) { DATA.d9 = null; return; }
+    const h = raw[0];
+    const crKey = K(h, ['CR']);
+    const tiendaKey = K(h, ['Tienda']);
+    const importeKey = K(h, ['Importe']);
+    const tipoKey = K(h, ['Tipo']);
+    const fechaKey = K(h, ['Fecha']);
+    const meses = new Set();
+    raw.forEach((r) => { const f = String(V(r, fechaKey) || ''); if (/^\d{4}-\d{2}/.test(f)) meses.add(f.slice(0, 7)); });
+    const ultimos3 = [...meses].sort().slice(-3);
+    const rows = ultimos3.length ? raw.filter((r) => ultimos3.includes(String(V(r, fechaKey) || '').slice(0, 7))) : raw;
+    DATA.d9 = { rows, crKey, tiendaKey, importeKey, tipoKey, fechaKey, meses: ultimos3 };
+    addTiendas(raw, tiendaKey, crKey);
+  }
+  function renderD9(tienda) {
+    const d = DATA.d9;
+    const el = document.getElementById('sec-d9');
+    if (!d) { el.classList.remove('show'); return null; }
+    const rows = rowsFor(d, tienda);
+    el.classList.add('show');
+    document.getElementById('badge-d9').textContent = d.meses.length ? plural(d.meses.length, 'mes', 'meses') : '—';
+    let faltante = 0, sobrante = 0;
+    rows.forEach((r) => {
+      const importe = OXXO.metricsNum(V(r, d.importeKey));
+      if (importe >= 0) faltante += importe; else sobrante += Math.abs(importe);
+    });
+    const neto = faltante - sobrante;
+    if (!rows.length) {
+      document.getElementById('stats-d9').innerHTML = '';
+      document.getElementById('viz-d9').innerHTML = clearBox('Sin faltantes ni sobrantes en el periodo');
+    } else {
+      document.getElementById('stats-d9').innerHTML =
+        statTile('$' + n(faltante), 'Faltante') +
+        statTile('$' + n(sobrante), 'Sobrante') +
+        statTile((neto >= 0 ? '$' : '-$') + n(Math.abs(neto)), 'Neto');
+      document.getElementById('viz-d9').innerHTML = '';
+    }
+    const sorted = [...rows].sort((a, b) => String(V(b, d.fechaKey)).localeCompare(String(V(a, d.fechaKey))));
+    const tbody = document.querySelector('#tbl-d9 tbody');
+    tbody.innerHTML = sorted.length ? sorted.slice(0, 200).map((r) => `<tr>
+        <td>${esc(V(r, d.fechaKey) || '—')}</td>
+        <td>${esc(V(r, d.tipoKey) || '—')}</td>
+        <td class="center">$${n(Math.abs(OXXO.metricsNum(V(r, d.importeKey))))}</td>
+      </tr>`).join('') : emptyRow(3, 'Sin movimientos.');
+    return rows.length ? { faltante, sobrante, neto } : null;
+  }
+
   // ── Resumen y alertas ──────────────────────────────────
   // Antes habia que leer los 8 paneles para saber si la tienda estaba
   // bien o mal. Estos dos bloques responden eso de una: el resumen trae
@@ -639,6 +689,7 @@
     const S = {
       d1: renderD1(tienda), d2: renderD2(tienda), d3: renderD3(tienda), d4: renderD4(tienda),
       d5: renderD5(tienda), d6: renderD6(tienda), d7: renderD7(tienda), d8: renderD8(tienda),
+      d9: renderD9(tienda),
     };
     renderIdentidad(tiendaDisplay, S);
     renderResumen(S);
@@ -647,7 +698,7 @@
 
   async function init() {
     CATALOG = await OXXO.loadAsesorCatalog();
-    await Promise.all([loadD1(), loadD2(), loadD3(), loadD4(), loadD5(), loadD6(), loadD7(), loadD8()]);
+    await Promise.all([loadD1(), loadD2(), loadD3(), loadD4(), loadD5(), loadD6(), loadD7(), loadD8(), loadD9()]);
     document.getElementById('corte-badge').textContent = '⟳ Datos en vivo · Plaza Oaxaca';
     mountSingleSelect('mi-tienda-select', [...TIENDAS.values()], {
       placeholder: 'Busca tu tienda',

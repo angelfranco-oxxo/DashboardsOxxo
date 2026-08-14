@@ -20,5 +20,6 @@ window.OXXO_ADMIN_COLUMN_ALIASES = {
     'Promedio de PLD2026Certificacion':['promedio de pld2026certificacion','pld2026certificacion','pld 2026 certificacion','pld2026 certificacion'],
     'Promedio de ModuloCercaSiempre2026':['promedio de modulocercasiempre2026','modulocercasiempre2026','modulo cerca siempre 2026'],
     'Promedio de Resultado Certificación Alimentos y Bebidas 2026':['promedio de resultado certificacion alimentos y bebidas 2026','resultado certificacion alimentos y bebidas 2026','certificacion alimentos y bebidas'],
-    'Pan Horneado':['pan horneado']
+    'Pan Horneado':['pan horneado'],
+    'CR':['cr'],'Concepto':['faltante sobrante','concepto']
   };
