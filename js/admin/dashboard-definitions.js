@@ -112,9 +112,22 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
   // CONCILACION" vs "CONCILIACIÓN", "ACTA SOBRENTE"), pero el signo es
   // consistente en los 3 meses verificados -- positivo=Faltante (la tienda
   // debe dinero), negativo=Sobrante (credito a favor).
+  // Semana viene vacia en ~30 filas por mes (traspasos de saldo entre meses,
+  // ej. "SALDO DE JUNIO"): son movimientos reales, no basura. El Apps Script
+  // descarta en silencio las filas con periodColumn vacio en modo
+  // replacePeriod (no puede reconciliarlas en publicaciones futuras), asi
+  // que se rellenan aqui con un valor derivado de su propia Fecha (mismo mes,
+  // "sem 0") para que no se pierdan.
+  const MESES_D9=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  function semanaFallbackD9(isoFecha){
+    const m=String(isoFecha||'').match(/^(\d{4})-(\d{2})-\d{2}$/);
+    return m?`${MESES_D9[Number(m[2])-1]} ${m[1].slice(2)} sem 0`:'';
+  }
   function deriveD9(row){
     const importe=toNumberD9(row.Importe);
-    return {...row,Fecha:isoDateD9(parseFechaD9(row.Fecha)),CR:String(row.CR||'').trim().toUpperCase(),Importe:importe,Tipo:importe>=0?'Faltante':'Sobrante'};
+    const fecha=isoDateD9(parseFechaD9(row.Fecha));
+    const semana=String(row.Semana||'').trim()||semanaFallbackD9(fecha);
+    return {...row,Fecha:fecha,CR:String(row.CR||'').trim().toUpperCase(),Importe:importe,Tipo:importe>=0?'Faltante':'Sobrante',Semana:semana};
   }
 
   return [
