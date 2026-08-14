@@ -27,7 +27,9 @@ window.OXXO_CONFIG = {
   // devuelve una hoja completa via SpreadsheetApp (sin gviz). Necesario
   // porque gviz corrompe la exportacion CSV de Catalogo_Asesores (fusiona
   // decenas de filas en una sola celda, ver loadAsesorCatalog en core.js).
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxJT9VgnpD9oP40lMjkN32KKvHoYac1BFsu0kP5YTSUf1E4YDua8Vb2rEbgO3D0FbXv/exec",
+  // Redeploy 2026-08-14 (c): se agrego 'Dashboard_9_Semanal' a ALLOWED_SHEETS
+  // para publicar el nuevo Dashboard 9 (Faltantes y Sobrantes).
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbx44nBCUjGx_w69dZR2x9XmRMItaDMjjyU47nmiKyIL9X6h2ZkL8mjk41oPFiyRBnf6/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
