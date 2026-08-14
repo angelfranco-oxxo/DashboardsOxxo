@@ -41,14 +41,67 @@
     if (!tbody) return;
     tbody.innerHTML = (rows.length ? rows : [null]).map(rowHTML).join('');
   }
-  function addRow() {
+  function addRow(prefill) {
     const tbody = $('reas-table')?.querySelector('tbody');
     if (!tbody) return;
-    tbody.insertAdjacentHTML('beforeend', rowHTML(null));
+    // La fila vacia que queda cuando no hay nada (rowHTML(null) via
+    // renderRows) no cuenta como "real": si es lo unico que hay, se
+    // reemplaza en vez de apilarse encima.
+    const soloVacia = tbody.children.length === 1 && !tbody.querySelector('[data-field="tienda"]').value.trim();
+    const html = rowHTML(prefill || null);
+    if (soloVacia) tbody.innerHTML = html; else tbody.insertAdjacentHTML('beforeend', html);
   }
   function setStatus(msg) {
     const el = $('reas-status');
     if (el) el.textContent = msg;
+  }
+
+  // ── Deteccion masiva: tiendas que el catalogo YA marca sin AT vigente ──
+  // El catalogo es la misma fuente que usa resolveAsesorD1, asi que esta
+  // lista es exactamente "que se veria afectado hoy" -- no hace falta
+  // escanear los 8 dashboards por separado. Se excluyen las que ya tienen
+  // fila en la tabla de abajo (currentRows), para no duplicar.
+  let huerfanas = [];
+  function computeHuerfanas() {
+    const yaCubiertas = new Set(currentRows.map((r) => OXXO.normalizeCatalogTienda(r.tienda)));
+    const vistas = new Set();
+    return (CATALOG.rows || [])
+      .filter((r) => {
+        const tienda = String(r.tienda || '').trim();
+        if (!tienda) return false;
+        if (!/sin asesor/i.test(String(r.asesor || '').trim()) && String(r.asesor || '').trim()) return false;
+        if (OXXO.metricsIsTiendaEntrenamientoOperacionesD2(tienda)) return false;
+        const key = OXXO.normalizeCatalogTienda(tienda);
+        if (yaCubiertas.has(key) || vistas.has(key)) return false;
+        vistas.add(key);
+        return true;
+      })
+      .map((r) => ({ tienda: r.tienda, cr: r.cr }))
+      .sort((a, b) => a.tienda.localeCompare(b.tienda, 'es'));
+  }
+  function renderHuerfanas() {
+    const tbody = $('reas-huerfanas-list');
+    if (!tbody) return;
+    tbody.innerHTML = huerfanas.length
+      ? huerfanas.map((h, i) => `<tr>
+          <td><input type="checkbox" class="reas-huerfana-check" data-i="${i}" /></td>
+          <td>${esc(h.tienda)}</td>
+          <td>${esc(h.cr || '—')}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="3" style="padding:16px;text-align:center;color:#9b6b60">Sin tiendas huérfanas pendientes ahora mismo 🎉</td></tr>';
+  }
+  function bulkAdd() {
+    const asesor = $('reas-bulk-asesor').value.trim();
+    if (!asesor) { alert('Selecciona el asesor entrante para las tiendas marcadas.'); return; }
+    const nota = $('reas-bulk-nota').value.trim();
+    const checks = [...document.querySelectorAll('.reas-huerfana-check:checked')];
+    if (!checks.length) { alert('Marca al menos una tienda.'); return; }
+    const indices = checks.map((c) => Number(c.dataset.i));
+    indices.forEach((i) => addRow({ tienda: huerfanas[i].tienda, asesor, nota }));
+    huerfanas = huerfanas.filter((_, i) => !indices.includes(i));
+    renderHuerfanas();
+    $('reas-bulk-nota').value = '';
+    setStatus(`${indices.length} tienda${indices.length === 1 ? '' : 's'} agregada${indices.length === 1 ? '' : 's'} a la tabla de abajo. Revisa y da Publicar para que apliquen.`);
   }
 
   // Trae las reasignaciones YA publicadas (lectura directa de la hoja, no
@@ -84,9 +137,13 @@
       ASESORES = [...nombres].sort((a, b) => a.localeCompare(b, 'es'));
       const tiendas = [...CATALOG.byTienda.values()].map((v) => v.tienda).filter(Boolean).sort((a, b) => a.localeCompare(b, 'es'));
       $('reas-tiendas-list').innerHTML = tiendas.map((t) => `<option value="${esc(t)}"></option>`).join('');
+      $('reas-bulk-asesor').innerHTML = ['<option value="">Asesor entrante…</option>']
+        .concat(ASESORES.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`)).join('');
 
       currentRows = await fetchCurrentRows();
       renderRows(currentRows);
+      huerfanas = computeHuerfanas();
+      renderHuerfanas();
       const plural = currentRows.length === 1 ? 'reasignación activa' : 'reasignaciones activas';
       setStatus(currentRows.length
         ? `${currentRows.length} ${plural}. Agrega, edita o quita filas y publica para actualizar.`
@@ -94,6 +151,7 @@
     } catch (err) {
       console.error(err);
       renderRows([]);
+      renderHuerfanas();
       setStatus('No se pudo leer el estado actual de Reasignaciones. Puedes seguir agregando filas y publicar de todos modos.');
     }
   }
@@ -138,6 +196,8 @@
       };
       const result = await OXXO_ADMIN_CTX.postAdminPayload(payload);
       currentRows = rows.map((r) => ({ tienda: r.Tienda, asesor: r.Asesor_Entrante, nota: r.Nota }));
+      huerfanas = computeHuerfanas();
+      renderHuerfanas();
       const plural = rows.length === 1 ? 'reasignación publicada' : 'reasignaciones publicadas';
       setStatus(result.compatibilityMode
         ? `Solicitud enviada en modo compatible. Espera unos segundos y recarga esta pestaña para confirmar.`
@@ -160,8 +220,11 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     if (!$('reas-table')) return;
-    $('reas-add-row').addEventListener('click', addRow);
+    $('reas-add-row').addEventListener('click', () => addRow());
     $('reas-publish-btn').addEventListener('click', publish);
+    $('reas-bulk-add').addEventListener('click', bulkAdd);
+    $('reas-bulk-select-all').addEventListener('click', () => document.querySelectorAll('.reas-huerfana-check').forEach((c) => { c.checked = true; }));
+    $('reas-bulk-select-none').addEventListener('click', () => document.querySelectorAll('.reas-huerfana-check').forEach((c) => { c.checked = false; }));
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('reas-row-remove')) {
         const tr = e.target.closest('tr');
