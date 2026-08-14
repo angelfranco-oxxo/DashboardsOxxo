@@ -1155,6 +1155,7 @@ if (document.readyState === 'loading') {
 
 // Catalogo compartido para corregir Asesor por CR/Tienda
 let asesorCatalogPromise = null;
+let reasignacionesPromise = null;
 function stripAccents(value) {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
@@ -1264,38 +1265,43 @@ function filterValidTiendas(rows, catalog, tiendaKey, crKey) {
 // tiendas con asesor distinto), asi que por ahora es MENOS confiable que un
 // catalogo curado a mano mientras se resuelve la publicacion de esos archivos.
 // Catalogo_Asesores debe mantenerse actualizado manualmente hasta entonces.
+async function loadAsesorCatalogRows() {
+  // 1) Fuente principal: catalogo estatico versionado en el repo
+  //    (assets/catalogo_asesores.csv). Se prefiere sobre la hoja de Google
+  //    porque la publicacion via gviz venia perdiendo/fusionando filas
+  //    (llegaban ~155 de 263 tiendas), dejando a Dashboard 3 sin match y
+  //    cayendo al asesor viejo. El archivo estatico es completo y deterministico.
+  try {
+    const localUrl = siteBasePath() + 'assets/catalogo_asesores.csv';
+    const resp = await fetch(localUrl, { cache: 'no-store' });
+    if (resp.ok) {
+      const rows = parseAsesorCatalogCSV(await resp.text());
+      if (rows.length) return buildAsesorCatalog(rows);
+      console.warn('[OXXO] catalogo_asesores.csv sin filas validas, usando la hoja.');
+    }
+  } catch (e) {
+    console.warn('[OXXO] No se pudo leer catalogo_asesores.csv, usando la hoja:', e);
+  }
+  // 2) Respaldo: hoja Catalogo_Asesores en Google Sheets
+  try {
+    const url = buildSheetURL(SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores') + '&range=A2%3AC';
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const rows = parseAsesorCatalogCSV(await response.text());
+    const catalog = buildAsesorCatalog(rows);
+    if (!rows.length) console.warn('[OXXO] Catalogo_Asesores no devolvio filas validas.');
+    return catalog;
+  } catch (error) {
+    console.warn('[OXXO] No se pudo cargar Catalogo_Asesores:', error);
+    return { loaded: false, rows: [], byCr: new Map(), byTienda: new Map() };
+  }
+}
 async function loadAsesorCatalog() {
   if (asesorCatalogPromise) return asesorCatalogPromise;
   asesorCatalogPromise = (async () => {
-    // 1) Fuente principal: catalogo estatico versionado en el repo
-    //    (assets/catalogo_asesores.csv). Se prefiere sobre la hoja de Google
-    //    porque la publicacion via gviz venia perdiendo/fusionando filas
-    //    (llegaban ~155 de 263 tiendas), dejando a Dashboard 3 sin match y
-    //    cayendo al asesor viejo. El archivo estatico es completo y deterministico.
-    try {
-      const localUrl = siteBasePath() + 'assets/catalogo_asesores.csv';
-      const resp = await fetch(localUrl, { cache: 'no-store' });
-      if (resp.ok) {
-        const rows = parseAsesorCatalogCSV(await resp.text());
-        if (rows.length) return buildAsesorCatalog(rows);
-        console.warn('[OXXO] catalogo_asesores.csv sin filas validas, usando la hoja.');
-      }
-    } catch (e) {
-      console.warn('[OXXO] No se pudo leer catalogo_asesores.csv, usando la hoja:', e);
-    }
-    // 2) Respaldo: hoja Catalogo_Asesores en Google Sheets
-    try {
-      const url = buildSheetURL(SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores') + '&range=A2%3AC';
-      const response = await fetch(url, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const rows = parseAsesorCatalogCSV(await response.text());
-      const catalog = buildAsesorCatalog(rows);
-      if (!rows.length) console.warn('[OXXO] Catalogo_Asesores no devolvio filas validas.');
-      return catalog;
-    } catch (error) {
-      console.warn('[OXXO] No se pudo cargar Catalogo_Asesores:', error);
-      return { loaded: false, rows: [], byCr: new Map(), byTienda: new Map() };
-    }
+    const [catalog, reasignaciones] = await Promise.all([loadAsesorCatalogRows(), loadReasignaciones()]);
+    catalog.reasignaciones = reasignaciones;
+    return catalog;
   })();
   return asesorCatalogPromise;
 }
@@ -1330,17 +1336,59 @@ function metricsIsSinAsesorD1(value) {
   const t = metricsNormText(value).replace(/[^A-Z]/g, '');
   return !t || t.includes('SINASESOR') || t.includes('NOASIGNADO');
 }
+// Reasignaciones: pestana opcional del Sheet (ver panel admin, seccion
+// "Reasignaciones") donde se registra quien hereda una tienda cuando su
+// asesor deja la empresa -- sin tocar codigo. Si la pestana no existe
+// todavia o esta vacia, se devuelve vacio sin error: resolveAsesorD1 cae al
+// respaldo fijo de abajo, que es el que ya cubre el caso de Anadelia.
+async function loadReasignaciones() {
+  if (reasignacionesPromise) return reasignacionesPromise;
+  reasignacionesPromise = (async () => {
+    const empty = { byCr: new Map(), byTienda: new Map(), rows: [] };
+    try {
+      const raw = await fetchSheetData(SHEETS_CONFIG.REASIGNACIONES_SHEET || 'Reasignaciones');
+      if (!raw || !raw.length) return empty;
+      const h = raw[0];
+      const crKey = metricsFindKey(h, ['CR', 'CR Tienda', 'CR TIENDA']);
+      const tiendaKey = metricsFindKey(h, ['Tienda']);
+      const entranteKey = metricsFindKey(h, ['Asesor_Entrante', 'Asesor Entrante', 'Nuevo Asesor', 'Hereda']);
+      if (!entranteKey) return empty;
+      const byCr = new Map(), byTienda = new Map();
+      raw.forEach(row => {
+        const entrante = String(metricsVal(row, entranteKey) || '').trim();
+        if (!entrante) return;
+        const crK = crKey ? normalizeCatalogCr(metricsVal(row, crKey)) : '';
+        const tK = tiendaKey ? normalizeCatalogTienda(metricsVal(row, tiendaKey)) : '';
+        if (crK) byCr.set(crK, entrante);
+        if (tK) byTienda.set(tK, entrante);
+      });
+      return { byCr, byTienda, rows: raw };
+    } catch (e) {
+      console.warn('[OXXO] No se pudo cargar Reasignaciones (opcional):', e);
+      return empty;
+    }
+  })();
+  return reasignacionesPromise;
+}
+function lookupReasignacion(catalog, cr, tienda) {
+  const r = catalog?.reasignaciones;
+  if (!r) return '';
+  const crKey = normalizeCatalogCr(cr);
+  if (crKey && r.byCr.has(crKey)) return r.byCr.get(crKey);
+  const tiendaKey = normalizeCatalogTienda(tienda);
+  if (tiendaKey && r.byTienda.has(tiendaKey)) return r.byTienda.get(tiendaKey);
+  return '';
+}
 // Snapshot fijo (por CR, la llave estable) de las tiendas que eran de
-// Anadelia Hernandez Santiago cuando dejo la empresa. Antes, resolveAsesorD1
-// decidia Timoteo-vs-Sin-Asesor mirando si la celda CRUDA de asesor de ESE
-// archivo en particular traia su nombre o venia vacia -- pero los 8 origenes
-// de datos se mantienen por separado y no todos se "limpian" al mismo
-// tiempo: unos ya traen la celda en blanco, otros siguen con su nombre
-// escrito. Resultado real medido: 27 tiendas salian como Timoteo en unos
-// dashboards y como Sin Asesor Asignado en otros, a veces hasta entre filas
-// del MISMO archivo. Con este snapshot fijo (construido una vez cruzando las
-// 8 bases) la misma tienda sale igual sin importar que base mires, y no
-// cambia aunque algun archivo termine de limpiar el nombre viejo.
+// Anadelia Hernandez Santiago cuando dejo la empresa, y que quedan como
+// respaldo permanente por si la pestana Reasignaciones esta vacia o no
+// existe todavia. Antes, resolveAsesorD1 decidia Timoteo-vs-Sin-Asesor
+// mirando si la celda CRUDA de asesor de ESE archivo en particular traia
+// su nombre o venia vacia -- pero los 8 origenes de datos se mantienen por
+// separado y no todos se "limpian" al mismo tiempo. Resultado real medido:
+// 27 tiendas salian como Timoteo en unos dashboards y como Sin Asesor
+// Asignado en otros. Con este snapshot fijo (construido una vez cruzando
+// las 8 bases) la misma tienda sale igual sin importar que base mires.
 const ANADELIA_CR = new Set(['50XUE','50C10','50A49','50XUP','50DXH','50D6F','50LIY','50ZP4','50JT5','507SP','50ALK','50K5Z','507EF','50G0Y','5094V','50E1V','50H1A','501OP','5084R','50C62','50JTQ','50LPB','502WQ','5000K','50T5X','50XUA','50NK1'].map(normalizeCatalogCr));
 const ANADELIA_TIENDA = new Set(['OXXO CALENDA','OXXO JALPAN OAX','OXXO MARIA ARISTA OAX','OXXO MORELOS','OXXO JP GARCIA OAX','OXXO LLANO OAX','OXXO RINCONADAS OAX','OXXO ALCALA OAX','OXXO TERAN OAX','OXXO LA SALLE VSA','OXXO VENUS OAX','OXXO XOXO OAX','OXXO MI RANCHITO OAX','OXXO DIAZ OAX','OXXO TEQUIO OAX','OXXO ANTEQUERA G500 VSA','OXXO LORDCAST VSA','OXXO ZAACHILA VSA','OXXO LA CIÉNEGA VSA','OXXO CARRILLO OAX','OXXO GALA','OXXO HINOJOSA OAX','OXXO MARIA MORELOS OAX','OXXO NUNO DEL MERCADO VSA','OXXO PIPILA OAX','OXXO SANTA ANITA','OXXO SANTA ELENA OAX'].map(normalizeCatalogTienda));
 function esTiendaDeAnadelia(cr, tienda) {
@@ -1350,16 +1398,18 @@ function esTiendaDeAnadelia(cr, tienda) {
   return Boolean(tiendaKey && ANADELIA_TIENDA.has(tiendaKey));
 }
 // Regla general (todos los dashboards): toda tienda sin un AT vigente en el
-// catalogo se atribuye a Timoteo Antonio Perez si era una tienda de Anadelia
-// (snapshot fijo de arriba); si nunca fue suya, se deja como "Sin Asesor
-// Asignado" tal cual, sin inventarle dueño a Timoteo. Las unidades de
+// catalogo se atribuye a quien la haya heredado en la pestana Reasignaciones
+// del Sheet (panel admin); si nadie la reasigno ahi, se usa el snapshot fijo
+// de Anadelia como respaldo; si tampoco aplica, se deja como "Sin Asesor
+// Asignado" tal cual, sin inventarle dueño a nadie. Las unidades de
 // Entrenamiento/Operaciones (no son tiendas operativas reales) siempre se
-// quedan con su propio "Sin Asesor Asignado", sin pasar por catalogo ni por
-// esta distincion.
+// quedan con su propio "Sin Asesor Asignado", sin pasar por nada de esto.
 function resolveAsesorD1(catalog, { cr='', tienda='', asesor='' } = {}) {
   if (metricsIsTiendaEntrenamientoOperacionesD2(tienda)) return 'Sin Asesor Asignado';
   const resolved = resolveAsesor(catalog, { cr, tienda, asesor });
   if (!metricsIsSinAsesorD1(resolved)) return resolved;
+  const heredero = lookupReasignacion(catalog, cr, tienda);
+  if (heredero) return heredero;
   return esTiendaDeAnadelia(cr, tienda) ? 'Timoteo Antonio Perez' : 'Sin Asesor Asignado';
 }
 // Todos los consumidores de catalogo (Dashboard 4, 6, 8, etc.) pasan por
@@ -2141,6 +2191,7 @@ window.OXXO = {
   downloadRowsAsCSV,
   handleDownloadButton,
   loadAsesorCatalog,
+  loadReasignaciones,
   resolveAsesor,
   resolveAsesorD1,
   applyAsesorCatalog,
