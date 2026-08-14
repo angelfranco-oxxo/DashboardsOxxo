@@ -89,6 +89,34 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
       .sort((a,b)=>b['Bajas Plaza']-a['Bajas Plaza']);
   }
 
+  // deriveD9 (Faltantes y Sobrantes): la columna Fecha de este reporte llega
+  // de SheetJS (raw:false) en formato M/D/AA (ej. "7/31/26" = 31 de julio),
+  // al reves del D/M/A que asume parseDate() del resto de los dashboards --
+  // confirmado con datos reales: valores como "7/31/26" tienen 31 en la
+  // segunda posicion, imposible como mes. Usar el parser compartido
+  // corrompia la fecha (ej. "7/31/26" quedaba como 2028-07-07 por overflow
+  // de mes en new Date()). Se parsea aqui con su propio formato en vez de
+  // tocar parseDate(), que si funciona bien para los demas 8 dashboards.
+  function parseFechaD9(value){
+    const m=String(value||'').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if(!m)return null;
+    let year=Number(m[3]);if(year<100)year+=2000;
+    const d=new Date(year,Number(m[1])-1,Number(m[2]));
+    return isNaN(d)?null:d;
+  }
+  function isoDateD9(d){return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';}
+  function toNumberD9(value){const n=Number(String(value??'').replace(/[$,]/g,'').trim());return Number.isFinite(n)?n:0;}
+  // Tipo (Faltante/Sobrante) se calcula por el signo de Importe, no por el
+  // texto de Concepto: el reporte de origen trae decenas de variantes de
+  // concepto con errores de captura/acentos inconsistentes (ej. "SOBRANTE EN
+  // CONCILACION" vs "CONCILIACIÓN", "ACTA SOBRENTE"), pero el signo es
+  // consistente en los 3 meses verificados -- positivo=Faltante (la tienda
+  // debe dinero), negativo=Sobrante (credito a favor).
+  function deriveD9(row){
+    const importe=toNumberD9(row.Importe);
+    return {...row,Fecha:isoDateD9(parseFechaD9(row.Fecha)),CR:String(row.CR||'').trim().toUpperCase(),Importe:importe,Tipo:importe>=0?'Faltante':'Sobrante'};
+  }
+
   return [
     {key:'d1',label:'Dashboard 1 - Vacantes diarias',tab:OXXO.SHEETS_CONFIG.TABS.d1,periodColumn:'Mes',preferredSheets:['Estructura','Dashboard_1_Diario'],output:['Plaza','Asesor','Unidad org','CR TIENDA','ID posiciones','Descripcion de Posicion','Status ocupacion','Empleados','Fecha','Dias Vacantes','Mes'],required:['Plaza','Asesor','Unidad org','ID posiciones','Descripcion de Posicion','Status ocupacion'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD1,notes:'Estructura cruda. Mes se toma del nombre del archivo; Dias Vacantes se deriva del texto vacante si no viene en el archivo. Se publican TODAS las posiciones (no solo vacantes) para que TREO calcule SAP/Activos por tienda; Dashboard 1 filtra por su cuenta las que son vacante (Status/Empleados vacio).'},
     {key:'d2',label:'Dashboard 2 - Bajas diarias',tab:OXXO.SHEETS_CONFIG.TABS.d2,periodColumn:'Mes',preferredSheets:['Bajas'],output:['Plaza','Asesor','Nombre del empleado','No Personal','Fecha','Mes','Semana','Temporalidad','Rot_Temp','Puesto','Tienda','Motivo','Detalle','Edad','Genero'],required:['Plaza','Asesor','Nombre del empleado','Fecha','Semana','Temporalidad','Rot_Temp','Puesto','Tienda'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD2,notes:'Base principal de bajas. Mes se toma del nombre del archivo si trae fecha; si no, se calcula con F. Validez/Fecha.'},
@@ -116,7 +144,7 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
     {key:'s6',label:'Dashboard 6 - Ausentismos',tab:OXXO.SHEETS_CONFIG.TABS.s6,periodColumn:'Semana',preferredSheets:['Absentismos'],output:['Zona','Region','Plaza','Asesor','N de personal','Nombre del empleado o candidato','Estatus','Esquema','Puesto','Cr de Tienda','Tienda','Tipo_Ausentismo','Denominacion','Inicio de validez','Fin de validez','Dias','Horas','Absentismos solo en la semana','Inicio de semana','Fin de semana','Ano','Mes','Semana'],required:['Plaza','Asesor','N de personal','Nombre del empleado o candidato','Tienda','Tipo_Ausentismo','Denominacion','Absentismos solo en la semana','Semana'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD6,notes:'Absentismos. La metrica principal es Absentismos solo en la semana.'},
     {key:'s7',label:'Dashboard 7 - TREO',tab:OXXO.SHEETS_CONFIG.TABS.s7,preferredSheets:['Liberacion','LiberaciÃ³n'],output:['Plaza','CR Reg','CR','Tienda','ID Tienda','Asesor','Accionable sugerido TREO','Estructura Propuesta TREO P2 Jun - Ago','Estructura SAP','Empleados Activos','Vacantes','Dif SAP vs Est Optima Final','Movimiento Inicial','Turnos','Antiguedad'],required:['Plaza','CR','Tienda','Asesor','Estructura Propuesta TREO P2 Jun - Ago','Estructura SAP','Empleados Activos','Vacantes','Movimiento Inicial'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD7,notes:'Usa el primer bloque operativo: TREO=L, SAP=M, Activos=N, Vacantes=O, Movimiento=Q.'},
     {key:'d8',label:'Dashboard 8 - Capacidades',tab:OXXO.SHEETS_CONFIG.TABS.d8,preferredSheets:['Sheet1','Capacidades'],output:['Zona','Region','Plaza','Asesor_Correcto','Esquema','Unidad org.','Cr de tienda','Puesto_Correcto','Nº personal','Empleados','Promedio de Código de Ética 2026','Promedio de Seguridad en la persona 2026','Promedio de Cobro dls Sedes Mundialistas 2026','Promedio de Capacidad Tablero Amazon Counter','Promedio de PLD2026Certificacion','Promedio de ModuloCercaSiempre2026','Promedio de Resultado Certificación Alimentos y Bebidas 2026','Pan Horneado'],required:['Plaza','Asesor_Correcto','Puesto_Correcto','Empleados'],filter:r=>containsOaxaca(r.Plaza),derive:r=>r,notes:'Tablero de Capacidades: foto diaria de certificaciones por empleado, sin columna de periodo. Cada carga reemplaza toda la pestana. Las columnas de certificacion vienen 1=completo, 0=pendiente, fraccion=parcial y vacio=no aplica a ese puesto/tienda.'},
-    {key:'catalog',label:'Catalogo de asesores',tab:OXXO.SHEETS_CONFIG.CATALOG_SHEET,preferredSheets:['Catalogo_Asesores','Catalogo asesores','Hoja1','ASESORES ACTJUNJUL'],output:['ASESOR','TIENDA','CR TIENDA'],required:['ASESOR','TIENDA','CR TIENDA'],filter:r=>Boolean(r.ASESOR&&(r.TIENDA||r['CR TIENDA'])),derive:deriveCatalog,notes:'Catalogo compartido para corregir asesor por CR/Tienda. Acepta archivos con titulo arriba y encabezados ASESOR, TIENDA, CR TIENDA.'}
-  
+    {key:'catalog',label:'Catalogo de asesores',tab:OXXO.SHEETS_CONFIG.CATALOG_SHEET,preferredSheets:['Catalogo_Asesores','Catalogo asesores','Hoja1','ASESORES ACTJUNJUL'],output:['ASESOR','TIENDA','CR TIENDA'],required:['ASESOR','TIENDA','CR TIENDA'],filter:r=>Boolean(r.ASESOR&&(r.TIENDA||r['CR TIENDA'])),derive:deriveCatalog,notes:'Catalogo compartido para corregir asesor por CR/Tienda. Acepta archivos con titulo arriba y encabezados ASESOR, TIENDA, CR TIENDA.'},
+    {key:'s9',label:'Dashboard 9 - Faltantes y sobrantes',tab:OXXO.SHEETS_CONFIG.TABS.s9,periodColumn:'Semana',preferredSheets:[],output:['Fecha','CR','Tienda','Asesor','Importe','Tipo','Concepto','Semana'],required:['CR','Importe','Fecha','Semana'],filter:r=>Boolean(String(r.CR||'').trim())&&Number.isFinite(r.Importe),derive:deriveD9,notes:'Faltantes y sobrantes de caja (reporte de Recoleccion). Cada mes viene en su propia hoja del Excel de origen (ej. "08AGO", "07JUL"): sube la hoja del mes correspondiente cada vez, se reemplazan solo las semanas de esa hoja sin borrar meses anteriores. Tipo se calcula por el signo de Importe (positivo=Faltante, negativo=Sobrante). Las hojas de origen ya vienen filtradas a Plaza Oaxaca.'}
   ];
 };
