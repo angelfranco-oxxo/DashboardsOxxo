@@ -137,6 +137,25 @@
 .mi-detail[open] summary::before{content:'Ocultar detalle ▴';}
 .mi-detail[open] summary{margin-bottom:7px}
 
+/* Paneles sin historial (Aprovechamiento, Vacaciones, TREO, Capacidades):
+   "Ver detalle" abre un modal en vez de desplegar la tabla en linea -- la
+   tabla real vive oculta en el DOM y se clona dentro del modal al abrir
+   (ver initDetailModal en mi-ficha-ui.js). */
+.mi-detail-btn{cursor:pointer;font-size:10.5px;font-weight:800;color:#C1101B;background:none;border:none;padding:4px 0;margin-top:4px;letter-spacing:.03em;font-family:inherit}
+.mi-detail-btn:hover{text-decoration:underline}
+.mi-detail-btn::after{content:' ⤢';font-size:9px}
+.mi-detail-hidden{display:none}
+
+.mi-modal-overlay{position:fixed;inset:0;background:rgba(45,11,12,.55);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
+.mi-modal-overlay.show{display:flex}
+.mi-modal{background:var(--mt-tile);border:1px solid var(--mt-line);border-radius:16px;max-width:560px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(45,11,12,.35)}
+.mi-modal__head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--mt-line)}
+.mi-modal__head h3{margin:0;font-family:var(--font-display);font-size:.95rem;font-weight:800;color:var(--mt-ink);letter-spacing:.01em}
+.mi-modal__close{cursor:pointer;background:none;border:none;font-size:22px;line-height:1;color:var(--mt-muted);padding:2px 8px;border-radius:8px}
+.mi-modal__close:hover{background:rgba(130,54,38,.08);color:var(--mt-ink)}
+.mi-modal__body{padding:12px 16px 16px;overflow-y:auto}
+.mi-modal__body .tbl-wrap{max-height:none;border:none}
+
 /* Faltantes y Sobrantes: un acordeon por mes en vez de una tabla plana --
    cada mes se abre por separado para ver su detalle sin perder el resumen
    de los demas meses. */
