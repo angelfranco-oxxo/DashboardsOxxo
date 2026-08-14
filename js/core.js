@@ -1265,24 +1265,58 @@ function filterValidTiendas(rows, catalog, tiendaKey, crKey) {
 // tiendas con asesor distinto), asi que por ahora es MENOS confiable que un
 // catalogo curado a mano mientras se resuelve la publicacion de esos archivos.
 // Catalogo_Asesores debe mantenerse actualizado manualmente hasta entonces.
+// Lee Catalogo_Asesores directo via el Apps Script (SpreadsheetApp,
+// action=readSheet), sin pasar por gviz. Se confirmo con datos reales que
+// gviz corrompe la exportacion CSV de esta hoja especifica (fusiona ~109 de
+// 263 filas en una sola celda, siempre las mismas, sin importar como se
+// escribio ni cache de por medio -- ver hallazgo completo en la sesion que
+// agrego esto). Esta lectura es la que permite que el catalogo se edite
+// desde el panel admin y quede vivo de inmediato en el sitio.
+async function fetchCatalogRowsDirect() {
+  const base = SHEETS_CONFIG.ADMIN_UPLOAD_URL;
+  if (!base) return null;
+  const sheetName = SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores';
+  const url = `${base}${base.includes('?') ? '&' : '?'}action=readSheet&sheet=${encodeURIComponent(sheetName)}`;
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+  if (!data.ok) throw new Error(data.error || 'respuesta invalida de readSheet');
+  let values = Array.isArray(data.values) ? data.values : [];
+  // Fila 1 = "sacrificio" (_buffer_) si la hoja se publico con
+  // writeWithBufferRow; fila real de encabezados justo despues.
+  if (values.length && values[0].every(c => String(c ?? '').trim() === '_buffer_')) values = values.slice(1);
+  const rows = [];
+  values.slice(1).forEach((r) => {
+    const asesor = String(r[0] ?? '').trim(), tienda = String(r[1] ?? '').trim(), cr = String(r[2] ?? '').trim();
+    if (validCatalogRow(asesor, tienda, cr)) rows.push({ asesor, tienda, cr });
+  });
+  return rows;
+}
 async function loadAsesorCatalogRows() {
-  // 1) Fuente principal: catalogo estatico versionado en el repo
-  //    (assets/catalogo_asesores.csv). Se prefiere sobre la hoja de Google
-  //    porque la publicacion via gviz venia perdiendo/fusionando filas
-  //    (llegaban ~155 de 263 tiendas), dejando a Dashboard 3 sin match y
-  //    cayendo al asesor viejo. El archivo estatico es completo y deterministico.
+  // 1) Fuente principal: lectura directa via Apps Script (ver arriba).
+  try {
+    const rows = await fetchCatalogRowsDirect();
+    if (rows && rows.length) return buildAsesorCatalog(rows);
+    if (rows) console.warn('[OXXO] Lectura directa de Catalogo_Asesores vino vacia, usando respaldo.');
+  } catch (e) {
+    console.warn('[OXXO] No se pudo leer Catalogo_Asesores via Apps Script, usando respaldo:', e);
+  }
+  // 2) Respaldo: catalogo estatico versionado en el repo
+  //    (assets/catalogo_asesores.csv), por si el Apps Script no responde.
   try {
     const localUrl = siteBasePath() + 'assets/catalogo_asesores.csv';
     const resp = await fetch(localUrl, { cache: 'no-store' });
     if (resp.ok) {
       const rows = parseAsesorCatalogCSV(await resp.text());
       if (rows.length) return buildAsesorCatalog(rows);
-      console.warn('[OXXO] catalogo_asesores.csv sin filas validas, usando la hoja.');
+      console.warn('[OXXO] catalogo_asesores.csv sin filas validas, usando gviz.');
     }
   } catch (e) {
-    console.warn('[OXXO] No se pudo leer catalogo_asesores.csv, usando la hoja:', e);
+    console.warn('[OXXO] No se pudo leer catalogo_asesores.csv, usando gviz:', e);
   }
-  // 2) Respaldo: hoja Catalogo_Asesores en Google Sheets
+  // 3) Ultimo respaldo: hoja Catalogo_Asesores via gviz (puede venir con
+  //    filas fusionadas para esta hoja en particular; solo se llega aqui si
+  //    fallaron los dos anteriores).
   try {
     const url = buildSheetURL(SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores') + '&range=A2%3AC';
     const response = await fetch(url, { cache: 'no-store' });
