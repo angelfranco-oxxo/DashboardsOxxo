@@ -528,7 +528,7 @@
     document.getElementById('badge-d7').textContent = plural(rows.length, 'registro', 'registros');
     const fichaEl = document.getElementById('ficha-d7');
     const statsEl = document.getElementById('stats-d7');
-    const detailEl = document.querySelector('#tbl-d7').closest('.mi-detail');
+    const detailEl = document.querySelector('.mi-detail-btn[data-modal-target="tbl-d7"]');
     // Caso normal: la tienda tiene exactamente un registro en TREO -> se
     // muestra la Ficha Tecnica en vez de la tabla generica (que tendria una
     // sola fila, poco util). Se oculta tambien el "Ver detalle" (no hay
@@ -541,7 +541,6 @@
       statsEl.style.display = 'none';
       statsEl.innerHTML = '';
       detailEl.style.display = 'none';
-      detailEl.open = false;
       document.querySelector('#tbl-d7 tbody').innerHTML = '';
       const r0 = rows[0];
       const dif0 = OXXO.metricsNum(V(r0, d.difKey));
@@ -566,7 +565,6 @@
       statsEl.style.display = 'none';
       statsEl.innerHTML = '';
       detailEl.style.display = 'none';
-      detailEl.open = false;
       document.querySelector('#tbl-d7 tbody').innerHTML = '';
       return null;
     }

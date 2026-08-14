@@ -212,6 +212,41 @@
     };
   }
 
+  // ── Modal de detalle (paneles sin historial: Aprovechamiento, Vacaciones,
+  //    TREO, Capacidades) ──
+  // La tabla real vive oculta en el DOM (.mi-detail-hidden) ya renderizada
+  // por el JS de cada pagina; el boton .mi-detail-btn solo clona esa tabla
+  // dentro del modal compartido. Si la pagina no trae el modal en su HTML
+  // (ej. mi-dashboard.html todavia no lo usa) esto no hace nada.
+  function initDetailModal() {
+    const overlay = document.getElementById('mi-modal-overlay');
+    if (!overlay) return;
+    const titleEl = document.getElementById('mi-modal-title');
+    const bodyEl = document.getElementById('mi-modal-body');
+    function close() { overlay.classList.remove('show'); }
+    function open(title, tableEl) {
+      titleEl.textContent = title || '';
+      bodyEl.innerHTML = '';
+      if (tableEl) {
+        const wrap = document.createElement('div');
+        wrap.className = 'tbl-wrap';
+        wrap.appendChild(tableEl.cloneNode(true));
+        bodyEl.appendChild(wrap);
+      }
+      overlay.classList.add('show');
+    }
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.mi-detail-btn');
+      if (btn) {
+        open(btn.dataset.modalTitle, document.getElementById(btn.dataset.modalTarget));
+        return;
+      }
+      if (e.target === overlay || e.target.closest('#mi-modal-close')) close();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  }
+  initDetailModal();
+
   window.OXXO_FICHA = {
     esc, num, plural,
     statTile, emptyRow, clearBox, noneBox,
