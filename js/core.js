@@ -5,37 +5,14 @@
 
 // ─────────────────────────────────────────────────────────────
 // CONFIGURACIÓN CENTRAL DEL SISTEMA
-// Fuente principal: js/config.js. Este bloque queda como fallback
-// por compatibilidad si una pagina antigua carga solo core.js.
+// Unica fuente: js/config.js (window.OXXO_CONFIG), cargado antes que
+// este archivo en todas las paginas del sitio. Si falta, se corta aqui
+// en vez de caer a un respaldo con datos de otro cliente hardcodeados.
 // ─────────────────────────────────────────────────────────────
-const SHEETS_CONFIG = window.OXXO_CONFIG || {
-  // ID de tu Google Sheets
-  // Ejemplo: https://docs.google.com/spreadsheets/d/ESTE_ES_EL_ID/edit
-  SPREADSHEET_ID: "1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A",
-
-  // Nombre de la pestaña de Configuración global
-  CONFIG_SHEET: "Configuracion",
-  CATALOG_SHEET: "Catalogo_Asesores",
-
-  // URL del Web App de Apps Script para publicar desde admin.html.
-  // Cuando se configure una vez, el panel admin la usara automaticamente.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxhMdcpv56pACzuEXh1p9LnZaVbvvkpyKpDasE9-hn8GPGkjuPE9GeY4rBKLhmVReqI/exec",
-
-  // Nombres exactos de cada pestaña en Google Sheets
-  TABS: {
-    d1: "Dashboard_1_Diario",   // Vacantes: Plaza,Asesor,Unidad org/,Descripción de Posición,Status ocupación,Fecha,Dias Vacantes
-    d2: "Dashboard_2_Diario",   // Bajas: Asesor,Plaza,Temporalidad,Puesto,Mes,Semana,Rot_Temp,Comprometido,Real,Fecha
-    d2otras: "Dashboard_2_Otras_Plazas", // Bajas de otras plazas para comparativo regional
-    d2denom: "Denominaciones_Dashboard_2_Diario", // Denominaciones (cambios de puesto): Asesor,Denominación Medida,Denominación Motivo,Nombre del empleado,F.Crea,Denominación Posición Anterior,Denominación Posición Actual
-    d2plan: "Dashboard_2_Plan_Accion", // Plan de accion mensual (captura manual): Hallazgo,Accion,Responsable,Plazo,Indicador,Prioridad
-    d3: "Dashboard_3_Diario",   // Estructura: Plaza,Asesor,Estructuras_Asignadas,Estructuras_Activas,Pct_Aprovechamiento,Semana
-    d3plazas: "Dashboard_3_Otras_Plazas", // Aprovechamiento por plaza para ranking comparativo
-    s4: "Dashboard_4_Semanal",  // Tiempo Extra: Plaza,Asesor,Semana,Gasto_TE_total,Horas_TE_total,Gasto_TE_doble,Gasto_TE_triple,Gasto_dia_descanso,Fecha
-    s5: "Dashboard_5_Semanal",  // Vacaciones: Asesor,Plaza,Empleado,Puesto,Fecha_Inicio,Fecha_Fin,Dias,Semana
-    s6: "Dashboard_6_Semanal",  // Ausentismos: Asesor,Plaza,Empleado,Puesto,Tipo_Ausentismo,Fecha,Semana,Dias
-    s7: "Dashboard_7_Semanal",  // Liberacion Estructuras P2: Plaza,CR,Tienda,Asesor,Est SAP,Est Final P2,Empleados,Vacantes,Dif,Movimiento
-  }
-};
+if (!window.OXXO_CONFIG) {
+  throw new Error('[OXXO] Falta js/config.js -- debe cargarse antes que core.js.');
+}
+const SHEETS_CONFIG = window.OXXO_CONFIG;
 
 // ─────────────────────────────────────────────────────────────
 // FUNCIÓN BASE: Construir URL de descarga CSV
