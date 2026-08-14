@@ -17,12 +17,17 @@ window.OXXO_CONFIG = {
   // respaldo fijo que ya trae core.js).
   REASIGNACIONES_SHEET: "Reasignaciones",
 
-  // Web App de Apps Script usado por el panel admin para publicar bases.
-  // Redeploy 2026-08-14: se agrego "Reasignaciones" a ALLOWED_SHEETS en el
-  // Apps Script. La URL anterior quedo inactiva con ese redeploy (dejo de
-  // responder, "Page Not Found"), asi que ademas de agregar la pestana
-  // hubo que actualizar esta URL a la nueva.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbyC1_KR0Ux59_Y_rT8cF799Syn7uW6Lc-EK9UMaSRFXxeFEmg711e3Za7Dyf65JMUro/exec",
+  // Web App de Apps Script usado por el panel admin para publicar bases y
+  // para leer hojas directo (sin pasar por gviz, ver ADMIN_READ_ACTION mas
+  // abajo). Cada vez que se redespliega el Apps Script (Implementar >
+  // Administrar implementaciones > Nueva version) Google genera una URL
+  // /exec NUEVA -- la anterior queda congelada con el codigo de ese momento,
+  // ya no responde con los cambios. Toca actualizar esta URL cada vez.
+  // Redeploy 2026-08-14 (b): se agrego doGet(e) con action=readSheet, que
+  // devuelve una hoja completa via SpreadsheetApp (sin gviz). Necesario
+  // porque gviz corrompe la exportacion CSV de Catalogo_Asesores (fusiona
+  // decenas de filas en una sola celda, ver loadAsesorCatalog en core.js).
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxJT9VgnpD9oP40lMjkN32KKvHoYac1BFsu0kP5YTSUf1E4YDua8Vb2rEbgO3D0FbXv/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
