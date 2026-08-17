@@ -657,6 +657,7 @@ function renderAll() {
 }
 
 function closeAsesorDetail(){ document.getElementById('te-asesor-modal')?.classList.remove('open'); }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAsesorDetail(); });
 
 function openAsesorDetail(asesor){
   const rows = filteredData().filter(r => (r[C.asesor] || 'Sin Asignar') === asesor);
