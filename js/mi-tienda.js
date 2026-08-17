@@ -198,7 +198,7 @@
     } else {
       document.getElementById('stats-d2').innerHTML =
         statTile(n(rows.length), 'Bajas del mes', 'rojo') +
-        statTile(topMotivo ? OXXO.truncate(topMotivo[0], 22) : '—', 'Motivo más frecuente', 'amarillo txt');
+        statTile(topMotivo ? esc(OXXO.truncate(topMotivo[0], 22)) : '—', 'Motivo más frecuente', 'amarillo txt');
       document.getElementById('viz-d2').innerHTML = barListHTML(
         Object.entries(porMotivo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
       );
