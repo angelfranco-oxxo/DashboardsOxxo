@@ -381,7 +381,7 @@
 
 /* ── HYBRID SKIN v3 (Vignelli + Liquid Glass) + INDEX VISUAL SYSTEM ── */
 :root{
-    --hb-red:#E30613;
+    --hb-red:#F71926;
     --hb-ink:#14110E;
     --hb-paper:#F3ECE1;
     --hb-glass:linear-gradient(150deg, rgba(255,255,255,0.60) 0%, rgba(255,246,236,0.42) 100%);
@@ -404,7 +404,7 @@
      los dos tonos base (--hero-a/--hero-b). Sin variante = rojo de marca (default). */
   .hero, .bajas-header, .dashboard-hero{
     --hero-a: var(--hb-red);
-    --hero-b: #B40512;
+    --hero-b: #A9111B;
   }
   .dashboard-hero--blue,   .hero--blue,   .bajas-header--blue  { --hero-a:#1565C0; --hero-b:#0D47A1; }
   .dashboard-hero--purple, .hero--purple, .bajas-header--purple{ --hero-a:#7B1FA2; --hero-b:#4A148C; }
@@ -465,7 +465,7 @@
 
   .topbar{
     position: sticky !important; top: 0 !important; z-index: 100 !important;
-    background: linear-gradient(135deg, #E30613 0%, #B40512 100%) !important;
+    background: linear-gradient(135deg, #F71926 0%, #A9111B 100%) !important;
     border-top: none !important;
     border-bottom: 3px solid #FFFFFF !important;
     box-shadow: none !important;
@@ -512,7 +512,7 @@
   .topbar__back::after{
     content:''; position:absolute; inset:0; border-radius:999px;
     padding:1.5px; pointer-events:none;
-    background: linear-gradient(135deg, #FF3B43 0%, #E30613 45%, #B40512 100%);
+    background: linear-gradient(135deg, #FF3B43 0%, #F71926 45%, #A9111B 100%);
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor; mask-composite: exclude;
     opacity:.75; transition: opacity .2s ease;
@@ -523,7 +523,7 @@
   .topbar .theme-toggle::after{
     content:''; position:absolute; inset:-2px; border-radius:999px;
     padding:1.5px; pointer-events:none;
-    background: linear-gradient(135deg, #FF3B43 0%, #E30613 45%, #B40512 100%);
+    background: linear-gradient(135deg, #FF3B43 0%, #F71926 45%, #A9111B 100%);
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor; mask-composite: exclude;
     opacity:.7; transition: opacity .2s ease;
@@ -844,7 +844,7 @@ tbody tr:hover {
   --exec-muted: #6f6664;
   --exec-line: rgba(42, 27, 25, 0.12);
   --exec-line-strong: rgba(42, 27, 25, 0.2);
-  --exec-red: #e30613;
+  --exec-red: #F71926;
   --exec-red-dark: #a9000b;
   --exec-yellow: #f2a52b;
   --exec-green: #198754;
