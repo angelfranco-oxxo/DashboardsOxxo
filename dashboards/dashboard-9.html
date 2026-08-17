@@ -171,6 +171,15 @@
 .fs-modal-row small{display:block;color:#8A6A62;font-weight:700;margin-top:2px}
 .fs-modal-pill{font-weight:900;color:#7B1FA2;background:#F3E5F9;border:1px solid rgba(123,31,162,.14);border-radius:999px;padding:5px 10px;white-space:nowrap}
 @media(max-width:760px){.fs-modal-kpis{grid-template-columns:repeat(2,1fr)}.fs-modal-grid{grid-template-columns:1fr}.table-sort-select{width:100%}}
+
+/* dashboard-skin.css trae un tema rojo/naranja !important para .rank-bar/.rank-val/
+   .rank-num.top pensado para D3/D6/D7 -- aqui pisa el morado propio de D9. Se
+   sobre-escribe con selectores con ID (mas especificidad que cualquier combinacion
+   de clases, gana sin importar el orden de las hojas de estilo) para que el
+   ranking de asesores respete el morado del resto de la pagina. */
+#ranking-container .rank-bar{background:linear-gradient(90deg,#7B1FA2,#B24FCF) !important;box-shadow:none}
+#ranking-container .rank-num.top{background:#7B1FA2 !important}
+#ranking-container .rank-val{color:#7B1FA2 !important;background:rgba(123,31,162,.08) !important;border:1px solid rgba(123,31,162,.16) !important}
 </style>
 <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
   <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
@@ -503,7 +512,7 @@ function renderAll() {
     <div class="donut-leg-item">
       <span class="donut-leg-dot" style="background:${donutColors[i]}"></span>
       <span class="donut-leg-label">${lbl}</span>
-      <div class="donut-leg-val">${fmt$(donutVals[i])} <span class="donut-leg-pct">${pct(donutVals[i],totalMovido)}</span></div>
+      <div class="donut-leg-val" style="color:${donutColors[i]}">${fmt$(donutVals[i])} <span class="donut-leg-pct">${pct(donutVals[i],totalMovido)}</span></div>
     </div>`).join('');
   if(chartDona) chartDona.destroy();
   chartDona = new Chart(document.getElementById('chart-dona').getContext('2d'),{
