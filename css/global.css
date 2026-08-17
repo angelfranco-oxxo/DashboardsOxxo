@@ -886,7 +886,7 @@ body {
 .panel--accent-purple { border-top: 4px solid #8B4CF7; }
 
 .topbar .theme-toggle [data-theme-label] {
-  color: #E30613 !important;
+  color: var(--color-dark) !important;
   text-shadow: none !important;
 }
 

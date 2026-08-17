@@ -47,7 +47,7 @@
    mas alto, dejando huecos grandes en los paneles cortos. */
 .ficha{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(22px) saturate(118%);backdrop-filter:blur(22px) saturate(118%);border:1px solid rgba(255,255,255,.7);border-radius:20px;overflow:hidden;box-shadow:0 16px 44px rgba(117,23,23,.12);margin-bottom:18px}
 
-.ficha__head{background:linear-gradient(126deg,#E30613 0%,#C1101B 54%,#8E0008 100%);color:#fff;padding:16px 22px}
+.ficha__head{background:linear-gradient(126deg,#F71926 0%,#D91F2D 54%,#A9111B 100%);color:#fff;padding:16px 22px}
 .ficha__head-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .ficha__name{font-family:var(--font-display);font-size:1.5rem;font-weight:800;line-height:1.1;letter-spacing:.01em}
 .ficha__status{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.34);border-radius:999px;padding:5px 14px;font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
