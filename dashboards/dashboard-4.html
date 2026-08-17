@@ -54,6 +54,16 @@
 .rank-bar{height:100%;border-radius:999px}
 .rank-val{font-size:12px;font-weight:800;color:#FF6B00;text-align:right;white-space:nowrap}
 
+/* dashboard-skin.css enlaza dos veces (una antes y otra despues de este bloque)
+   y trae un tema rojo/dorado !important para .rank-num.top/.rank-bar/.rank-val
+   pensado para otros dashboards -- con la misma especificidad que las reglas
+   de arriba, la segunda carga de dashboard-skin.css gana por orden y el
+   ranking de Tiempo Extra se veia rojo en vez de naranja. Se fuerza con
+   selectores con ID (ganan sin importar el orden) igual que se hizo en D9. */
+#ranking-container .rank-num.top{background:#FF6B00 !important}
+#ranking-container .rank-bar{background:linear-gradient(90deg,#FF6B00,#FFD200) !important;box-shadow:none}
+#ranking-container .rank-val{color:#FF6B00 !important}
+
 /* Donut */
 .donut-body{display:flex;align-items:center;padding:16px 20px;gap:20px}
 .donut-chart-wrap{width:200px;height:200px;flex-shrink:0;position:relative}
@@ -150,6 +160,13 @@
 .kpi-card.kpi-active{border-top-width:4px !important;box-shadow:0 0 0 3px rgba(255,210,0,.25) !important}
 .kpi-card.kpi-active-red{border-top-color:#D92B2B !important;box-shadow:0 0 0 3px rgba(217,43,43,.15) !important}
 .kpi-card.kpi-active-blue{border-top-color:#0066CC !important;box-shadow:0 0 0 3px rgba(0,102,204,.15) !important}
+/* Mismo problema de doble carga de dashboard-skin.css que el ranking (ver
+   arriba): su regla generica .kpi-active/.kpi-active-red/.kpi-active-blue
+   fuerza un borde y sombra rojos para las tres, pisando el anillo dorado de
+   kpi-active y el azul de kpi-active-blue. Se refuerza con ID. */
+#kpi-section .kpi-card.kpi-active{border-top-width:4px !important;box-shadow:0 0 0 3px rgba(255,210,0,.25) !important}
+#kpi-section .kpi-card.kpi-active-red{border-top-color:#D92B2B !important;box-shadow:0 0 0 3px rgba(217,43,43,.15) !important}
+#kpi-section .kpi-card.kpi-active-blue{border-top-color:#0066CC !important;box-shadow:0 0 0 3px rgba(0,102,204,.15) !important}
 .kpi-filter-hint{font-size:9px;color:#ccc;margin-top:5px;font-weight:600;letter-spacing:.04em}
 .kpi-card.kpi-active .kpi-filter-hint,.kpi-card.kpi-active-red .kpi-filter-hint,
 .kpi-card.kpi-active-blue .kpi-filter-hint{color:#888}
