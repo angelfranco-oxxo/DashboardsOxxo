@@ -431,19 +431,19 @@ function renderAll() {
 
   // ── KPIs ──
   document.getElementById('kpi-section').innerHTML = `
-    <div class="kpi-card" id="kpi-faltante" onclick="setFilter('Faltante')" title="Filtrar: Faltante" style="border-top:3px solid #D92B2B">
+    <div class="kpi-card" id="kpi-faltante" role="button" tabindex="0" onclick="setFilter('Faltante')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('Faltante')}" title="Filtrar: Faltante" style="border-top:3px solid #D92B2B">
       <div class="kpi-card__label">Total Faltante $<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de Importe en filas donde Tipo=Faltante (Importe positivo). Clic filtra el dashboard a este tipo."></span></div>
       <div class="kpi-card__value">${fmt$(totalFaltante)}</div>
       <div class="kpi-card__sub">${pct(totalFaltante,totalBaseFalt)} del total del periodo</div>
       <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
-    <div class="kpi-card" id="kpi-sobrante" onclick="setFilter('Sobrante')" title="Filtrar: Sobrante" style="border-top:3px solid #1DB954">
+    <div class="kpi-card" id="kpi-sobrante" role="button" tabindex="0" onclick="setFilter('Sobrante')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('Sobrante')}" title="Filtrar: Sobrante" style="border-top:3px solid #1DB954">
       <div class="kpi-card__label">Total Sobrante $<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de |Importe| en filas donde Tipo=Sobrante (Importe negativo). Clic filtra el dashboard a este tipo."></span></div>
       <div class="kpi-card__value">${fmt$(totalSobrante)}</div>
       <div class="kpi-card__sub">${totalAsesores} asesores con movimientos</div>
       <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
-    <div class="kpi-card" id="kpi-neto" onclick="setFilter(null)" title="Ver todo" style="border-top:3px solid #7B1FA2">
+    <div class="kpi-card" id="kpi-neto" role="button" tabindex="0" onclick="setFilter(null)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter(null)}" title="Ver todo" style="border-top:3px solid #7B1FA2">
       <div class="kpi-card__label">Neto $<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Total Faltante menos Total Sobrante. Positivo = la plaza debe dinero en neto; negativo = hay credito a favor."></span></div>
       <div class="kpi-card__value">${fmt$(totalNeto)}</div>
       <div class="kpi-card__sub">${semana === 'Todas' ? 'Todas las semanas' : semanaLabel(semana)}</div>
