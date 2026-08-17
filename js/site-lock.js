@@ -30,7 +30,7 @@
   // aqui). Cambiar la contrasena = recalcular este hash y reemplazarlo;
   // no hace falta tocar ninguna otra pagina, todas cargan este mismo
   // archivo.
-  const PASSWORD_HASH = '605f8268258e5ce442f36be1e588960a3a11a38aa7aad44b87476e17810c3b74';
+  const PASSWORD_HASH = '0bd59c15eb8c5661f18186f19711036187093214c6aa4a46a54b50a7f8f8eedd';
   const FLAG_KEY = 'oxxo_site_unlocked';
 
   async function sha256Hex(text) {
