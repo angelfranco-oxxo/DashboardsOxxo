@@ -761,6 +761,19 @@ function truncate(str, maxLen = 25) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// FUNCIÓN: Escapar HTML antes de insertar datos de Sheets en innerHTML
+// Necesario porque cualquier celda (nombre, tienda, comentario) puede
+// traer '<', '>', '&', '"' o "'" con solo que alguien la edite desde
+// Sheets o el panel admin -- sin esto, esa celda puede romper el markup
+// de la pagina o insertar HTML no intencional.
+// ─────────────────────────────────────────────────────────────
+function escHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+}
+
+// ─────────────────────────────────────────────────────────────
 // FUNCIÓN: Renderizar tabla genérica
 // columnas: [{key, label, format, align, semaforo}]
 // ─────────────────────────────────────────────────────────────
@@ -813,7 +826,7 @@ function renderRanking(containerId, data, keyNombre, keyValor, sufijo = '', colo
       <div class="ranking-item">
         <div class="ranking-item__pos">${i + 1}</div>
         <div class="ranking-item__bar-wrap">
-          <div class="ranking-item__name">${truncate(row[keyNombre], 30)}</div>
+          <div class="ranking-item__name">${escHtml(truncate(row[keyNombre], 30))}</div>
           <div class="ranking-item__bar-bg">
             <div class="ranking-item__bar-fill" style="width:${pct}%;background:${colorBar}"></div>
           </div>
@@ -2235,6 +2248,7 @@ window.OXXO = {
   updateFooterTime,
   initThemeToggle,
   truncate,
+  escHtml,
   maxVal,
   // Métricas compartidas (ver seccion arriba de resolveAsesor/applyAsesorCatalog)
   metricsCleanKey,

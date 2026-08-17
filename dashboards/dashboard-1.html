@@ -1657,7 +1657,7 @@ function diasBadge(r){
   if(!d||d===0)return'<span style="color:var(--color-gray);font-size:11px">—</span>';
   return`<span class="dias-badge ${vaColorDias(d)}">${d} días</span>`;
 }
-function pillHTML(t,c){return`<span class="pill ${c}"><span class="pill-dot"></span>${t}</span>`;}
+function pillHTML(t,c){return`<span class="pill ${c}"><span class="pill-dot"></span>${OXXO.escHtml(t)}</span>`;}
 
 // Estado global
 let allData=[], colMap={}, activePuesto='', selectedPuestoValues=[], selectedTiendaValues=[], tiendaOptionsData=[];
@@ -2035,9 +2035,9 @@ function renderTabla(filtered=filtrarDatos()){
     const esEspecial = esTiendaNueva(r) || /finaliz/i.test(String(r.diasRaw||''));
     const rowClass = esEspecial ? '' : `row-${vaColorDias(Number(r.dias)||0)}`;
     return`<tr class="${rowClass}">
-      <td>${OXXO.truncate(r.asesor,32)}</td>
-      <td><div class="store-cell"><span class="store-cell__name">${OXXO.truncate(r.tienda,30)}</span></div></td>
-      <td><span class="role-cell">${OXXO.truncate(r.puesto,34)}</span></td>
+      <td>${OXXO.escHtml(OXXO.truncate(r.asesor,32))}</td>
+      <td><div class="store-cell"><span class="store-cell__name">${OXXO.escHtml(OXXO.truncate(r.tienda,30))}</span></div></td>
+      <td><span class="role-cell">${OXXO.escHtml(OXXO.truncate(r.puesto,34))}</span></td>
       <td class="text-center">${pillHTML(r.tipo,r.tipo==='Lider'?'rojo':r.tipo==='Encargado'?'amarillo':'verde')}</td>
       <td class="text-center">${diasBadge(r)}</td>
       <td style="font-size:11px;color:var(--color-gray);text-align:center">${r.fecha||'—'}</td>
@@ -2111,7 +2111,7 @@ function renderVacantesPorAsesorDias(allData){
     total.verde += v.verde; total.amarillo += v.amarillo; total.rojo += v.rojo;
     const prom = v.count ? (v.sumDias/v.count).toFixed(1) : '0.0';
     return `<tr data-asesor="${escapeAttr(a)}" title="Ver detalle de ${escapeAttr(a)}">
-      <td>${OXXO.truncate(a,34)}</td>
+      <td>${OXXO.escHtml(OXXO.truncate(a,34))}</td>
       <td class="text-center">${v.count}</td>
       <td class="text-center">${prom}</td>
       <td class="text-center">${v.maxDias}</td>
@@ -2167,8 +2167,8 @@ function openAsesorDiasModal(asesorName){
 
   const filas = v.rows.slice().sort((a,b)=>(b.dias||0)-(a.dias||0));
   const rowsHTML = filas.map(r=>`<tr>
-    <td>${OXXO.truncate(r.tienda||'Sin tienda',28)}</td>
-    <td>${r.puesto||'—'}</td>
+    <td>${OXXO.escHtml(OXXO.truncate(r.tienda||'Sin tienda',28))}</td>
+    <td>${OXXO.escHtml(r.puesto||'—')}</td>
     <td class="text-center">${diasBadge(r)}</td>
     <td style="font-size:11px;color:var(--color-gray);text-align:center">${r.fecha||'—'}</td>
   </tr>`).join('');
@@ -2572,7 +2572,7 @@ function renderOverview(allData){
     <div class="kpi-card ${maxDias>=15?'rojo':maxDias>=7?'naranja':'verde'} ${!filtroPuestos.length && !filtroPuesto && !filtroTienda && filtroDias==='7' ? 'active' : ''}" data-kpi="antiguos" title="Filtrar vacantes con más de 7 días">
       <div class="kpi-card__label">Vacante más antigua<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Valor máximo de la columna 'Dias Vacantes' entre las vacantes filtradas. Indica la antigüedad de la vacante más persistente, no un promedio."></span></div>
       <div class="kpi-card__value">${maxDias||'—'}</div>
-      <div class="kpi-card__delta ${maxDias>=15?'neg':'neu'}">${maxDias?'días · '+OXXO.truncate(tiendaAntigua,18):'Sin fecha'}</div>
+      <div class="kpi-card__delta ${maxDias>=15?'neg':'neu'}">${maxDias?'días · '+OXXO.escHtml(OXXO.truncate(tiendaAntigua,18)):'Sin fecha'}</div>
       <div class="kpi-card__icon">⏱️</div>
     </div>`;
   forceKpiLayout();
@@ -2724,7 +2724,7 @@ function renderOverview(allData){
     const pct=Math.max(8, Math.round(v/maxAsesor*100));
     return`<div class="advisor-state-row">
       <div>
-        <div class="advisor-state-name">${OXXO.truncate(a,34)}</div>
+        <div class="advisor-state-name">${OXXO.escHtml(OXXO.truncate(a,34))}</div>
         <div class="advisor-state-track"><div class="advisor-state-fill" style="width:${pct}%"></div></div>
       </div>
       <div class="advisor-state-num">${v}<span>Vacantes</span></div>
