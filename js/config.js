@@ -45,6 +45,7 @@ window.OXXO_CONFIG = {
     s6: "Dashboard_6_Semanal",
     s7: "Dashboard_7_Semanal",
     d8: "Dashboard_8_Diario",
-    s9: "Dashboard_9_Semanal"
+    s9: "Dashboard_9_Semanal",
+    d10: "Dashboard_10_FLEX"
   }
 };

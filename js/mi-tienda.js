@@ -734,6 +734,36 @@
     return { faltante, sobrante, neto };
   }
 
+  // ── D10 · Personal FLEX (foto: colaboradores FLEX por tienda) ──
+  async function loadD10() {
+    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d10);
+    if (!raw || !raw.length) { DATA.d10 = null; return; }
+    const h = raw[0];
+    const tiendaKey = K(h, ['Tienda']);
+    const crKey = K(h, ['Cr de Tienda', 'CR TIENDA', 'CR']);
+    const fechaKey = K(h, ['Fecha']);
+    const flexKey = K(h, ['COLABORADORESFLEX_NUM']);
+    DATA.d10 = { rows: raw, tiendaKey, crKey, fechaKey, flexKey };
+    addTiendas(raw, tiendaKey, crKey);
+  }
+  function renderD10(tienda) {
+    const d = DATA.d10;
+    const el = document.getElementById('sec-d10');
+    if (!d) { el.classList.remove('show'); return null; }
+    const rows = rowsFor(d, tienda);
+    el.classList.add('show');
+    if (!rows.length) {
+      document.getElementById('badge-d10').textContent = '—';
+      document.getElementById('stats-d10').innerHTML = '';
+      return null;
+    }
+    const flex = rows.reduce((s, r) => s + (OXXO.metricsNum(V(r, d.flexKey)) || 0), 0);
+    const fecha = V(rows[0], d.fechaKey) || '—';
+    document.getElementById('badge-d10').textContent = fecha;
+    document.getElementById('stats-d10').innerHTML = statTile(n(flex), 'Colaboradores FLEX');
+    return { flex, fecha };
+  }
+
   // ── Resumen y alertas ──────────────────────────────────
   // Antes habia que leer los 8 paneles para saber si la tienda estaba
   // bien o mal. Estos dos bloques responden eso de una: el resumen trae
@@ -749,6 +779,7 @@
     if (S.d6) tiles.push(rkTile(n(S.d6.diasAus), 'Días ausentismo', toneByCount(S.d6.diasAus, 20), S.d6.ausentes ? S.d6.ausentes + ' empleados' : ''));
     if (S.d5) tiles.push(rkTile(n(S.d5.vencidos), 'Vacaciones vencidas', toneByCount(S.d5.vencidos, 2), S.d5.colaboradores ? 'de ' + S.d5.colaboradores : ''));
     if (S.d8) tiles.push(rkTile(S.d8.capPct + '%', 'Capacidades', tonePct(S.d8.capPct, 90, 60)));
+    if (S.d10) tiles.push(rkTile(n(S.d10.flex), 'Personal FLEX'));
     document.getElementById('ficha-resumen').innerHTML = tiles.join('');
   }
   function renderAlertas(S) {
@@ -792,7 +823,7 @@
     const S = {
       d1: renderD1(tienda), d2: renderD2(tienda), d3: renderD3(tienda), d4: renderD4(tienda),
       d5: renderD5(tienda), d6: renderD6(tienda), d7: renderD7(tienda), d8: renderD8(tienda),
-      d9: renderD9(tienda),
+      d9: renderD9(tienda), d10: renderD10(tienda),
     };
     renderIdentidad(tiendaDisplay, S);
     renderResumen(S);
@@ -801,7 +832,7 @@
 
   async function init() {
     CATALOG = await OXXO.loadAsesorCatalog();
-    await Promise.all([loadD1(), loadD2(), loadD3(), loadD4(), loadD5(), loadD6(), loadD7(), loadD8(), loadD9()]);
+    await Promise.all([loadD1(), loadD2(), loadD3(), loadD4(), loadD5(), loadD6(), loadD7(), loadD8(), loadD9(), loadD10()]);
     document.getElementById('corte-badge').textContent = '⟳ Datos en vivo · Plaza Oaxaca';
     mountSingleSelect('mi-tienda-select', [...TIENDAS.values()], {
       placeholder: 'Busca tu tienda',
