@@ -29,7 +29,9 @@ window.OXXO_CONFIG = {
   // decenas de filas en una sola celda, ver loadAsesorCatalog en core.js).
   // Redeploy 2026-08-14 (c): se agrego 'Dashboard_9_Semanal' a ALLOWED_SHEETS
   // para publicar el nuevo Dashboard 9 (Faltantes y Sobrantes).
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbx44nBCUjGx_w69dZR2x9XmRMItaDMjjyU47nmiKyIL9X6h2ZkL8mjk41oPFiyRBnf6/exec",
+  // Redeploy 2026-08-17: se agrego 'Dashboard_10_FLEX' a ALLOWED_SHEETS para
+  // publicar el nuevo Dashboard 10 (Personal FLEX).
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbzh1vLy9kTlzS-G_VGjltSwwsNzk5ZErMufAATbJlfDyC_ofw6NZien1YYdHMJc93k/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
@@ -45,6 +47,7 @@ window.OXXO_CONFIG = {
     s6: "Dashboard_6_Semanal",
     s7: "Dashboard_7_Semanal",
     d8: "Dashboard_8_Diario",
-    s9: "Dashboard_9_Semanal"
+    s9: "Dashboard_9_Semanal",
+    d10: "Dashboard_10_FLEX"
   }
 };

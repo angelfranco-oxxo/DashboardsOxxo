@@ -26,6 +26,8 @@ const ALLOWED_SHEETS = [
   'Dashboard_6_Semanal',
   'Dashboard_7_Semanal',
   'Dashboard_8_Diario',
+  'Dashboard_9_Semanal',
+  'Dashboard_10_FLEX',
   'Catalogo_Asesores'
 ];
 
