@@ -2721,6 +2721,29 @@
       </div>
     </a>
 
+    <a href="dashboards/dashboard-9.html" class="db-card"
+       style="--card-accent:#7B1FA2;--card-icon-bg:rgba(123,31,162,0.10);--card-freq-bg:rgba(123,31,162,0.12);--card-freq-color:#7B1FA2">
+      <div class="db-card__top">
+        <div class="db-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 10v4M18 10v4"/></svg>
+        </div>
+        <span class="db-card__freq">Semanal</span>
+      </div>
+      <div class="db-card__title">Faltantes y Sobrantes</div>
+      <div class="db-card__desc">
+        Faltantes y sobrantes de caja por asesor, tienda y semana.
+      </div>
+      <div class="db-card__footer">
+        <div class="db-card__update">
+          Última actualización:<br>
+          <strong id="upd-s9">—</strong>
+        </div>
+        <div class="db-card__arrow" style="background:#7B1FA2">
+          <svg viewBox="0 0 24 24" style="stroke:#fff"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </a>
+
   </div>
 </section>
 
@@ -2809,7 +2832,7 @@
     // Mapeo: id del elemento → id de la config
     const MAP = {
       'd1': 'upd-d1', 'd2': 'upd-d2', 'd3': 'upd-d3',
-      's4': 'upd-s4', 's5': 'upd-s5', 's6': 'upd-s6',
+      's4': 'upd-s4', 's5': 'upd-s5', 's6': 'upd-s6', 's9': 'upd-s9',
     };
 
     Object.entries(MAP).forEach(([configId, elId]) => {

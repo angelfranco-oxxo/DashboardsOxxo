@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
+  <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
+  <script defer src="../js/site-lock.js?v=1"></script>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Faltantes y Sobrantes · OXXO Plaza Oaxaca</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <link rel="icon" type="image/png" href="../assets/favicon.png"/>
+  <link rel="apple-touch-icon" href="../assets/favicon.png"/>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/mascota-chat.css?v=20260805d" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+.page{max-width:1500px;margin:0 auto;padding:18px 20px 36px}
+.hero-download-link{ text-decoration:none !important; cursor:pointer; }
+
+/* KPI grid — igual que D1/D4 */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.card{background:var(--color-surface);border-radius:14px;padding:20px;box-shadow:var(--shadow-card)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-border)}
+.card-title{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--color-dark)}
+.card-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--color-bg);color:var(--color-gray)}
+
+/* Active filter banner */
+.filter-banner{
+  display:none;background:#FFF9E0;border:1px solid #FFD200;border-radius:10px;
+  padding:8px 16px;margin-bottom:12px;font-size:12px;font-weight:700;color:#6b5a00;
+  align-items:center;gap:10px;
+}
+.filter-banner.visible{display:flex}
+.filter-banner__clear{margin-left:auto;cursor:pointer;background:#FFD200;color:#1a1a1a;border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:800}
+
+/* Row 1: Ranking + Donut */
+.fs-row1{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;align-items:stretch}
+.fs-row1 > .card{display:flex;flex-direction:column}
+
+/* Row 2 */
+.fs-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.bar-chart-area{position:relative;height:220px}
+
+/* Ranking */
+.rank-list{padding:4px 0}
+.rank-row{display:grid;grid-template-columns:28px 1fr 80px 90px;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--color-border)}
+.rank-row:last-child{border-bottom:none}
+.rank-num{width:22px;height:22px;border-radius:50%;background:#f0f0f0;color:#666;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rank-num.top{background:#7B1FA2;color:#fff}
+.rank-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-dark)}
+.rank-bar-wrap{height:8px;background:#f0f0f0;border-radius:999px;overflow:hidden}
+.rank-bar{height:100%;border-radius:999px}
+.rank-val{font-size:12px;font-weight:800;color:#7B1FA2;text-align:right;white-space:nowrap}
+
+/* Donut */
+.donut-body{display:flex;align-items:center;padding:16px 20px;gap:20px;flex:1}
+.donut-chart-wrap{width:200px;height:200px;flex-shrink:0;position:relative}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.donut-center__val{font-family:var(--font-display);font-size:22px;font-weight:900;color:var(--color-dark);line-height:1}
+.donut-center__lbl{font-size:10px;color:#888;font-weight:700;margin-top:2px}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:10px}
+.donut-leg-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.donut-leg-label{font-size:12px;color:#555;font-weight:600}
+.donut-leg-val{font-family:var(--font-display);font-size:18px;font-weight:900;color:var(--color-dark);margin-top:1px}
+.donut-leg-pct{font-size:11px;color:#888;font-weight:700;margin-left:5px}
+
+/* Detail table */
+.fs-detail{margin-bottom:12px}
+.fs-table-wrap{overflow-x:auto;max-height:480px;overflow-y:auto}
+.fs-table{width:100%;border-collapse:collapse;font-size:12px}
+.fs-table thead th{
+  background:#2D2D44;color:#fff;font-family:var(--font-display);font-size:11px;font-weight:900;
+  letter-spacing:.8px;text-transform:uppercase;padding:9px 10px;text-align:center;
+  border-right:1px solid rgba(255,255,255,.1);white-space:nowrap;position:sticky;top:0;z-index:2;
+}
+.fs-table thead th:first-child{text-align:left}
+.fs-table tbody td{padding:7px 10px;border:1px solid var(--color-border);color:var(--color-dark);vertical-align:middle}
+.fs-table tbody td:first-child{font-weight:700;background:var(--color-bg);white-space:nowrap}
+.fs-table tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+.fs-table tbody td.money{text-align:right;font-variant-numeric:tabular-nums;color:#7B1FA2;font-weight:700}
+.fs-table tbody td.money.faltante{color:#D92B2B}
+.fs-table tbody td.money.sobrante{color:#1DB954}
+.fs-table tbody tr:hover td{background:var(--color-bg)}
+.fs-table tfoot td{
+  background:#2D2D44;color:#FFD200;font-weight:900;font-family:var(--font-display);
+  font-size:12px;padding:8px 10px;border:1px solid #3a3a5c;
+  position:sticky;bottom:0;z-index:2;
+}
+.fs-table tfoot td.num,.fs-table tfoot td.money{text-align:right}
+
+/* State */
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px 20px;color:var(--color-gray);text-align:center}
+.spinner{width:32px;height:32px;border:3px solid var(--color-border);border-top-color:var(--color-yellow);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.fs-row1,.fs-row2{grid-template-columns:1fr}}
+@media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}.fs-row1,.fs-row2{grid-template-columns:1fr}}
+@media(max-width:600px){
+  .kpis{grid-template-columns:1fr 1fr !important}
+  .fs-row1,.fs-row2{grid-template-columns:1fr !important}
+  .fs-row1 .donut-chart-wrap{height:180px;width:180px}
+  .bar-chart-area{height:180px}
+}
+</style>
+<link rel="stylesheet" href="../css/dashboard-skin.css"/>
+<style id="d9-extras">
+.hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
+.hero{flex-direction:column !important;align-items:stretch !important;gap:18px}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px 16px;align-items:end}
+.vac-fbox{display:flex;flex-direction:column;gap:6px;min-width:0}
+.vac-fbox > label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.85)}
+.hero .filtro-select,.hero .filtro-btn{
+  width:100%;box-sizing:border-box;
+  background:rgba(255,255,255,0.14) !important;
+  border:1px solid rgba(255,255,255,0.32) !important;
+  color:#fff !important;font-weight:700;
+  border-radius:999px !important;padding:10px 16px !important;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  transition:background .2s,color .2s,border-color .2s;
+}
+.hero .filtro-select:focus{outline:none;border-color:#fff !important}
+.hero .filtro-select option{color:#1a1a1a;background:#fff}
+.hero .filtro-btn{cursor:pointer}
+.hero .filtro-btn:hover{background:#fff !important;color:var(--hb-red) !important;border-color:#fff !important}
+.hero .filtro-select,
+.hero .filtro-btn{
+  background:rgba(255,255,255,0.78) !important;
+  border-color:var(--exec-line-strong,rgba(42,27,25,0.2)) !important;
+  color:var(--exec-ink,#181112) !important;
+  -webkit-text-fill-color:var(--exec-ink,#181112) !important;
+}
+
+.kpi-card__sub{margin-top:6px;font-size:11px;font-weight:500;color:var(--color-gray)}
+
+/* KPI cards clickables */
+.kpi-card{cursor:pointer;transition:all .18s;user-select:none}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover)}
+.kpi-card.kpi-active{border-top-width:4px !important;box-shadow:0 0 0 3px rgba(123,31,162,.22) !important}
+.kpi-card.kpi-active-red{border-top-color:#D92B2B !important;box-shadow:0 0 0 3px rgba(217,43,43,.15) !important}
+.kpi-card.kpi-active-green{border-top-color:#1DB954 !important;box-shadow:0 0 0 3px rgba(29,185,84,.15) !important}
+.kpi-filter-hint{font-size:9px;color:#ccc;margin-top:5px;font-weight:600;letter-spacing:.04em}
+.kpi-card.kpi-active .kpi-filter-hint,.kpi-card.kpi-active-red .kpi-filter-hint,
+.kpi-card.kpi-active-green .kpi-filter-hint{color:#888}
+
+.fs-table tfoot td{color:#FFF8EE !important;background:#341414 !important;border-color:rgba(255,255,255,.14) !important}
+.fs-table tfoot td:first-child{color:#FFD25A !important}
+.fs-table tfoot td.num,.fs-table tfoot td.money{color:#FFF8EE !important;text-shadow:0 1px 0 rgba(0,0,0,.18)}
+.detail-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.table-sort-select{min-width:210px;border:1px solid rgba(123,31,162,.18);background:rgba(255,255,255,.78);border-radius:999px;padding:8px 14px;font-size:12px;font-weight:800;color:var(--color-dark);box-shadow:0 10px 24px rgba(80,35,25,.08)}
+.table-sort-select:focus{outline:none;border-color:#7B1FA2;box-shadow:0 0 0 3px rgba(123,31,162,.12)}
+.asesor-detail-link{font:inherit;font-weight:800;color:var(--color-dark);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;background:transparent;border:0;padding:0;text-align:left}
+.asesor-detail-link::after{content:"Ver";font-size:9px;font-weight:900;color:#7B1FA2;background:#F3E5F9;border:1px solid rgba(123,31,162,.16);border-radius:999px;padding:2px 7px;opacity:0;transform:translateX(-2px);transition:.16s ease}
+.fs-table tbody tr:hover .asesor-detail-link::after{opacity:1;transform:translateX(0)}
+.fs-modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(30,16,12,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:28px 16px;overflow-y:auto}
+.fs-modal-overlay.open{display:flex}
+.fs-modal{width:min(860px,100%);background:var(--color-surface,#fff);border:1px solid rgba(160,120,200,.35);border-radius:22px;box-shadow:0 32px 90px rgba(30,16,12,.38);padding:24px;animation:fsModalIn .2s ease}
+@keyframes fsModalIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.fs-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--color-border);padding-bottom:14px;margin-bottom:16px}
+.fs-modal-eyebrow{font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#7B1FA2}
+.fs-modal-title{font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--color-dark);margin-top:4px;line-height:1}
+.fs-modal-close{border:0;background:#F3E5F9;color:#7B1FA2;border-radius:999px;width:34px;height:34px;font-size:20px;font-weight:900;cursor:pointer}
+.fs-modal-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.fs-modal-kpi{border:1px solid var(--color-border);border-radius:16px;padding:12px;background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(248,238,255,.72));box-shadow:0 14px 30px rgba(80,35,25,.06)}
+.fs-modal-kpi span{display:block;font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#8A6E9A;margin-bottom:4px}
+.fs-modal-kpi strong{font-family:var(--font-display);font-size:22px;color:var(--color-dark)}
+.fs-modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fs-modal-block{border:1px solid var(--color-border);border-radius:16px;padding:14px;background:rgba(255,255,255,.68)}
+.fs-modal-block h3{font-family:var(--font-display);font-size:15px;margin:0 0 10px;color:var(--color-dark)}
+.fs-modal-list{display:flex;flex-direction:column;gap:8px}
+.fs-modal-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;font-size:12px;font-weight:700;color:var(--color-dark)}
+.fs-modal-row small{display:block;color:#8A6A62;font-weight:700;margin-top:2px}
+.fs-modal-pill{font-weight:900;color:#7B1FA2;background:#F3E5F9;border:1px solid rgba(123,31,162,.14);border-radius:999px;padding:5px 10px;white-space:nowrap}
+@media(max-width:760px){.fs-modal-kpis{grid-template-columns:repeat(2,1fr)}.fs-modal-grid{grid-template-columns:1fr}.table-sort-select{width:100%}}
+</style>
+<link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
+  <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
+</head>
+<body>
+<nav class="topbar">
+  <div class="topbar__brand">
+    <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+    <div>
+      <div class="topbar__title">Dashboards Ats</div>
+      <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
+    </div>
+  </div>
+  <div class="topbar__meta">
+    <a href="../index.html" class="topbar__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- Hero con filtros -->
+  <div class="hero hero--purple">
+    <div class="hero-top">
+      <div>
+        <h1>Faltantes y Sobrantes</h1>
+        <p>Faltantes y sobrantes de caja por asesor, tienda y semana · Plaza Oaxaca</p>
+      </div>
+      <span class="hero-badge" id="semana-badge">⟳ Semanal · Plaza Oaxaca</span>
+      <span id="hero-download" style="display:none"></span>
+    </div>
+    <div class="vac-filters">
+      <div class="vac-fbox">
+        <label>Semana</label>
+        <select class="filtro-select" id="filtro-semana" onchange="applyDropdownFilters()">
+          <option value="">Todas las semanas</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>Asesor</label>
+        <div id="filtro-asesor"></div>
+      </div>
+      <div class="vac-fbox">
+        <label>Tipo</label>
+        <select class="filtro-select" id="filtro-tipo" onchange="applyDropdownFilters()">
+          <option value="">Faltante y Sobrante</option>
+          <option value="Faltante">Solo Faltante</option>
+          <option value="Sobrante">Solo Sobrante</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>Tienda</label>
+        <select class="filtro-select" id="filtro-tienda" onchange="applyDropdownFilters()">
+          <option value="">Todas las tiendas</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>Filtros</label>
+        <button class="filtro-btn" onclick="limpiarFiltros()">✕ Limpiar</button>
+        <button class="filtro-btn" type="button" onclick="OXXO.handleDownloadButton(this, () => OXXO.downloadSheetTab(TAB, 'dashboard-9-faltantes-sobrantes.csv'))">Descargar base</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpis kpi-grid" id="kpi-section">
+    <div class="kpi-card"><div class="kpi-card__label">Cargando…</div>
+      <div class="kpi-card__value"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- Filter banner (KPI click filter) -->
+  <div class="filter-banner" id="filter-banner">
+    <span>🔍 KPI activo: <strong id="filter-label">—</strong></span>
+    <button class="filter-banner__clear" id="clear-filter">✕ Quitar</button>
+  </div>
+
+  <!-- Row 1: Ranking + Donut -->
+  <div class="fs-row1">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">🏆 Ranking de Asesores por Faltante<span class="info-tip" tabindex="0" data-tip="Suma de Importe (filas Faltante) agrupada por Asesor, ordenado de mayor a menor."></span></div>
+        <span class="card-badge" id="ranking-badge">Top 10</span>
+      </div>
+      <div class="rank-list" id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">💵 Faltante vs Sobrante<span class="info-tip" tabindex="0" data-tip="Suma de Importe (valor absoluto) por Tipo, calculado por el signo del Importe: positivo=Faltante, negativo=Sobrante."></span></div>
+      </div>
+      <div class="donut-body">
+        <div class="donut-chart-wrap">
+          <canvas id="chart-dona"></canvas>
+          <div class="donut-center" id="donut-center"><div class="donut-center__val">—</div><div class="donut-center__lbl">Total movido</div></div>
+        </div>
+        <div class="donut-legend" id="donut-legend"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Bar charts -->
+  <div class="fs-row2">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">📊 Top 10 Asesores — Faltante $<span class="info-tip" tabindex="0" data-tip="Los 10 Asesores con mayor suma de Importe en filas Faltante, de mayor a menor."></span></div>
+      </div>
+      <div class="bar-chart-area"><canvas id="chart-asesores"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">🏪 Top 10 Tiendas — Faltante $<span class="info-tip" tabindex="0" data-tip="Las 10 tiendas con mayor suma de Importe en filas Faltante, de mayor a menor."></span></div>
+      </div>
+      <div class="bar-chart-area"><canvas id="chart-tiendas"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Detail table -->
+  <div class="card fs-detail">
+    <div class="card-head">
+      <div class="card-title">📋 Detalle de Faltantes y Sobrantes por Asesor<span class="info-tip" tabindex="0" data-tip="Tabla agregada por Asesor con Faltante, Sobrante y Neto, con los filtros activos aplicados."></span></div>
+      <div class="detail-toolbar">
+        <select class="table-sort-select" id="tabla-orden" onchange="setTableSort(this.value)">
+          <option value="faltante-desc">Mayor Faltante</option>
+          <option value="sobrante-desc">Mayor Sobrante</option>
+          <option value="neto-desc">Mayor Neto (debe mas)</option>
+          <option value="movs-desc">Mas movimientos</option>
+          <option value="asesor-asc">Asesor A-Z</option>
+        </select>
+        <span class="card-badge" id="table-badge">registros</span>
+      </div>
+    </div>
+    <div class="fs-table-wrap">
+      <table class="fs-table" id="tabla-detalle">
+        <tbody><tr><td colspan="5"><div class="state-box"><div class="spinner"></div><div style="font-size:12px;color:var(--color-gray)">Cargando datos…</div></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="dash-footer">
+    <div class="dash-footer__update"><div class="dash-footer__update-dot"></div>
+      Datos cargados: <span id="load-time">—</span></div>
+    <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
+  </div>
+</div>
+
+<div class="fs-modal-overlay" id="fs-asesor-modal" onclick="if(event.target===this)closeAsesorDetail()">
+  <div class="fs-modal" role="dialog" aria-modal="true" aria-labelledby="fs-modal-title">
+    <div class="fs-modal-head">
+      <div>
+        <div class="fs-modal-eyebrow">Detalle por asesor</div>
+        <div class="fs-modal-title" id="fs-modal-title">Asesor</div>
+      </div>
+      <button class="fs-modal-close" type="button" onclick="closeAsesorDetail()" aria-label="Cerrar">x</button>
+    </div>
+    <div id="fs-modal-body"></div>
+  </div>
+</div>
+
+  <script src="../js/config.js?v=20260814a"></script>
+  <script src="../js/core.js?v=20260814a"></script>
+<script src="../js/mascota-chat.js?v=20260805d"></script>
+<script>
+const TAB = OXXO.SHEETS_CONFIG.TABS.s9;
+let C = { asesor:'Asesor', tienda:'Tienda', cr:'CR', importe:'Importe', tipo:'Tipo', concepto:'Concepto', semana:'Semana', fecha:'Fecha' };
+
+// El pipeline de publicacion (deriveD9 en js/admin/dashboard-definitions.js) ya
+// entrega columnas con nombres fijos, asi que no hace falta el sistema de alias
+// pesado de otros dashboards (su variabilidad viene del Excel de origen, no de
+// esta hoja ya normalizada). OXXO.metricsFindKey solo se usa como red de
+// seguridad minima por si gviz cambia mayusculas/espacios.
+function buildColsD9(sample){
+  const cols = {};
+  Object.entries(C).forEach(([k, def]) => { cols[k] = OXXO.metricsFindKey(sample, [def]) || def; });
+  return cols;
+}
+
+// OXXO.metricsNum ya trae el fix para el formato es-MX de gviz (coma decimal,
+// ej. "498,83" -- NO separador de miles). Un numParse propio que solo quita
+// comas convertia "498,83" en 49883 (100x inflado); confirmado con datos
+// reales al ver KPIs de miles de millones en vez de millones.
+function numParse(v){ return OXXO.metricsNum(v); }
+function fmt$(n){ const v = numParse(n); return (v<0?'-$':'$')+OXXO.formatNum(Math.abs(v).toFixed(2)); }
+function pct(part,total){ return total>0?((part/total)*100).toFixed(2)+'%':'0%'; }
+function escHtml(value){
+  return String(value ?? '').replace(/[&<>'\"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[ch]));
+}
+
+// Semana viene como "Ago 26 sem 1" (mes abreviado + año 2 digitos + numero de
+// semana) -- distinto del "Sem N" simple de otros dashboards semanales, porque
+// esta hoja acumula varios meses (replacePeriod) en vez de reemplazar todo en
+// cada carga. Hay que ordenar por mes+año+semana, no solo por el numero de
+// semana, o un "sem 0" de un mes nuevo quedaria antes que un "sem 4" del mes
+// anterior (mismo bug que se encontro y corrigio en Mi Tienda para Tiempo
+// Extra/Ausentismos).
+const MES_ABBR_D9 = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
+function semanaSortKey(value){
+  const v = String(value||'').trim().toLowerCase();
+  const m = v.match(/^([a-z]{3})\w*\s+(\d{2,4})\s+sem\s*(\d{1,2})/);
+  if(!m) return '0000-00-00';
+  const mesIdx = MES_ABBR_D9[m[1]];
+  if(mesIdx===undefined) return '0000-00-00';
+  const anio = m[2].length===2 ? 2000+Number(m[2]) : Number(m[2]);
+  const sem = Number(m[3]);
+  return `${anio}-${String(mesIdx).padStart(2,'0')}-${String(sem).padStart(2,'0')}`;
+}
+function sortSemanas(values){ return [...values].sort((a,b)=>semanaSortKey(b).localeCompare(semanaSortKey(a))); }
+function semanaLabel(value){ return value || 'Todas las semanas'; }
+function selectedSemanaLabel(){ return DROP_SEMANA || 'Todas'; }
+
+function baseForCurrentScope(){
+  let data = BASE_DATA;
+  if (DROP_SEMANA) data = data.filter(r => String(r[C.semana] || '') === DROP_SEMANA);
+  if (DROP_ASESORES) data = data.filter(r => DROP_ASESORES.includes(r[C.asesor]));
+  if (DROP_TIENDA) data = data.filter(r => r[C.tienda] === DROP_TIENDA);
+  return data;
+}
+function sortAsesorRows(rows){
+  const list = [...rows];
+  const byName = (a,b)=>String(a.asesor).localeCompare(String(b.asesor),'es-MX',{sensitivity:'base'});
+  if (TABLE_SORT === 'asesor-asc') return list.sort(byName);
+  const metric = {'sobrante-desc':'sobrante','neto-desc':'neto','movs-desc':'movs','faltante-desc':'faltante'}[TABLE_SORT] || 'faltante';
+  return list.sort((a,b)=>(b[metric]-a[metric]) || byName(a,b));
+}
+function setTableSort(value){ TABLE_SORT = value || 'faltante-desc'; renderAll(); }
+
+let BASE_DATA = [];
+let ACTIVE_FILTER = null; // null | 'Faltante' | 'Sobrante'
+let DROP_ASESORES = null, DROP_TIPO = '', DROP_TIENDA = '', DROP_SEMANA = '';
+let asesorFilterHandle = null;
+let DEFAULT_SEMANA = '';
+let TABLE_SORT = 'faltante-desc';
+let chartAsesores = null, chartTiendas = null, chartDona = null;
+
+function aggregateByAsesor(data) {
+  const map = {};
+  data.forEach(r => {
+    const a = r[C.asesor] || 'Sin Asignar';
+    if (!map[a]) map[a] = { asesor:a, faltante:0, sobrante:0, neto:0, movs:0 };
+    const importe = numParse(r[C.importe]);
+    const tipo = r[C.tipo] || '';
+    if (tipo === 'Faltante') map[a].faltante += importe;
+    else if (tipo === 'Sobrante') map[a].sobrante += Math.abs(importe);
+    map[a].neto += importe;
+    map[a].movs += 1;
+  });
+  return Object.values(map).sort((a,b)=>b.faltante-a.faltante);
+}
+
+function filteredData() {
+  let data = BASE_DATA;
+  if (DROP_SEMANA) data = data.filter(r => String(r[C.semana] || '') === DROP_SEMANA);
+  if (DROP_ASESORES) data = data.filter(r => DROP_ASESORES.includes(r[C.asesor]));
+  if (DROP_TIENDA) data = data.filter(r => r[C.tienda] === DROP_TIENDA);
+  const f = DROP_TIPO || ACTIVE_FILTER;
+  if (f) data = data.filter(r => r[C.tipo] === f);
+  return data;
+}
+
+function renderAll() {
+  const data = filteredData();
+  const byAsesor = aggregateByAsesor(data);
+  const scopedBase = baseForCurrentScope();
+  const totalBaseFalt = scopedBase.filter(r=>r[C.tipo]==='Faltante').reduce((s,r)=>s+numParse(r[C.importe]),0);
+
+  const totalFaltante = data.filter(r=>r[C.tipo]==='Faltante').reduce((s,r)=>s+numParse(r[C.importe]),0);
+  const totalSobrante = data.filter(r=>r[C.tipo]==='Sobrante').reduce((s,r)=>s+Math.abs(numParse(r[C.importe])),0);
+  const totalNeto     = totalFaltante - totalSobrante;
+  const totalMovs     = data.length;
+  const totalTiendas  = new Set(data.map(r=>r[C.tienda]).filter(Boolean)).size;
+  const totalAsesores = new Set(data.map(r=>r[C.asesor]).filter(Boolean)).size;
+  const semana = selectedSemanaLabel();
+  document.getElementById('semana-badge').textContent = DROP_SEMANA ? semanaLabel(DROP_SEMANA) + ' - Plaza Oaxaca' : 'Todas las semanas - Plaza Oaxaca';
+
+  // ── KPIs ──
+  document.getElementById('kpi-section').innerHTML = `
+    <div class="kpi-card" id="kpi-faltante" onclick="setFilter('Faltante')" title="Filtrar: Faltante" style="border-top:3px solid #D92B2B">
+      <div class="kpi-card__label">Total Faltante $<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de Importe en filas donde Tipo=Faltante (Importe positivo). Clic filtra el dashboard a este tipo."></span></div>
+      <div class="kpi-card__value">${fmt$(totalFaltante)}</div>
+      <div class="kpi-card__sub">${pct(totalFaltante,totalBaseFalt)} del total del periodo</div>
+      <div class="kpi-filter-hint">▶ Click para filtrar</div>
+    </div>
+    <div class="kpi-card" id="kpi-sobrante" onclick="setFilter('Sobrante')" title="Filtrar: Sobrante" style="border-top:3px solid #1DB954">
+      <div class="kpi-card__label">Total Sobrante $<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de |Importe| en filas donde Tipo=Sobrante (Importe negativo). Clic filtra el dashboard a este tipo."></span></div>
+      <div class="kpi-card__value">${fmt$(totalSobrante)}</div>
+      <div class="kpi-card__sub">${totalAsesores} asesores con movimientos</div>
+      <div class="kpi-filter-hint">▶ Click para filtrar</div>
+    </div>
+    <div class="kpi-card" id="kpi-neto" onclick="setFilter(null)" title="Ver todo" style="border-top:3px solid #7B1FA2">
+      <div class="kpi-card__label">Neto $<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Total Faltante menos Total Sobrante. Positivo = la plaza debe dinero en neto; negativo = hay credito a favor."></span></div>
+      <div class="kpi-card__value">${fmt$(totalNeto)}</div>
+      <div class="kpi-card__sub">${semana === 'Todas' ? 'Todas las semanas' : semanaLabel(semana)}</div>
+      <div class="kpi-filter-hint">▶ Ver todo</div>
+    </div>
+    <div class="kpi-card" style="border-top:3px solid #FFD200">
+      <div class="kpi-card__label">Movimientos<span class="info-tip" tabindex="0" data-tip="Numero de filas (movimientos de caja) con los filtros activos."></span></div>
+      <div class="kpi-card__value">${OXXO.formatNum(totalMovs)}</div>
+      <div class="kpi-card__sub">registros</div>
+    </div>
+    <div class="kpi-card" style="border-top:3px solid #FF6B00">
+      <div class="kpi-card__label">Tiendas con movimientos<span class="info-tip" tabindex="0" data-tip="Tiendas distintas con al menos un movimiento de faltante o sobrante en el periodo filtrado."></span></div>
+      <div class="kpi-card__value">${totalTiendas}</div>
+      <div class="kpi-card__sub">tiendas</div>
+    </div>
+    <div class="kpi-card" style="border-top:3px solid #9E9E9E">
+      <div class="kpi-card__label">Asesores con movimientos<span class="info-tip" tabindex="0" data-tip="Asesores distintos con al menos un movimiento de faltante o sobrante en el periodo filtrado."></span></div>
+      <div class="kpi-card__value">${totalAsesores}</div>
+      <div class="kpi-card__sub">asesores</div>
+    </div>`;
+  updateKpiActive();
+
+  // ── Ranking ──
+  const maxF = byAsesor[0]?.faltante||1;
+  document.getElementById('ranking-container').innerHTML = byAsesor.slice(0,10).map((r,i)=>`
+    <div class="rank-row">
+      <div class="rank-num ${i<3?'top':''}">${i+1}</div>
+      <div class="rank-name">${escHtml(r.asesor)}</div>
+      <div class="rank-bar-wrap"><div class="rank-bar" style="width:${Math.round(r.faltante/maxF*100)}%;background:${i<3?'#7B1FA2':'#D992E8'}"></div></div>
+      <div class="rank-val">${fmt$(r.faltante)}</div>
+    </div>`).join('');
+  document.getElementById('ranking-badge').textContent = `${byAsesor.length} asesores`;
+
+  // ── Donut ──
+  const donutVals   = [totalFaltante, totalSobrante];
+  const donutColors = ['#D92B2B','#1DB954'];
+  const donutLabels = ['Faltante','Sobrante'];
+  const totalMovido = totalFaltante + totalSobrante;
+  document.getElementById('donut-center').innerHTML =
+    `<div class="donut-center__val">${fmt$(totalMovido)}</div><div class="donut-center__lbl">Total movido</div>`;
+  document.getElementById('donut-legend').innerHTML = donutLabels.map((lbl,i)=>`
+    <div class="donut-leg-item">
+      <span class="donut-leg-dot" style="background:${donutColors[i]}"></span>
+      <span class="donut-leg-label">${lbl}</span>
+      <div class="donut-leg-val">${fmt$(donutVals[i])} <span class="donut-leg-pct">${pct(donutVals[i],totalMovido)}</span></div>
+    </div>`).join('');
+  if(chartDona) chartDona.destroy();
+  chartDona = new Chart(document.getElementById('chart-dona').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:donutLabels,datasets:[{data:donutVals,backgroundColor:donutColors,borderWidth:4,borderColor:'#FFF8EE',borderRadius:10,spacing:3,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'70%',
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>' '+c.label+': '+fmt$(c.raw)}}}}
+  });
+
+  // ── Bar Asesores ──
+  const top10a = byAsesor.slice(0,10);
+  if(chartAsesores) chartAsesores.destroy();
+  chartAsesores = new Chart(document.getElementById('chart-asesores').getContext('2d'),{
+    type:'bar',
+    data:{labels:top10a.map(r=>OXXO.truncate(r.asesor,14)),
+      datasets:[{data:top10a.map(r=>r.faltante),backgroundColor:'#B24FCF',borderColor:'rgba(255,255,255,.68)',borderWidth:1,borderRadius:999,borderSkipped:false,barPercentage:.72,categoryPercentage:.72}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>fmt$(c.raw)}}},
+      scales:{x:{border:{display:false},grid:{display:false},ticks:{font:{family:'Barlow',size:10,weight:'800'},color:'#5A4037'}},y:{border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'},callback:v=>'$'+OXXO.formatNum(Math.round(v))}}}}
+  });
+
+  // ── Bar Tiendas ──
+  const byTienda={};
+  data.filter(r=>r[C.tipo]==='Faltante').forEach(r=>{const t=r[C.tienda]||'Sin tienda';if(!byTienda[t])byTienda[t]=0;byTienda[t]+=numParse(r[C.importe]);});
+  const top10t=Object.entries(byTienda).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if(chartTiendas) chartTiendas.destroy();
+  chartTiendas = new Chart(document.getElementById('chart-tiendas').getContext('2d'),{
+    type:'bar',
+    data:{labels:top10t.map(([k])=>OXXO.truncate(k,14)),
+      datasets:[{data:top10t.map(([,v])=>v),backgroundColor:'#F07B22',borderColor:'rgba(255,255,255,.68)',borderWidth:1,borderRadius:999,borderSkipped:false,barPercentage:.72,categoryPercentage:.72}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>fmt$(c.raw)}}},
+      scales:{x:{border:{display:false},grid:{display:false},ticks:{font:{family:'Barlow',size:10,weight:'800'},color:'#5A4037'}},y:{border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'},callback:v=>'$'+OXXO.formatNum(Math.round(v))}}}}
+  });
+
+  // ── Tabla agrupada ──
+  let sFalt=0,sSobr=0,sNeto=0,sMovs=0;
+  const tableData = sortAsesorRows(byAsesor);
+  const tableRows = tableData.map(r=>{
+    sFalt+=r.faltante;sSobr+=r.sobrante;sNeto+=r.neto;sMovs+=r.movs;
+    return `<tr>
+      <td><button type="button" class="asesor-detail-link" data-asesor="${escHtml(r.asesor)}">${escHtml(r.asesor)}</button></td>
+      <td class="money faltante">${fmt$(r.faltante)}</td>
+      <td class="money sobrante">${fmt$(r.sobrante)}</td>
+      <td class="money">${fmt$(r.neto)}</td>
+      <td class="num">${OXXO.formatNum(r.movs)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tabla-detalle').innerHTML = `
+    <thead><tr>
+      <th style="min-width:160px;text-align:left">Asesor</th>
+      <th>Faltante $</th><th>Sobrante $</th><th>Neto $</th><th>Movimientos</th>
+    </tr></thead>
+    <tbody>${tableRows}</tbody>
+    <tfoot><tr>
+      <td>TOTAL GENERAL</td>
+      <td class="money">${fmt$(sFalt)}</td><td class="money">${fmt$(sSobr)}</td>
+      <td class="money">${fmt$(sNeto)}</td><td class="num">${OXXO.formatNum(sMovs)}</td>
+    </tr></tfoot>`;
+  document.getElementById('table-badge').textContent = `${byAsesor.length} asesores`;
+  document.querySelectorAll('.asesor-detail-link').forEach(btn=>{
+    btn.addEventListener('click', () => openAsesorDetail(btn.dataset.asesor));
+  });
+}
+
+function closeAsesorDetail(){ document.getElementById('fs-asesor-modal')?.classList.remove('open'); }
+
+function openAsesorDetail(asesor){
+  const rows = filteredData().filter(r => (r[C.asesor] || 'Sin Asignar') === asesor);
+  if (!rows.length) return;
+  const faltante = rows.filter(r=>r[C.tipo]==='Faltante').reduce((s,r)=>s+numParse(r[C.importe]),0);
+  const sobrante = rows.filter(r=>r[C.tipo]==='Sobrante').reduce((s,r)=>s+Math.abs(numParse(r[C.importe])),0);
+  const tiendas = new Set(rows.map(r=>r[C.tienda]).filter(Boolean));
+  const byStore = {};
+  rows.forEach(r=>{
+    const tienda = r[C.tienda] || 'Sin tienda';
+    if(!byStore[tienda]) byStore[tienda] = { tienda, faltante:0, sobrante:0, movs:0 };
+    if (r[C.tipo]==='Faltante') byStore[tienda].faltante += numParse(r[C.importe]);
+    else if (r[C.tipo]==='Sobrante') byStore[tienda].sobrante += Math.abs(numParse(r[C.importe]));
+    byStore[tienda].movs += 1;
+  });
+  const stores = Object.values(byStore).sort((a,b)=>b.faltante-a.faltante).slice(0,8);
+  const recientes = [...rows].sort((a,b)=>String(b[C.fecha]||'').localeCompare(String(a[C.fecha]||''))).slice(0,8);
+  document.getElementById('fs-modal-title').textContent = asesor;
+  document.getElementById('fs-modal-body').innerHTML = `
+    <div class="fs-modal-kpis">
+      <div class="fs-modal-kpi"><span>Faltante</span><strong>${fmt$(faltante)}</strong></div>
+      <div class="fs-modal-kpi"><span>Sobrante</span><strong>${fmt$(sobrante)}</strong></div>
+      <div class="fs-modal-kpi"><span>Tiendas</span><strong>${tiendas.size}</strong></div>
+    </div>
+    <div class="fs-modal-grid">
+      <div class="fs-modal-block">
+        <h3>Tiendas con mayor faltante</h3>
+        <div class="fs-modal-list">
+          ${stores.map(t=>`<div class="fs-modal-row"><div>${escHtml(t.tienda)}<small>${t.movs} movimiento${t.movs===1?'':'s'} · sobrante ${fmt$(t.sobrante)}</small></div><span class="fs-modal-pill">${fmt$(t.faltante)}</span></div>`).join('')}
+        </div>
+      </div>
+      <div class="fs-modal-block">
+        <h3>Movimientos recientes</h3>
+        <div class="fs-modal-list">
+          ${recientes.map(r=>`<div class="fs-modal-row"><div>${escHtml(r[C.tienda]||'—')}<small>${escHtml(r[C.fecha]||'—')} · ${escHtml(r[C.concepto]||r[C.tipo]||'—')}</small></div><span class="fs-modal-pill">${fmt$(r[C.importe])}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('fs-asesor-modal').classList.add('open');
+}
+
+function updateKpiActive(){
+  ['kpi-faltante','kpi-sobrante','kpi-neto'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.remove('kpi-active','kpi-active-red','kpi-active-green');
+  });
+  const banner=document.getElementById('filter-banner');
+  if(!ACTIVE_FILTER){
+    banner.classList.remove('visible');
+    document.getElementById('kpi-neto')?.classList.add('kpi-active');
+  } else {
+    banner.classList.add('visible');
+    if(ACTIVE_FILTER==='Faltante'){document.getElementById('kpi-faltante')?.classList.add('kpi-active-red');document.getElementById('filter-label').textContent='Faltante';}
+    if(ACTIVE_FILTER==='Sobrante'){document.getElementById('kpi-sobrante')?.classList.add('kpi-active-green');document.getElementById('filter-label').textContent='Sobrante';}
+  }
+}
+
+function setFilter(f){ ACTIVE_FILTER=f; DROP_TIPO=''; document.getElementById('filtro-tipo').value=''; renderAll(); }
+function applyDropdownFilters(){
+  DROP_SEMANA = document.getElementById('filtro-semana').value;
+  DROP_TIPO   = document.getElementById('filtro-tipo').value;
+  DROP_TIENDA = document.getElementById('filtro-tienda').value;
+  if(DROP_TIPO) ACTIVE_FILTER=null;
+  renderAll();
+}
+function limpiarFiltros(){
+  ACTIVE_FILTER=null; DROP_TIPO=''; DROP_TIENDA=''; DROP_SEMANA=DEFAULT_SEMANA;
+  ['filtro-tipo','filtro-tienda'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('filtro-semana').value = DEFAULT_SEMANA;
+  if (asesorFilterHandle) asesorFilterHandle.reset(); else renderAll();
+}
+
+document.getElementById('clear-filter').onclick = ()=>setFilter(null);
+
+async function initDashboard() {
+  OXXO.renderDownloadButton('hero-download','s9');
+  const data = await OXXO.fetchSheetData(TAB);
+  if(data===null){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
+  if(data.length===0){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
+  C = buildColsD9(data[0]);
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
+  data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
+  BASE_DATA = OXXO.filterValidTiendas(data, asesorCatalog, C.tienda, C.cr);
+
+  // Populate dropdowns
+  const semanas = sortSemanas([...new Set(data.map(r=>String(r[C.semana] || '').trim()).filter(Boolean))]);
+  DEFAULT_SEMANA = semanas[0] || '';
+  DROP_SEMANA = DEFAULT_SEMANA;
+  const selSemana = document.getElementById('filtro-semana');
+  semanas.forEach(s=>{ const o=document.createElement('option');o.value=s;o.textContent=semanaLabel(s);selSemana.appendChild(o); });
+  selSemana.value = DEFAULT_SEMANA;
+  document.getElementById('semana-badge').textContent = DEFAULT_SEMANA ? semanaLabel(DEFAULT_SEMANA) + ' - Plaza Oaxaca' : 'Semanal - Plaza Oaxaca';
+
+  const asesores = [...new Set(data.map(r=>r[C.asesor]).filter(Boolean))].sort();
+  const tiendas  = [...new Set(data.map(r=>r[C.tienda]).filter(Boolean))].sort();
+  asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
+    onChange: (selected) => { DROP_ASESORES = selected; renderAll(); },
+  });
+  const selTienda = document.getElementById('filtro-tienda');
+  tiendas.forEach(t=>{ const o=document.createElement('option');o.value=t;o.textContent=t;selTienda.appendChild(o); });
+
+  renderAll();
+  OXXO.updateFooterTime('load-time');
+}
+document.addEventListener('DOMContentLoaded', initDashboard);
+
+window.buildExcelSheets = async function(){
+  return [
+    { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
+    { name: 'Detalle', rows: OXXO.scrapeHtmlTable('#tabla-detalle') }
+  ];
+};
+</script>
+</body></html>
