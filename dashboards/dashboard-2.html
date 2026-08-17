@@ -694,7 +694,7 @@ function findRealKey(row, aliases){ return OXXO.metricsFindKey(row, aliases); }
 function buildCols(data){
   const sample = data.find(r => Object.values(r).some(v => String(v||'').trim() !== '')) || data[0] || {};
   const cols = {}; Object.entries(ALIASES).forEach(([k,v]) => cols[k] = findRealKey(sample, v));
-  console.log('Columnas detectadas bajas:', cols); return cols;
+  return cols;
 }
 function val(row, cols, key, fallback=''){ const k=cols[key]; const v=k ? row[k] : undefined; return (v===undefined || v===null || String(v).trim()==='') ? fallback : v; }
 function num(v){ const n = Number(String(v??'').replace(/[$,%]/g,'').replace(/,/g,'').trim()); return Number.isFinite(n) ? n : 0; }

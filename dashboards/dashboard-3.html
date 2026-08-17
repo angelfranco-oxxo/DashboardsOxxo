@@ -935,7 +935,6 @@ async function initDashboard(){
   if(rawData.length===0){['kpi-section','plazas-row','tabla-at'].forEach(id=>OXXO.showEmpty(id));return;}
 
   const map = buildMap(rawData);
-  console.log('Mapa de columnas:', JSON.stringify(map));
   const asesorCatalog = await OXXO.loadAsesorCatalog();
 
   // Normalizar datos (aprov y vacante ya vienen en unidades de % en el sheet, ej. "90.9%" = 90.9)
