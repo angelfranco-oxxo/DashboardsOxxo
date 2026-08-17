@@ -14,6 +14,13 @@
 (function () {
   'use strict';
 
+  // Desactivado a peticion del usuario: se deja todo el widget listo pero
+  // apagado para poder prenderlo de nuevo en el futuro solo cambiando este
+  // flag a true, sin tocar ninguna de las paginas que ya traen el <script>
+  // de mascota-chat.js.
+  const CHAT_ENABLED = false;
+  if (!CHAT_ENABLED) return;
+
   if (window.__oxxoMascotaChat) return;
   window.__oxxoMascotaChat = true;
 
