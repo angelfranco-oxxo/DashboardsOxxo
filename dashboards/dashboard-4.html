@@ -507,31 +507,31 @@ function renderAll() {
 
   // ── KPIs (kpi-card skin style) ──
   document.getElementById('kpi-section').innerHTML = `
-    <div class="kpi-card" id="kpi-all" onclick="setFilter(null)" title="Ver todo" style="border-top:3px solid #FFD200">
+    <div class="kpi-card" id="kpi-all" role="button" tabindex="0" onclick="setFilter(null)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter(null)}" title="Ver todo" style="border-top:3px solid #FFD200">
       <div class="kpi-card__label">Total Horas TE<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de la columna 'Cantidad' de todas las filas de Dashboard_4_Semanal con los filtros activos (incluye doble, triple y día descanso)."></span></div>
       <div class="kpi-card__value">${fmtH(totalHoras)}</div>
       <div class="kpi-card__sub">${semana === 'Todas' ? 'horas - Todas las semanas' : 'horas - Sem ' + semana}</div>
       <div class="kpi-filter-hint">▶ Ver todo</div>
     </div>
-    <div class="kpi-card" id="kpi-gasto" onclick="setFilter(null)" title="Ver todo" style="border-top:3px solid #FF6B00">
+    <div class="kpi-card" id="kpi-gasto" role="button" tabindex="0" onclick="setFilter(null)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter(null)}" title="Ver todo" style="border-top:3px solid #FF6B00">
       <div class="kpi-card__label">Total Gasto $<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de la columna 'Importe' de todas las filas filtradas. Costo/hora = Total Gasto ÷ Total Horas."></span></div>
       <div class="kpi-card__value">${fmt$(totalGasto)}</div>
       <div class="kpi-card__sub">${totalEmps} empleados · $${costoXHora.toFixed(0)}/h</div>
       <div class="kpi-filter-hint">▶ Ver todo</div>
     </div>
-    <div class="kpi-card" id="kpi-doble" onclick="setFilter('doble')" title="Filtrar: TE Doble" style="border-top:3px solid #FFD200">
+    <div class="kpi-card" id="kpi-doble" role="button" tabindex="0" onclick="setFilter('doble')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('doble')}" title="Filtrar: TE Doble" style="border-top:3px solid #FFD200">
       <div class="kpi-card__label">Horas TE Doble<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Filas donde 'Textos homologados' = 'Tiempo Extra Doble'. Clic en la tarjeta filtra el dashboard a este tipo."></span></div>
       <div class="kpi-card__value">${fmtH(totalHDoble)}</div>
       <div class="kpi-card__sub">${pct(totalHDoble,totalBase)} del total · ${fmt$(totalGDoble)}</div>
       <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
-    <div class="kpi-card" id="kpi-triple" onclick="setFilter('triple')" title="Filtrar: TE Triple" style="border-top:3px solid #D92B2B">
+    <div class="kpi-card" id="kpi-triple" role="button" tabindex="0" onclick="setFilter('triple')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('triple')}" title="Filtrar: TE Triple" style="border-top:3px solid #D92B2B">
       <div class="kpi-card__label">Horas TE Triple<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Filas donde 'Textos homologados' = 'Tiempo Extra Triple'. Clic en la tarjeta filtra el dashboard a este tipo."></span></div>
       <div class="kpi-card__value">${fmtH(totalHTriple)}</div>
       <div class="kpi-card__sub">${pct(totalHTriple,totalBase)} del total · ${fmt$(totalGTriple)}</div>
       <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
-    <div class="kpi-card" id="kpi-desc" onclick="setFilter('descanso')" title="Filtrar: Día Descanso" style="border-top:3px solid #0066CC">
+    <div class="kpi-card" id="kpi-desc" role="button" tabindex="0" onclick="setFilter('descanso')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('descanso')}" title="Filtrar: Día Descanso" style="border-top:3px solid #0066CC">
       <div class="kpi-card__label">Día Descanso<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Filas donde 'Textos homologados' empieza con 'Día Des' (trabajo en día de descanso). Clic filtra el dashboard a este tipo."></span></div>
       <div class="kpi-card__value">${fmtH(totalHDesc)}</div>
       <div class="kpi-card__sub">${pct(totalHDesc,totalBase)} del total · ${fmt$(totalGDesc)}</div>
