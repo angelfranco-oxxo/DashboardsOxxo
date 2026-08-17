@@ -40,17 +40,6 @@
 .fs-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .bar-chart-area{position:relative;height:220px}
 
-/* Ranking */
-.rank-list{padding:4px 0}
-.rank-row{display:grid;grid-template-columns:28px 1fr 80px 90px;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--color-border)}
-.rank-row:last-child{border-bottom:none}
-.rank-num{width:22px;height:22px;border-radius:50%;background:#f0f0f0;color:#666;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.rank-num.top{background:#7B1FA2;color:#fff}
-.rank-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-dark)}
-.rank-bar-wrap{height:8px;background:#f0f0f0;border-radius:999px;overflow:hidden}
-.rank-bar{height:100%;border-radius:999px}
-.rank-val{font-size:12px;font-weight:800;color:#7B1FA2;text-align:right;white-space:nowrap}
-
 /* Donut */
 .donut-body{display:flex;align-items:center;padding:16px 20px;gap:20px;flex:1}
 .donut-chart-wrap{width:200px;height:200px;flex-shrink:0;position:relative}
@@ -172,14 +161,6 @@
 .fs-modal-pill{font-weight:900;color:#7B1FA2;background:#F3E5F9;border:1px solid rgba(123,31,162,.14);border-radius:999px;padding:5px 10px;white-space:nowrap}
 @media(max-width:760px){.fs-modal-kpis{grid-template-columns:repeat(2,1fr)}.fs-modal-grid{grid-template-columns:1fr}.table-sort-select{width:100%}}
 
-/* dashboard-skin.css trae un tema rojo/naranja !important para .rank-bar/.rank-val/
-   .rank-num.top pensado para D3/D6/D7 -- aqui pisa el morado propio de D9. Se
-   sobre-escribe con selectores con ID (mas especificidad que cualquier combinacion
-   de clases, gana sin importar el orden de las hojas de estilo) para que el
-   ranking de asesores respete el morado del resto de la pagina. */
-#ranking-container .rank-bar{background:linear-gradient(90deg,#7B1FA2,#B24FCF) !important;box-shadow:none}
-#ranking-container .rank-num.top{background:#7B1FA2 !important}
-#ranking-container .rank-val{color:#7B1FA2 !important;background:rgba(123,31,162,.08) !important;border:1px solid rgba(123,31,162,.16) !important}
 </style>
 <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
   <link rel="stylesheet" href="../css/floating-filter-layout.css?v=1" />
@@ -264,7 +245,7 @@
         <div class="card-title">🏆 Ranking de Asesores por Faltante<span class="info-tip" tabindex="0" data-tip="Suma de Importe (filas Faltante) agrupada por Asesor, ordenado de mayor a menor."></span></div>
         <span class="card-badge" id="ranking-badge">Top 10</span>
       </div>
-      <div class="rank-list" id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
+      <div class="bar-chart-area" id="ranking-container"><canvas id="chart-ranking"></canvas></div>
     </div>
     <div class="card">
       <div class="card-head">
@@ -411,7 +392,7 @@ let DROP_ASESORES = null, DROP_TIPO = '', DROP_TIENDA = '', DROP_SEMANA = '';
 let asesorFilterHandle = null;
 let DEFAULT_SEMANA = '';
 let TABLE_SORT = 'faltante-desc';
-let chartAsesores = null, chartTiendas = null, chartDona = null;
+let chartAsesores = null, chartTiendas = null, chartDona = null, chartRanking = null;
 
 function aggregateByAsesor(data) {
   const map = {};
@@ -490,15 +471,20 @@ function renderAll() {
     </div>`;
   updateKpiActive();
 
-  // ── Ranking ──
-  const maxF = byAsesor[0]?.faltante||1;
-  document.getElementById('ranking-container').innerHTML = byAsesor.slice(0,10).map((r,i)=>`
-    <div class="rank-row">
-      <div class="rank-num ${i<3?'top':''}">${i+1}</div>
-      <div class="rank-name">${escHtml(r.asesor)}</div>
-      <div class="rank-bar-wrap"><div class="rank-bar" style="width:${Math.round(r.faltante/maxF*100)}%;background:${i<3?'#7B1FA2':'#D992E8'}"></div></div>
-      <div class="rank-val">${fmt$(r.faltante)}</div>
-    </div>`).join('');
+  // ── Ranking ── barras verticales descendentes, morado, sobre ejes
+  const top10r = byAsesor.slice(0,10);
+  if(chartRanking) chartRanking.destroy();
+  chartRanking = new Chart(document.getElementById('chart-ranking').getContext('2d'),{
+    type:'bar',
+    data:{labels:top10r.map(r=>OXXO.truncate(r.asesor,12)),
+      datasets:[{data:top10r.map(r=>r.faltante),backgroundColor:top10r.map((r,i)=>i<3?'#7B1FA2':'#C77FDB'),borderRadius:999,borderSkipped:false,barPercentage:.6,categoryPercentage:.82}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>fmt$(c.raw)}}},
+      scales:{
+        x:{border:{display:true,color:'#2A1917',width:2},grid:{display:false},ticks:{font:{family:'Barlow',size:9,weight:'800'},color:'#5A4037',maxRotation:0,autoSkip:true}},
+        y:{border:{display:true,color:'#2A1917',width:2},grid:{display:false},ticks:{display:false},beginAtZero:true}
+      }}
+  });
   document.getElementById('ranking-badge').textContent = `${byAsesor.length} asesores`;
 
   // ── Donut ──
