@@ -632,7 +632,6 @@ async function loadSystemConfig() {
     config[id] = row;
   }
 
-  console.log('[OXXO] Config cargada:', Object.keys(config));
   return config;
 }
 
