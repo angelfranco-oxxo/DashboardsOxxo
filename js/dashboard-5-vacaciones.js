@@ -397,8 +397,8 @@ function renderActions(rows) {
 
   document.getElementById('actions-list').innerHTML = actions.map((action) => `
     <div class="vac-action">
-      <div class="vac-action__title">${action.title}</div>
-      <div class="vac-action__text">${action.text}</div>
+      <div class="vac-action__title">${OXXO.escHtml(action.title)}</div>
+      <div class="vac-action__text">${OXXO.escHtml(action.text)}</div>
     </div>`).join('');
 }
 
@@ -420,7 +420,7 @@ function populateSelect(id, rows, key, defaultLabel) {
   const select = document.getElementById(id);
   const values = Array.from(new Set(rows.map((row) => row[key]).filter(Boolean))).sort();
   select.innerHTML = `<option value="">${defaultLabel}</option>` + values.map((value) => (
-    `<option value="${value}">${value}</option>`
+    `<option value="${OXXO.escHtml(value)}">${OXXO.escHtml(value)}</option>`
   )).join('');
 }
 
@@ -528,14 +528,14 @@ function openAsesorModal(asesorLabel, rows) {
         <tbody>
           ${employees.map((row) => `
             <tr>
-              <td>${row.num_empleado || '-'}</td>
-              <td>${row.nombre || 'Sin dato'}</td>
-              <td>${row.tienda || '-'}</td>
-              <td>${row.puesto || '-'}</td>
+              <td>${OXXO.escHtml(row.num_empleado || '-')}</td>
+              <td>${OXXO.escHtml(row.nombre || 'Sin dato')}</td>
+              <td>${OXXO.escHtml(row.tienda || '-')}</td>
+              <td>${OXXO.escHtml(row.puesto || '-')}</td>
               <td>${n(row.periodo_anterior, 1)}</td>
               <td>${n(row.periodo_actual, 1)}</td>
               <td>${n(row.dias_restantes, 1)}</td>
-              <td>${row.vence_ant_bucket || '-'}</td>
+              <td>${OXXO.escHtml(row.vence_ant_bucket || '-')}</td>
             </tr>`).join('')}
         </tbody>
       </table>`;

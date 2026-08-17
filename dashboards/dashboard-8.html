@@ -418,7 +418,7 @@ function renderAll() {
     : asesores.map(a => {
         const color = capColorPct(a.pct);
         return `<tr class="row-${color}" data-asesor="${escapeAttr(a.asesor)}" onclick="openAsesorCapModal('${escapeAttr(a.asesor)}')">
-          <td>${OXXO.truncate(a.asesor,26)}</td>
+          <td>${OXXO.escHtml(OXXO.truncate(a.asesor,26))}</td>
           <td class="center">${a.emps}</td>
           <td class="center">${a.aplic}</td>
           <td class="center">${a.comp}</td>
@@ -435,10 +435,10 @@ function renderAll() {
       return `<td class="center"><span class="cap-badge ${cls}" style="font-size:9px;min-width:auto;padding:2px 6px">${txt}</span></td>`;
     }).join('');
     return `<tr>
-      <td>${OXXO.truncate(r[C.asesor]||'—',20)}</td>
-      <td>${OXXO.truncate(r[C.empleado]||'—',24)}</td>
-      <td style="font-size:10px">${OXXO.truncate(r[C.puesto]||'—',16)}</td>
-      <td style="font-size:10px">${OXXO.truncate(r[C.unidad]||'—',18)}</td>
+      <td>${OXXO.escHtml(OXXO.truncate(r[C.asesor]||'—',20))}</td>
+      <td>${OXXO.escHtml(OXXO.truncate(r[C.empleado]||'—',24))}</td>
+      <td style="font-size:10px">${OXXO.escHtml(OXXO.truncate(r[C.puesto]||'—',16))}</td>
+      <td style="font-size:10px">${OXXO.escHtml(OXXO.truncate(r[C.unidad]||'—',18))}</td>
       ${certCells}
     </tr>`;
   }).join('');

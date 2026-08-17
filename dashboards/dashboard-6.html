@@ -344,7 +344,7 @@ function renderAll() {
     <div class="kpi-card azul">
       <div class="kpi-card__label">Empleados Ausentes<span class="info-tip" tabindex="0" data-tip="Empleados distintos (columna N° de personal) con al menos un registro de ausentismo en Dashboard_6_Semanal."></span></div>
       <div class="kpi-card__value">${totalEmps}</div>
-      <div class="kpi-card__delta neu">${data.length} registros · ${semana}</div>
+      <div class="kpi-card__delta neu">${data.length} registros · ${OXXO.escHtml(semana)}</div>
       <div class="kpi-card__icon">👥</div>
     </div>
     <div class="kpi-card naranja">
@@ -418,7 +418,7 @@ function renderAll() {
     <div class="rank-item">
       <div class="rank-num ${i<3?'top':''}">${i+1}</div>
       <div>
-        <div class="rank-name">${OXXO.truncate(r.asesor,22)}</div>
+        <div class="rank-name">${OXXO.escHtml(OXXO.truncate(r.asesor,22))}</div>
         <div class="rank-sub">${r.emps} empleado${r.emps!==1?'s':''}</div>
         <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:0%;background:#FF6B00" data-w="${(r.dias/maxDAs*100).toFixed(0)}%"></div></div>
       </div>
@@ -462,7 +462,7 @@ function renderAll() {
     const dias = Math.round(byTipo[t]);
     const empsU = new Set(regs.map(r=>r[C.noPersonal])).size;
     return `<tr>
-      <td><span class="tipo-pill ${p.cls}">${p.icon} ${t}</span></td>
+      <td><span class="tipo-pill ${p.cls}">${p.icon} ${OXXO.escHtml(t)}</span></td>
       <td class="center">${regs.length}</td>
       <td class="center">${empsU}</td>
       <td class="center" style="font-family:var(--font-display);font-weight:800">${dias}</td>
@@ -484,13 +484,13 @@ function renderAll() {
     const p = tipoPill(r[C.tipo]);
     const dias = parseFloat(r[C.dias])||0;
     return `<tr>
-      <td>${OXXO.truncate(r[C.asesor]||'—',20)}</td>
-      <td>${OXXO.truncate(r[C.nombre]||'—',24)}</td>
-      <td style="font-size:10px">${OXXO.truncate(r[C.funcion]||'—',20)}</td>
-      <td>${OXXO.truncate(r[C.tienda]||'—',20)}</td>
-      <td><span class="tipo-pill ${p.cls}" style="font-size:10px">${p.icon} ${OXXO.truncate(r[C.tipo]||'—',18)}</span></td>
+      <td>${OXXO.escHtml(OXXO.truncate(r[C.asesor]||'—',20))}</td>
+      <td>${OXXO.escHtml(OXXO.truncate(r[C.nombre]||'—',24))}</td>
+      <td style="font-size:10px">${OXXO.escHtml(OXXO.truncate(r[C.funcion]||'—',20))}</td>
+      <td>${OXXO.escHtml(OXXO.truncate(r[C.tienda]||'—',20))}</td>
+      <td><span class="tipo-pill ${p.cls}" style="font-size:10px">${p.icon} ${OXXO.escHtml(OXXO.truncate(r[C.tipo]||'—',18))}</span></td>
       <td class="center" style="font-weight:800">${Math.round(dias)}</td>
-      <td class="center" style="font-size:10px;color:var(--color-gray)">${r[C.semana]||'—'}</td>
+      <td class="center" style="font-size:10px;color:var(--color-gray)">${OXXO.escHtml(r[C.semana]||'—')}</td>
     </tr>`;
   }).join('');
   document.getElementById('tabla-detalle').innerHTML = `

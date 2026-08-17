@@ -583,7 +583,7 @@ function movPill(mov){
   if(m==='alineada') return `<span class="mov-pill mov-alineada">✔ Alineada</span>`;
   if(m==='subir')    return `<span class="mov-pill mov-subir">▲ Subir</span>`;
   if(m==='bajar')    return `<span class="mov-pill mov-bajar">▼ Bajar</span>`;
-  return `<span class="mov-pill">${mov||'—'}</span>`;
+  return `<span class="mov-pill">${esc(mov||'—')}</span>`;
 }
 
 function antPill(ant){
@@ -829,7 +829,7 @@ function renderRankAsesor(data, containerId, movFiltro, barColor){
     return `<div class="rank-item">
       <div class="rank-num ${i<3?'top':''}">${i+1}</div>
       <div>
-        <div class="rank-name">${trunc(short, 26)}</div>
+        <div class="rank-name">${esc(trunc(short, 26))}</div>
         <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:0%;background:${barColor}" data-w="${w}%"></div></div>
       </div>
       <div class="rank-val" style="color:${barColor}">${cnt}</div>
@@ -865,8 +865,8 @@ function renderTabla(){
     const actTip = act<treo ? `Sub-dotación: ${treo-act} menos que TREO` : act>treo ? `Sobre-dotación: ${act-treo} más que TREO` : 'Dotación alineada con TREO';
     const vacColor = vac>0 ? '#B85000' : 'var(--color-gray)';
     return `<tr class="d7-row" data-cr="${esc(r.cr||'')}" data-tienda="${esc(r.tienda||'')}" style="${rowBg};cursor:pointer">
-      <td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${trunc(r.tienda,28)} <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
-      <td style="font-size:11px;color:var(--color-gray);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${trunc(r.asesor,24)}</td>
+      <td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(trunc(r.tienda,28))} <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
+      <td style="font-size:11px;color:var(--color-gray);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(trunc(r.asesor,24))}</td>
       <td style="text-align:center">${movPill(r.mov)}</td>
       <td style="text-align:center;font-weight:800;font-size:15px;color:var(--color-dark)">${r.est_final||'--'}</td>
       <td style="text-align:center;font-weight:800;font-size:15px;color:var(--color-dark)">${r.est_sap||'--'}</td>
@@ -1024,7 +1024,7 @@ function renderBrecha(data){
   el.innerHTML=arr.map(x=>{
     const falta=x.g<0; const col=falta?'#C0393B':'#B85000';
     return `<div class="d7-row" data-cr="${esc(x.r.cr||'')}" data-tienda="${esc(x.r.tienda||'')}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 6px;border-bottom:1px solid var(--color-border);cursor:pointer">
-      <div style="min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${trunc(x.r.tienda,26)}</div>
+      <div style="min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(trunc(x.r.tienda,26))}</div>
         <div style="font-size:10px;color:var(--color-gray)">Activos ${x.r.empleados||0} · TREO ${x.r.est_final||0}</div></div>
       <div style="font-weight:800;color:${col};white-space:nowrap">${falta?'▼ faltan ':'▲ sobran '}${Math.abs(x.g)}</div>
     </div>`;
