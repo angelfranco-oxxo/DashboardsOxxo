@@ -38,6 +38,7 @@
 
 /* Row 2 */
 .fs-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.fs-row2--single{grid-template-columns:1fr}
 .bar-chart-area{position:relative;height:220px}
 
 /* Donut */
@@ -261,14 +262,8 @@
     </div>
   </div>
 
-  <!-- Row 2: Bar charts -->
-  <div class="fs-row2">
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">📊 Top 10 Asesores — Faltante $<span class="info-tip" tabindex="0" data-tip="Los 10 Asesores con mayor suma de Importe en filas Faltante, de mayor a menor."></span></div>
-      </div>
-      <div class="bar-chart-area"><canvas id="chart-asesores"></canvas></div>
-    </div>
+  <!-- Row 2: Bar chart -->
+  <div class="fs-row2 fs-row2--single">
     <div class="card">
       <div class="card-head">
         <div class="card-title">🏪 Top 10 Tiendas — Faltante $<span class="info-tip" tabindex="0" data-tip="Las 10 tiendas con mayor suma de Importe en filas Faltante, de mayor a menor."></span></div>
@@ -392,7 +387,7 @@ let DROP_ASESORES = null, DROP_TIPO = '', DROP_TIENDA = '', DROP_SEMANA = '';
 let asesorFilterHandle = null;
 let DEFAULT_SEMANA = '';
 let TABLE_SORT = 'faltante-desc';
-let chartAsesores = null, chartTiendas = null, chartDona = null, chartRanking = null;
+let chartTiendas = null, chartDona = null, chartRanking = null;
 
 function aggregateByAsesor(data) {
   const map = {};
@@ -506,18 +501,6 @@ function renderAll() {
     data:{labels:donutLabels,datasets:[{data:donutVals,backgroundColor:donutColors,borderWidth:4,borderColor:'#FFF8EE',borderRadius:10,spacing:3,hoverOffset:6}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'70%',
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>' '+c.label+': '+fmt$(c.raw)}}}}
-  });
-
-  // ── Bar Asesores ──
-  const top10a = byAsesor.slice(0,10);
-  if(chartAsesores) chartAsesores.destroy();
-  chartAsesores = new Chart(document.getElementById('chart-asesores').getContext('2d'),{
-    type:'bar',
-    data:{labels:top10a.map(r=>OXXO.truncate(r.asesor,14)),
-      datasets:[{data:top10a.map(r=>r.faltante),backgroundColor:'#B24FCF',borderColor:'rgba(255,255,255,.68)',borderWidth:1,borderRadius:999,borderSkipped:false,barPercentage:.72,categoryPercentage:.72}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>fmt$(c.raw)}}},
-      scales:{x:{border:{display:false},grid:{display:false},ticks:{font:{family:'Barlow',size:10,weight:'800'},color:'#5A4037'}},y:{border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'},callback:v=>'$'+OXXO.formatNum(Math.round(v))}}}}
   });
 
   // ── Bar Tiendas ──
