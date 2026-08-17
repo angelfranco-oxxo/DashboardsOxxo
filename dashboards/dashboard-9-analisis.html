@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
+  <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
+  <script defer src="../js/site-lock.js?v=1"></script>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Balance de Caja · Análisis · OXXO Plaza Oaxaca</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <link rel="icon" type="image/png" href="../assets/favicon.png"/>
+  <link rel="apple-touch-icon" href="../assets/favicon.png"/>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/mascota-chat.css?v=20260805d" />
+  <link rel="stylesheet" href="../css/dashboard-skin.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+.bc-page{max-width:1420px;margin:0 auto;padding:14px 16px 40px}
+
+.bc-header{
+  background:linear-gradient(135deg,#6A1B85 0%,#7B1FA2 55%,#3F0F55 100%);
+  border-radius:16px;padding:22px 26px;color:#fff;
+  display:flex;flex-direction:column;gap:6px;
+  box-shadow:0 14px 36px rgba(74,20,140,.24);margin-bottom:16px;
+}
+.bc-header__top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.bc-header h1{font-family:var(--font-display);font-size:28px;font-weight:800;letter-spacing:.3px;margin:0}
+.bc-header p{font-size:13px;color:rgba(255,255,255,.82);font-weight:500;margin-top:4px;max-width:56ch}
+.bc-back{text-decoration:none;color:#fff;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.32);border-radius:999px;padding:8px 16px;font-size:12px;font-weight:700;white-space:nowrap}
+.bc-back:hover{background:rgba(0,0,0,.32)}
+
+/* KPIs — mismos acentos que Dashboard 9 */
+.bc-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+.bc-kpi{background:var(--color-surface);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow-card);border-top:3px solid #9E9E9E}
+.bc-kpi__label{font-size:11px;font-weight:700;color:var(--color-gray);text-transform:uppercase;letter-spacing:.06em}
+.bc-kpi__value{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--color-dark);margin-top:4px}
+.bc-kpi__sub{font-size:11px;color:var(--color-gray);margin-top:2px}
+
+.bc-card{background:var(--color-surface);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow-card);margin-bottom:16px}
+.bc-card h2{font-family:var(--font-display);font-size:16px;font-weight:800;margin:0 0 4px;color:var(--color-dark)}
+.bc-card .bc-sub{font-size:12px;color:var(--color-gray);margin-bottom:14px}
+.bc-grid-2{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;align-items:start}
+@media(max-width:980px){.bc-grid-2{grid-template-columns:1fr}}
+
+.bc-chart-box{position:relative;height:280px}
+
+/* Ranking de tiendas */
+.bc-rank-row{display:grid;grid-template-columns:26px 1fr 90px;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--color-border)}
+.bc-rank-row:last-child{border-bottom:none}
+.bc-rank-num{width:22px;height:22px;border-radius:50%;background:#f0f0f0;color:#666;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bc-rank-num.top{background:#7B1FA2;color:#fff}
+.bc-rank-name{font-size:12px;font-weight:700;color:var(--color-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc-rank-cr{font-size:10px;font-weight:600;color:var(--color-gray)}
+.bc-rank-bar-wrap{grid-column:2/3;height:7px;background:#f0f0f0;border-radius:999px;overflow:hidden;margin-top:4px}
+.bc-rank-bar{height:100%;border-radius:999px;background:#B24FCF}
+.bc-rank-val{font-size:12px;font-weight:800;color:#D92B2B;text-align:right;white-space:nowrap}
+.bc-rank-val small{display:block;font-size:10px;font-weight:700;color:#1DB954}
+
+/* Hallazgo */
+.bc-finding{
+  background:linear-gradient(135deg,rgba(123,31,162,.06),rgba(123,31,162,.02));
+  border:1px solid rgba(123,31,162,.18);border-radius:14px;padding:16px 18px;
+  font-size:13px;line-height:1.6;color:var(--color-dark);margin-bottom:16px;
+}
+.bc-finding strong{color:#7B1FA2}
+.bc-imb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.bc-imb-card{border:1px solid var(--color-border);border-radius:12px;padding:12px 14px}
+.bc-imb-card__name{font-size:12px;font-weight:800;color:var(--color-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc-imb-card__cr{font-size:10px;font-weight:600;color:var(--color-gray);margin-bottom:6px}
+.bc-imb-card__neto{font-family:var(--font-display);font-size:19px;font-weight:800}
+.bc-imb-card__neto.pos{color:#D92B2B}
+.bc-imb-card__neto.neg{color:#1DB954}
+.bc-imb-card__lbl{font-size:10px;font-weight:700;color:var(--color-gray);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+
+/* Motivos */
+.bc-c-row{display:grid;grid-template-columns:1fr 110px;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--color-border)}
+.bc-c-row:last-child{border-bottom:none}
+.bc-c-name{font-size:12px;font-weight:700;color:var(--color-dark)}
+.bc-c-track{height:7px;background:#f0f0f0;border-radius:999px;overflow:hidden;margin-top:4px}
+.bc-c-fill{height:100%;border-radius:999px}
+.bc-c-fill.falt{background:#D92B2B}
+.bc-c-fill.sobr{background:#1DB954}
+.bc-c-val{font-size:12px;font-weight:800;text-align:right}
+.bc-c-val small{display:block;font-size:10px;font-weight:600;color:var(--color-gray)}
+
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px 20px;color:var(--color-gray);text-align:center}
+.spinner{width:32px;height:32px;border:3px solid var(--color-border);border-top-color:#7B1FA2;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:900px){.bc-kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.bc-kpis{grid-template-columns:repeat(2,1fr)}.bc-chart-box{height:220px}}
+</style>
+</head>
+<body>
+<nav class="topbar">
+  <div class="topbar__brand">
+    <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+    <div>
+      <div class="topbar__title">Dashboards Ats</div>
+      <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
+    </div>
+  </div>
+  <div class="topbar__meta">
+    <a href="../index.html" class="topbar__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
+  </div>
+</nav>
+
+<main class="bc-page">
+  <section class="bc-header">
+    <div class="bc-header__top">
+      <div>
+        <h1>Balance de Caja</h1>
+        <p>Faltantes y sobrantes a través del tiempo, por tienda, por asesor y por motivo · lectura exploratoria de la misma base de Dashboard 9 · Plaza Oaxaca</p>
+      </div>
+      <a href="dashboard-9.html" class="bc-back">← Faltantes y Sobrantes</a>
+    </div>
+  </section>
+
+  <section class="bc-kpis" id="kpi-section">
+    <div class="bc-kpi"><div class="bc-kpi__label">Cargando…</div><div class="bc-kpi__value"><div class="spinner"></div></div></div>
+  </section>
+
+  <section class="bc-card">
+    <h2>Pulso semanal</h2>
+    <div class="bc-sub">Faltante (rojo, hacia arriba) y Sobrante (verde, hacia abajo) por semana, todo el periodo.</div>
+    <div class="bc-chart-box"><canvas id="chart-pulso"></canvas></div>
+  </section>
+
+  <div class="bc-grid-2">
+    <section class="bc-card">
+      <h2>Ranking de tiendas por Faltante</h2>
+      <div class="bc-sub">Top 15 tiendas · barra en Faltante, cifra chica en verde es su Sobrante</div>
+      <div id="rank-list"><div class="state-box"><div class="spinner"></div></div></div>
+    </section>
+    <section class="bc-card">
+      <h2>Top motivos</h2>
+      <div class="bc-sub">Los 10 conceptos con mayor monto combinado, coloreados por el tipo dominante</div>
+      <div id="concept-list"><div class="state-box"><div class="spinner"></div></div></div>
+    </section>
+  </div>
+
+  <section class="bc-card">
+    <h2>El hallazgo</h2>
+    <div id="finding-text" class="bc-finding"><div class="state-box"><div class="spinner"></div></div></div>
+    <div class="bc-sub" style="margin-bottom:10px">Pero no en todas las tiendas se cancela igual — estas son las que más se desvían del patrón (mínimo 5 movimientos):</div>
+    <div class="bc-imb-grid" id="imb-grid"></div>
+  </section>
+
+  <section class="bc-card">
+    <h2>Asesores: Faltante vs Sobrante</h2>
+    <div class="bc-sub">Cada punto es un asesor · tamaño = movimientos · la línea diagonal marca faltante = sobrante</div>
+    <div class="bc-chart-box"><canvas id="chart-quad"></canvas></div>
+  </section>
+
+  <div class="dash-footer">
+    <div class="dash-footer__update"><div class="dash-footer__update-dot"></div>
+      Datos cargados: <span id="load-time">—</span></div>
+    <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
+  </div>
+</main>
+
+  <script src="../js/config.js?v=20260814a"></script>
+  <script src="../js/core.js?v=20260814a"></script>
+<script src="../js/mascota-chat.js?v=20260805d"></script>
+<script>
+const TAB = OXXO.SHEETS_CONFIG.TABS.s9;
+let C = { asesor:'Asesor', tienda:'Tienda', cr:'CR', importe:'Importe', tipo:'Tipo', concepto:'Concepto', semana:'Semana', fecha:'Fecha' };
+
+function buildColsD9(sample){
+  const cols = {};
+  Object.entries(C).forEach(([k, def]) => { cols[k] = OXXO.metricsFindKey(sample, [def]) || def; });
+  return cols;
+}
+function numParse(v){ return OXXO.metricsNum(v); }
+function fmt$(n){ const v = Number(n)||0; return (v<0?'-$':'$')+OXXO.formatNum(Math.abs(v)); }
+function escHtml(value){
+  return String(value ?? '').replace(/[&<>'\"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[ch]));
+}
+
+const MES_ABBR_D9 = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
+function semanaSortKey(value){
+  const v = String(value||'').trim().toLowerCase();
+  const m = v.match(/^([a-z]{3})\w*\s+(\d{2,4})\s+sem\s*(\d{1,2})/);
+  if(!m) return '0000-00-00';
+  const mesIdx = MES_ABBR_D9[m[1]];
+  if(mesIdx===undefined) return '0000-00-00';
+  const anio = m[2].length===2 ? 2000+Number(m[2]) : Number(m[2]);
+  return `${anio}-${String(mesIdx).padStart(2,'0')}-${String(Number(m[3])).padStart(2,'0')}`;
+}
+function semanaShort(value){
+  const v = String(value||'').trim();
+  const m = v.match(/^([a-zA-Z]{3})\S*\s+(\d{2,4})\s+sem\s*(\d+)/);
+  if(!m) return v;
+  const mes = m[1].charAt(0).toUpperCase()+m[1].slice(1,3).toLowerCase();
+  return `${mes}·S${m[3]}`;
+}
+
+function computeAll(data){
+  const bySemana = new Map();
+  const byTienda = new Map();
+  const byAsesor = new Map();
+  const byConcepto = new Map();
+
+  data.forEach(r=>{
+    const tipo = r[C.tipo];
+    const importe = numParse(r[C.importe]);
+    const signed = tipo==='Faltante' ? importe : (tipo==='Sobrante' ? Math.abs(importe) : 0);
+
+    const ks = r[C.semana];
+    if(!bySemana.has(ks)) bySemana.set(ks,{semana:ks,faltante:0,sobrante:0,n:0,sortKey:semanaSortKey(ks)});
+    const s = bySemana.get(ks);
+    if(tipo==='Faltante') s.faltante+=importe; else if(tipo==='Sobrante') s.sobrante+=Math.abs(importe);
+    s.n++;
+
+    const kt = r[C.tienda] || 'Sin tienda';
+    if(!byTienda.has(kt)) byTienda.set(kt,{tienda:kt,cr:r[C.cr],faltante:0,sobrante:0,n:0});
+    const t = byTienda.get(kt);
+    if(tipo==='Faltante') t.faltante+=importe; else if(tipo==='Sobrante') t.sobrante+=Math.abs(importe);
+    t.n++;
+
+    const ka = r[C.asesor] || 'Sin asignar';
+    if(!byAsesor.has(ka)) byAsesor.set(ka,{asesor:ka,faltante:0,sobrante:0,n:0,tiendas:new Set()});
+    const a = byAsesor.get(ka);
+    if(tipo==='Faltante') a.faltante+=importe; else if(tipo==='Sobrante') a.sobrante+=Math.abs(importe);
+    a.n++;
+    if(r[C.tienda]) a.tiendas.add(r[C.tienda]);
+
+    const kc = (r[C.concepto] || 'Sin concepto').trim().toUpperCase();
+    if(!byConcepto.has(kc)) byConcepto.set(kc,{concepto:kc,faltante:0,sobrante:0,n:0});
+    const c = byConcepto.get(kc);
+    if(tipo==='Faltante') c.faltante+=importe; else if(tipo==='Sobrante') c.sobrante+=Math.abs(importe);
+    c.n++;
+    void signed;
+  });
+
+  const semanas = [...bySemana.values()].sort((x,y)=>x.sortKey.localeCompare(y.sortKey));
+  const tiendasArr = [...byTienda.values()].sort((x,y)=>y.faltante-x.faltante);
+  const tiendasDesbalance = [...byTienda.values()]
+    .map(t=>({...t, neto:t.faltante-t.sobrante}))
+    .filter(t=>t.n>=5)
+    .sort((x,y)=>Math.abs(y.neto)-Math.abs(x.neto));
+  const asesoresArr = [...byAsesor.values()]
+    .map(a=>({asesor:a.asesor, faltante:a.faltante, sobrante:a.sobrante, neto:a.faltante-a.sobrante, n:a.n, tiendas:a.tiendas.size}))
+    .sort((x,y)=>y.faltante-x.faltante);
+  const conceptosArr = [...byConcepto.values()]
+    .map(c=>({concepto:c.concepto, monto:c.faltante+c.sobrante, n:c.n, tipo: c.faltante>=c.sobrante?'Faltante':'Sobrante'}))
+    .sort((x,y)=>y.monto-x.monto).slice(0,10);
+
+  const totalFaltante = data.filter(r=>r[C.tipo]==='Faltante').reduce((s,r)=>s+numParse(r[C.importe]),0);
+  const totalSobrante = data.filter(r=>r[C.tipo]==='Sobrante').reduce((s,r)=>s+Math.abs(numParse(r[C.importe])),0);
+
+  return {
+    totales:{faltante:totalFaltante, sobrante:totalSobrante, neto:totalFaltante-totalSobrante, movimientos:data.length,
+      tiendas:byTienda.size, asesores:byAsesor.size, semanas:semanas.length},
+    semanas, tiendas:tiendasArr.slice(0,15), tiendasDesbalance:tiendasDesbalance.slice(0,8), asesores:asesoresArr, conceptos:conceptosArr,
+  };
+}
+
+let chartPulso = null, chartQuad = null;
+
+function render(D){
+  const t = D.totales;
+
+  document.getElementById('kpi-section').innerHTML = `
+    <div class="bc-kpi" style="border-top-color:#D92B2B">
+      <div class="bc-kpi__label">Faltante</div>
+      <div class="bc-kpi__value">${fmt$(t.faltante)}</div>
+    </div>
+    <div class="bc-kpi" style="border-top-color:#1DB954">
+      <div class="bc-kpi__label">Sobrante</div>
+      <div class="bc-kpi__value">${fmt$(t.sobrante)}</div>
+    </div>
+    <div class="bc-kpi" style="border-top-color:#7B1FA2">
+      <div class="bc-kpi__label">Neto</div>
+      <div class="bc-kpi__value">${fmt$(t.neto)}</div>
+    </div>
+    <div class="bc-kpi" style="border-top-color:#FFD200">
+      <div class="bc-kpi__label">Movimientos</div>
+      <div class="bc-kpi__value">${OXXO.formatNum(t.movimientos)}</div>
+    </div>
+    <div class="bc-kpi" style="border-top-color:#FF6B00">
+      <div class="bc-kpi__label">Tiendas</div>
+      <div class="bc-kpi__value">${t.tiendas}</div>
+    </div>
+    <div class="bc-kpi" style="border-top-color:#9E9E9E">
+      <div class="bc-kpi__label">Asesores</div>
+      <div class="bc-kpi__value">${t.asesores}</div>
+    </div>`;
+
+  // Pulso semanal
+  if(chartPulso) chartPulso.destroy();
+  chartPulso = new Chart(document.getElementById('chart-pulso').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels: D.semanas.map(s=>semanaShort(s.semana)),
+      datasets:[
+        {label:'Faltante', data:D.semanas.map(s=>s.faltante), backgroundColor:'#D92B2B', borderRadius:6, barPercentage:.7, categoryPercentage:.7},
+        {label:'Sobrante', data:D.semanas.map(s=>-s.sobrante), backgroundColor:'#1DB954', borderRadius:6, barPercentage:.7, categoryPercentage:.7},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true, position:'top', labels:{font:{family:'Barlow', weight:'700', size:11}, color:'#5A4037', boxWidth:12, usePointStyle:true, pointStyle:'circle'}},
+        tooltip:{backgroundColor:'#251313', titleColor:'#FFF8EE', bodyColor:'#FFF8EE', padding:12, cornerRadius:14, displayColors:false,
+          callbacks:{label:c=>c.dataset.label+': '+fmt$(Math.abs(c.raw))}}
+      },
+      scales:{
+        x:{border:{display:false}, grid:{display:false}, ticks:{font:{family:'Barlow', size:10, weight:'800'}, color:'#5A4037'}},
+        y:{border:{display:false}, grid:{color:'rgba(128,63,38,.08)', drawTicks:false},
+          ticks:{color:'#6A5148', font:{family:'Barlow', weight:'800'}, callback:v=>'$'+OXXO.formatNum(Math.abs(v))}}
+      }
+    }
+  });
+
+  // Ranking de tiendas
+  const maxF = D.tiendas[0]?.faltante || 1;
+  document.getElementById('rank-list').innerHTML = D.tiendas.map((r,i)=>`
+    <div class="bc-rank-row">
+      <div class="bc-rank-num ${i<3?'top':''}">${i+1}</div>
+      <div>
+        <div class="bc-rank-name">${escHtml(r.tienda)}</div>
+        <div class="bc-rank-cr">${escHtml(r.cr||'—')} · ${r.n} mov.</div>
+      </div>
+      <div class="bc-rank-val">${fmt$(r.faltante)}<small>${fmt$(r.sobrante)}</small></div>
+      <div class="bc-rank-bar-wrap"><div class="bc-rank-bar" style="width:${Math.round(r.faltante/maxF*100)}%"></div></div>
+    </div>`).join('');
+
+  // Concept list
+  const maxC = D.conceptos[0]?.monto || 1;
+  document.getElementById('concept-list').innerHTML = D.conceptos.map(c=>`
+    <div class="bc-c-row">
+      <div>
+        <div class="bc-c-name">${escHtml(c.concepto)}</div>
+        <div class="bc-c-track"><div class="bc-c-fill ${c.tipo==='Faltante'?'falt':'sobr'}" style="width:${Math.round(c.monto/maxC*100)}%"></div></div>
+      </div>
+      <div class="bc-c-val" style="color:${c.tipo==='Faltante'?'#D92B2B':'#1DB954'}">${fmt$(c.monto)}<small>${c.n} mov. · ${c.tipo}</small></div>
+    </div>`).join('');
+
+  // Hallazgo
+  const pctDesviacion = t.faltante+t.sobrante > 0 ? (Math.abs(t.neto)/(t.faltante+t.sobrante)*100) : 0;
+  document.getElementById('finding-text').innerHTML =
+    `En ${t.semanas} semanas y ${OXXO.formatNum(t.movimientos)} movimientos, el Faltante (<strong>${fmt$(t.faltante)}</strong>) y el
+    Sobrante (<strong>${fmt$(t.sobrante)}</strong>) casi se cancelan: el neto es de solo <strong>${fmt$(t.neto)}</strong>,
+    apenas ${pctDesviacion.toFixed(2)}% de todo lo que se movió en caja. Ese patrón se repite dentro de cada asesor
+    y en la mayoría de las ${t.tiendas} tiendas — sugiere que la mayor parte del faltante y sobrante registrado es
+    friccion operativa de conteo/conciliación, no dinero que realmente se pierde.`;
+
+  document.getElementById('imb-grid').innerHTML = D.tiendasDesbalance.map(t2=>`
+    <div class="bc-imb-card">
+      <div class="bc-imb-card__name">${escHtml(t2.tienda)}</div>
+      <div class="bc-imb-card__cr">${escHtml(t2.cr||'—')} · ${t2.n} mov.</div>
+      <div class="bc-imb-card__neto ${t2.neto>=0?'pos':'neg'}">${fmt$(Math.abs(t2.neto))}</div>
+      <div class="bc-imb-card__lbl">${t2.neto>=0?'Debe en neto':'Crédito a favor'}</div>
+    </div>`).join('');
+
+  // Quadrant de asesores
+  const maxV = Math.max(...D.asesores.map(a=>Math.max(a.faltante,a.sobrante)), 1) * 1.08;
+  const maxN = Math.max(...D.asesores.map(a=>a.n), 1);
+  const diagLine = {
+    id:'diagLine',
+    afterDraw(chart){
+      const {ctx, scales:{x, y}} = chart;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(123,31,162,.35)';
+      ctx.setLineDash([5,5]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x.getPixelForValue(0), y.getPixelForValue(0));
+      ctx.lineTo(x.getPixelForValue(maxV), y.getPixelForValue(maxV));
+      ctx.stroke();
+      ctx.restore();
+    }
+  };
+  if(chartQuad) chartQuad.destroy();
+  chartQuad = new Chart(document.getElementById('chart-quad').getContext('2d'),{
+    type:'bubble',
+    data:{datasets:[{
+      label:'Asesores',
+      data: D.asesores.map(a=>({x:a.faltante, y:a.sobrante, r: 5 + Math.sqrt(a.n/maxN)*20, _a:a})),
+      backgroundColor:'rgba(123,31,162,.5)', borderColor:'#7B1FA2', borderWidth:1.5,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:'#251313', titleColor:'#FFF8EE', bodyColor:'#FFF8EE', padding:12, cornerRadius:14, displayColors:false,
+          callbacks:{
+            title:c=>c[0].raw._a.asesor,
+            label:c=>{const a=c.raw._a; return [`Faltante: ${fmt$(a.faltante)}`, `Sobrante: ${fmt$(a.sobrante)}`, `${a.n} movimientos · ${a.tiendas} tiendas`];}
+          }
+        }
+      },
+      scales:{
+        x:{min:0, max:maxV, title:{display:true, text:'Faltante', font:{family:'Barlow', weight:'800', size:11}, color:'#5A4037'},
+          border:{display:false}, grid:{color:'rgba(128,63,38,.08)'}, ticks:{color:'#6A5148', font:{family:'Barlow', weight:'700'}, callback:v=>'$'+OXXO.formatNum(v)}},
+        y:{min:0, max:maxV, title:{display:true, text:'Sobrante', font:{family:'Barlow', weight:'800', size:11}, color:'#5A4037'},
+          border:{display:false}, grid:{color:'rgba(128,63,38,.08)'}, ticks:{color:'#6A5148', font:{family:'Barlow', weight:'700'}, callback:v=>'$'+OXXO.formatNum(v)}}
+      }
+    },
+    plugins:[diagLine]
+  });
+}
+
+async function initDashboard(){
+  const data = await OXXO.fetchSheetData(TAB);
+  if(data===null){ OXXO.showError('kpi-section','No se pudo conectar.'); return; }
+  if(data.length===0){ OXXO.showEmpty('kpi-section'); return; }
+  C = buildColsD9(data[0]);
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
+  data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
+  const baseData = OXXO.filterValidTiendas(data, asesorCatalog, C.tienda, C.cr);
+  render(computeAll(baseData));
+  OXXO.updateFooterTime('load-time');
+}
+document.addEventListener('DOMContentLoaded', initDashboard);
+</script>
+</body></html>
