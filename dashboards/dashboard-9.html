@@ -90,6 +90,18 @@
   .fs-row1 .donut-chart-wrap{height:180px;width:180px}
   .bar-chart-area{height:180px}
 }
+/* dashboard-skin.css trae una regla para pantallas anchas (min-width:1180px)
+   pensada solo para D4 ("D4 Tiempo Extra: keep row 1 compact") que fuerza
+   8 columnas en .kpis.kpi-grid con body:has(#ranking-container):has(#chart-dona)
+   -- pero D9 tambien tiene esos dos ids, asi que le pega igual y deja las 6
+   tarjetas KPI de D9 con 2 columnas vacias en vez de las 4 propias. Se
+   iguala/supera esa especificidad (2 :has(#id)) encadenando 3 ids unicos de
+   D9 para que esta regla gane sin importar el orden de las hojas de estilo. */
+@media(min-width:1180px){
+  body:has(#kpi-faltante):has(#kpi-sobrante):has(#kpi-neto) .kpis.kpi-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  }
+}
 </style>
 <link rel="stylesheet" href="../css/dashboard-skin.css"/>
 <style id="d9-extras">

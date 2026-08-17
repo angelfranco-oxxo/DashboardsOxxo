@@ -77,6 +77,14 @@
 
 @media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.row2,.row2-wide{grid-template-columns:1fr}}
 @media(max-width:600px){.kpis{grid-template-columns:1fr 1fr !important}.row2,.row2-wide{grid-template-columns:1fr}.chart-md{height:200px}.chart-lg{height:240px}}
+/* dashboard-skin.css trae "body:has(#ranking-asesores) .kpis.kpi-grid{grid-
+   template-columns:repeat(4,...) !important}" a max-width:1319px (parche
+   pensado para otro caso) -- el :has() con un ID adentro cuenta como
+   especificidad de ID, asi que le gana a las reglas de arriba y las
+   tarjetas KPI se quedaban en 4 columnas apretadas en vez de 2 en tablet/
+   celular. Se iguala esa misma especificidad, mismo truco ya usado para
+   D7 (row-main) en dashboard-skin.css. */
+@media(max-width:1100px){body:has(#ranking-asesores) .kpis.kpi-grid{grid-template-columns:repeat(2,1fr) !important}}
 </style>
 <link rel="stylesheet" href="../css/dashboard-skin.css"/>
 <style id="d6-extras">
