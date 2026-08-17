@@ -156,15 +156,13 @@
 .mi-modal__body{padding:12px 16px 16px;overflow-y:auto}
 .mi-modal__body .tbl-wrap{max-height:none;border:none}
 
-/* Faltantes y Sobrantes: un acordeon por mes en vez de una tabla plana --
-   cada mes se abre por separado para ver su detalle sin perder el resumen
-   de los demas meses. */
+/* Paneles con historial (Vacantes, Bajas, Tiempo Extra, Ausentismos,
+   Faltantes/Sobrantes): un boton por mes que abre el modal compartido con
+   el detalle de ese mes, en vez de expandirlo dentro de la tarjeta. */
 .mi-months{display:flex;flex-direction:column;gap:6px}
-.mi-month{background:rgba(255,255,255,.55);border:1px solid var(--mt-line);border-radius:10px;padding:0 10px}
-.mi-month summary{cursor:pointer;list-style:none;user-select:none;display:flex;align-items:center;gap:8px;padding:8px 0;flex-wrap:wrap}
-.mi-month summary::-webkit-details-marker{display:none}
-.mi-month summary::after{content:'▾';font-size:9px;color:var(--mt-muted);margin-left:4px}
-.mi-month[open] summary::after{content:'▴'}
+.mi-month{width:100%;cursor:pointer;font-family:inherit;background:rgba(255,255,255,.55);border:1px solid var(--mt-line);border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;text-align:left}
+.mi-month:hover{background:rgba(255,255,255,.9)}
+.mi-month::after{content:'⤢';font-size:9px;color:var(--mt-muted)}
 .mi-month__name{flex:1 1 auto;font-size:11.5px;font-weight:800;color:var(--mt-ink)}
 .mi-month__nums{font-size:10.5px;font-weight:700;color:var(--mt-muted);display:flex;gap:8px;white-space:nowrap}
 .mi-month__nums b{font-weight:800}

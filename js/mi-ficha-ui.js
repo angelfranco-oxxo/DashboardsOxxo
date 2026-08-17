@@ -212,38 +212,43 @@
     };
   }
 
-  // ── Modal de detalle (paneles sin historial: Aprovechamiento, Vacaciones,
-  //    TREO, Capacidades) ──
-  // La tabla real vive oculta en el DOM (.mi-detail-hidden) ya renderizada
-  // por el JS de cada pagina; el boton .mi-detail-btn solo clona esa tabla
-  // dentro del modal compartido. Si la pagina no trae el modal en su HTML
-  // (ej. mi-dashboard.html todavia no lo usa) esto no hace nada.
-  function initDetailModal() {
-    const overlay = document.getElementById('mi-modal-overlay');
-    if (!overlay) return;
-    const titleEl = document.getElementById('mi-modal-title');
-    const bodyEl = document.getElementById('mi-modal-body');
-    function close() { overlay.classList.remove('show'); }
-    function open(title, tableEl) {
-      titleEl.textContent = title || '';
-      bodyEl.innerHTML = '';
-      if (tableEl) {
-        const wrap = document.createElement('div');
-        wrap.className = 'tbl-wrap';
-        wrap.appendChild(tableEl.cloneNode(true));
-        bodyEl.appendChild(wrap);
-      }
-      overlay.classList.add('show');
+  // ── Modal de detalle (TODOS los paneles con "Ver detalle" o con acordeon
+  //    por mes usan este mismo modal en vez de expandir en la tarjeta) ──
+  // openModal acepta un elemento (se clona, ej. la tabla oculta de un panel
+  // sin historial) o un string de HTML ya armado (ej. la tabla de un mes
+  // especifico, generada al vuelo por monthsAccordion). Si la pagina no
+  // trae el modal en su HTML (ej. mi-dashboard.html todavia no lo usa) esto
+  // no hace nada.
+  let modalOverlay = null, modalTitleEl = null, modalBodyEl = null;
+  function closeModal() { if (modalOverlay) modalOverlay.classList.remove('show'); }
+  function openModal(title, content) {
+    if (!modalOverlay) return;
+    modalTitleEl.textContent = title || '';
+    modalBodyEl.innerHTML = '';
+    if (content instanceof Element) {
+      const wrap = document.createElement('div');
+      wrap.className = 'tbl-wrap';
+      wrap.appendChild(content.cloneNode(true));
+      modalBodyEl.appendChild(wrap);
+    } else if (typeof content === 'string') {
+      modalBodyEl.innerHTML = `<div class="tbl-wrap">${content}</div>`;
     }
+    modalOverlay.classList.add('show');
+  }
+  function initDetailModal() {
+    modalOverlay = document.getElementById('mi-modal-overlay');
+    if (!modalOverlay) return;
+    modalTitleEl = document.getElementById('mi-modal-title');
+    modalBodyEl = document.getElementById('mi-modal-body');
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('.mi-detail-btn');
       if (btn) {
-        open(btn.dataset.modalTitle, document.getElementById(btn.dataset.modalTarget));
+        openModal(btn.dataset.modalTitle, document.getElementById(btn.dataset.modalTarget));
         return;
       }
-      if (e.target === overlay || e.target.closest('#mi-modal-close')) close();
+      if (e.target === modalOverlay || e.target.closest('#mi-modal-close')) closeModal();
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
   }
   initDetailModal();
 
@@ -254,6 +259,6 @@
     barListHTML, pctBarsHTML,
     movInfo, movPill, estatusCell,
     rkTile, toneByCount, tonePct, chipsHTML, metaHTML,
-    mountSingleSelect,
+    mountSingleSelect, openModal, closeModal,
   };
 })();

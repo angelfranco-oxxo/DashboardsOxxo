@@ -18,7 +18,7 @@
     esc, plural, statTile, emptyRow, clearBox, noneBox,
     gaugeTone, gaugeSVG, gaugeRowHTML, barListHTML, pctBarsHTML,
     movInfo, movPill, estatusCell, rkTile, toneByCount, tonePct,
-    chipsHTML, metaHTML, mountSingleSelect,
+    chipsHTML, metaHTML, mountSingleSelect, openModal,
   } = window.OXXO_FICHA;
   const V = (row, key) => OXXO.metricsVal(row, key);
   const K = (row, aliases) => OXXO.metricsFindKey(row, aliases);
@@ -28,8 +28,9 @@
   // ── Acordeon mensual compartido ────────────────────────
   // Varios paneles (Vacantes, Bajas, Tiempo Extra, Ausentismos,
   // Faltantes/Sobrantes) guardan varios meses en su hoja pero antes solo se
-  // mostraba el mas reciente. monthsAccordionHTML arma un <details> por mes
-  // (mas reciente primero) reusando la misma pieza visual para todos.
+  // mostraba el mas reciente. renderMonthsAccordion pinta un boton por mes
+  // (mas reciente primero); al hacer clic abre el modal compartido con la
+  // tabla de ese mes, en vez de expandirla dentro de la tarjeta.
   const MESES_NOMBRE = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   function mesLabel(ym) {
     const m = String(ym || '').match(/^(\d{4})-(\d{2})$/);
@@ -45,23 +46,25 @@
     const yyyy = String(anoRaw || '').match(/(\d{4})/);
     return (mm && yyyy) ? `${yyyy[1]}-${mm[1].padStart(2, '0')}` : '';
   }
-  function monthsAccordionHTML(rows, monthKeyFn, { summaryHtml, theadHtml, rowsHtml }) {
+  function renderMonthsAccordion(container, rows, monthKeyFn, { titulo, summaryHtml, theadHtml, rowsHtml }) {
+    if (!rows.length) { container.innerHTML = ''; return; }
     const porMes = new Map();
     rows.forEach((r) => {
       const ym = monthKeyFn(r);
       if (!porMes.has(ym)) porMes.set(ym, []);
       porMes.get(ym).push(r);
     });
-    return [...porMes.keys()].sort().reverse().map((ym) => {
-      const mrows = porMes.get(ym);
-      return `<details class="mi-month">
-        <summary>
-          <span class="mi-month__name">${esc(mesLabel(ym))}</span>
-          <span class="mi-month__nums">${summaryHtml(mrows)}</span>
-        </summary>
-        <div class="tbl-wrap"><table class="tbl"><thead>${theadHtml}</thead><tbody>${rowsHtml(mrows)}</tbody></table></div>
-      </details>`;
-    }).join('');
+    const keys = [...porMes.keys()].sort().reverse();
+    container.innerHTML = keys.map((ym) => `<button type="button" class="mi-month">
+        <span class="mi-month__name">${esc(mesLabel(ym))}</span>
+        <span class="mi-month__nums">${summaryHtml(porMes.get(ym))}</span>
+      </button>`).join('');
+    [...container.children].forEach((btn, i) => {
+      const mrows = porMes.get(keys[i]);
+      btn.addEventListener('click', () => {
+        openModal(`${titulo} · ${mesLabel(keys[i])}`, `<table class="tbl"><thead>${theadHtml}</thead><tbody>${rowsHtml(mrows)}</tbody></table>`);
+      });
+    });
   }
 
   // ── Estado global (se carga una sola vez) ─────────────
@@ -139,7 +142,8 @@
         { label: 'Otro', value: byPuesto.Otro },
       ]);
     }
-    document.getElementById('months-d1').innerHTML = allRows.length ? monthsAccordionHTML(allRows, mesKeyFn, {
+    renderMonthsAccordion(document.getElementById('months-d1'), allRows, mesKeyFn, {
+      titulo: 'Vacantes',
       summaryHtml: (mrows) => `<b class="rojo">${n(mrows.length)}</b> vacantes`,
       theadHtml: '<tr><th>Puesto</th><th class="center">Días</th><th>Fecha</th></tr>',
       rowsHtml: (mrows) => mrows.map((r) => `<tr>
@@ -147,7 +151,7 @@
           <td class="center">${d.diasKey ? esc(OXXO.metricsDiasVacantesValue(V(r, d.diasKey))) : '—'}</td>
           <td>${esc(d.fechaKey ? V(r, d.fechaKey) || '—' : '—')}</td>
         </tr>`).join(''),
-    }) : '';
+    });
     return { vacantes: rows.length };
   }
 
@@ -199,7 +203,8 @@
         Object.entries(porMotivo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
       );
     }
-    document.getElementById('months-d2').innerHTML = allRows.length ? monthsAccordionHTML(allRows, mesKeyFn, {
+    renderMonthsAccordion(document.getElementById('months-d2'), allRows, mesKeyFn, {
+      titulo: 'Bajas',
       summaryHtml: (mrows) => `<b class="rojo">${n(mrows.length)}</b> bajas`,
       theadHtml: '<tr><th>Puesto</th><th>Motivo</th><th>Fecha</th></tr>',
       rowsHtml: (mrows) => mrows.map((r) => `<tr>
@@ -207,7 +212,7 @@
           <td>${esc(OXXO.truncate(String(V(r, d.detalleKey) || V(r, d.motivoKey) || '—'), 26))}</td>
           <td>${esc(V(r, d.fechaKey) || '—')}</td>
         </tr>`).join(''),
-    }) : '';
+    });
     return { bajas: rows.length, motivo: topMotivo ? topMotivo[0] : '' };
   }
 
@@ -335,7 +340,8 @@
         Object.entries(porEmpleado).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value })), 'naranja'
       );
     }
-    document.getElementById('months-d4').innerHTML = allRows.length ? monthsAccordionHTML(allRows, mesKeyFn, {
+    renderMonthsAccordion(document.getElementById('months-d4'), allRows, mesKeyFn, {
+      titulo: 'Tiempo Extra',
       summaryHtml: (mrows) => {
         const horas = mrows.reduce((s, r) => s + numParse(V(r, d.horasKey)), 0);
         const gasto = mrows.reduce((s, r) => s + numParse(V(r, d.importeKey)), 0);
@@ -357,7 +363,7 @@
             <td class="center">$${n(v.importe)}</td>
           </tr>`).join('');
       },
-    }) : '';
+    });
     return { horas: totHoras, gasto: totGasto };
   }
 
@@ -455,7 +461,8 @@
         Object.entries(porTipo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
       );
     }
-    document.getElementById('months-d6').innerHTML = allRows.length ? monthsAccordionHTML(allRows, mesKeyFn, {
+    renderMonthsAccordion(document.getElementById('months-d6'), allRows, mesKeyFn, {
+      titulo: 'Ausentismos',
       summaryHtml: (mrows) => {
         const dias = mrows.reduce((s, r) => s + (parseFloat(V(r, d.diasKey)) || 0), 0);
         const mFaltas = mrows.filter((r) => OXXO.metricsNormText(V(r, d.tipoKey)).includes('FALTA')).length;
@@ -467,7 +474,7 @@
           <td>${esc(V(r, d.tipoKey) || '—')}</td>
           <td class="center">${esc(V(r, d.diasKey) || '—')}</td>
         </tr>`).join(''),
-    }) : '';
+    });
     return { ausentes: empleados, diasAus: totDias, faltas };
   }
 
@@ -711,7 +718,8 @@
       statTile((neto >= 0 ? '$' : '-$') + n(Math.abs(neto)), 'Neto');
     document.getElementById('viz-d9').innerHTML = '';
     const mesKeyFn = (r) => String(V(r, d.fechaKey) || '').slice(0, 7);
-    monthsEl.innerHTML = monthsAccordionHTML(rows, mesKeyFn, {
+    renderMonthsAccordion(monthsEl, rows, mesKeyFn, {
+      titulo: 'Faltantes y Sobrantes',
       summaryHtml: (mrows) => {
         const { faltante: mf, sobrante: ms } = sumaFaltanteSobrante(mrows, d.importeKey);
         return `<span><b class="rojo">$${n(mf)}</b> falt</span><span><b class="verde">$${n(ms)}</b> sobr</span>`;
