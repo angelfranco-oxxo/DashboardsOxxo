@@ -20,11 +20,11 @@
 (function () {
   'use strict';
 
-  // Apagado a peticion del usuario (12.08.2026): se deja todo el mecanismo
-  // listo pero desactivado para poder prenderlo de nuevo en el futuro solo
-  // cambiando este flag a true, sin tocar ninguna de las 12 paginas que ya
-  // traen el snippet + <script> de site-lock.js.
-  const LOCK_ENABLED = false;
+  // Reactivado (17.08.2026): el sitio maneja datos reales (nombres de
+  // empleados, ausencias, montos de caja) y no debe quedar publico sin
+  // candado de cara a una eventual adopcion oficial. Mismo hash/contrasena
+  // que ya conocia el equipo antes de haberse apagado el 12.08.2026.
+  const LOCK_ENABLED = true;
 
   // SHA-256 de la contrasena compartida (no se guarda en texto plano
   // aqui). Cambiar la contrasena = recalcular este hash y reemplazarlo;
