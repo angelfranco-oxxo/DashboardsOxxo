@@ -31,7 +31,9 @@ window.OXXO_CONFIG = {
   // para publicar el nuevo Dashboard 9 (Faltantes y Sobrantes).
   // Redeploy 2026-08-17: se agrego 'Dashboard_10_FLEX' a ALLOWED_SHEETS para
   // publicar el nuevo Dashboard 10 (Personal FLEX).
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbzh1vLy9kTlzS-G_VGjltSwwsNzk5ZErMufAATbJlfDyC_ofw6NZien1YYdHMJc93k/exec",
+  // Redeploy 2026-08-18: se agrego 'Dashboard_11_Semanal' a ALLOWED_SHEETS
+  // para publicar el nuevo Dashboard 11 (Registro y Apego a Horario).
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxoVfrqQ3t4wFXsiwBgAcmfDC3oTz0PQYr27GIMsF2Nhp3Lt1bf4z_5QTJk5c5-lqo0/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
