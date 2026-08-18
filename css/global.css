@@ -885,11 +885,6 @@ body {
 
 .panel--accent-purple { border-top: 4px solid #8B4CF7; }
 
-.topbar .theme-toggle [data-theme-label] {
-  color: var(--color-dark) !important;
-  text-shadow: none !important;
-}
-
 /* ── SMART FILTER: combobox con buscador y multi-seleccion (Asesor) ──
    Compartido por todos los dashboards; antes vivia duplicado inline en cada
    uno (dashboard-1/2), ahora se agrega OXXO.mountAsesorFilter() en core.js. */

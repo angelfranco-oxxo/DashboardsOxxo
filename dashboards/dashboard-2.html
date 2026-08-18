@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" href="../assets/favicon.png" />
   <link rel="apple-touch-icon" href="../assets/favicon.png" />
   <link rel="stylesheet" href="../css/global.css" />
-  <link rel="stylesheet" href="../css/mascota-chat.css?v=20260805d" />
+  <link rel="stylesheet" href="../css/mascota-chat.css?v=20260818a" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     .bajas-page { max-width: 1520px; margin: 0 auto; padding: 14px 16px 28px; }
@@ -652,7 +652,7 @@
 </div>
 
   <script src="../js/config.js?v=20260818d"></script>
-  <script src="../js/core.js?v=20260818b"></script>
+  <script src="../js/core.js?v=20260818c"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d2;
@@ -1591,9 +1591,8 @@ function renderPlazas(allData, cols) {
   const canvas = document.getElementById('chart-plazas');
   if(canvas) {
     const theme = chartTheme();
-    const dark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
-    const tickColor = dark ? '#FFFFFF' : theme.text;
-    const tickStrokeWidth = dark ? 3 : 0;
+    const tickColor = theme.text;
+    const tickStrokeWidth = 0;
     if(!chartReady(canvas)) return;
     if(canvas._chartInstance) canvas._chartInstance.destroy();
     canvas._chartInstance = new Chart(canvas.getContext('2d'), {

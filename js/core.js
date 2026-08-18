@@ -1127,7 +1127,6 @@ function initThemeToggle() {
 
   function applyTheme(theme) {
     root.dataset.theme = theme;
-    document.body.classList.remove('dark-mode');
     try { localStorage.setItem(STORAGE_KEY, 'light'); } catch (_) {}
     applyChartThemeDefaults();
     window.dispatchEvent(new CustomEvent('oxxo-theme-change', { detail: { theme } }));
