@@ -1281,40 +1281,6 @@ async function fetchCatalogRowsDirect() {
   });
   return rows;
 }
-// Misma lectura directa que fetchCatalogRowsDirect(), para el mismo problema
-// pero en Reasignaciones: fetchSheetData (gviz) NO da error cuando una hoja
-// no existe -- devuelve en su lugar la PRIMERA pestana del libro
-// (Dashboard_1_Diario), sin avisar. loadReasignaciones() interpretaba esa
-// hoja equivocada como si fuera Reasignaciones (su alias 'Asesor_Entrante'
-// hacia match por aproximacion con la columna 'Asesor' de Dashboard 1),
-// generando 263 "reasignaciones" falsas -- una por tienda, con lo que fuera
-// que dijera esa columna en Dashboard 1. Para las tiendas de Anadelia eso
-// solia ser literal "Sin Asesor Asignado", y como ese valor no esta vacio
-// ganaba sobre el respaldo fijo de Timoteo (ver resolveAsesorD1 mas abajo).
-// La lectura directa via Apps Script SI valida el nombre de hoja real y
-// devuelve un error explicito si no existe, en vez de adivinar mal.
-async function fetchReasignacionesRowsDirect() {
-  const base = SHEETS_CONFIG.ADMIN_UPLOAD_URL;
-  if (!base) return null;
-  const sheetName = SHEETS_CONFIG.REASIGNACIONES_SHEET || 'Reasignaciones';
-  const url = `${base}${base.includes('?') ? '&' : '?'}action=readSheet&sheet=${encodeURIComponent(sheetName)}`;
-  const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const data = await response.json();
-  // 'Reasignaciones' todavia no permitida en el Apps Script, o la hoja
-  // todavia no existe (nadie ha publicado nada ahi): no es un error real,
-  // simplemente no hay reasignaciones vivas todavia.
-  if (!data.ok) return null;
-  let values = Array.isArray(data.values) ? data.values : [];
-  if (values.length && values[0].every(c => String(c ?? '').trim() === '_buffer_')) values = values.slice(1);
-  if (!values.length) return [];
-  const headers = values[0].map(h => String(h ?? '').trim());
-  return values.slice(1).map((r) => {
-    const row = {};
-    headers.forEach((h, i) => { row[h] = r[i]; });
-    return row;
-  });
-}
 async function loadAsesorCatalogRows() {
   // 1) Fuente principal: lectura directa via Apps Script (ver arriba).
   try {
@@ -1403,12 +1369,28 @@ async function loadReasignaciones() {
   reasignacionesPromise = (async () => {
     const empty = { byCr: new Map(), byTienda: new Map(), rows: [] };
     try {
-      const raw = await fetchReasignacionesRowsDirect();
+      // fetchSheetData (gviz, rapido) en vez de la lectura directa por Apps
+      // Script: el riesgo real que motivo ese cambio no era el canal, era que
+      // metricsFindKey() (con su segundo paso de coincidencia "se parece a")
+      // podia emparejar 'Asesor_Entrante' contra la columna 'Asesor' de OTRA
+      // hoja si gviz devolvia la hoja equivocada (ver nota abajo). Con
+      // coincidencia exacta ese emparejamiento erroneo ya no puede pasar, asi
+      // que no hace falta pagar la latencia extra de Apps Script aqui.
+      const raw = await fetchSheetData(SHEETS_CONFIG.REASIGNACIONES_SHEET || 'Reasignaciones');
       if (!raw || !raw.length) return empty;
       const h = raw[0];
-      const crKey = metricsFindKey(h, ['CR', 'CR Tienda', 'CR TIENDA']);
-      const tiendaKey = metricsFindKey(h, ['Tienda']);
-      const entranteKey = metricsFindKey(h, ['Asesor_Entrante', 'Asesor Entrante', 'Nuevo Asesor', 'Hereda']);
+      // metricsFindKeyExact (NO metricsFindKey): si la pestana "Reasignaciones"
+      // no existe todavia, gviz no da error -- silenciosamente devuelve la
+      // PRIMERA pestana del libro (Dashboard_1_Diario) en su lugar. Con
+      // coincidencia "se parece a", el alias 'Asesor_Entrante' emparejaba por
+      // error con la columna 'Asesor' de esa hoja, y el resto del codigo
+      // interpretaba Dashboard 1 entero como si fueran reasignaciones reales
+      // (confirmado en vivo: 263 "reasignaciones" falsas, una por tienda).
+      // Exigir coincidencia exacta cierra ese hueco: Dashboard 1 no tiene
+      // ninguna columna llamada literal "Asesor_Entrante"/"Nuevo Asesor"/etc.
+      const crKey = metricsFindKeyExact(h, ['CR', 'CR Tienda', 'CR TIENDA']);
+      const tiendaKey = metricsFindKeyExact(h, ['Tienda']);
+      const entranteKey = metricsFindKeyExact(h, ['Asesor_Entrante', 'Asesor Entrante', 'Nuevo Asesor', 'Hereda']);
       if (!entranteKey) return empty;
       const byCr = new Map(), byTienda = new Map();
       raw.forEach(row => {
@@ -1531,6 +1513,17 @@ function metricsFindKey(row, aliases) {
     const found = keys.find(k => metricsCleanKey(k).includes(ca) || ca.includes(metricsCleanKey(k)));
     if (found) return found;
   }
+  return null;
+}
+// Variante SIN el segundo paso de metricsFindKey() (coincidencia "se parece
+// a", por substring). Para columnas con un alias corto/generico como
+// "Asesor" (dentro de "Asesor_Entrante"), ese segundo paso puede emparejar
+// por error la columna de OTRA hoja completamente distinta -- ver
+// loadReasignaciones() mas abajo, que es donde importa evitarlo.
+function metricsFindKeyExact(row, aliases) {
+  const keys = Object.keys(row || {});
+  const map = new Map(keys.map(k => [metricsCleanKey(k), k]));
+  for (const a of aliases) { const found = map.get(metricsCleanKey(a)); if (found) return found; }
   return null;
 }
 // Variante de metricsFindKey() para hojas con el problema de exportación de
