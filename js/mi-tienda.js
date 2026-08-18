@@ -755,7 +755,14 @@
     const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d10);
     if (!raw || !raw.length) { DATA.d10 = null; return; }
     const h = raw[0];
-    const tiendaKey = K(h, ['Tienda']);
+    // Coincidencia exacta (no K/metricsFindKey): si la pestana "Dashboard_10_FLEX"
+    // no existe todavia, gviz no da error -- devuelve otra pestana del libro
+    // por accidente (normalmente Dashboard_1_Diario). Con coincidencia "se
+    // parece a", 'Tienda' emparejaba por error contra la columna 'CR TIENDA'
+    // de esa hoja, y esos codigos de CR terminaban ensuciando el buscador de
+    // tiendas de toda la pagina (ver addTiendas). Exacta evita eso: si la
+    // hoja real trae "Tienda" literal, sigue matcheando igual.
+    const tiendaKey = OXXO.metricsFindKeyExact(h, ['Tienda']);
     const crKey = K(h, ['Cr de Tienda', 'CR TIENDA', 'CR']);
     const fechaKey = K(h, ['Fecha']);
     const flexKey = K(h, ['COLABORADORESFLEX_NUM']);
@@ -788,7 +795,10 @@
     const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d11);
     if (!raw || !raw.length) { DATA.d11 = null; return; }
     const h = raw[0];
-    const tiendaKey = K(h, ['Tienda']);
+    // Ver nota igual en loadD10(): exacta, no fuzzy, para que si la hoja
+    // todavia no existe y gviz devuelve otra por error, no confunda otra
+    // columna (ej. CR) con la de Tienda y ensucie el buscador global.
+    const tiendaKey = OXXO.metricsFindKeyExact(h, ['Tienda']);
     const asesorKey = K(h, ['Asesor']);
     const fechaKey = K(h, ['Fecha']);
     const entradasKey = K(h, ['% Cumpl Reg Entradas']);
