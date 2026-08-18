@@ -97,7 +97,7 @@
     if (!tiendaKey) return;
     rows.forEach((r) => {
       const raw = String(V(r, tiendaKey) || '').trim();
-      if (!raw) return;
+      if (!raw || OXXO.metricsIsTiendaEntrenamientoOperacionesD2(raw)) return;
       const key = canonKey(crKey ? V(r, crKey) : '', raw);
       if (!key || TIENDAS.has(key)) return;
       const canon = CATALOG?.byTienda?.get(key)?.tienda;
