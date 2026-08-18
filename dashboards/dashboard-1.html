@@ -2544,31 +2544,31 @@ function renderOverview(allData){
       <div class="kpi-card__label">Total Vacantes<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Cuenta cada fila de la pestaña Dashboard_1_Diario (1 fila = 1 posición vacante), aplicando los filtros activos de Mes, Plaza, Tienda, Puesto y Asesor. No se excluye ningún registro."></span></div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neg">${asesoresUnicos} asesores afectados</div>
-      <div class="kpi-card__icon">🔍</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
     </div>
     <div class="kpi-card rojo ${filtroPuesto==='Lider' ? 'active' : ''}" data-kpi="Lider" title="Filtrar por Lider">
       <div class="kpi-card__label">Lider<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Vacantes donde la columna 'Descripción de Posición' = Lider, con los filtros activos aplicados."></span></div>
       <div class="kpi-card__value">${lideres}</div>
       <div class="kpi-card__delta neg">Alta prioridad · clic para filtrar</div>
-      <div class="kpi-card__icon">👔</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></div>
     </div>
     <div class="kpi-card naranja ${filtroPuesto==='Encargado' ? 'active' : ''}" data-kpi="Encargado" title="Filtrar por Encargado">
       <div class="kpi-card__label">Encargado<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Vacantes donde la columna 'Descripción de Posición' = Encargado, con los filtros activos aplicados."></span></div>
       <div class="kpi-card__value">${encargados}</div>
       <div class="kpi-card__delta neu">Media prioridad · clic para filtrar</div>
-      <div class="kpi-card__icon">🏪</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
     </div>
     <div class="kpi-card amarillo ${filtroPuesto==='Ayudante' ? 'active' : ''}" data-kpi="Ayudante" title="Filtrar por Ayudante">
       <div class="kpi-card__label">Ayudante<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Vacantes donde la columna 'Descripción de Posición' = Ayudante, con los filtros activos aplicados."></span></div>
       <div class="kpi-card__value">${ayudantes}</div>
       <div class="kpi-card__delta neu">Seguimiento · clic para filtrar</div>
-      <div class="kpi-card__icon">👤</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
     </div>
     <div class="kpi-card ${maxDias>=15?'rojo':maxDias>=7?'naranja':'verde'} ${!filtroPuestos.length && !filtroPuesto && !filtroTienda && filtroDias==='7' ? 'active' : ''}" data-kpi="antiguos" title="Filtrar vacantes con más de 7 días">
       <div class="kpi-card__label">Vacante más antigua<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Valor máximo de la columna 'Dias Vacantes' entre las vacantes filtradas. Indica la antigüedad de la vacante más persistente, no un promedio."></span></div>
       <div class="kpi-card__value">${maxDias||'—'}</div>
       <div class="kpi-card__delta ${maxDias>=15?'neg':'neu'}">${maxDias?'días · '+OXXO.escHtml(OXXO.truncate(tiendaAntigua,18)):'Sin fecha'}</div>
-      <div class="kpi-card__icon">⏱️</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
     </div>`;
   forceKpiLayout();
 

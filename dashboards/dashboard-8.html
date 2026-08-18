@@ -356,25 +356,25 @@ function renderAll() {
       <div class="kpi-card__label">Empleados<span class="info-tip" tabindex="0" data-tip="Empleados distintos (Nº personal) presentes en el tablero con los filtros activos."></span></div>
       <div class="kpi-card__value">${totalEmps}</div>
       <div class="kpi-card__delta neu">${data.length} registros</div>
-      <div class="kpi-card__icon">👥</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
     </div>
     <div class="kpi-card ${pctGlobal>=80?'verde':pctGlobal>=50?'amarillo':'rojo'}">
       <div class="kpi-card__label">Cumplimiento Global<span class="info-tip" tabindex="0" data-tip="Suma de certificaciones completadas (valor=1) sobre certificaciones aplicables (valor no vacío), de todas las columnas."></span></div>
       <div class="kpi-card__value">${pctGlobal}%</div>
       <div class="kpi-card__delta neu">${compTotal} / ${aplicTotal}</div>
-      <div class="kpi-card__icon">✅</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
     </div>
     <div class="kpi-card rojo">
       <div class="kpi-card__label">Certificación Más Crítica<span class="info-tip" tabindex="0" data-tip="La certificación con el menor % de cumplimiento entre las que tienen al menos un registro aplicable."></span></div>
       <div class="kpi-card__value" style="font-size:1rem">${critica ? critica.label : '—'}</div>
       <div class="kpi-card__delta neg">${critica && critica.pct!==null ? critica.pct+'%' : '—'}</div>
-      <div class="kpi-card__icon">🚨</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div>
     </div>
     <div class="kpi-card">
       <div class="kpi-card__label">Tiendas Cubiertas<span class="info-tip" tabindex="0" data-tip="Tiendas distintas (Unidad org.) presentes en el tablero con los filtros activos."></span></div>
       <div class="kpi-card__value">${tiendas}</div>
       <div class="kpi-card__delta neu">${sinDatos} certif. sin datos aún</div>
-      <div class="kpi-card__icon">🏪</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
     </div>`;
 
   // ── Barras: cumplimiento por certificación ──
