@@ -112,7 +112,8 @@
     const diasKey = d1.rows[0] ? K(d1.rows[0], ['Dias Vacantes', 'Dias_Vacantes']) : null;
     const fechaKey = d1.rows[0] ? K(d1.rows[0], ['Fecha']) : null;
     const crKey = d1.rows[0] ? K(d1.rows[0], ['CR TIENDA', 'CR']) : null;
-    DATA.d1 = { ...d1, diasKey, fechaKey, crKey };
+    const statusKey = d1.rows[0] ? K(d1.rows[0], ['Status ocupacion', 'Status ocupación', 'Estatus ocupacion']) : null;
+    DATA.d1 = { ...d1, diasKey, fechaKey, crKey, statusKey };
     addTiendas(d1.rows, d1.tiendaKey, crKey);
   }
   function renderD1(tienda) {
@@ -145,11 +146,12 @@
     renderMonthsAccordion(document.getElementById('months-d1'), allRows, mesKeyFn, {
       titulo: 'Vacantes',
       summaryHtml: (mrows) => `<b class="rojo">${n(mrows.length)}</b> vacantes`,
-      theadHtml: '<tr><th>Puesto</th><th class="center">Días</th><th>Fecha</th></tr>',
+      theadHtml: '<tr><th>Puesto</th><th class="center">Días</th><th>Fecha</th><th>Estatus</th></tr>',
       rowsHtml: (mrows) => mrows.map((r) => `<tr>
           <td>${esc(V(r, d.puestoKey) || '—')}</td>
           <td class="center">${d.diasKey ? esc(OXXO.metricsDiasVacantesValue(V(r, d.diasKey))) : '—'}</td>
           <td>${esc(d.fechaKey ? V(r, d.fechaKey) || '—' : '—')}</td>
+          <td>${esc(d.statusKey ? OXXO.truncate(String(V(r, d.statusKey) || '—'), 30) : '—')}</td>
         </tr>`).join(''),
     });
     return { vacantes: rows.length };
@@ -206,8 +208,9 @@
     renderMonthsAccordion(document.getElementById('months-d2'), allRows, mesKeyFn, {
       titulo: 'Bajas',
       summaryHtml: (mrows) => `<b class="rojo">${n(mrows.length)}</b> bajas`,
-      theadHtml: '<tr><th>Puesto</th><th>Motivo</th><th>Fecha</th></tr>',
+      theadHtml: '<tr><th>Asesor</th><th>Puesto</th><th>Motivo</th><th>Fecha</th></tr>',
       rowsHtml: (mrows) => mrows.map((r) => `<tr>
+          <td>${esc(OXXO.truncate(String(V(r, d.asesorKey) || '—'), 20))}</td>
           <td>${esc(V(r, d.puestoKey) || '—')}</td>
           <td>${esc(OXXO.truncate(String(V(r, d.detalleKey) || V(r, d.motivoKey) || '—'), 26))}</td>
           <td>${esc(V(r, d.fechaKey) || '—')}</td>
@@ -292,8 +295,9 @@
     const anoKey = K(h, ['Ano', 'Año']);
     const horasKey = K(h, ['Cantidad']);
     const importeKey = K(h, ['Importe']);
+    const conceptoKey = K(h, ['Textos homologados', 'Texto homologado']);
     raw.forEach((r) => OXXO.applyAsesorCatalog(r, CATALOG, { asesorKey, tiendaKey, crKey }));
-    DATA.d4 = { rows: raw, asesorKey, tiendaKey, crKey, nombreKey, semanaKey, mesKey, anoKey, horasKey, importeKey };
+    DATA.d4 = { rows: raw, asesorKey, tiendaKey, crKey, nombreKey, semanaKey, mesKey, anoKey, horasKey, importeKey, conceptoKey };
     addTiendas(raw, tiendaKey, crKey);
   }
   function semanaRank(value) {
@@ -347,18 +351,20 @@
         const gasto = mrows.reduce((s, r) => s + numParse(V(r, d.importeKey)), 0);
         return `<span><b class="amarillo">${n(horas)}</b> h</span><span><b class="rojo">$${n(gasto)}</b></span>`;
       },
-      theadHtml: '<tr><th>Empleado</th><th class="center">Horas</th><th class="center">Importe</th></tr>',
+      theadHtml: '<tr><th>Empleado</th><th>Concepto</th><th class="center">Horas</th><th class="center">Importe</th></tr>',
       rowsHtml: (mrows) => {
         const porEmp = new Map();
         mrows.forEach((r) => {
           const nom = V(r, d.nombreKey) || 'Sin nombre';
-          const cur = porEmp.get(nom) || { horas: 0, importe: 0 };
+          const cur = porEmp.get(nom) || { horas: 0, importe: 0, conceptos: new Set() };
           cur.horas += numParse(V(r, d.horasKey));
           cur.importe += numParse(V(r, d.importeKey));
+          if (d.conceptoKey) { const c = V(r, d.conceptoKey); if (c) cur.conceptos.add(String(c)); }
           porEmp.set(nom, cur);
         });
         return [...porEmp.entries()].sort((a, b) => b[1].importe - a[1].importe).map(([nom, v]) => `<tr>
-            <td>${esc(OXXO.truncate(nom, 30))}</td>
+            <td>${esc(OXXO.truncate(nom, 26))}</td>
+            <td>${esc(OXXO.truncate([...v.conceptos].join(', ') || '—', 26))}</td>
             <td class="center">${n(v.horas)}</td>
             <td class="center">$${n(v.importe)}</td>
           </tr>`).join('');
@@ -377,8 +383,10 @@
     const nombreKey = K(h, ['Nombre']);
     const diasRestKey = K(h, ['Dias_Restantes']);
     const bucketKey = K(h, ['Bucket_Ant']);
+    const puestoKey = K(h, ['Puesto']);
+    const fechaFinKey = K(h, ['Fecha_Fin']);
     raw.forEach((r) => { r[asesorKey] = OXXO.resolveAsesorD1(CATALOG, { asesor: V(r, asesorKey), tienda: V(r, tiendaKey) }); });
-    DATA.d5 = { rows: raw, asesorKey, tiendaKey, nombreKey, diasRestKey, bucketKey };
+    DATA.d5 = { rows: raw, asesorKey, tiendaKey, nombreKey, diasRestKey, bucketKey, puestoKey, fechaFinKey };
     addTiendas(raw, tiendaKey);
   }
   function renderD5(tienda) {
@@ -409,9 +417,11 @@
     const sorted = [...rows].sort((a, b) => (Number(V(b, d.diasRestKey)) || 0) - (Number(V(a, d.diasRestKey)) || 0));
     tbody.innerHTML = sorted.length ? sorted.slice(0, 200).map((r) => `<tr>
         <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 26))}</td>
+        <td>${esc(d.puestoKey ? V(r, d.puestoKey) || '—' : '—')}</td>
         <td class="center">${esc(V(r, d.diasRestKey) || '0')}</td>
         <td>${esc(V(r, d.bucketKey) || '—')}</td>
-      </tr>`).join('') : emptyRow(3, 'Sin colaboradores con saldo de vacaciones.');
+        <td>${esc(d.fechaFinKey ? V(r, d.fechaFinKey) || '—' : '—')}</td>
+      </tr>`).join('') : emptyRow(5, 'Sin colaboradores con saldo de vacaciones.');
     return { colaboradores: rows.length, diasVac: totDias, vencidos, proximos };
   }
 
@@ -427,10 +437,11 @@
     const diasKey = K(h, ['Dias', 'Días']);
     const nombreKey = K(h, ['Nombre del empleado o candidato', 'Nombre del empleado']);
     const noPersKey = K(h, ['N de personal', 'N de Personal', 'No de personal', 'N° de personal']);
+    const puestoKey = K(h, ['Puesto']);
     const mesKey = K(h, ['Mes']);
     const anoKey = K(h, ['Ano', 'Año']);
     raw.forEach((r) => OXXO.applyAsesorCatalog(r, CATALOG, { asesorKey, tiendaKey, crKey }));
-    DATA.d6 = { rows: raw, asesorKey, tiendaKey, crKey, tipoKey, diasKey, nombreKey, noPersKey, mesKey, anoKey };
+    DATA.d6 = { rows: raw, asesorKey, tiendaKey, crKey, tipoKey, diasKey, nombreKey, noPersKey, puestoKey, mesKey, anoKey };
     addTiendas(raw, tiendaKey, crKey);
   }
   function renderD6(tienda) {
@@ -468,9 +479,10 @@
         const mFaltas = mrows.filter((r) => OXXO.metricsNormText(V(r, d.tipoKey)).includes('FALTA')).length;
         return `<span><b class="amarillo">${n(dias)}</b> días</span><span><b class="rojo">${n(mFaltas)}</b> faltas</span>`;
       },
-      theadHtml: '<tr><th>Empleado</th><th>Tipo</th><th class="center">Días</th></tr>',
+      theadHtml: '<tr><th>Empleado</th><th>Puesto</th><th>Tipo</th><th class="center">Días</th></tr>',
       rowsHtml: (mrows) => mrows.map((r) => `<tr>
-          <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 26))}</td>
+          <td>${esc(OXXO.truncate(String(V(r, d.nombreKey) || '—'), 24))}</td>
+          <td>${esc(d.puestoKey ? V(r, d.puestoKey) || '—' : '—')}</td>
           <td>${esc(V(r, d.tipoKey) || '—')}</td>
           <td class="center">${esc(V(r, d.diasKey) || '—')}</td>
         </tr>`).join(''),
@@ -681,11 +693,13 @@
     const importeKey = K(h, ['Importe']);
     const tipoKey = K(h, ['Tipo']);
     const fechaKey = K(h, ['Fecha']);
+    const asesorKey = K(h, ['Asesor']);
+    const conceptoKey = K(h, ['Concepto']);
     const meses = new Set();
     raw.forEach((r) => { const f = String(V(r, fechaKey) || ''); if (/^\d{4}-\d{2}/.test(f)) meses.add(f.slice(0, 7)); });
     const ultimos3 = [...meses].sort().slice(-3);
     const rows = ultimos3.length ? raw.filter((r) => ultimos3.includes(String(V(r, fechaKey) || '').slice(0, 7))) : raw;
-    DATA.d9 = { rows, crKey, tiendaKey, importeKey, tipoKey, fechaKey, meses: ultimos3 };
+    DATA.d9 = { rows, crKey, tiendaKey, importeKey, tipoKey, fechaKey, asesorKey, conceptoKey, meses: ultimos3 };
     addTiendas(raw, tiendaKey, crKey);
   }
   function sumaFaltanteSobrante(rows, importeKey) {
@@ -724,10 +738,12 @@
         const { faltante: mf, sobrante: ms } = sumaFaltanteSobrante(mrows, d.importeKey);
         return `<span><b class="rojo">$${n(mf)}</b> falt</span><span><b class="verde">$${n(ms)}</b> sobr</span>`;
       },
-      theadHtml: '<tr><th>Fecha</th><th>Tipo</th><th class="center">Importe</th></tr>',
+      theadHtml: '<tr><th>Fecha</th><th>Asesor</th><th>Tipo</th><th>Concepto</th><th class="center">Importe</th></tr>',
       rowsHtml: (mrows) => [...mrows].sort((a, b) => String(V(b, d.fechaKey)).localeCompare(String(V(a, d.fechaKey)))).map((r) => `<tr>
           <td>${esc(V(r, d.fechaKey) || '—')}</td>
+          <td>${esc(d.asesorKey ? OXXO.truncate(String(V(r, d.asesorKey) || '—'), 20) : '—')}</td>
           <td>${esc(V(r, d.tipoKey) || '—')}</td>
+          <td>${esc(d.conceptoKey ? OXXO.truncate(String(V(r, d.conceptoKey) || '—'), 26) : '—')}</td>
           <td class="center">$${n(Math.abs(OXXO.metricsNum(V(r, d.importeKey))))}</td>
         </tr>`).join(''),
     });
