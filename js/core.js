@@ -1281,6 +1281,40 @@ async function fetchCatalogRowsDirect() {
   });
   return rows;
 }
+// Misma lectura directa que fetchCatalogRowsDirect(), para el mismo problema
+// pero en Reasignaciones: fetchSheetData (gviz) NO da error cuando una hoja
+// no existe -- devuelve en su lugar la PRIMERA pestana del libro
+// (Dashboard_1_Diario), sin avisar. loadReasignaciones() interpretaba esa
+// hoja equivocada como si fuera Reasignaciones (su alias 'Asesor_Entrante'
+// hacia match por aproximacion con la columna 'Asesor' de Dashboard 1),
+// generando 263 "reasignaciones" falsas -- una por tienda, con lo que fuera
+// que dijera esa columna en Dashboard 1. Para las tiendas de Anadelia eso
+// solia ser literal "Sin Asesor Asignado", y como ese valor no esta vacio
+// ganaba sobre el respaldo fijo de Timoteo (ver resolveAsesorD1 mas abajo).
+// La lectura directa via Apps Script SI valida el nombre de hoja real y
+// devuelve un error explicito si no existe, en vez de adivinar mal.
+async function fetchReasignacionesRowsDirect() {
+  const base = SHEETS_CONFIG.ADMIN_UPLOAD_URL;
+  if (!base) return null;
+  const sheetName = SHEETS_CONFIG.REASIGNACIONES_SHEET || 'Reasignaciones';
+  const url = `${base}${base.includes('?') ? '&' : '?'}action=readSheet&sheet=${encodeURIComponent(sheetName)}`;
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+  // 'Reasignaciones' todavia no permitida en el Apps Script, o la hoja
+  // todavia no existe (nadie ha publicado nada ahi): no es un error real,
+  // simplemente no hay reasignaciones vivas todavia.
+  if (!data.ok) return null;
+  let values = Array.isArray(data.values) ? data.values : [];
+  if (values.length && values[0].every(c => String(c ?? '').trim() === '_buffer_')) values = values.slice(1);
+  if (!values.length) return [];
+  const headers = values[0].map(h => String(h ?? '').trim());
+  return values.slice(1).map((r) => {
+    const row = {};
+    headers.forEach((h, i) => { row[h] = r[i]; });
+    return row;
+  });
+}
 async function loadAsesorCatalogRows() {
   // 1) Fuente principal: lectura directa via Apps Script (ver arriba).
   try {
@@ -1369,7 +1403,7 @@ async function loadReasignaciones() {
   reasignacionesPromise = (async () => {
     const empty = { byCr: new Map(), byTienda: new Map(), rows: [] };
     try {
-      const raw = await fetchSheetData(SHEETS_CONFIG.REASIGNACIONES_SHEET || 'Reasignaciones');
+      const raw = await fetchReasignacionesRowsDirect();
       if (!raw || !raw.length) return empty;
       const h = raw[0];
       const crKey = metricsFindKey(h, ['CR', 'CR Tienda', 'CR TIENDA']);
