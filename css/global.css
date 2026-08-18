@@ -339,6 +339,22 @@ body {
   stroke-linejoin: round;
 }
 
+/* Icono inline junto a texto (titulos, botones, badges) sustituyendo
+   emojis: hereda el color del texto y escala con el font-size local. */
+.icon-inline {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+  margin-right: 0.35em;
+}
+
 /* ── PANELES / CARDS GENERALES ───────────────────────────── */
 .panel-grid {
   display: grid;

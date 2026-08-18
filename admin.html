@@ -109,10 +109,10 @@
       </div>
     </section>
     <nav class="admin-tabs" role="tablist">
-      <button class="admin-tab active" type="button" role="tab" aria-selected="true" data-tab="upload">📤 Cargar y Publicar Bases</button>
-      <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="presentaciones">📊 Presentaciones</button>
-      <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="excels">📥 Excels</button>
-      <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="reasignaciones">🔁 Reasignaciones</button>
+      <button class="admin-tab active" type="button" role="tab" aria-selected="true" data-tab="upload"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Cargar y Publicar Bases</button>
+      <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="presentaciones"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Presentaciones</button>
+      <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="excels"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Excels</button>
+      <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="reasignaciones"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>Reasignaciones</button>
     </nav>
     <section class="admin-tabpanel" id="tabpanel-upload" role="tabpanel">
     <section class="admin-grid">
@@ -220,7 +220,7 @@
       <h2>Presentación Foro Bienestar Días Martes</h2>
       <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Genera un .pptx con el indicador principal de cada dashboard, tomado en vivo de Google Sheets (Vacantes, Bajas, Aprovechamiento, Tiempo Extra, Ausentismos y Alineación TREO).</p>
       <div class="admin-actions">
-        <button class="admin-btn primary" type="button" id="generate-pptx-btn">📊 Generar Presentación Foro Bienestar Días Martes</button>
+        <button class="admin-btn primary" type="button" id="generate-pptx-btn"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Generar Presentación Foro Bienestar Días Martes</button>
       </div>
       <div class="helper-box" id="pptx-status" style="margin-top:12px"></div>
     </section>
@@ -230,7 +230,7 @@
       <div class="admin-actions" style="align-items:center;gap:12px;flex-wrap:wrap">
         <label for="pptx-rae-mes" style="font-size:12px;font-weight:800;color:#7a4a42">Mes de Vacantes/Bajas:</label>
         <select id="pptx-rae-mes" style="min-width:180px"><option value="">Más reciente</option></select>
-        <button class="admin-btn primary" type="button" id="generate-pptx-rae-btn">📊 Generar Presentación RAE</button>
+        <button class="admin-btn primary" type="button" id="generate-pptx-rae-btn"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Generar Presentación RAE</button>
       </div>
       <p style="color:#a08076;font-size:11.5px;font-weight:600;margin:8px 0 0">Vacantes y Bajas se agrupan por mes de carga; si ya se subió un mes nuevo y quieres una presentación del mes anterior, selecciónalo aquí. Aprovechamiento y TREO siempre usan la última foto disponible en Sheets (no acumulan histórico).</p>
       <div class="helper-box" id="pptx-rae-status" style="margin-top:12px"></div>
@@ -240,7 +240,7 @@
       <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Elige un asesor y genera un .pptx con sus datos: Vacantes, Bajas, Aprovechamiento y TREO, tomados en vivo de Google Sheets (mismas reglas ya verificadas de las otras presentaciones).</p>
       <div class="admin-actions" style="align-items:center;gap:12px">
         <select class="admin-select" id="select-asesor" style="min-width:280px"><option value="">Cargando asesores…</option></select>
-        <button class="admin-btn primary" type="button" id="generate-pptx-asesor-btn">👤 Generar Presentación del Asesor</button>
+        <button class="admin-btn primary" type="button" id="generate-pptx-asesor-btn"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Generar Presentación del Asesor</button>
       </div>
       <div class="helper-box" id="pptx-asesor-status" style="margin-top:12px"></div>
     </section>
@@ -250,7 +250,7 @@
       <h2>Indicadores ATs</h2>
       <p style="color:#7a4a42;font-size:13px;font-weight:650;margin:0 0 16px">Descarga el Excel de Indicadores por AT con Aprovechamiento de estructura, Vacantes en estructura y Alineación de estructura actualizados en vivo desde Google Sheets (mismos datos que Vacantes/Aprovechamiento/TREO). El resto de los indicadores (NPS, Ausentismo, Rotación, % Apego) se conservan tal cual para llenarse a mano.</p>
       <div class="admin-actions">
-        <button class="admin-btn primary" type="button" id="generate-indicadores-btn">📥 Generar Indicadores ATs</button>
+        <button class="admin-btn primary" type="button" id="generate-indicadores-btn"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Generar Indicadores ATs</button>
       </div>
       <div class="helper-box" id="indicadores-status" style="margin-top:12px"></div>
     </section>
