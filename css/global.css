@@ -15,16 +15,16 @@
   --color-dark-mid:   #F71926;       /* Rojo OXXO secundario */
   --color-border:     #F2E6DE;       /* Bordes suaves */
 
-  --color-yellow:     #F2A52B;       /* Dorado OXXO */
-  --color-orange:     #F2A52B;       /* Naranja OXXO */
+  --color-yellow:     #F2A52B;       /* Dorado OXXO (acento decorativo) */
+  --color-orange:     #E8720C;       /* Naranja: distinto del dorado y del ambar de advertencia */
   --color-red:        #F71926;       /* Rojo OXXO */
-  --color-green:      #F2A52B;       /* Positivo OXXO (dorado) */
-  --color-blue:       #F71926;       /* Informativo OXXO */
+  --color-green:      #1DB954;       /* Positivo (mismo verde ya usado en dashboard-3.html y calendar-chip) */
+  --color-blue:       #12608F;       /* Informativo (mismo azul ya usado en mi-ficha.css) */
   --color-gray:       #7A4A42;       /* Gris neutro */
 
   /* Semáforo */
-  --semaforo-verde:   #F2A52B;
-  --semaforo-amarillo:#F2A52B;
+  --semaforo-verde:   #1DB954;
+  --semaforo-amarillo:#B8960C;       /* Ambar de advertencia (mismo valor que ya se hardcodeaba en .badge-amarillo/.semaforo.amarillo como parche al bug) */
   --semaforo-rojo:    #F71926;
 
   /* Tipografía */
@@ -376,7 +376,7 @@ body {
 }
 
 .badge-verde    { background: #E8F8F0; color: var(--semaforo-verde); }
-.badge-amarillo { background: #FFF9E0; color: #B8960C; }
+.badge-amarillo { background: #FFF9E0; color: var(--semaforo-amarillo); }
 .badge-rojo     { background: #FDEAEA; color: var(--semaforo-rojo); }
 .badge-naranja  { background: #FFF0E0; color: var(--color-orange); }
 .badge-azul     { background: #E0EEFF; color: var(--color-blue); }
@@ -403,7 +403,7 @@ body {
 .semaforo.rojo   .semaforo__dot { background: var(--semaforo-rojo); box-shadow: 0 0 6px var(--semaforo-rojo); }
 
 .semaforo.verde  { color: var(--semaforo-verde); }
-.semaforo.amarillo { color: #B8960C; }
+.semaforo.amarillo { color: var(--semaforo-amarillo); }
 .semaforo.rojo   { color: var(--semaforo-rojo); }
 
 /* ── TABLA ───────────────────────────────────────────────── */
@@ -632,7 +632,7 @@ body {
 /* ── UTILIDADES ──────────────────────────────────────────── */
 .text-verde    { color: var(--semaforo-verde) !important; }
 .text-rojo     { color: var(--semaforo-rojo) !important; }
-.text-amarillo { color: #B8960C !important; }
+.text-amarillo { color: var(--semaforo-amarillo) !important; }
 .text-naranja  { color: var(--color-orange) !important; }
 .text-gray     { color: var(--color-gray) !important; }
 .text-bold     { font-weight: 700 !important; }
