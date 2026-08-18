@@ -780,6 +780,67 @@
     return { flex, fecha };
   }
 
+  // ── D11 · Registro y Apego a Horario (foto semanal, por asesor) ──
+  function pctVal(v) { const num = OXXO.metricsNum(v); return Number.isFinite(num) ? Math.round(num * 100) : null; }
+  function pctTxt(v) { const p = pctVal(v); return p === null ? '—' : p + '%'; }
+  function pctTone(p) { if (p === null) return ''; return p >= 90 ? 'verde' : p >= 70 ? 'amarillo' : 'rojo'; }
+  async function loadD11() {
+    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d11);
+    if (!raw || !raw.length) { DATA.d11 = null; return; }
+    const h = raw[0];
+    const tiendaKey = K(h, ['Tienda']);
+    const asesorKey = K(h, ['Asesor']);
+    const fechaKey = K(h, ['Fecha']);
+    const entradasKey = K(h, ['% Cumpl Reg Entradas']);
+    const salidasKey = K(h, ['% Cumpl Reg Salidas']);
+    const totalKey = K(h, ['% Cumpl Reg Total']);
+    const edicionKey = K(h, ['% Edicion Registros', '% Edición Registros']);
+    const anadidosKey = K(h, ['% Anadidos', '% Añadidos']);
+    const sinEditarKey = K(h, ['% Sin Editar']);
+    const apegoEjecKey = K(h, ['% Apego Ejecutado']);
+    const apegoPubKey = K(h, ['% Apego Publicado']);
+    DATA.d11 = { rows: raw, tiendaKey, asesorKey, fechaKey, entradasKey, salidasKey, totalKey, edicionKey, anadidosKey, sinEditarKey, apegoEjecKey, apegoPubKey };
+    addTiendas(raw, tiendaKey);
+  }
+  function renderD11(tienda) {
+    const d = DATA.d11;
+    const el = document.getElementById('sec-d11');
+    if (!d) { el.classList.remove('show'); return null; }
+    const rows = rowsFor(d, tienda);
+    el.classList.add('show');
+    const tbody = document.querySelector('#tbl-d11 tbody');
+    if (!rows.length) {
+      document.getElementById('badge-d11').textContent = '—';
+      document.getElementById('stats-d11').innerHTML = '';
+      tbody.innerHTML = emptyRow(9, 'Tu tienda no aparece en Registro y Apego a Horario.');
+      return null;
+    }
+    document.getElementById('badge-d11').textContent = V(rows[0], d.fechaKey) || '—';
+    const avg = (key) => {
+      const vals = rows.map((r) => pctVal(V(r, key))).filter((v) => v !== null);
+      return vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : null;
+    };
+    const cumplTotal = avg(d.totalKey);
+    const apegoEjec = avg(d.apegoEjecKey);
+    const apegoPub = avg(d.apegoPubKey);
+    document.getElementById('stats-d11').innerHTML =
+      statTile(cumplTotal === null ? '—' : cumplTotal + '%', 'Cumpl. registro', pctTone(cumplTotal)) +
+      statTile(apegoEjec === null ? '—' : apegoEjec + '%', 'Apego ejecutado', pctTone(apegoEjec)) +
+      statTile(apegoPub === null ? '—' : apegoPub + '%', 'Apego publicado', pctTone(apegoPub));
+    tbody.innerHTML = rows.map((r) => `<tr>
+        <td>${esc(OXXO.truncate(String(V(r, d.asesorKey) || '—'), 22))}</td>
+        <td class="center">${pctTxt(V(r, d.entradasKey))}</td>
+        <td class="center">${pctTxt(V(r, d.salidasKey))}</td>
+        <td class="center">${pctTxt(V(r, d.totalKey))}</td>
+        <td class="center">${pctTxt(V(r, d.edicionKey))}</td>
+        <td class="center">${pctTxt(V(r, d.anadidosKey))}</td>
+        <td class="center">${pctTxt(V(r, d.sinEditarKey))}</td>
+        <td class="center">${pctTxt(V(r, d.apegoEjecKey))}</td>
+        <td class="center">${pctTxt(V(r, d.apegoPubKey))}</td>
+      </tr>`).join('');
+    return { cumplTotal, apegoEjec, apegoPub };
+  }
+
   // ── Resumen y alertas ──────────────────────────────────
   // Antes habia que leer los 8 paneles para saber si la tienda estaba
   // bien o mal. Estos dos bloques responden eso de una: el resumen trae
@@ -796,6 +857,7 @@
     if (S.d5) tiles.push(rkTile(n(S.d5.vencidos), 'Vacaciones vencidas', toneByCount(S.d5.vencidos, 2), S.d5.colaboradores ? 'de ' + S.d5.colaboradores : ''));
     if (S.d8) tiles.push(rkTile(S.d8.capPct + '%', 'Capacidades', tonePct(S.d8.capPct, 90, 60)));
     if (S.d10) tiles.push(rkTile(n(S.d10.flex), 'Personal FLEX'));
+    if (S.d11 && S.d11.cumplTotal !== null) tiles.push(rkTile(S.d11.cumplTotal + '%', 'Cumpl. registro', tonePct(S.d11.cumplTotal, 90, 70)));
     document.getElementById('ficha-resumen').innerHTML = tiles.join('');
   }
   function renderAlertas(S) {
@@ -809,6 +871,7 @@
     if (S.d5 && S.d5.proximos) a.push({ t: 'is-warn', txt: `${S.d5.proximos} vencen en 0-50 días` });
     if (S.d7 && S.d7.dif) a.push({ t: 'is-info', txt: `TREO: ${S.d7.mov.txt.toLowerCase()} ${Math.abs(S.d7.dif)} posición${Math.abs(S.d7.dif) > 1 ? 'es' : ''}` });
     if (S.d8 && S.d8.capPct < 100) a.push({ t: S.d8.capPct < 60 ? 'is-bad' : 'is-warn', txt: `Capacidades al ${S.d8.capPct}%` });
+    if (S.d11 && S.d11.cumplTotal !== null && S.d11.cumplTotal < 90) a.push({ t: S.d11.cumplTotal < 70 ? 'is-bad' : 'is-warn', txt: `Cumplimiento de registro al ${S.d11.cumplTotal}%` });
     document.getElementById('ficha-alertas').innerHTML = chipsHTML(a, 'Sin alertas: tu tienda está en orden');
   }
   function renderIdentidad(tiendaDisplay, S) {
@@ -839,7 +902,7 @@
     const S = {
       d1: renderD1(tienda), d2: renderD2(tienda), d3: renderD3(tienda), d4: renderD4(tienda),
       d5: renderD5(tienda), d6: renderD6(tienda), d7: renderD7(tienda), d8: renderD8(tienda),
-      d9: renderD9(tienda), d10: renderD10(tienda),
+      d9: renderD9(tienda), d10: renderD10(tienda), d11: renderD11(tienda),
     };
     renderIdentidad(tiendaDisplay, S);
     renderResumen(S);
@@ -848,7 +911,7 @@
 
   async function init() {
     CATALOG = await OXXO.loadAsesorCatalog();
-    await Promise.all([loadD1(), loadD2(), loadD3(), loadD4(), loadD5(), loadD6(), loadD7(), loadD8(), loadD9(), loadD10()]);
+    await Promise.all([loadD1(), loadD2(), loadD3(), loadD4(), loadD5(), loadD6(), loadD7(), loadD8(), loadD9(), loadD10(), loadD11()]);
     document.getElementById('corte-badge').textContent = '⟳ Datos en vivo · Plaza Oaxaca';
     mountSingleSelect('mi-tienda-select', [...TIENDAS.values()], {
       placeholder: 'Busca tu tienda',
