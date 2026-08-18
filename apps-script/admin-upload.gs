@@ -29,7 +29,8 @@ const ALLOWED_SHEETS = [
   'Dashboard_9_Semanal',
   'Dashboard_10_FLEX',
   'Dashboard_11_Semanal',
-  'Catalogo_Asesores'
+  'Catalogo_Asesores',
+  'Reasignaciones'
 ];
 
 // action=readSheet&sheet=NOMBRE: lee una hoja completa via SpreadsheetApp (sin
