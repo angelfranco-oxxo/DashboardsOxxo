@@ -98,6 +98,8 @@
 .mi-section-head{display:flex;align-items:center;gap:9px;margin-bottom:11px}
 .mi-section-title{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
 .mi-section-title .ico{width:26px;height:26px;flex:0 0 26px;display:grid;place-items:center;border-radius:8px;background:rgba(227,6,19,.09);font-size:.92rem;line-height:1}
+.mi-section-title .ico svg{width:15px;height:15px;stroke:var(--color-red,#F71926);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.empty-state .big svg{width:1em;height:1em;stroke:var(--mt-muted);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .mi-section-title h3{font-family:var(--font-display);font-size:.95rem;font-weight:800;color:var(--mt-ink);margin:0;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mi-badge{font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:rgba(130,54,38,.07);color:var(--mt-muted);white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
 
