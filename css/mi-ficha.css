@@ -25,10 +25,18 @@
   --mt-info:#12608F;    --mt-info-bg:rgba(21,101,192,.11);
 }
 
-/* ── Encabezado de pagina + buscador ─────────────────────── */
-.hero{padding:16px 22px;margin-bottom:14px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
-.hero h1{font-family:var(--font-display);font-size:1.5rem;font-weight:800;margin:0;line-height:1.1}
-.hero p{margin:3px 0 0;opacity:.9;font-size:12.5px;max-width:620px}
+/* ── Encabezado de pagina + buscador ─────────────────────────
+   .mt-hero (no ".hero" a secas): dashboard-skin.css tambien define
+   ".hero" con varios bloques !important (se carga DESPUES de este
+   archivo en mi-tienda.html/mi-dashboard.html), asi que un simple
+   ".hero" de aqui podia perder el pulso segun el orden de carga. El
+   div sigue trayendo tambien la clase "hero" (por si algo mas la
+   necesita), pero el layout propio de esta pagina vive en la clase
+   propia de abajo, reforzada con !important para no depender de
+   quien cargue despues. */
+.mt-hero{padding:16px 22px !important;margin-bottom:14px !important;color:#fff !important;display:flex !important;align-items:center !important;justify-content:space-between !important;gap:14px !important;flex-wrap:wrap !important}
+.mt-hero h1{font-family:var(--font-display);font-size:1.5rem !important;font-weight:800;margin:0 !important;line-height:1.1}
+.mt-hero p{margin:3px 0 0 !important;opacity:.9;font-size:12.5px !important;max-width:620px}
 .hero-badge{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);padding:6px 14px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
 
 .mt-picker{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
