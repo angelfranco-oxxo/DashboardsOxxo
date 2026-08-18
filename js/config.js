@@ -37,7 +37,9 @@ window.OXXO_CONFIG = {
   // se habia perdido en el redeploy anterior (el doGet() de ese momento no
   // leia parametros en absoluto). Sin esto Catalogo_Asesores se publicaba
   // desde el respaldo estatico del repo en vez del Sheet en vivo.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbyeKN189DZnNEDGiAe-w2J2fsuizAFwMij7OY15NxAk3BXN8LNX5_E_5JJQoKpgS7I5/exec",
+  // Redeploy 2026-08-18 (c): se agrego 'Reasignaciones' a ALLOWED_SHEETS,
+  // para que el panel admin (pestana Reasignaciones) pueda publicar ahi.
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbwqi_YJQIUSN54G4rWvB1WLCFr8eCx4-5nuw-UfZJRak61N50n5WUt58qF5y4OWrW5D/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
