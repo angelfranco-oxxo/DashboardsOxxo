@@ -11,11 +11,7 @@
   <link rel="icon" type="image/png" href="../assets/favicon.png" />
   <link rel="apple-touch-icon" href="../assets/favicon.png" />
   <link rel="stylesheet" href="../css/global.css" />
-  <link rel="stylesheet" href="../css/mascota-chat.css?v=20260805d" />
-  <script>
-    document.documentElement.setAttribute('data-theme', 'light');
-    try { localStorage.setItem('oxxo-theme', 'light'); } catch (_) {}
-  </script>
+  <link rel="stylesheet" href="../css/mascota-chat.css?v=20260818a" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     .page { max-width:1500px; margin:0 auto; padding:18px 20px 36px; }
@@ -970,7 +966,6 @@
   }
   .topbar__title{color:#211514}
   .topbar__subtitle{color:#8E6E64}
-  .theme-toggle,
   .topbar__back{
     color:#D91F2D;
     background:rgba(255,255,255,.62);
@@ -1508,7 +1503,7 @@
 </div>
 
   <script src="../js/config.js?v=20260818d"></script>
-  <script src="../js/core.js?v=20260818b"></script>
+  <script src="../js/core.js?v=20260818c"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d1;
@@ -2735,8 +2730,6 @@ function renderOverview(allData){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.documentElement.setAttribute('data-theme', 'light');
-  try { localStorage.setItem('oxxo-theme', 'light'); } catch (_) {}
   initDashboard();
 });
 window.addEventListener('resize', forceKpiLayout);
