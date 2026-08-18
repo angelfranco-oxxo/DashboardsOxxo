@@ -1046,31 +1046,31 @@ function render(data){
       <div class="kpi-card__label">Aprovechamiento General<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Equipo Completo ÷ Total tiendas (EC%). Tiendas con estructura completa sobre el total de tiendas filtradas."></span></div>
       <div class="kpi-card__value">${(aprovProm*100).toFixed(2)}%</div>
       <div class="kpi-card__delta ${aprovProm>=0.95?'pos':aprovProm>=0.80?'neu':'neg'}">Plaza Oaxaca</div>
-      <div class="kpi-card__icon">📊</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></div>
     </div>
     <div class="kpi-card azul ${document.getElementById('filtro-estatus')?.value===''?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('')}">
       <div class="kpi-card__label">Tiendas Totales<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Número de tiendas distintas presentes en Dashboard_3_Diario con los filtros activos aplicados."></span></div>
       <div class="kpi-card__value">${total}</div>
       <div class="kpi-card__delta neu">${completas} completas · ${incompletas} inc. · ${criticas} crít.</div>
-      <div class="kpi-card__icon">🏪</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
     </div>
     <div class="kpi-card verde ${document.getElementById('filtro-estatus')?.value==='completo'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('completo')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('completo')}">
       <div class="kpi-card__label">Equipo Completo<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas cuyo Estatus = Completo, es decir sin vacantes pendientes según la columna 'Estatus'."></span></div>
       <div class="kpi-card__value">${completas}</div>
       <div class="kpi-card__delta pos">${total>0?Math.round(completas/total*100):0}% del total</div>
-      <div class="kpi-card__icon">✅</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
     </div>
     <div class="kpi-card amarillo ${document.getElementById('filtro-estatus')?.value==='incompleto'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('incompleto')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('incompleto')}">
       <div class="kpi-card__label">Equipo Incompleto<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas cuyo Estatus = Incompleto, con al menos una vacante pero sin alcanzar nivel crítico."></span></div>
       <div class="kpi-card__value">${incompletas}</div>
       <div class="kpi-card__delta neu">Requieren atención</div>
-      <div class="kpi-card__icon">⚠️</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
     </div>
     <div class="kpi-card rojo ${document.getElementById('filtro-estatus')?.value==='critica'?'active':''}" role="button" tabindex="0" onclick="setKpiEstatus('critica')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setKpiEstatus('critica')}">
       <div class="kpi-card__label">Tienda Crítica<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Tiendas cuyo Estatus contiene 'crítica': aprovechamiento de estructura por debajo del umbral mínimo aceptable."></span></div>
       <div class="kpi-card__value">${criticas}</div>
       <div class="kpi-card__delta neg">Acción inmediata</div>
-      <div class="kpi-card__icon">🚨</div>
+      <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div>
     </div>`;
 
   // ── GENERAR asesoresSorted (agrupado por asesor) ───────────

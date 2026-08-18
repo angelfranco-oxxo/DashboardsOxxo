@@ -325,6 +325,20 @@ body {
   opacity: 0.08;
 }
 
+/* Iconos monolinea en lugar de emojis: consistentes en todos los sistemas
+   y alineados a la paleta de marca (mismo criterio que .db-card__icon svg
+   en index.html). */
+.kpi-card__icon svg {
+  display: block;
+  width: 36px;
+  height: 36px;
+  stroke: var(--color-dark);
+  fill: none;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* ── PANELES / CARDS GENERALES ───────────────────────────── */
 .panel-grid {
   display: grid;
