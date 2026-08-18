@@ -638,10 +638,16 @@ document.getElementById('clear-filter').onclick = ()=>setFilter(null);
 
 async function initDashboard() {
   OXXO.renderDownloadButton('hero-download','s9');
-  const data = await OXXO.fetchSheetData(TAB);
+  let data = await OXXO.fetchSheetData(TAB);
   if(data===null){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(data.length===0){['kpi-section','ranking-container','tabla-detalle'].forEach(id=>OXXO.showEmpty(id));return;}
   C = buildColsD9(data[0]);
+  // Filas basura (ej. un total/checksum pegado al fondo de la hoja de origen,
+  // con Fecha vacia y CR/Tienda/Asesor todos en "1") pasan el filtro de
+  // publicacion porque solo exige CR no vacio + Importe numerico. Ninguna
+  // tienda real de OXXO tiene nombre puramente numerico, asi que se
+  // descartan aqui antes de armar totales y los dropdowns de filtro.
+  data = data.filter(r => !/^\d+$/.test(String(r[C.tienda] || '').trim()));
   const asesorCatalog = await OXXO.loadAsesorCatalog();
   data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
   BASE_DATA = OXXO.filterValidTiendas(data, asesorCatalog, C.tienda, C.cr);

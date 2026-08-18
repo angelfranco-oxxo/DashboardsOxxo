@@ -97,7 +97,11 @@
     if (!tiendaKey) return;
     rows.forEach((r) => {
       const raw = String(V(r, tiendaKey) || '').trim();
-      if (!raw || OXXO.metricsIsTiendaEntrenamientoOperacionesD2(raw)) return;
+      // Ninguna tienda real de OXXO tiene nombre puramente numerico (siempre
+      // llevan letras); filas basura tipo totales/checksum al fondo de una
+      // hoja a veces dejan "1" en Tienda/CR/Asesor (ver Dashboard_9_Semanal
+      // fila 6606, Fecha vacia). No son tiendas, se descartan aqui.
+      if (!raw || /^\d+$/.test(raw) || OXXO.metricsIsTiendaEntrenamientoOperacionesD2(raw)) return;
       const key = canonKey(crKey ? V(r, crKey) : '', raw);
       if (!key || TIENDAS.has(key)) return;
       const canon = CATALOG?.byTienda?.get(key)?.tienda;

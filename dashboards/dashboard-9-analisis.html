@@ -403,10 +403,13 @@ function render(D){
 }
 
 async function initDashboard(){
-  const data = await OXXO.fetchSheetData(TAB);
+  let data = await OXXO.fetchSheetData(TAB);
   if(data===null){ OXXO.showError('kpi-section','No se pudo conectar.'); return; }
   if(data.length===0){ OXXO.showEmpty('kpi-section'); return; }
   C = buildColsD9(data[0]);
+  // Ver misma nota en dashboard-9.html: filas basura con Tienda puramente
+  // numerica (ej. "1") se descartan antes de calcular el analisis.
+  data = data.filter(r => !/^\d+$/.test(String(r[C.tienda] || '').trim()));
   const asesorCatalog = await OXXO.loadAsesorCatalog();
   data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
   const baseData = OXXO.filterValidTiendas(data, asesorCatalog, C.tienda, C.cr);
