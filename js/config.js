@@ -33,7 +33,11 @@ window.OXXO_CONFIG = {
   // publicar el nuevo Dashboard 10 (Personal FLEX).
   // Redeploy 2026-08-18: se agrego 'Dashboard_11_Semanal' a ALLOWED_SHEETS
   // para publicar el nuevo Dashboard 11 (Registro y Apego a Horario).
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxoVfrqQ3t4wFXsiwBgAcmfDC3oTz0PQYr27GIMsF2Nhp3Lt1bf4z_5QTJk5c5-lqo0/exec",
+  // Redeploy 2026-08-18 (b): se restauro doGet(e) con action=readSheet, que
+  // se habia perdido en el redeploy anterior (el doGet() de ese momento no
+  // leia parametros en absoluto). Sin esto Catalogo_Asesores se publicaba
+  // desde el respaldo estatico del repo en vez del Sheet en vivo.
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbyeKN189DZnNEDGiAe-w2J2fsuizAFwMij7OY15NxAk3BXN8LNX5_E_5JJQoKpgS7I5/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
