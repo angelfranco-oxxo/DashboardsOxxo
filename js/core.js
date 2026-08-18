@@ -2279,6 +2279,7 @@ window.OXXO = {
   // Métricas compartidas (ver seccion arriba de resolveAsesor/applyAsesorCatalog)
   metricsCleanKey,
   metricsFindKey,
+  metricsFindKeyExact,
   metricsFindDataKey,
   metricsVal,
   metricsNum,
