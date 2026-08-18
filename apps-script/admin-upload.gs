@@ -32,7 +32,30 @@ const ALLOWED_SHEETS = [
   'Catalogo_Asesores'
 ];
 
-function doGet() {
+// action=readSheet&sheet=NOMBRE: lee una hoja completa via SpreadsheetApp (sin
+// pasar por gviz). Necesario porque gviz corrompe la exportacion CSV de
+// Catalogo_Asesores (fusiona ~109 de 263 filas en una sola celda), ver
+// fetchCatalogRowsDirect() en core.js, que es quien llama esto. Sin accion (o
+// con una desconocida) se mantiene el comportamiento original: listar
+// ALLOWED_SHEETS para diagnostico rapido.
+function doGet(e) {
+  const action = String((e && e.parameter && e.parameter.action) || '');
+  if (action === 'readSheet') {
+    const sheetName = String((e && e.parameter && e.parameter.sheet) || '').trim();
+    if (!sheetName) return jsonResponse({ ok: false, error: 'sheet requerido' });
+    if (ALLOWED_SHEETS.indexOf(sheetName) === -1) return jsonResponse({ ok: false, error: 'sheet no permitido: ' + sheetName });
+    try {
+      const ss = SPREADSHEET_ID
+        ? SpreadsheetApp.openById(SPREADSHEET_ID)
+        : SpreadsheetApp.getActiveSpreadsheet();
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return jsonResponse({ ok: false, error: 'hoja no encontrada: ' + sheetName });
+      const values = sheet.getDataRange().getValues();
+      return jsonResponse({ ok: true, values: values });
+    } catch (error) {
+      return jsonResponse({ ok: false, error: String(error.message || error) });
+    }
+  }
   return jsonResponse({ ok: true, app: 'DashboardsOxxo Admin Upload', sheets: ALLOWED_SHEETS });
 }
 
