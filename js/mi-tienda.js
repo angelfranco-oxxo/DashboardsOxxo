@@ -788,7 +788,7 @@
   }
 
   // ── D11 · Registro y Apego a Horario (foto semanal, por asesor) ──
-  function pctVal(v) { const num = OXXO.metricsNum(v); return Number.isFinite(num) ? Math.round(num * 100) : null; }
+  function pctVal(v) { const num = OXXO.metricsNum(v); return Number.isFinite(num) ? Math.round(num) : null; }
   function pctTxt(v) { const p = pctVal(v); return p === null ? '—' : p + '%'; }
   function pctTone(p) { if (p === null) return ''; return p >= 90 ? 'verde' : p >= 70 ? 'amarillo' : 'rojo'; }
   async function loadD11() {
