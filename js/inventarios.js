@@ -25,7 +25,9 @@
     if(raw.includes(',')&&raw.includes('.'))raw=raw.replace(/,/g,'');
     else if(raw.includes(',')){
       const parts=raw.split(',');
-      raw=parts.length===2&&parts[1].length<=2?parts.join('.'):parts.join('');
+      // Google Sheets returns decimal commas for this Spanish-locale tab,
+      // including ratios with six or more decimal places.
+      raw=parts.length===2?parts.join('.'):parts.join('');
     }
     const parsed=Number(raw);
     if(!Number.isFinite(parsed))return 0;
