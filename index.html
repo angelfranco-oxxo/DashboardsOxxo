@@ -2028,9 +2028,174 @@
         flex-basis: 27px;
       }
     }
+
+    /* ── Tema Comercial ───────────────────────────────────────
+       La pestaña activa no solo cambia el contenido: convierte toda la
+       portada en un entorno azul y conserva intacta la identidad de RH. */
+    body {
+      transition: background-color .32s ease, color .32s ease;
+    }
+
+    body[data-area="comercial"] {
+      --color-red: #12608F;
+      --color-yellow: #8ED8FF;
+      --color-orange: #2C91C5;
+      --color-green: #2583B5;
+      --semaforo-verde: #1676A8;
+      background:
+        radial-gradient(circle at 84% 20%, rgba(38, 143, 195, .10), transparent 28%),
+        linear-gradient(180deg, #EDF7FC 0%, #F7FBFD 42%, #EEF6FA 100%) !important;
+    }
+
+    body[data-area="comercial"] .topbar {
+      background: linear-gradient(145deg, rgba(22, 113, 164, .48), rgba(7, 61, 99, .30)) !important;
+      border-color: rgba(194, 235, 255, .38) !important;
+      box-shadow: 0 14px 36px rgba(4, 52, 84, .18), inset 0 1px 0 rgba(255,255,255,.28) !important;
+    }
+
+    body[data-area="comercial"] .topbar__logo img {
+      filter: drop-shadow(0 8px 18px rgba(2, 42, 70, .24));
+    }
+
+    body[data-area="comercial"] .hero {
+      background-color: #063D63 !important;
+      background-image:
+        linear-gradient(90deg, rgba(8, 75, 116, .99) 0%, rgba(14, 104, 153, .94) 38%, rgba(19, 122, 174, .56) 66%, rgba(9, 65, 102, .20) 100%),
+        url('assets/orgulloxxos-hero.jpg') !important;
+      border-color: rgba(169, 224, 251, .30) !important;
+    }
+
+    body[data-area="comercial"] .hero::after {
+      background: linear-gradient(180deg, rgba(3, 51, 83, .96) 0%, rgba(4, 61, 97, .76) 36%, rgba(7, 77, 119, .34) 68%, rgba(7, 77, 119, 0) 100%) !important;
+    }
+
+    body[data-area="comercial"] .hero__badge {
+      color: #D9F4FF !important;
+      background: rgba(142, 216, 255, .15) !important;
+      border-color: rgba(183, 232, 255, .48) !important;
+    }
+
+    body[data-area="comercial"] .hero__title span,
+    body[data-area="comercial"] .hero__stat-value {
+      color: #9DDEFF !important;
+    }
+
+    body[data-area="comercial"] .hero__stat {
+      border-color: rgba(171, 226, 255, .24) !important;
+      background: rgba(5, 64, 100, .28) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 12px 28px rgba(0, 39, 66, .12) !important;
+    }
+
+    body[data-area="comercial"] .system-bar {
+      border-color: rgba(18, 96, 143, .14) !important;
+      background: rgba(245, 251, 254, .88) !important;
+    }
+
+    body[data-area="comercial"] .sys-status,
+    body[data-area="comercial"] .system-bar__right {
+      color: #12608F !important;
+    }
+
+    body[data-area="comercial"] .sys-status__dot {
+      background: #2B9ED3 !important;
+      box-shadow: 0 0 0 5px rgba(43, 158, 211, .12);
+    }
+
+    body[data-area="comercial"] .executive-shell {
+      border-color: rgba(18, 96, 143, .18) !important;
+      background:
+        radial-gradient(circle at 9% 0%, rgba(78, 179, 226, .20), transparent 27%),
+        radial-gradient(circle at 92% 12%, rgba(18, 96, 143, .13), transparent 30%),
+        linear-gradient(145deg, rgba(255,255,255,.92), rgba(237,248,253,.78)) !important;
+      box-shadow: 0 20px 48px rgba(11, 74, 111, .12), inset 0 1px 0 rgba(255,255,255,.88) !important;
+    }
+
+    body[data-area="comercial"] .executive-kicker,
+    body[data-area="comercial"] .executive-chip,
+    body[data-area="comercial"] .exec-metric__note,
+    body[data-area="comercial"] .exec-metric__note.is-neutral {
+      color: #12608F !important;
+    }
+
+    body[data-area="comercial"] .executive-kicker::before {
+      background: #218DBF !important;
+      box-shadow: 0 0 0 6px rgba(33, 141, 191, .11) !important;
+    }
+
+    body[data-area="comercial"] .executive-chip,
+    body[data-area="comercial"] .exec-metric {
+      border-color: rgba(18, 96, 143, .15) !important;
+    }
+
+    body[data-area="comercial"] .exec-metric {
+      background: linear-gradient(145deg, rgba(255,255,255,.88), rgba(237,248,253,.72)) !important;
+      box-shadow: 0 16px 36px rgba(9, 69, 104, .08), inset 0 1px 0 rgba(255,255,255,.88) !important;
+    }
+
+    body[data-area="comercial"] .exec-metric:hover {
+      box-shadow: 0 22px 44px rgba(9, 69, 104, .15), inset 0 1px 0 rgba(255,255,255,.90) !important;
+    }
+
+    body[data-area="comercial"] .exec-metric::after {
+      color: rgba(18, 96, 143, .07) !important;
+    }
+
+    body[data-area="comercial"] .exec-metric__label {
+      color: #638294 !important;
+    }
+
+    body[data-area="comercial"] .folder-tabs {
+      border-color: rgba(18, 96, 143, .16);
+      background: rgba(247, 252, 255, .82);
+      box-shadow: 0 12px 30px rgba(10, 73, 111, .11), inset 0 1px 0 #fff;
+    }
+
+    body[data-area="comercial"] .folder-tab:not(.is-active) {
+      --tab-color: #527A93 !important;
+      color: #527183;
+    }
+
+    body[data-area="comercial"] .section-divider {
+      border-color: rgba(18, 96, 143, .16) !important;
+    }
+
+    body[data-area="comercial"] #panel-comercial .db-card {
+      border-color: rgba(18, 96, 143, .18) !important;
+      box-shadow: 0 18px 42px rgba(9, 71, 108, .11) !important;
+    }
+
+    body[data-area="comercial"] #panel-comercial .db-card::after {
+      color: rgba(18, 96, 143, .08) !important;
+    }
+
+    body[data-area="comercial"] .global-footer {
+      color: #577487 !important;
+      border-color: rgba(18, 96, 143, .14) !important;
+      background: rgba(245, 251, 254, .78) !important;
+      box-shadow: 0 12px 30px rgba(9, 70, 105, .07) !important;
+    }
+
+    body[data-area="comercial"] .global-footer strong {
+      color: #12608F !important;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .topbar,
+      .hero,
+      .hero::after,
+      .hero__badge,
+      .hero__stat,
+      .system-bar,
+      .executive-shell,
+      .exec-metric,
+      .folder-tabs,
+      .global-footer {
+        transition: background .35s ease, border-color .35s ease, color .35s ease, box-shadow .35s ease;
+      }
+    }
   </style>
 </head>
-<body>
+<body data-area="rh">
 
 <!-- ══════════════════════════════════════════════
      BARRA SUPERIOR
@@ -2426,6 +2591,7 @@
   (function(){
     var tabs = document.querySelectorAll('.folder-tab');
     function activateTab(tab){
+      var area = tab.dataset.folderTab || 'rh';
       tabs.forEach(function(t){
         t.classList.remove('is-active');
         t.setAttribute('aria-selected','false');
@@ -2435,7 +2601,9 @@
       tab.setAttribute('aria-selected','true');
       tab.setAttribute('tabindex','0');
       document.querySelectorAll('.folder-panel').forEach(function(p){ p.hidden = true; });
-      document.querySelectorAll('[data-folder-group="' + tab.dataset.folderTab + '"]').forEach(function(p){ p.hidden = false; });
+      document.querySelectorAll('[data-folder-group="' + area + '"]').forEach(function(p){ p.hidden = false; });
+      document.body.dataset.area = area;
+      try { localStorage.setItem('oxxo-dashboard-area', area); } catch(e) {}
     }
 
     tabs.forEach(function(tab, index){
@@ -2451,6 +2619,12 @@
         next.focus();
       });
     });
+
+    try {
+      var savedArea = localStorage.getItem('oxxo-dashboard-area');
+      var savedTab = savedArea && document.querySelector('[data-folder-tab="' + savedArea + '"]');
+      if (savedTab) activateTab(savedTab);
+    } catch(e) {}
   })();
 </script>
 
