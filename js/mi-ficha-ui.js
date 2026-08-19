@@ -219,11 +219,21 @@
   // especifico, generada al vuelo por monthsAccordion). Si la pagina no
   // trae el modal en su HTML (ej. mi-dashboard.html todavia no lo usa) esto
   // no hace nada.
-  let modalOverlay = null, modalTitleEl = null, modalBodyEl = null;
-  function closeModal() { if (modalOverlay) modalOverlay.classList.remove('show'); }
+  let modalOverlay = null, modalDialog = null, modalTitleEl = null,
+      modalContextEl = null, modalMetaEl = null, modalBodyEl = null,
+      modalLastTrigger = null;
+  function closeModal() {
+    if (!modalOverlay || !modalOverlay.classList.contains('show')) return;
+    modalOverlay.classList.remove('show');
+    modalOverlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('mi-modal-open');
+    if (modalLastTrigger && document.contains(modalLastTrigger)) modalLastTrigger.focus();
+  }
   function openModal(title, content) {
     if (!modalOverlay) return;
-    modalTitleEl.textContent = title || '';
+    const titleParts = String(title || 'Detalle').split(/\s*·\s*/);
+    modalTitleEl.textContent = titleParts.shift() || 'Detalle';
+    modalContextEl.textContent = titleParts.join(' · ') || 'Información detallada';
     modalBodyEl.innerHTML = '';
     if (content instanceof Element) {
       const wrap = document.createElement('div');
@@ -233,12 +243,27 @@
     } else if (typeof content === 'string') {
       modalBodyEl.innerHTML = `<div class="tbl-wrap">${content}</div>`;
     }
+    const table = modalBodyEl.querySelector('.tbl');
+    const columns = table ? table.querySelectorAll('thead th').length : 0;
+    const bodyRows = table ? [...table.querySelectorAll('tbody tr')] : [];
+    const recordCount = bodyRows.filter(row => !row.querySelector('.mi-empty-mini')).length;
+    modalMetaEl.textContent = `${plural(recordCount, 'registro', 'registros')} · ${plural(columns, 'columna', 'columnas')}`;
+    modalDialog.classList.toggle('is-wide', columns > 5);
+    modalLastTrigger = document.activeElement;
+    modalOverlay.setAttribute('aria-hidden', 'false');
     modalOverlay.classList.add('show');
+    document.body.classList.add('mi-modal-open');
+    // Espera a que termine la entrada: un elemento con visibility en
+    // transición no siempre acepta foco en el primer frame (Chrome).
+    setTimeout(() => document.getElementById('mi-modal-close')?.focus(), 250);
   }
   function initDetailModal() {
     modalOverlay = document.getElementById('mi-modal-overlay');
     if (!modalOverlay) return;
+    modalDialog = modalOverlay.querySelector('.mi-modal');
     modalTitleEl = document.getElementById('mi-modal-title');
+    modalContextEl = document.getElementById('mi-modal-context');
+    modalMetaEl = document.getElementById('mi-modal-meta');
     modalBodyEl = document.getElementById('mi-modal-body');
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('.mi-detail-btn');
@@ -248,7 +273,17 @@
       }
       if (e.target === modalOverlay || e.target.closest('#mi-modal-close')) closeModal();
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+    document.addEventListener('keydown', (e) => {
+      if (!modalOverlay.classList.contains('show')) return;
+      if (e.key === 'Escape') { closeModal(); return; }
+      if (e.key !== 'Tab') return;
+      const focusable = [...modalDialog.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')]
+        .filter(el => !el.disabled && el.getClientRects().length);
+      if (!focusable.length) { e.preventDefault(); modalDialog.focus(); return; }
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
   }
   initDetailModal();
 

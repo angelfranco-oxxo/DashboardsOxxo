@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="../assets/favicon.png"/>
   <link rel="stylesheet" href="../css/global.css"/>
   <link rel="stylesheet" href="../css/mascota-chat.css?v=20260818a" />
-<link rel="stylesheet" href="../css/mi-ficha.css?v=6"/>
+<link rel="stylesheet" href="../css/mi-ficha.css?v=7"/>
 <link rel="stylesheet" href="../css/dashboard-skin.css"/>
 </head>
 <body>
@@ -188,19 +188,34 @@
   </div>
 </div>
 
-<div class="mi-modal-overlay" id="mi-modal-overlay">
-  <div class="mi-modal" role="dialog" aria-modal="true" aria-labelledby="mi-modal-title">
+<div class="mi-modal-overlay" id="mi-modal-overlay" aria-hidden="true">
+  <div class="mi-modal" role="dialog" aria-modal="true" aria-labelledby="mi-modal-title" aria-describedby="mi-modal-context" tabindex="-1">
     <div class="mi-modal__head">
-      <h3 id="mi-modal-title"></h3>
-      <button type="button" class="mi-modal__close" id="mi-modal-close" aria-label="Cerrar">×</button>
+      <div class="mi-modal__heading">
+        <span class="mi-modal__heading-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"></path><path d="M4 10h16M9 5v14"></path></svg>
+        </span>
+        <div class="mi-modal__titles">
+          <div class="mi-modal__eyebrow">Detalle del indicador</div>
+          <h3 id="mi-modal-title"></h3>
+          <p class="mi-modal__context" id="mi-modal-context"></p>
+        </div>
+      </div>
+      <button type="button" class="mi-modal__close" id="mi-modal-close" aria-label="Cerrar modal">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </button>
     </div>
     <div class="mi-modal__body" id="mi-modal-body"></div>
+    <div class="mi-modal__foot">
+      <span class="mi-modal__meta" id="mi-modal-meta"></span>
+      <span class="mi-modal__hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12h8M12 8l-4 4 4 4M12 8l4 4-4 4"></path></svg><span>Desliza para consultar todas las columnas</span></span>
+    </div>
   </div>
 </div>
 
   <script src="../js/config.js?v=20260818d"></script>
   <script src="../js/core.js?v=20260818c"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
-<script src="../js/mi-ficha-ui.js?v=3"></script>
+<script src="../js/mi-ficha-ui.js?v=4"></script>
 <script src="../js/mi-tienda.js?v=15"></script>
 </body></html>
