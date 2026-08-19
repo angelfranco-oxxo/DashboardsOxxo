@@ -278,7 +278,7 @@
       agregar(d3, d3 && d3.asesorKey);
       agregar(d7, d7 && d7.asesorKey);
       const lista = [...nombres.values()].sort((a,b) => a.localeCompare(b, 'es'));
-      sel.innerHTML = '<option value="">Selecciona un asesor…</option>' + lista.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
+      sel.innerHTML = '<option value="">Selecciona un asesor…</option>' + lista.map(n => `<option value="${OXXO.escHtml(n)}">${OXXO.escHtml(n)}</option>`).join('');
     } catch(e){
       console.error('Error poblando selector de asesores', e);
       sel.innerHTML = '<option value="">Error al cargar asesores</option>';
@@ -331,7 +331,7 @@
       if(statusEl) statusEl.textContent = 'Error al generar la presentación: ' + e.message;
     } finally {
       btn.disabled = false;
-      btn.textContent = '👤 Generar Presentación del Asesor';
+      btn.innerHTML = '<svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Generar Presentación del Asesor';
     }
   }
 
