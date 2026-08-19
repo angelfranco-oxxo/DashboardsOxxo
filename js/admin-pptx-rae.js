@@ -681,7 +681,7 @@
       if(statusEl) statusEl.textContent = 'Error al generar la presentación: ' + e.message;
     } finally {
       btn.disabled = false;
-      btn.textContent = '📊 Generar Presentación RAE';
+      btn.innerHTML = '<svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Generar Presentación RAE';
     }
   }
 
