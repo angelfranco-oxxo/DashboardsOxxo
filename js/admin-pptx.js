@@ -132,6 +132,8 @@
     if(!raw || !raw.length) return null;
     const estatusKey = findKey(raw[0], ['Clas Aprov','Estatus Con impacto Ausentismo','Estatus']);
     const asesorKey = findKey(raw[0], ['Asesor']);
+    const tiendaKey = findKey(raw[0], ['Tienda']);
+    const crKey = findKey(raw[0], ['CR TIENDA','CR Tienda','CR','ID Tienda']);
     const fechaKey = findKey(raw[0], ['Mes Semana','Semana','Fecha','FECHA']);
     // Igual que dashboard-3.html: limitar al corte de la fecha mas
     // reciente, para no mezclar dias distintos si llegaran a quedar
@@ -150,9 +152,14 @@
     // "Aprovechamiento por AT" = EC% (Equipo Completo / Total) por Asesor,
     // misma clasificacion que arriba. Igual fallback que dataD3() en
     // admin-pptx-rae.js cuando no hay columna dedicada de 'Ec por AT'.
+    // dashboard-3.html resuelve 'Sin Asesor Asignado' a Timoteo Antonio Perez
+    // (via resolveAsesorD1) ANTES de agrupar por asesor: sin esto, las
+    // tiendas sin AT vigente aparecian como su propia fila "Sin Asesor
+    // Asignado" en el ranking, mezcladas con nombres de personas reales.
+    const asesorCatalog = await OXXO.loadAsesorCatalog();
     const byAsesor = new Map();
     rows.forEach(r => {
-      const name = String(val(r, asesorKey)||'').trim();
+      const name = String(OXXO.resolveAsesorD1(asesorCatalog, { cr: val(r, crKey), tienda: val(r, tiendaKey), asesor: val(r, asesorKey) }) || '').trim();
       if(!name) return;
       if(!byAsesor.has(name)) byAsesor.set(name, { total: 0, completas: 0 });
       const acc = byAsesor.get(name);

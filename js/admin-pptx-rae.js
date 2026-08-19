@@ -141,6 +141,8 @@
     if(!raw || !raw.length) return null;
     const estatusKey = findKey(raw[0], ['Clas Aprov','Estatus Con impacto Ausentismo','Estatus']);
     const asesorKey = findKey(raw[0], ['Asesor']);
+    const tiendaKey = findKey(raw[0], ['Tienda']);
+    const crKey = findKey(raw[0], ['CR TIENDA','CR Tienda','CR','ID Tienda']);
     const ecPorAtKey = findKey(raw[0], ['Ec','EC','Ec por AT','EC POR AT','EC por AT','Ec Por AT']);
     const atKey = findKey(raw[0], ['Ats','ATS','AT','At']);
     const fechaKey = findKey(raw[0], ['Mes Semana','Semana','Fecha','FECHA']);
@@ -207,9 +209,16 @@
         acc.sum += ecVal; acc.n++;
       });
     }
+    // dashboard-3.html resuelve 'Sin Asesor Asignado' a Timoteo Antonio Perez
+    // (via resolveAsesorD1) antes de agrupar por asesor: sin esto, las
+    // tiendas sin AT vigente aparecian como su propia fila "Sin Asesor
+    // Asignado" en el respaldo EC%, mezcladas con nombres de personas
+    // reales. No afecta al cruce por 'ecByAt' de arriba, que agrupa por la
+    // columna 'AT' (un concepto distinto a 'Asesor').
+    const asesorCatalog = await OXXO.loadAsesorCatalog();
     const byAsesor = new Map();
     rows.forEach(r => {
-      const name = String(val(r, asesorKey)||'').trim();
+      const name = String(OXXO.resolveAsesorD1(asesorCatalog, { cr: val(r, crKey), tienda: val(r, tiendaKey), asesor: val(r, asesorKey) }) || '').trim();
       if(!name) return;
       if(!byAsesor.has(name)) byAsesor.set(name, { total: 0, completas: 0 });
       const acc = byAsesor.get(name);
