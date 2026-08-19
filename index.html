@@ -3,7 +3,7 @@
 <head>
   <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
   <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
-  <script defer src="js/site-lock.js?v=2"></script>
+  <script defer src="js/site-lock.js?v=3"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboards Ats · Plaza Oaxaca</title>
@@ -1853,12 +1853,12 @@
       }
     }
 
-    /* ── Selector de áreas (RH / Comercial) ────────────────── */
+    /* ── Selector de áreas (RH / Comercial / Administrativo) ─ */
     .folder-tabs {
       display: flex;
       align-items: center;
       gap: 8px;
-      width: min(calc(100% - (var(--page-gutter) * 2)), 540px);
+      width: min(calc(100% - (var(--page-gutter) * 2)), 820px);
       margin: 18px auto 0;
       padding: 6px;
       border: 1px solid rgba(94, 73, 67, 0.10);
@@ -2017,15 +2017,16 @@
 
       .folder-tab {
         min-height: 48px;
-        gap: 7px;
-        padding: 9px 12px;
-        font-size: 11px;
+        gap: 5px;
+        padding: 8px 6px;
+        font-size: 9px;
+        letter-spacing: .02em;
       }
 
       .folder-tab__icon {
-        width: 27px;
-        height: 27px;
-        flex-basis: 27px;
+        width: 24px;
+        height: 24px;
+        flex-basis: 24px;
       }
     }
 
@@ -2217,6 +2218,147 @@
       color: #12608F !important;
     }
 
+    /* ── Tema Administrativo ────────────────────────────────── */
+    body[data-area="administrativo"] {
+      --color-red: #5B4B8A;
+      --color-yellow: #D8C8FF;
+      --color-orange: #8669BF;
+      --color-green: #6E5BA6;
+      --semaforo-verde: #6753A0;
+      background:
+        radial-gradient(circle at 84% 20%, rgba(115, 91, 171, .11), transparent 29%),
+        linear-gradient(180deg, #F3F0FA 0%, #FBFAFD 43%, #F1EEF8 100%) !important;
+    }
+
+    body[data-area="administrativo"] .topbar {
+      background: linear-gradient(145deg, rgba(91, 75, 138, .52), rgba(48, 39, 82, .34)) !important;
+      border-color: rgba(226, 217, 250, .42) !important;
+      box-shadow: 0 14px 36px rgba(53, 42, 87, .18), inset 0 1px 0 rgba(255,255,255,.28) !important;
+    }
+
+    body[data-area="administrativo"] .hero {
+      background-color: #33284F !important;
+      background-image:
+        linear-gradient(90deg, rgba(54, 42, 84, .99) 0%, rgba(82, 64, 127, .94) 39%, rgba(112, 87, 168, .58) 67%, rgba(49, 38, 77, .23) 100%),
+        url('assets/orgulloxxos-hero.jpg') !important;
+      border-color: rgba(219, 204, 255, .30) !important;
+    }
+
+    body[data-area="administrativo"] .hero::after {
+      background: linear-gradient(180deg, rgba(46, 36, 72, .96) 0%, rgba(64, 49, 99, .76) 36%, rgba(90, 69, 137, .34) 68%, rgba(90, 69, 137, 0) 100%) !important;
+    }
+
+    body[data-area="administrativo"] .hero__badge {
+      color: #F1EAFF !important;
+      background: rgba(216, 200, 255, .14) !important;
+      border-color: rgba(229, 219, 255, .46) !important;
+    }
+
+    body[data-area="administrativo"] .hero__title span,
+    body[data-area="administrativo"] .hero__stat-value {
+      color: #D9C9FF !important;
+    }
+
+    body[data-area="administrativo"] .hero__stat {
+      border-color: rgba(224, 211, 255, .24) !important;
+      background: rgba(55, 42, 86, .28) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 12px 28px rgba(35, 27, 57, .13) !important;
+    }
+
+    body[data-area="administrativo"] .system-bar {
+      border-color: rgba(91, 75, 138, .15) !important;
+      background: rgba(250, 248, 253, .90) !important;
+    }
+
+    body[data-area="administrativo"] .sys-status,
+    body[data-area="administrativo"] .system-bar__right,
+    body[data-area="administrativo"] .executive-kicker,
+    body[data-area="administrativo"] .executive-chip,
+    body[data-area="administrativo"] .exec-metric__note,
+    body[data-area="administrativo"] .exec-metric__note.is-neutral {
+      color: #5B4B8A !important;
+    }
+
+    body[data-area="administrativo"] .sys-status__dot,
+    body[data-area="administrativo"] .executive-kicker::before {
+      background: #8064BD !important;
+      box-shadow: 0 0 0 5px rgba(128, 100, 189, .12) !important;
+    }
+
+    body[data-area="administrativo"] .executive-shell {
+      border-color: rgba(91, 75, 138, .17) !important;
+      background:
+        radial-gradient(circle at 9% 0%, rgba(155, 129, 213, .18), transparent 27%),
+        radial-gradient(circle at 92% 12%, rgba(91, 75, 138, .12), transparent 30%),
+        linear-gradient(145deg, rgba(255,255,255,.93), rgba(244,240,251,.80)) !important;
+      box-shadow: 0 20px 48px rgba(65, 50, 101, .12), inset 0 1px 0 rgba(255,255,255,.88) !important;
+    }
+
+    body[data-area="administrativo"] .executive-chip,
+    body[data-area="administrativo"] .exec-metric {
+      border-color: rgba(91, 75, 138, .15) !important;
+    }
+
+    body[data-area="administrativo"] .exec-metric {
+      background: linear-gradient(145deg, rgba(255,255,255,.90), rgba(243,239,250,.74)) !important;
+      box-shadow: 0 16px 36px rgba(61, 47, 96, .08), inset 0 1px 0 rgba(255,255,255,.88) !important;
+    }
+
+    body[data-area="administrativo"] .exec-metric::after {
+      color: rgba(91, 75, 138, .07) !important;
+    }
+
+    body[data-area="administrativo"] .exec-metric__label {
+      color: #756B86 !important;
+    }
+
+    body[data-area="administrativo"] .folder-tabs {
+      border-color: rgba(91, 75, 138, .16);
+      background: rgba(252, 250, 255, .84);
+      box-shadow: 0 12px 30px rgba(60, 47, 93, .11), inset 0 1px 0 #fff;
+    }
+
+    body[data-area="administrativo"] .folder-tab:not(.is-active) {
+      --tab-color: #746B86 !important;
+      color: #716A7C;
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .folder-empty {
+      margin-top: 26px;
+      border: 1px solid rgba(91, 75, 138, .16);
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(255,255,255,.91), rgba(242,237,250,.78));
+      box-shadow: 0 18px 44px rgba(62, 48, 96, .10), inset 0 1px 0 rgba(255,255,255,.92);
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .folder-empty__icon {
+      color: #5B4B8A;
+      background: rgba(91, 75, 138, .11);
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .folder-empty__icon svg {
+      stroke: currentColor;
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .folder-empty__title {
+      color: #5B4B8A;
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .folder-empty__text {
+      color: #6E667A;
+    }
+
+    body[data-area="administrativo"] .global-footer {
+      color: #6E667A !important;
+      border-color: rgba(91, 75, 138, .14) !important;
+      background: rgba(250, 248, 253, .80) !important;
+      box-shadow: 0 12px 30px rgba(59, 46, 92, .07) !important;
+    }
+
+    body[data-area="administrativo"] .global-footer strong {
+      color: #5B4B8A !important;
+    }
+
     @media (prefers-reduced-motion: no-preference) {
       .topbar,
       .hero,
@@ -2366,6 +2508,12 @@
       <svg viewBox="0 0 24 24"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path><path d="m4 7 6-5 6 7 5-5"></path></svg>
     </span>
     <span class="folder-tab__label">Comercial</span>
+  </button>
+  <button type="button" id="tab-administrativo" class="folder-tab" role="tab" aria-selected="false" aria-controls="panel-administrativo" tabindex="-1" data-folder-tab="administrativo" style="--tab-color:#5B4B8A">
+    <span class="folder-tab__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 7h8M8 11h8M8 15h5"></path><path d="M16 18h.01"></path></svg>
+    </span>
+    <span class="folder-tab__label">Administrativo</span>
   </button>
 </div>
 
@@ -2637,6 +2785,16 @@
         </div>
       </div>
     </a>
+  </div>
+</section>
+
+<section class="dashboards-section folder-panel" id="panel-administrativo" role="tabpanel" aria-labelledby="tab-administrativo" data-folder-group="administrativo" hidden>
+  <div class="folder-empty">
+    <div class="folder-empty__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 7h8M8 11h8M8 15h5"></path><path d="M16 18h.01"></path></svg>
+    </div>
+    <div class="folder-empty__title">Dashboards administrativos</div>
+    <p class="folder-empty__text">Esta área está lista para integrar indicadores y herramientas administrativas.</p>
   </div>
 </section>
 
