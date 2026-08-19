@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
+  <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
+  <script defer src="../js/site-lock.js?v=2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Promociones Actuales · Dashboards Ats</title>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+  <link rel="apple-touch-icon" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final">
+  <link rel="stylesheet" href="../css/promociones.css?v=1">
+</head>
+<body>
+  <nav class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+      <div><div class="topbar__title">Dashboards Ats</div><div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div></div>
+    </div>
+    <div class="topbar__meta">
+      <a href="../index.html" class="topbar__back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>Inicio</a>
+    </div>
+  </nav>
+
+  <main class="promo-page">
+    <section class="promo-hero">
+      <div class="promo-hero__copy">
+        <span class="promo-hero__eyebrow">Comercial · Plaza Oaxaca</span>
+        <h1>Promociones actuales</h1>
+        <p>Consulta los materiales vigentes y abre cada promoción para verla en tamaño completo.</p>
+      </div>
+      <div class="promo-hero__status" id="promo-corte"><span></span>Cargando promociones…</div>
+    </section>
+
+    <section class="promo-summary" aria-label="Resumen de promociones">
+      <article><span>Vigentes</span><strong id="count-current">—</strong></article>
+      <article><span>Próximas</span><strong id="count-next">—</strong></article>
+      <article><span>Categorías</span><strong id="count-categories">—</strong></article>
+    </section>
+
+    <section class="promo-toolbar" aria-label="Filtros de promociones">
+      <div class="promo-filter">
+        <label for="promo-status">Mostrar</label>
+        <select id="promo-status"><option value="current">Promociones vigentes</option><option value="next">Próximamente</option><option value="all">Todas las activas</option></select>
+      </div>
+      <div class="promo-filter">
+        <label for="promo-category">Categoría</label>
+        <select id="promo-category"><option value="">Todas las categorías</option></select>
+      </div>
+      <div class="promo-results" id="promo-results">Preparando galería…</div>
+    </section>
+
+    <section class="promo-grid" id="promo-grid" aria-live="polite">
+      <div class="promo-loading"><span class="promo-spinner"></span><strong>Conectando con Google Sheets</strong><small>Buscando promociones vigentes…</small></div>
+    </section>
+  </main>
+
+  <div class="promo-lightbox" id="promo-lightbox" aria-hidden="true">
+    <div class="promo-lightbox__dialog" role="dialog" aria-modal="true" aria-labelledby="lightbox-title">
+      <button type="button" class="promo-lightbox__close" id="lightbox-close" aria-label="Cerrar promoción"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+      <div class="promo-lightbox__media"><img id="lightbox-image" alt=""></div>
+      <div class="promo-lightbox__info">
+        <span id="lightbox-category"></span><h2 id="lightbox-title"></h2><p id="lightbox-description"></p><div id="lightbox-dates"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="dash-footer promo-footer"><div class="dash-footer__update"><div class="dash-footer__update-dot"></div>Datos cargados: <span id="load-time">—</span></div><div>Solo lectura · Google Sheets · Comercial</div></footer>
+  <script src="../js/config.js?v=20260819a"></script>
+  <script src="../js/core.js?v=20260818c"></script>
+  <script src="../js/promociones.js?v=1"></script>
+</body>
+</html>
