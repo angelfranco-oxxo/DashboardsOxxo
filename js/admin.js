@@ -19,7 +19,7 @@
     if(typeof window.OXXO_ADMIN_DASHBOARDS!=='function'){
       throw new Error('No se cargo js/admin/dashboard-definitions.js');
     }
-    dashboards=window.OXXO_ADMIN_DASHBOARDS({OXXO,state,containsOaxaca,isVacancyRow,deriveD1,deriveD2,deriveD2Denom,deriveD3,deriveD5,deriveD6,deriveD7,deriveCatalog});
+    dashboards=window.OXXO_ADMIN_DASHBOARDS({OXXO,state,containsOaxaca,isVacancyRow,deriveD1,deriveD2,deriveD2Denom,deriveD3,deriveD5,deriveD6,deriveD7,deriveCatalog,deriveInventories});
   }
   function dashboard(){return dashboards.find(d=>d.key===$('dashboard-select').value)||dashboards[0];}
   function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
@@ -71,6 +71,7 @@
     deriveD6,
     deriveD7,
     deriveCatalog,
+    deriveInventories,
     findHeaderRow,
     buildSourceMap,
     matchColumns,

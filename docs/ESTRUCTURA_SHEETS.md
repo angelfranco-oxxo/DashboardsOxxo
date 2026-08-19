@@ -39,6 +39,8 @@ El panel admin no escribe directamente sobre archivos del repo. El flujo correct
 2. `js/admin.js` valida y normaliza la base.
 3. El panel envia los datos al Apps Script.
 4. `apps-script/admin-upload.gs` reemplaza la pestana completa o solo el periodo correspondiente.
+
+Para Inventarios, selecciona `Comercial - Inventarios` y carga la hoja `Resultado de Inventario` del archivo `.xlsm`. El panel genera `Periodo` en formato `AAAA-MM` desde el mes y ano del nombre del archivo; si no estan presentes, usa `Fecha de Inventario` como respaldo. La publicacion reemplaza solamente ese mes en la pestaña `Inventarios`.
 5. Los dashboards leen la informacion publicada.
 
 ## Modos de publicacion

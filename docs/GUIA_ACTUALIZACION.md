@@ -25,6 +25,16 @@ Esta guia explica como actualizar los dashboards sin tocar codigo.
 - Si una columna cambia de nombre, primero intenta cargar el archivo: el panel tiene alias comunes.
 - Si el panel marca columnas faltantes, revisa si el archivo trae encabezados distintos o filas de titulo antes de los encabezados.
 
+## Comercial - Inventarios
+
+1. Selecciona `Comercial - Inventarios`.
+2. Sube el archivo `.xlsm` de Resultados de Inventario.
+3. El panel selecciona automaticamente la hoja `Resultado de Inventario`.
+4. Confirma que la validacion muestre el periodo `AAAA-MM` y las filas utiles.
+5. Presiona `Publicar en Sheets`.
+
+El periodo se obtiene del mes y ano escritos en el nombre del archivo, por ejemplo `Julio 2026`. La publicacion reemplaza solamente ese periodo y conserva los meses anteriores.
+
 ## Dashboard 1 - Vacantes diarias
 
 Base esperada: estructura/vacantes.

@@ -48,6 +48,51 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
   function deriveD6(row){return {...row,'Inicio de validez':isoDate(parseDate(row['Inicio de validez'])),'Fin de validez':isoDate(parseDate(row['Fin de validez'])),'Inicio de semana':isoDate(parseDate(row['Inicio de semana'])),'Fin de semana':isoDate(parseDate(row['Fin de semana'])),Dias:row.Dias||row['Absentismos solo en la semana']||0};}
   function deriveD7(row){return {...row,'Estructura Propuesta TREO P2 Jun - Ago':row['Estructura Propuesta TREO P2 Jun - Ago']||row.TREO,'Estructura SAP':row['Estructura SAP']||row.SAP,'Empleados Activos':row['Empleados Activos']||row.Activos,'Dif SAP vs Est Optima Final':row['Dif SAP vs Est Optima Final']||row.DIF,'Movimiento Inicial':row['Movimiento Inicial']||row.Movimiento};}
   function deriveCatalog(row){return {...row,ASESOR:String(row.ASESOR||'').trim(),TIENDA:String(row.TIENDA||'').trim(),'CR TIENDA':String(row['CR TIENDA']||'').trim().toUpperCase()};}
+  function ratioValue(value){
+    const raw=String(value??'').trim();
+    const number=toNumber(value);
+    if(!Number.isFinite(number))return 0;
+    if(raw.includes('%'))return number/100;
+    return Math.abs(number)>1?number/100:number;
+  }
+  function inventoryPeriod(value){
+    const date=parseDate(value);
+    return date?`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`:'';
+  }
+  function inventorySourcePeriod(){
+    const months={enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,setiembre:9,octubre:10,noviembre:11,diciembre:12};
+    const source=normLoose(`${state.fileName||''} ${state.sheetName||''}`);
+    const match=source.match(/\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\s+(20\d{2})\b/);
+    if(!match)return '';
+    return `${match[2]}-${String(months[match[1]]).padStart(2,'0')}`;
+  }
+  function deriveInventories(row){
+    const previousDate=parseDate(row['Fecha de Inventario Anterior']);
+    const inventoryDate=parseDate(row['Fecha de Inventario']);
+    return {
+      ...row,
+      Periodo:String(row.Periodo||'').trim()||inventorySourcePeriod()||inventoryPeriod(inventoryDate),
+      CR:String(row.CR||'').trim().toUpperCase(),
+      'Asesor Comercial':String(row['Asesor Comercial']||'').trim(),
+      'Fecha de Inventario Anterior':isoDate(previousDate),
+      'Fecha de Inventario':isoDate(inventoryDate),
+      '# Días de Inventario':toNumber(row['# Días de Inventario']),
+      'Resultado de Inventario':toNumber(row['Resultado de Inventario']),
+      'Resultado del Mes Actual':toNumber(row['Resultado del Mes Actual']),
+      Diferencias:toNumber(row.Diferencias),
+      'Ventas sin TAE del mes':toNumber(row['Ventas sin TAE del mes']),
+      '% Merma / Vta sin TAE del Mes':ratioValue(row['% Merma / Vta sin TAE del Mes']),
+      'Resultado Inventarios Mayo':toNumber(row['Resultado Inventarios Mayo']),
+      'Resultado Inventarios Junio':toNumber(row['Resultado Inventarios Junio']),
+      'Resultado Inventarios Julio':toNumber(row['Resultado Inventarios Julio']),
+      'Resultado de Merma  (Final c/s proyectos)':toNumber(row['Resultado de Merma  (Final c/s proyectos)']),
+      'Ventas Mayo':toNumber(row['Ventas Mayo']),
+      'Ventas Junio':toNumber(row['Ventas Junio']),
+      'Ventas Julio':toNumber(row['Ventas Julio']),
+      'SUMA TOTAL VTA S/TAE':toNumber(row['SUMA TOTAL VTA S/TAE']),
+      '% Merma / Vta sin TAE (Final c/s proyectos)':ratioValue(row['% Merma / Vta sin TAE (Final c/s proyectos)'])
+    };
+  }
 
   function findHeaderRow(matrix,dash){const limit=Math.min(matrix.length,40);let best={index:0,score:-1};for(let i=0;i<limit;i++){const cells=(matrix[i]||[]).map(norm).filter(Boolean);const score=dash.required.reduce((total,col)=>total+(aliasesFor(col).some(alias=>cells.includes(alias))?1:0),0)+Math.min(cells.length,12)/100;if(score>best.score)best={index:i,score};}return best;}
   function buildSourceMap(sourceHeaders){const sourceMap=new Map();sourceHeaders.forEach((header,index)=>{const key=norm(header);if(key&&!sourceMap.has(key))sourceMap.set(key,index);});return sourceMap;}
@@ -110,6 +155,7 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
     deriveD6,
     deriveD7,
     deriveCatalog,
+    deriveInventories,
     findHeaderRow,
     buildSourceMap,
     matchColumns,

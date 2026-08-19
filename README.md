@@ -6,6 +6,7 @@ Sistema estatico de dashboards operativos para Plaza Oaxaca. El sitio se publica
 
 - Portada ejecutiva con estado general de los dashboards.
 - Panel admin para validar Excel, normalizar columnas y publicar datos en Google Sheets.
+- Dashboard comercial de Inventarios, actualizable desde el panel Admin con archivos `.xlsm` y conservacion de historico por periodo.
 - 7 dashboards operativos:
   - Dashboard 1: Vacantes diarias.
   - Dashboard 2: Bajas diarias y analisis de bajas.
