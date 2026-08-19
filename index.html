@@ -1852,6 +1852,104 @@
         display: none !important;
       }
     }
+
+    /* ── Pestañas tipo carpeta (RH / Comercial) ──────────────
+       Forma trapezoidal recortada arriba (clip-path), como la pestaña de
+       una carpeta física. La pestaña activa se eleva y queda opaca; las
+       inactivas se ven recorridas hacia atrás, mas chicas y apagadas. */
+    .folder-tabs {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      width: min(calc(100% - (var(--page-gutter) * 2)), var(--page-max));
+      margin: 0 auto;
+      padding: 0 clamp(18px, 2.2vw, 42px);
+    }
+
+    .folder-tab {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #fff;
+      background: var(--tab-color, var(--color-dark));
+      padding: 13px 26px 11px;
+      clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 100%, 0 100%);
+      transform: translateY(7px);
+      opacity: 0.62;
+      filter: saturate(0.8);
+      transition: transform 0.18s ease, opacity 0.18s ease, filter 0.18s ease;
+    }
+
+    .folder-tab:hover {
+      opacity: 0.85;
+    }
+
+    .folder-tab.is-active {
+      transform: translateY(0);
+      opacity: 1;
+      filter: none;
+      z-index: 2;
+      box-shadow: 0 -8px 18px rgba(33, 19, 18, 0.14);
+    }
+
+    .folder-panel[hidden] {
+      display: none;
+    }
+
+    .folder-empty {
+      max-width: var(--page-max);
+      margin: 0 auto;
+      padding: 64px clamp(18px, 2.2vw, 42px);
+      text-align: center;
+      color: var(--color-gray);
+    }
+
+    .folder-empty__icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 18px;
+      border-radius: 16px;
+      background: rgba(18, 96, 143, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .folder-empty__icon svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--color-blue);
+      fill: none;
+      stroke-width: 1.9;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .folder-empty__title {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--color-dark);
+      margin-bottom: 8px;
+    }
+
+    .folder-empty__text {
+      font-size: 14px;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 640px) {
+      .folder-tab {
+        padding: 11px 16px 9px;
+        font-size: 12px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1975,7 +2073,12 @@
   </div>
 </section>
 
-<section class="dashboards-section">
+<div class="folder-tabs" role="tablist">
+  <button type="button" class="folder-tab is-active" role="tab" aria-selected="true" data-folder-tab="rh" style="--tab-color:#F71926">RH</button>
+  <button type="button" class="folder-tab" role="tab" aria-selected="false" data-folder-tab="comercial" style="--tab-color:#12608F">Comercial</button>
+</div>
+
+<section class="dashboards-section folder-panel" id="panel-rh">
   <div class="dashboards-section__header">
     <div>
       <div class="section-label">Actualización diaria</div>
@@ -2204,6 +2307,31 @@
 
   </div>
 </section>
+
+<section class="folder-panel" id="panel-comercial" hidden>
+  <div class="folder-empty">
+    <div class="folder-empty__icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3z"></path><path d="M3 9h18"></path><path d="M9 21V9"></path></svg>
+    </div>
+    <div class="folder-empty__title">Dashboards de Comercial · Próximamente</div>
+    <div class="folder-empty__text">Aquí van a vivir los dashboards del área Comercial en cuanto estén listos.</div>
+  </div>
+</section>
+
+<script>
+  (function(){
+    var tabs = document.querySelectorAll('.folder-tab');
+    tabs.forEach(function(tab){
+      tab.addEventListener('click', function(){
+        tabs.forEach(function(t){ t.classList.remove('is-active'); t.setAttribute('aria-selected','false'); });
+        tab.classList.add('is-active'); tab.setAttribute('aria-selected','true');
+        document.querySelectorAll('.folder-panel').forEach(function(p){ p.hidden = true; });
+        var panel = document.getElementById('panel-' + tab.dataset.folderTab);
+        if(panel) panel.hidden = false;
+      });
+    });
+  })();
+</script>
 
 <!-- ══════════════════════════════════════════════
      SECCIÓN: MI DASHBOARD / MI TIENDA (destacada, hasta el final)
