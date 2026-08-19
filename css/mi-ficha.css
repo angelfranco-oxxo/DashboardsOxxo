@@ -158,13 +158,20 @@
 
 .mi-modal-overlay{position:fixed;inset:0;background:rgba(45,11,12,.55);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
 .mi-modal-overlay.show{display:flex}
-.mi-modal{background:var(--mt-tile);border:1px solid var(--mt-line);border-radius:16px;max-width:560px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(45,11,12,.35)}
+.mi-modal{background:var(--mt-tile);border:1px solid var(--mt-line);border-radius:16px;max-width:min(94vw,760px);width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(45,11,12,.35)}
 .mi-modal__head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--mt-line)}
 .mi-modal__head h3{margin:0;font-family:var(--font-display);font-size:.95rem;font-weight:800;color:var(--mt-ink);letter-spacing:.01em}
 .mi-modal__close{cursor:pointer;background:none;border:none;font-size:22px;line-height:1;color:var(--mt-muted);padding:2px 8px;border-radius:8px}
 .mi-modal__close:hover{background:rgba(130,54,38,.08);color:var(--mt-ink)}
 .mi-modal__body{padding:12px 16px 16px;overflow-y:auto}
 .mi-modal__body .tbl-wrap{max-height:none;border:none}
+/* Tablas anchas (ej. Registro y Apego a Horario, 9 columnas) se
+   comprimian a la fuerza dentro de los 560px viejos del modal y el
+   nombre del asesor se partia en 3 lineas. width:max-content deja que
+   la tabla mida lo que en verdad necesita (respetando min-width:100%
+   para que las tablas angostas sigan llenando el modal), y .tbl-wrap
+   ya trae overflow-x:auto para las que de plano no quepan. */
+.mi-modal__body .tbl{width:max-content;min-width:100%}
 
 /* Paneles con historial (Vacantes, Bajas, Tiempo Extra, Ausentismos,
    Faltantes/Sobrantes): un boton por mes que abre el modal compartido con
