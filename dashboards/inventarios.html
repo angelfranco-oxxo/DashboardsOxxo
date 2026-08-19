@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
+  <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
+  <script defer src="../js/site-lock.js?v=2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Resultados de Inventario · Dashboards Ats</title>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+  <link rel="apple-touch-icon" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final">
+  <link rel="stylesheet" href="../css/inventarios.css?v=1">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <nav class="topbar inv-topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+      <div><div class="topbar__title">Dashboards Ats</div><div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div></div>
+    </div>
+    <div class="topbar__meta">
+      <a href="../index.html" class="topbar__back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>Inicio</a>
+    </div>
+  </nav>
+
+  <main class="inv-page">
+    <section class="inv-hero">
+      <div class="inv-hero__copy">
+        <span class="inv-hero__eyebrow">Comercial · Plaza Oaxaca</span>
+        <h1>Resultados de Inventario</h1>
+        <p>Lectura ejecutiva de inventarios, merma y venta sin TAE por tienda y asesor comercial.</p>
+      </div>
+      <div class="inv-hero__status" id="inventory-cut"><span></span>Cargando información…</div>
+    </section>
+
+    <section class="inv-kpis" id="inventory-kpis" aria-label="Indicadores de inventario">
+      <article><span>Tiendas</span><strong id="kpi-stores">—</strong><small id="kpi-records">Registros cargados</small></article>
+      <article><span>Con inventario</span><strong id="kpi-inventories">—</strong><small id="kpi-coverage">Cobertura del periodo</small></article>
+      <article><span>Merma final</span><strong id="kpi-result">—</strong><small>Resultado acumulado</small></article>
+      <article><span>Venta sin TAE</span><strong id="kpi-sales">—</strong><small>Base acumulada</small></article>
+      <article class="inv-kpi--primary"><span>% Merma / Venta</span><strong id="kpi-ratio">—</strong><small id="kpi-ratio-note">Indicador ponderado</small></article>
+    </section>
+
+    <section class="inv-filters" aria-label="Filtros de inventario">
+      <div class="inv-filter"><label for="filter-period">Periodo</label><select id="filter-period"><option value="">Todos los periodos</option></select></div>
+      <div class="inv-filter"><label for="filter-advisor">Asesor comercial</label><select id="filter-advisor"><option value="">Todos los asesores</option></select></div>
+      <div class="inv-filter"><label for="filter-type">Tipo de inventario</label><select id="filter-type"><option value="">Todos los tipos</option></select></div>
+      <div class="inv-filter inv-filter--search"><label for="filter-store">Buscar tienda o CR</label><input id="filter-store" type="search" placeholder="Ej. 505Z2 o Chicago" autocomplete="off"></div>
+      <div class="inv-actions"><button type="button" id="filter-reset" class="inv-button inv-button--ghost">× Limpiar</button><button type="button" id="download-inventory" class="inv-button inv-button--primary"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 19h16"></path></svg>Descargar datos</button></div>
+    </section>
+
+    <div class="inv-result-line"><span id="inventory-results">Preparando análisis…</span><span id="inventory-period-note">Google Sheets · Solo lectura</span></div>
+
+    <section class="inv-analysis-grid" aria-label="Análisis visual de inventarios">
+      <article class="inv-panel inv-panel--trend">
+        <div class="inv-panel__head"><div><span>Tendencia</span><h2>Resultado y venta por mes</h2></div><div class="inv-legend"><i></i>Resultado <i></i>Venta</div></div>
+        <div class="inv-chart"><canvas id="chart-trend"></canvas></div>
+      </article>
+      <article class="inv-panel inv-panel--types">
+        <div class="inv-panel__head"><div><span>Composición</span><h2>Tipos de inventario</h2></div></div>
+        <div class="inv-chart inv-chart--donut"><canvas id="chart-types"></canvas><div class="inv-donut-total"><strong id="type-total">—</strong><span>registros</span></div></div>
+      </article>
+      <article class="inv-panel inv-panel--stores">
+        <div class="inv-panel__head"><div><span>Focos principales</span><h2>Tiendas con mayor merma</h2></div><small>Resultado final</small></div>
+        <div class="inv-chart inv-chart--ranking"><canvas id="chart-stores"></canvas></div>
+      </article>
+      <article class="inv-panel inv-panel--advisors">
+        <div class="inv-panel__head"><div><span>Responsables</span><h2>Resultado por asesor</h2></div><small id="advisor-count">— asesores</small></div>
+        <div class="inv-advisor-list" id="advisor-list"><div class="inv-panel-empty">Esperando datos…</div></div>
+      </article>
+    </section>
+
+    <section class="inv-panel inv-detail-panel">
+      <div class="inv-panel__head inv-detail-head"><div><span>Base consultable</span><h2>Detalle por tienda</h2></div><small id="detail-count">— registros</small></div>
+      <div class="inv-table-wrap">
+        <table class="inv-table">
+          <thead><tr><th>CR</th><th>Tienda</th><th>Asesor comercial</th><th>Fecha inventario</th><th>Tipo</th><th class="num">Resultado final</th><th class="num">Venta sin TAE</th><th class="num">% Merma</th></tr></thead>
+          <tbody id="inventory-table"><tr><td colspan="8" class="inv-table-message">Conectando con Google Sheets…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="dash-footer inv-footer"><div class="dash-footer__update"><div class="dash-footer__update-dot"></div>Datos cargados: <span id="load-time">—</span></div><div>Solo lectura · Google Sheets · Comercial</div></footer>
+  <script src="../js/config.js?v=20260819b"></script>
+  <script src="../js/core.js?v=20260818c"></script>
+  <script src="../js/inventarios.js?v=1"></script>
+</body>
+</html>

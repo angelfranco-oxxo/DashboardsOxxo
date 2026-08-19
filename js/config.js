@@ -58,6 +58,7 @@ window.OXXO_CONFIG = {
     s9: "Dashboard_9_Semanal",
     d10: "Dashboard_10_FLEX",
     d11: "Dashboard_11_Semanal",
-    promos: "Promociones"
+    promos: "Promociones",
+    inventories: "Inventarios"
   }
 };
