@@ -2323,29 +2323,58 @@
       color: #716A7C;
     }
 
-    body[data-area="administrativo"] #panel-administrativo .folder-empty {
-      margin-top: 26px;
-      border: 1px solid rgba(91, 75, 138, .16);
-      border-radius: 24px;
-      background: linear-gradient(145deg, rgba(255,255,255,.91), rgba(242,237,250,.78));
-      box-shadow: 0 18px 44px rgba(62, 48, 96, .10), inset 0 1px 0 rgba(255,255,255,.92);
-    }
-
-    body[data-area="administrativo"] #panel-administrativo .folder-empty__icon {
-      color: #5B4B8A;
-      background: rgba(91, 75, 138, .11);
-    }
-
-    body[data-area="administrativo"] #panel-administrativo .folder-empty__icon svg {
-      stroke: currentColor;
-    }
-
-    body[data-area="administrativo"] #panel-administrativo .folder-empty__title {
+    body[data-area="administrativo"] #panel-administrativo .section-label {
       color: #5B4B8A;
     }
 
-    body[data-area="administrativo"] #panel-administrativo .folder-empty__text {
-      color: #6E667A;
+    body[data-area="administrativo"] #panel-administrativo .db-card {
+      --card-accent: #5B4B8A !important;
+      --card-icon-bg: rgba(91, 75, 138, .11) !important;
+      --card-freq-bg: rgba(91, 75, 138, .10) !important;
+      --card-freq-color: #5B4B8A !important;
+      border-color: rgba(91, 75, 138, .18) !important;
+      background: linear-gradient(145deg, rgba(255,255,255,.95), rgba(244,240,251,.84)) !important;
+      box-shadow: 0 18px 42px rgba(62, 48, 96, .10), inset 0 1px 0 rgba(255,255,255,.92) !important;
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .db-card:hover,
+    body[data-area="administrativo"] #panel-administrativo .db-card:focus-visible {
+      border-color: rgba(91, 75, 138, .36) !important;
+      box-shadow: 0 24px 52px rgba(62, 48, 96, .17), inset 0 1px 0 rgba(255,255,255,.94) !important;
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .db-card::before {
+      background: linear-gradient(180deg, #9C83D5, #5B4B8A) !important;
+      box-shadow: 0 0 22px rgba(91, 75, 138, .25) !important;
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .db-card::after {
+      color: rgba(91, 75, 138, .08) !important;
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .db-card__icon {
+      color: #5B4B8A !important;
+      background: rgba(91, 75, 138, .11) !important;
+      border-color: rgba(91, 75, 138, .13) !important;
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .db-card__icon svg {
+      stroke: #5B4B8A !important;
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .db-card__freq {
+      color: #5B4B8A !important;
+      background: rgba(91, 75, 138, .09) !important;
+      border-color: rgba(91, 75, 138, .17) !important;
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .db-card__footer {
+      border-color: rgba(91, 75, 138, .14) !important;
+    }
+
+    body[data-area="administrativo"] #panel-administrativo .db-card__arrow {
+      background: linear-gradient(135deg, #8064BD, #4B3C79) !important;
+      box-shadow: 0 10px 22px rgba(91, 75, 138, .28) !important;
     }
 
     body[data-area="administrativo"] .global-footer {
@@ -2416,12 +2445,16 @@
           <div class="hero__stat-label">Dashboards</div>
         </div>
         <div class="hero__stat">
-          <div class="hero__stat-value">9</div>
+          <div class="hero__stat-value">8</div>
           <div class="hero__stat-label">Recursos Humanos</div>
         </div>
         <div class="hero__stat">
-          <div class="hero__stat-value">2</div>
+          <div class="hero__stat-value">1</div>
           <div class="hero__stat-label">Comercial</div>
+        </div>
+        <div class="hero__stat">
+          <div class="hero__stat-value">2</div>
+          <div class="hero__stat-label">Administrativo</div>
         </div>
       </div>
     </div>
@@ -2472,7 +2505,7 @@
           <div class="exec-metric" data-code="01">
             <div class="exec-metric__label">Dashboards activos</div>
             <div class="exec-metric__value">11</div>
-            <div class="exec-metric__note">9 RH · 2 Comercial</div>
+            <div class="exec-metric__note">8 RH · 1 Comercial · 2 Administrativo</div>
           </div>
           <div class="exec-metric" data-code="02">
             <div class="exec-metric__label">Cobertura de datos</div>
@@ -2725,25 +2758,6 @@
       </div>
     </a>
 
-    <a href="dashboards/dashboard-9.html" class="db-card"
-       style="--card-accent:#7B1FA2;--card-icon-bg:rgba(123,31,162,0.10);--card-freq-bg:rgba(123,31,162,0.12);--card-freq-color:#7B1FA2">
-      <div class="db-card__top">
-        <div class="db-card__icon">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 10v4M18 10v4"/></svg>
-        </div>
-        <span class="db-card__freq">Semanal</span>
-      </div>
-      <div class="db-card__title">Faltantes y Sobrantes</div>
-      <div class="db-card__desc">
-        Faltantes y sobrantes de caja por asesor, tienda y semana.
-      </div>
-      <div class="db-card__footer" style="justify-content:flex-end">
-        <div class="db-card__arrow" style="background:#7B1FA2">
-          <svg viewBox="0 0 24 24" style="stroke:#fff"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-      </div>
-    </a>
-
   </div>
 </section>
 
@@ -2770,7 +2784,18 @@
         </div>
       </div>
     </a>
-    <a href="dashboards/inventarios.html" class="db-card" style="--card-accent:#12608F;--card-icon-bg:rgba(18,96,143,.12);--card-freq-bg:rgba(18,96,143,.12);--card-freq-color:#12608F">
+  </div>
+</section>
+
+<section class="dashboards-section folder-panel" id="panel-administrativo" role="tabpanel" aria-labelledby="tab-administrativo" data-folder-group="administrativo" hidden>
+  <div class="dashboards-section__header">
+    <div>
+      <div class="section-label">Control administrativo</div>
+      <div class="section-title">Indicadores administrativos</div>
+    </div>
+  </div>
+  <div class="dashboards-grid">
+    <a href="dashboards/inventarios.html" class="db-card">
       <div class="db-card__top">
         <div class="db-card__icon">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5M12 22V12"></path></svg>
@@ -2780,21 +2805,27 @@
       <div class="db-card__title">Resultados de Inventario</div>
       <div class="db-card__desc">Merma, venta sin TAE, inventarios y focos principales por tienda y asesor comercial.</div>
       <div class="db-card__footer" style="justify-content:flex-end">
-        <div class="db-card__arrow" style="background:#12608F">
+        <div class="db-card__arrow">
           <svg viewBox="0 0 24 24" style="stroke:#fff"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </div>
       </div>
     </a>
-  </div>
-</section>
 
-<section class="dashboards-section folder-panel" id="panel-administrativo" role="tabpanel" aria-labelledby="tab-administrativo" data-folder-group="administrativo" hidden>
-  <div class="folder-empty">
-    <div class="folder-empty__icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 7h8M8 11h8M8 15h5"></path><path d="M16 18h.01"></path></svg>
-    </div>
-    <div class="folder-empty__title">Dashboards administrativos</div>
-    <p class="folder-empty__text">Esta área está lista para integrar indicadores y herramientas administrativas.</p>
+    <a href="dashboards/dashboard-9.html" class="db-card">
+      <div class="db-card__top">
+        <div class="db-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 10v4M18 10v4"/></svg>
+        </div>
+        <span class="db-card__freq">Semanal</span>
+      </div>
+      <div class="db-card__title">Faltantes y Sobrantes</div>
+      <div class="db-card__desc">Faltantes y sobrantes de caja por asesor, tienda y semana.</div>
+      <div class="db-card__footer" style="justify-content:flex-end">
+        <div class="db-card__arrow">
+          <svg viewBox="0 0 24 24" style="stroke:#fff"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </a>
   </div>
 </section>
 
