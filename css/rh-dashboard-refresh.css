@@ -324,6 +324,48 @@ body.hr-dashboard .foot-dot {
   box-shadow: 0 0 0 4px rgba(32,164,91,.10) !important;
 }
 
+/* Dashboard 7 · TREO: la tarjeta lateral debe ocupar la misma altura que
+   el detalle de tiendas. Una regla histórica usaba align-items:start y
+   dejaba un hueco visible debajo de Alineación Global. */
+body.hr-dashboard:has(#main-tbl) .row-main {
+  align-items: stretch !important;
+}
+
+body.hr-dashboard:has(#main-tbl) .row-main > .side-panel {
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  align-self: stretch !important;
+  height: auto !important;
+}
+
+body.hr-dashboard:has(#main-tbl) .alignment-card {
+  align-self: stretch !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+body.hr-dashboard:has(#main-tbl) .alignment-card .donut-wrap {
+  flex: 1 1 auto !important;
+  justify-content: space-around !important;
+  padding: 8px 8px 2px !important;
+}
+
+@media (max-width: 1100px) {
+  body.hr-dashboard:has(#main-tbl) .row-main {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.hr-dashboard:has(#main-tbl) .row-main > .side-panel {
+    display: flex !important;
+    height: auto !important;
+  }
+
+  body.hr-dashboard:has(#main-tbl) .alignment-card {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+}
+
 @media (max-width: 760px) {
   body.hr-dashboard .topbar {
     width: min(calc(100% - 20px), 1920px) !important;
@@ -353,6 +395,16 @@ body.hr-dashboard .foot-dot {
   body.hr-dashboard .chart-card,
   body.hr-dashboard .bajas-panel {
     border-radius: 16px !important;
+  }
+
+  body.hr-dashboard:has(#main-tbl) .alignment-card {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  body.hr-dashboard:has(#main-tbl) .row-main > .side-panel {
+    display: flex !important;
+    grid-template-rows: none !important;
   }
 }
 
