@@ -105,7 +105,52 @@
   // la hoja "PLAZAS" del mismo Excel. Las definiciones siguen vivas en
   // dashboards[] para que publish() las reutilice.
   const HIDDEN_FROM_MENU=['d2otras','d2denom','d3plazas'];
-  function fillDashboardSelect(){$('dashboard-select').innerHTML=dashboards.filter(d=>!HIDDEN_FROM_MENU.includes(d.key)).map(d=>`<option value="${d.key}">${d.label}</option>`).join('');}
+  const ADMIN_AREAS={
+    rh:{title:'Recursos Humanos',description:'Bases de talento, estructura y operación de tienda.',color:'#f71926',soft:'#fff0ef'},
+    comercial:{title:'Comercial',description:'Administración de campañas y materiales de PromosD100.',color:'#12608f',soft:'#eaf5fb'},
+    administrativo:{title:'Administrativo',description:'Resultados de Inventario y Faltantes y Sobrantes.',color:'#65529a',soft:'#f1eef9'}
+  };
+  let currentAdminArea='rh';
+  function dashboardArea(key){return ['s9','inventories'].includes(key)?'administrativo':'rh';}
+  function areaDashboards(area=currentAdminArea){return dashboards.filter(d=>!HIDDEN_FROM_MENU.includes(d.key)&&dashboardArea(d.key)===area);}
+  function fillDashboardSelect(area=currentAdminArea){
+    const select=$('dashboard-select'),available=areaDashboards(area);
+    select.innerHTML=available.map(d=>`<option value="${d.key}">${d.label}</option>`).join('');
+    select.disabled=!available.length;
+  }
+  function selectUploadTab(){
+    const uploadTab=document.querySelector('.admin-tab[data-tab="upload"]');
+    if(uploadTab&&!uploadTab.classList.contains('active'))uploadTab.click();
+  }
+  function setAdminArea(area){
+    if(!ADMIN_AREAS[area])return;
+    currentAdminArea=area;
+    const config=ADMIN_AREAS[area],available=areaDashboards(area),isCommercial=area==='comercial';
+    document.querySelectorAll('.admin-area').forEach(button=>{
+      const active=button.dataset.adminArea===area;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-selected',String(active));
+    });
+    const context=$('admin-area-context');
+    context.style.setProperty('--area-color',config.color);
+    context.style.setProperty('--area-soft',config.soft);
+    $('admin-area-title').textContent=config.title;
+    $('admin-area-description').textContent=config.description;
+    $('admin-area-count').textContent=isCommercial?'Google Sheets':`${available.length} ${available.length===1?'base':'bases'}`;
+    $('admin-upload-tab-label').textContent=isCommercial?'PromosD100':'Cargar y Publicar Bases';
+    $('tabpanel-upload').dataset.adminArea=area;
+    document.querySelectorAll('.admin-tab').forEach(tab=>tab.classList.toggle('hidden',area!=='rh'&&tab.dataset.tab!=='upload'));
+    if(area!=='rh')selectUploadTab();
+    $('admin-commercial-panel').classList.toggle('hidden',!isCommercial);
+    $('admin-upload-workspace').classList.toggle('hidden',isCommercial);
+    $('admin-preview-section').classList.toggle('hidden',isCommercial);
+    ['manual-entry-section','manual-entry-d3-section','manual-entry-d2plan-section'].forEach(id=>{if(isCommercial)$(id)?.classList.add('hidden');});
+    if(isCommercial)return;
+    fillDashboardSelect(area);
+    autoSelectSheet();
+    loadCurrentSheet();
+    toggleManualSection();
+  }
   function fillSheets(){const names=state.workbook?state.workbook.SheetNames:[];$('sheet-select').disabled=!names.length;$('sheet-select').innerHTML=names.length?names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join(''):'<option value="">Sube un Excel primero</option>';state.sheetName=names[0]||'';autoSelectSheet();}
   function loadCurrentSheet(){if(!state.workbook||!state.sheetName)return;const dash=dashboard(),matrix=getSheetMatrix(state.sheetName);const parsed=rowsFromMatrix(matrix,dash);state.rows=parsed.rows;state.headerRow=parsed.headerRow;state.sourceRows=parsed.sourceRows;state.sourceHeaders=parsed.sourceHeaders;validateRows();}
   // codepage:65001 (UTF-8) evita que un .csv con acentos salga con mojibake
@@ -130,12 +175,12 @@
   // URL, misma contrasena, mismo manejo de CORS/modo compatible -- sin
   // duplicar esa logica ni exponer el password directamente.
   window.OXXO_ADMIN_CTX = { getAdminPassword: () => adminPassword, publishUrl, postAdminPayload, isoDate };
-  function bind(){$('drop-zone').addEventListener('click',()=>$('file-input').click());$('file-input').addEventListener('change',event=>handleFile(event.target.files[0]));['dragenter','dragover'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.add('drag');}));['dragleave','drop'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.remove('drag');}));$('drop-zone').addEventListener('drop',event=>handleFile(event.dataTransfer.files[0]));$('sheet-select').addEventListener('change',event=>{state.sheetName=event.target.value;loadCurrentSheet();});$('dashboard-select').addEventListener('change',()=>{autoSelectSheet();loadCurrentSheet();toggleManualSection();});$('manual-publish-btn').addEventListener('click',publishManual);$('manual-publish-d3-btn').addEventListener('click',publishManualD3);$('manual-publish-d2plan-btn')?.addEventListener('click',publishManualD2Plan);$('manual-add-d2plan-row')?.addEventListener('click',addPlanRow);document.addEventListener('click',event=>{if(event.target.classList.contains('plan-row-remove')){const tr=event.target.closest('tr');const tbody=tr?.parentElement;if(tbody&&tbody.children.length>1)tr.remove();}});$('apps-script-url').addEventListener('input',updatePublishState);$('download-csv-btn').addEventListener('click',downloadCsv);$('publish-btn').addEventListener('click',publish);$('save-config-btn').addEventListener('click',()=>{const url=$('apps-script-url').value.trim();if(!url){alert('No hay URL para guardar.');return;}localStorage.setItem(ADMIN_CONFIG_KEY,url);updatePublishState();alert('URL guardada en este navegador.');});}
+  function bind(){$('drop-zone').addEventListener('click',()=>$('file-input').click());$('file-input').addEventListener('change',event=>handleFile(event.target.files[0]));['dragenter','dragover'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.add('drag');}));['dragleave','drop'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.remove('drag');}));$('drop-zone').addEventListener('drop',event=>handleFile(event.dataTransfer.files[0]));$('sheet-select').addEventListener('change',event=>{state.sheetName=event.target.value;loadCurrentSheet();});$('dashboard-select').addEventListener('change',()=>{autoSelectSheet();loadCurrentSheet();toggleManualSection();});document.querySelectorAll('.admin-area').forEach(button=>button.addEventListener('click',()=>setAdminArea(button.dataset.adminArea)));$('manual-publish-btn').addEventListener('click',publishManual);$('manual-publish-d3-btn').addEventListener('click',publishManualD3);$('manual-publish-d2plan-btn')?.addEventListener('click',publishManualD2Plan);$('manual-add-d2plan-row')?.addEventListener('click',addPlanRow);document.addEventListener('click',event=>{if(event.target.classList.contains('plan-row-remove')){const tr=event.target.closest('tr');const tbody=tr?.parentElement;if(tbody&&tbody.children.length>1)tr.remove();}});$('apps-script-url').addEventListener('input',updatePublishState);$('download-csv-btn').addEventListener('click',downloadCsv);$('publish-btn').addEventListener('click',publish);$('save-config-btn').addEventListener('click',()=>{const url=$('apps-script-url').value.trim();if(!url){alert('No hay URL para guardar.');return;}localStorage.setItem(ADMIN_CONFIG_KEY,url);updatePublishState();alert('URL guardada en este navegador.');});}
   // La URL guardada en localStorage (de un "Guardar" anterior) ya NO tiene prioridad sobre
   // la que trae el codigo: cada vez que se redeploya el Apps Script, DEFAULT_UPLOAD_URL
   // cambia en core.js, pero el navegador seguia usando la vieja guardada indefinidamente
   // (confirmado: causaba publicaciones silenciosas a un deployment desactualizado, sin
   // ningun error visible). Ahora localStorage solo se usa como respaldo si el codigo no
   // trae ninguna URL default.
-  document.addEventListener('DOMContentLoaded',()=>{initDashboardDefinitions();initAdminLock();fillDashboardSelect();const queryUrl=urlFromQuery();const saved=localStorage.getItem(ADMIN_CONFIG_KEY)||'';$('apps-script-url').value=queryUrl||DEFAULT_UPLOAD_URL||saved;if(queryUrl)localStorage.setItem(ADMIN_CONFIG_KEY,queryUrl);updatePublishState();setStatus([{type:'warn',title:'Esperando archivo',text:'Selecciona el dashboard y sube un Excel para iniciar validacion.',badge:'Pendiente'}]);bind();toggleManualSection();});
+  document.addEventListener('DOMContentLoaded',()=>{initDashboardDefinitions();initAdminLock();fillDashboardSelect();const queryUrl=urlFromQuery();const saved=localStorage.getItem(ADMIN_CONFIG_KEY)||'';$('apps-script-url').value=queryUrl||DEFAULT_UPLOAD_URL||saved;if(queryUrl)localStorage.setItem(ADMIN_CONFIG_KEY,queryUrl);updatePublishState();setStatus([{type:'warn',title:'Esperando archivo',text:'Selecciona el dashboard y sube un Excel para iniciar validacion.',badge:'Pendiente'}]);bind();setAdminArea('rh');});
 })();

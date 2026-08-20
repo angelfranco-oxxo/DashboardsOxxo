@@ -33,6 +33,7 @@
     .drop-zone span{display:block;margin-top:5px;color:var(--color-gray);font-size:13px;font-weight:650}
     .admin-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
     .admin-btn{border:0;border-radius:14px;padding:11px 16px;font-weight:900;cursor:pointer;transition:.18s ease}
+    .admin-actions a.admin-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
     .admin-btn.primary{background:var(--color-red);color:#fff;box-shadow:0 12px 26px rgba(247,25,38,.22)}
     .admin-btn.secondary{background:#fff;color:var(--color-red);border:1px solid #ffd2d0}
     .admin-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
@@ -69,7 +70,19 @@
     .admin-tab.active{color:var(--color-red);background:#fff;border:1px solid rgba(220,80,55,.18);border-bottom-color:#fff}
     .admin-tabpanel{margin-top:18px}
     .admin-tabpanel.hidden{display:none!important}
-    @media(max-width:980px){.admin-grid{grid-template-columns:1fr}.admin-shell{padding:16px}.admin-hero{padding:24px}.admin-tabs{overflow-x:auto;flex-wrap:nowrap}.admin-tab{white-space:nowrap}}
+    .admin-areas{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px;padding:8px;border:1px solid rgba(220,80,55,.16);border-radius:22px;background:rgba(255,255,255,.78);box-shadow:0 14px 38px rgba(90,36,20,.07)}
+    .admin-area{--area-color:#f71926;--area-soft:#fff0ef;display:flex;align-items:center;gap:12px;min-width:0;border:1px solid transparent;border-radius:16px;background:transparent;padding:14px 16px;text-align:left;color:#765a55;cursor:pointer;transition:.18s ease}
+    .admin-area[data-admin-area="comercial"]{--area-color:#12608f;--area-soft:#eaf5fb}.admin-area[data-admin-area="administrativo"]{--area-color:#65529a;--area-soft:#f1eef9}
+    .admin-area:hover{background:var(--area-soft);color:var(--area-color)}
+    .admin-area.active{border-color:color-mix(in srgb,var(--area-color) 28%,white);background:var(--area-color);color:#fff;box-shadow:0 12px 26px color-mix(in srgb,var(--area-color) 22%,transparent);transform:translateY(-1px)}
+    .admin-area__icon{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:12px;background:var(--area-soft);color:var(--area-color)}.admin-area.active .admin-area__icon{background:rgba(255,255,255,.17);color:#fff}
+    .admin-area__icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+    .admin-area__copy{min-width:0;display:grid;gap:2px}.admin-area__copy strong{font-size:13px;font-weight:950;text-transform:uppercase;letter-spacing:.055em}.admin-area__copy span{font-size:11px;font-weight:700;opacity:.78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .admin-area-context{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding:13px 16px;border-left:4px solid var(--area-color,#f71926);border-radius:4px 14px 14px 4px;background:var(--area-soft,#fff0ef);color:#4d3632}.admin-area-context strong{display:block;font-size:14px}.admin-area-context span{font-size:12px;font-weight:650;color:#7a6662}
+    .admin-commercial-panel{--area-color:#12608f;--area-soft:#eaf5fb;margin-top:18px;border-color:rgba(18,96,143,.18);background:linear-gradient(135deg,#fff 0%,#f0f9fd 100%)}
+    .admin-commercial-panel__layout{display:grid;grid-template-columns:1fr auto;align-items:center;gap:24px}.admin-commercial-panel__eyebrow{font-size:11px;font-weight:950;letter-spacing:.12em;text-transform:uppercase;color:#12608f}.admin-commercial-panel h2{font-size:2rem;margin:7px 0 8px}.admin-commercial-panel p{max-width:720px;margin:0;color:#5d6870;font-size:14px;font-weight:650;line-height:1.55}.admin-commercial-panel__badge{display:grid;place-items:center;width:90px;height:90px;border-radius:24px;background:#12608f;color:#fff;font-family:var(--font-display);font-size:1.8rem;box-shadow:0 16px 36px rgba(18,96,143,.22)}
+    #tabpanel-upload{--area-color:#f71926;--area-soft:#fff0ef}#tabpanel-upload[data-admin-area="administrativo"]{--area-color:#65529a;--area-soft:#f1eef9}#tabpanel-upload .admin-grid>.admin-card:first-child{border-top:4px solid var(--area-color)}#tabpanel-upload .admin-input:focus,#tabpanel-upload .admin-select:focus{border-color:var(--area-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--area-color) 13%,transparent)}#tabpanel-upload .drop-zone strong{color:var(--area-color)}#tabpanel-upload .admin-btn.primary{background:var(--area-color);box-shadow:0 12px 26px color-mix(in srgb,var(--area-color) 22%,transparent)}
+    @media(max-width:980px){.admin-grid{grid-template-columns:1fr}.admin-shell{padding:16px}.admin-hero{padding:24px}.admin-tabs{overflow-x:auto;flex-wrap:nowrap}.admin-tab{white-space:nowrap}.admin-areas{grid-template-columns:1fr}.admin-area__copy span{white-space:normal}.admin-commercial-panel__layout{grid-template-columns:1fr}.admin-commercial-panel__badge{display:none}}
   </style>
 </head>
 <body>
@@ -108,14 +121,38 @@
         <div class="admin-pill">Plaza Oaxaca - Google Sheets</div>
       </div>
     </section>
+    <nav class="admin-areas" role="tablist" aria-label="Área del Panel Admin">
+      <button class="admin-area active" type="button" role="tab" aria-selected="true" data-admin-area="rh">
+        <span class="admin-area__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+        <span class="admin-area__copy"><strong>Recursos Humanos</strong><span>Talento, estructura y operación</span></span>
+      </button>
+      <button class="admin-area" type="button" role="tab" aria-selected="false" data-admin-area="comercial">
+        <span class="admin-area__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-7"></path></svg></span>
+        <span class="admin-area__copy"><strong>Comercial</strong><span>PromosD100 y comunicación</span></span>
+      </button>
+      <button class="admin-area" type="button" role="tab" aria-selected="false" data-admin-area="administrativo">
+        <span class="admin-area__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 7h8M8 11h8M8 15h5"></path></svg></span>
+        <span class="admin-area__copy"><strong>Administrativo</strong><span>Inventarios y diferencias</span></span>
+      </button>
+    </nav>
+    <div class="admin-area-context" id="admin-area-context">
+      <div><strong id="admin-area-title">Recursos Humanos</strong><span id="admin-area-description">12 bases disponibles y herramientas de seguimiento.</span></div>
+      <span id="admin-area-count">12 bases</span>
+    </div>
     <nav class="admin-tabs" role="tablist">
-      <button class="admin-tab active" type="button" role="tab" aria-selected="true" data-tab="upload"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Cargar y Publicar Bases</button>
+      <button class="admin-tab active" type="button" role="tab" aria-selected="true" data-tab="upload"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg><span id="admin-upload-tab-label">Cargar y Publicar Bases</span></button>
       <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="presentaciones"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Presentaciones</button>
       <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="excels"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Excels</button>
       <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="reasignaciones"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>Reasignaciones</button>
     </nav>
-    <section class="admin-tabpanel" id="tabpanel-upload" role="tabpanel">
-    <section class="admin-grid">
+    <section class="admin-tabpanel" id="tabpanel-upload" role="tabpanel" data-admin-area="rh">
+    <section class="admin-commercial-panel admin-card hidden" id="admin-commercial-panel">
+      <div class="admin-commercial-panel__layout">
+        <div><div class="admin-commercial-panel__eyebrow">Comunicación comercial</div><h2>PromosD100</h2><p>Las promociones se actualizan directamente en la pestaña “Promociones” del Google Sheets principal. Desde aquí puedes abrir la hoja para editar vigencias, imágenes, categorías y orden, o revisar el dashboard publicado.</p><div class="admin-actions"><a class="admin-btn primary" href="https://docs.google.com/spreadsheets/d/1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A/edit#gid=0" target="_blank" rel="noopener">Abrir Google Sheets</a><a class="admin-btn secondary" href="dashboards/promociones.html" target="_blank" rel="noopener">Ver PromosD100</a></div></div>
+        <div class="admin-commercial-panel__badge">D100</div>
+      </div>
+    </section>
+    <section class="admin-grid" id="admin-upload-workspace">
       <aside class="admin-card">
         <h2>1. Selecciona base</h2>
         <label class="admin-label" for="dashboard-select">Dashboard destino</label>
@@ -206,7 +243,7 @@
         <button class="admin-btn primary" type="button" id="manual-publish-d2plan-btn">Publicar</button>
       </div>
     </section>
-    <section class="admin-card" style="margin-top:18px">
+    <section class="admin-card" id="admin-preview-section" style="margin-top:18px">
       <div class="preview-head"><h2>3. Vista previa</h2><div class="preview-meta" id="preview-meta">0 filas</div></div>
       <div class="table-wrap">
         <table class="preview-table" id="preview-table">
@@ -303,7 +340,7 @@
   <script src="js/admin/dashboard-definitions.js?v=20260820a"></script>
   <script src="js/admin/publishers.js?v=20260805a"></script>
   <script src="js/admin/ui.js?v=20260805a"></script>
-  <script src="js/admin.js?v=20260819a"></script>
+  <script src="js/admin.js?v=20260820b"></script>
   <script src="js/admin-pptx.js?v=20260805c"></script>
   <script src="js/admin-pptx-rae.js?v=20260806a"></script>
   <script src="js/admin-indicadores.js?v=20260805c"></script>
