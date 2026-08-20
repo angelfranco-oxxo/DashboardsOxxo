@@ -117,7 +117,8 @@
     const fechaKey = d1.rows[0] ? K(d1.rows[0], ['Fecha']) : null;
     const crKey = d1.rows[0] ? K(d1.rows[0], ['CR TIENDA', 'CR']) : null;
     const statusKey = d1.rows[0] ? K(d1.rows[0], ['Status ocupacion', 'Status ocupación', 'Estatus ocupacion']) : null;
-    DATA.d1 = { ...d1, diasKey, fechaKey, crKey, statusKey };
+    const currentMonth = OXXO.metricsFilterLatestMonth(d1.rows, (r) => OXXO.metricsRowMonthKeyD1(r, d1.mesKey, fechaKey)).mes;
+    DATA.d1 = { ...d1, diasKey, fechaKey, crKey, statusKey, currentMonth };
     addTiendas(d1.rows, d1.tiendaKey, crKey);
   }
   function renderD1(tienda) {
@@ -127,7 +128,8 @@
     const allRows = rowsFor(d, tienda);
     el.classList.add('show');
     const mesKeyFn = (r) => OXXO.metricsRowMonthKeyD1(r, d.mesKey, d.fechaKey);
-    const { mes, rows } = OXXO.metricsFilterLatestMonth(allRows, mesKeyFn);
+    const mes = d.currentMonth || '';
+    const rows = mes ? allRows.filter((r) => mesKeyFn(r) === mes) : [];
     document.getElementById('badge-d1').textContent = mes ? mesLabel(mes) : '—';
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach((r) => { byPuesto[OXXO.metricsTipoPuesto(V(r, d.puestoKey))]++; });
@@ -183,7 +185,8 @@
       const operativos = base.filter((r) => { const p = OXXO.metricsNormText(V(r, puestoKey)); return p.includes('AYUDANTE') || p.includes('ENCARGADO') || p.includes('LIDER') || p.includes('LÍDER'); });
       if (operativos.length) base = operativos;
     }
-    DATA.d2 = { rows: base, asesorKey, tiendaKey, puestoKey, motivoKey, detalleKey, fechaKey, mesKey };
+    const currentMonth = OXXO.metricsFilterLatestMonth(base, (r) => OXXO.metricsRowMonthKeyD2(r, mesKey, fechaKey)).mes;
+    DATA.d2 = { rows: base, asesorKey, tiendaKey, puestoKey, motivoKey, detalleKey, fechaKey, mesKey, currentMonth };
     addTiendas(base, tiendaKey);
   }
   function renderD2(tienda) {
@@ -193,7 +196,8 @@
     const allRows = rowsFor(d, tienda);
     el.classList.add('show');
     const mesKeyFn = (r) => OXXO.metricsRowMonthKeyD2(r, d.mesKey, d.fechaKey);
-    const { mes, rows } = OXXO.metricsFilterLatestMonth(allRows, mesKeyFn);
+    const mes = d.currentMonth || '';
+    const rows = mes ? allRows.filter((r) => mesKeyFn(r) === mes) : [];
     document.getElementById('badge-d2').textContent = mes ? mesLabel(mes) : '—';
     const porMotivo = {};
     rows.forEach((r) => { const m = V(r, d.detalleKey) || V(r, d.motivoKey) || 'Sin motivo'; porMotivo[m] = (porMotivo[m] || 0) + 1; });
@@ -301,7 +305,12 @@
     const importeKey = K(h, ['Importe']);
     const conceptoKey = K(h, ['Textos homologados', 'Texto homologado']);
     raw.forEach((r) => OXXO.applyAsesorCatalog(r, CATALOG, { asesorKey, tiendaKey, crKey }));
-    DATA.d4 = { rows: raw, asesorKey, tiendaKey, crKey, nombreKey, semanaKey, mesKey, anoKey, horasKey, importeKey, conceptoKey };
+    const monthOf = (r) => mesKeyFromMesAno(V(r, mesKey), V(r, anoKey));
+    const currentMonth = [...new Set(raw.map(monthOf).filter(Boolean))].sort().slice(-1)[0] || '';
+    const currentMonthRows = currentMonth ? raw.filter((r) => monthOf(r) === currentMonth) : [];
+    const currentWeek = [...new Set(currentMonthRows.map((r) => String(V(r, semanaKey) || '').trim()).filter(Boolean))]
+      .sort((a, b) => semanaRank(b) - semanaRank(a))[0] || '';
+    DATA.d4 = { rows: raw, asesorKey, tiendaKey, crKey, nombreKey, semanaKey, mesKey, anoKey, horasKey, importeKey, conceptoKey, currentMonth, currentWeek };
     addTiendas(raw, tiendaKey, crKey);
   }
   function semanaRank(value) {
@@ -324,12 +333,9 @@
     // (sus valores no traen mes, comparar el numero de semana entre meses
     // distintos daria un resultado incorrecto -- ago sem 1 "perderia" contra
     // jul sem 4 aunque agosto sea mas reciente).
-    const meses = [...new Set(allRows.map(mesKeyFn).filter(Boolean))].sort();
-    const mesVigente = meses[meses.length - 1] || '';
-    const rowsMes = mesVigente ? allRows.filter((r) => mesKeyFn(r) === mesVigente) : allRows;
-    const semanas = [...new Set(rowsMes.map((r) => String(V(r, d.semanaKey) || '').trim()).filter(Boolean))];
-    semanas.sort((a, b) => semanaRank(b) - semanaRank(a));
-    const semana = semanas[0] || '';
+    const mesVigente = d.currentMonth || '';
+    const rowsMes = mesVigente ? allRows.filter((r) => mesKeyFn(r) === mesVigente) : [];
+    const semana = d.currentWeek || '';
     const rows = semana ? rowsMes.filter((r) => String(V(r, d.semanaKey) || '').trim() === semana) : rowsMes;
     document.getElementById('badge-d4').textContent = semana ? (/sem/i.test(semana) ? semana : 'Sem ' + semana) : '—';
     const totHoras = rows.reduce((s, r) => s + numParse(V(r, d.horasKey)), 0);
@@ -445,7 +451,9 @@
     const mesKey = K(h, ['Mes']);
     const anoKey = K(h, ['Ano', 'Año']);
     raw.forEach((r) => OXXO.applyAsesorCatalog(r, CATALOG, { asesorKey, tiendaKey, crKey }));
-    DATA.d6 = { rows: raw, asesorKey, tiendaKey, crKey, tipoKey, diasKey, nombreKey, noPersKey, puestoKey, mesKey, anoKey };
+    const monthOf = (r) => mesKeyFromMesAno(V(r, mesKey), V(r, anoKey));
+    const currentMonth = [...new Set(raw.map(monthOf).filter(Boolean))].sort().slice(-1)[0] || '';
+    DATA.d6 = { rows: raw, asesorKey, tiendaKey, crKey, tipoKey, diasKey, nombreKey, noPersKey, puestoKey, mesKey, anoKey, currentMonth };
     addTiendas(raw, tiendaKey, crKey);
   }
   function renderD6(tienda) {
@@ -455,9 +463,8 @@
     const allRows = rowsFor(d, tienda);
     el.classList.add('show');
     const mesKeyFn = (r) => mesKeyFromMesAno(V(r, d.mesKey), V(r, d.anoKey));
-    const meses = [...new Set(allRows.map(mesKeyFn).filter(Boolean))].sort();
-    const mesVigente = meses[meses.length - 1] || '';
-    const rows = mesVigente ? allRows.filter((r) => mesKeyFn(r) === mesVigente) : allRows;
+    const mesVigente = d.currentMonth || '';
+    const rows = mesVigente ? allRows.filter((r) => mesKeyFn(r) === mesVigente) : [];
     document.getElementById('badge-d6').textContent = mesVigente ? mesLabel(mesVigente) : plural(rows.length, 'registro', 'registros');
     const empleados = new Set(rows.map((r) => V(r, d.noPersKey) || V(r, d.nombreKey))).size;
     const totDias = rows.reduce((s, r) => s + (parseFloat(V(r, d.diasKey)) || 0), 0);
