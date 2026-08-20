@@ -868,18 +868,40 @@
   // los titulares de cada dashboard con su semaforo, y las alertas solo
   // listan lo que necesita atencion (si no hay nada, se dice explicito).
   function renderResumen(S) {
-    const tiles = [];
-    if (S.d1) tiles.push(rkTile(n(S.d1.vacantes), 'Vacantes', toneByCount(S.d1.vacantes)));
-    if (S.d2) tiles.push(rkTile(n(S.d2.bajas), 'Bajas del mes', toneByCount(S.d2.bajas)));
-    if (S.d3) tiles.push(rkTile(S.d3.ec + '%', 'Equipo completo', tonePct(S.d3.ec, 80, 50),
+    const operacion = [];
+    const personas = [];
+    const estructura = [];
+    if (S.d1) operacion.push(rkTile(n(S.d1.vacantes), 'Vacantes', toneByCount(S.d1.vacantes)));
+    if (S.d2) operacion.push(rkTile(n(S.d2.bajas), 'Bajas del mes', toneByCount(S.d2.bajas)));
+    if (S.d4) operacion.push(rkTile(n(S.d4.horas), 'Horas extra', toneByCount(S.d4.horas, 20), S.d4.gasto ? '$' + n(S.d4.gasto) : ''));
+    if (S.d6) operacion.push(rkTile(n(S.d6.diasAus), 'Días ausentismo', toneByCount(S.d6.diasAus, 20), S.d6.ausentes ? S.d6.ausentes + ' empleados' : ''));
+    if (S.d5) personas.push(rkTile(n(S.d5.vencidos), 'Vacaciones vencidas', toneByCount(S.d5.vencidos, 2), S.d5.colaboradores ? 'de ' + S.d5.colaboradores : ''));
+    if (S.d8) personas.push(rkTile(S.d8.capPct + '%', 'Capacidades', tonePct(S.d8.capPct, 90, 60)));
+    if (S.d10) personas.push(rkTile(n(S.d10.flex), 'Personal FLEX'));
+    if (S.d11 && S.d11.cumplTotal !== null) personas.push(rkTile(S.d11.cumplTotal + '%', 'Cumpl. registro', tonePct(S.d11.cumplTotal, 90, 70)));
+    if (S.d3) estructura.push(rkTile(S.d3.ec + '%', 'Equipo completo', tonePct(S.d3.ec, 80, 50),
       S.d3.ecSin !== null && S.d3.ecSin !== undefined ? `sin ausentismo: ${S.d3.ecSin}%` : ''));
-    if (S.d4) tiles.push(rkTile(n(S.d4.horas), 'Horas extra', toneByCount(S.d4.horas, 20), S.d4.gasto ? '$' + n(S.d4.gasto) : ''));
-    if (S.d6) tiles.push(rkTile(n(S.d6.diasAus), 'Días ausentismo', toneByCount(S.d6.diasAus, 20), S.d6.ausentes ? S.d6.ausentes + ' empleados' : ''));
-    if (S.d5) tiles.push(rkTile(n(S.d5.vencidos), 'Vacaciones vencidas', toneByCount(S.d5.vencidos, 2), S.d5.colaboradores ? 'de ' + S.d5.colaboradores : ''));
-    if (S.d8) tiles.push(rkTile(S.d8.capPct + '%', 'Capacidades', tonePct(S.d8.capPct, 90, 60)));
-    if (S.d10) tiles.push(rkTile(n(S.d10.flex), 'Personal FLEX'));
-    if (S.d11 && S.d11.cumplTotal !== null) tiles.push(rkTile(S.d11.cumplTotal + '%', 'Cumpl. registro', tonePct(S.d11.cumplTotal, 90, 70)));
-    document.getElementById('ficha-resumen').innerHTML = tiles.join('');
+    if (S.d7) {
+      const dif = Number(S.d7.dif) || 0;
+      estructura.push(rkTile((dif > 0 ? '+' : '') + dif, 'Diferencia TREO', dif === 0 ? 'is-ok' : Math.abs(dif) <= 2 ? 'is-warn' : 'is-bad', S.d7.mov?.txt || ''));
+    }
+    const group = (title, subtitle, cls, icon, tiles) => tiles.length ? `<section class="mt-summary-group ${cls}">
+      <div class="mt-summary-group__head"><span class="mt-summary-group__icon">${icon}</span><div><strong>${title}</strong><small>${subtitle}</small></div></div>
+      <div class="mt-summary-group__grid">${tiles.join('')}</div>
+    </section>` : '';
+    const iconOperacion = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-7 4 14 2-7h6"></path></svg>';
+    const iconPersonas = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>';
+    const iconEstructura = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"></path></svg>';
+    document.getElementById('ficha-resumen').innerHTML = `
+      <div class="mt-current-head">
+        <div><span class="mt-current-head__eyebrow">Estado actual</span><strong>Resumen de la tienda</strong></div>
+        <span class="mt-current-head__note">Cada indicador usa el último corte disponible</span>
+      </div>
+      <div class="mt-summary-groups">
+        ${group('Operación', 'Vacantes, bajas y asistencia', 'mt-summary-group--operacion', iconOperacion, operacion)}
+        ${group('Personas', 'Desarrollo y cumplimiento', 'mt-summary-group--personas', iconPersonas, personas)}
+        ${group('Estructura', 'Cobertura y recomendación TREO', 'mt-summary-group--estructura', iconEstructura, estructura)}
+      </div>`;
   }
   function renderAlertas(S) {
     const a = [];
