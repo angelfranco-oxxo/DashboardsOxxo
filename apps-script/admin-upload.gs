@@ -77,6 +77,10 @@ function doPost(e) {
       return jsonResponse(readAudit(Number(payload.limit || 100)));
     }
 
+    if (String(payload.action || '') === 'getBackupPreview') {
+      return jsonResponse(getBackupPreview(payload));
+    }
+
     if (String(payload.action || '') === 'restoreBackup') {
       const restoreLock = LockService.getScriptLock();
       restoreLock.waitLock(30000);
@@ -193,6 +197,55 @@ function writeSnapshot(sheet, values) {
   if (previousRows > rows) sheet.getRange(rows + 1, 1, previousRows - rows, Math.max(previousCols, columns)).clearContent();
   if (previousCols > columns) sheet.getRange(1, columns + 1, rows, previousCols - columns).clearContent();
   SpreadsheetApp.flush();
+}
+
+function getBackupPreview(payload) {
+  const targetSheet = String(payload.targetSheet || '').trim();
+  const requestedBackup = String(payload.backupSheet || '').trim();
+  if (!targetSheet) throw new Error('targetSheet requerido');
+  if (ALLOWED_SHEETS.indexOf(targetSheet) === -1) throw new Error('targetSheet no permitido: ' + targetSheet);
+  const expectedBackup = (BACKUP_PREFIX + targetSheet).slice(0, 99);
+  if (requestedBackup && requestedBackup !== expectedBackup) throw new Error('El respaldo no corresponde a la hoja seleccionada');
+
+  const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  const target = ss.getSheetByName(targetSheet);
+  const backup = ss.getSheetByName(expectedBackup);
+  if (!target) throw new Error('Hoja destino no encontrada: ' + targetSheet);
+  if (!backup || backup.getLastRow() < 3) throw new Error('No existe un respaldo disponible para ' + targetSheet);
+
+  const currentValues = target.getDataRange().getDisplayValues();
+  const backupValues = backup.getRange(3, 1, backup.getLastRow() - 2, backup.getLastColumn()).getDisplayValues();
+  const difference = compareSnapshots(currentValues, backupValues);
+  return {
+    ok: true,
+    targetSheet: targetSheet,
+    backupSheet: expectedBackup,
+    createdAt: backup.getRange(1, 2).getDisplayValue(),
+    current: { rows: Math.max(0, currentValues.length - 2), columns: currentValues[0] ? currentValues[0].length : 0, values: currentValues },
+    backup: { rows: Math.max(0, backupValues.length - 2), columns: backupValues[0] ? backupValues[0].length : 0, values: backupValues },
+    changedRows: difference.changedRows,
+    changedCells: difference.changedCells
+  };
+}
+
+function compareSnapshots(currentValues, backupValues) {
+  const rowCount = Math.max(currentValues.length, backupValues.length);
+  let changedRows = 0;
+  let changedCells = 0;
+  for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+    const currentRow = currentValues[rowIndex] || [];
+    const backupRow = backupValues[rowIndex] || [];
+    const columnCount = Math.max(currentRow.length, backupRow.length);
+    let rowChanged = false;
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+      if (String(currentRow[columnIndex] || '') !== String(backupRow[columnIndex] || '')) {
+        changedCells++;
+        rowChanged = true;
+      }
+    }
+    if (rowChanged) changedRows++;
+  }
+  return { changedRows: changedRows, changedCells: changedCells };
 }
 
 function restoreLatestBackup(payload) {
