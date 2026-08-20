@@ -38,14 +38,21 @@
 .mt-hero h1{font-family:var(--font-display);font-size:1.5rem !important;font-weight:800;margin:0 !important;line-height:1.1}
 .mt-hero p{margin:3px 0 0 !important;opacity:.9;font-size:12.5px !important;max-width:620px}
 .hero-badge{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);padding:6px 14px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+.hero-badge.is-loading{animation:mtPulse 1.3s ease-in-out infinite}
+.hero-badge.is-partial{background:rgba(242,165,43,.2);border-color:rgba(255,220,151,.55)}
+.hero-badge.is-error{background:rgba(107,0,8,.34);border-color:rgba(255,255,255,.42)}
+@keyframes mtPulse{50%{opacity:.58}}
 
 .mt-picker{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.mi-tienda-page .mt-picker{position:sticky;top:8px;z-index:35;width:max-content;max-width:100%;padding:8px 10px;border:1px solid rgba(130,54,38,.12);border-radius:15px;background:rgba(255,250,246,.9);box-shadow:0 10px 28px rgba(78,29,21,.09);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 .mt-picker__label{font-size:10.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--mt-muted)}
 #mi-tienda-select,#mi-asesor-select{flex:0 1 360px;min-width:240px}
 
 .empty-state{background:var(--mt-tile);border:1px solid var(--mt-line);border-radius:18px;padding:56px 24px;text-align:center;color:var(--mt-muted)}
 .empty-state .big{font-size:2.4rem;margin-bottom:10px}
 .empty-state h2{font-family:var(--font-display);color:var(--mt-ink);margin:0 0 6px}
+.mt-state-action{margin-top:16px;cursor:pointer;border:0;border-radius:11px;padding:10px 18px;background:#C1101B;color:#fff;font-family:inherit;font-size:12px;font-weight:800;box-shadow:0 8px 20px rgba(193,16,27,.2)}
+.mt-state-action:hover{background:#A80E18}
 
 /* ── Ficha: una sola tarjeta ──────────────────────────────
    Cabecera (identidad) → resumen (los numeros que importan) →
@@ -131,6 +138,19 @@
 .empty-state .big svg{width:1em;height:1em;stroke:var(--mt-muted);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .mi-section-title h3{font-family:var(--font-display);font-size:.95rem;font-weight:800;color:var(--mt-ink);margin:0;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mi-badge{font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:rgba(130,54,38,.07);color:var(--mt-muted);white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
+.mi-badge--cut{display:flex;align-items:flex-end;flex-direction:column;gap:1px;padding:5px 9px;border:1px solid rgba(130,54,38,.08);line-height:1.05;text-transform:none}
+.mi-badge--cut span{font-size:7px;letter-spacing:.1em;text-transform:uppercase;opacity:.72}
+.mi-badge--cut strong{font-size:9.5px;letter-spacing:.025em}
+.mi-badge--cut.is-current{background:rgba(21,101,192,.07);border-color:rgba(21,101,192,.13);color:var(--mt-info)}
+
+.mt-signal{display:flex;align-items:center;gap:9px;margin-bottom:9px;padding:9px 10px;border:1px solid transparent;border-radius:11px}
+.mt-signal__icon{width:23px;height:23px;flex:0 0 23px;display:grid;place-items:center;border-radius:8px;font-size:11px;font-weight:900;background:rgba(255,255,255,.7)}
+.mt-signal strong,.mt-signal small{display:block;line-height:1.25}
+.mt-signal strong{font-size:10.5px}
+.mt-signal small{margin-top:2px;font-size:9.5px;font-weight:600;opacity:.82}
+.mt-signal--low{color:var(--mt-ok);background:var(--mt-ok-bg);border-color:rgba(29,185,84,.2)}
+.mt-signal--medium{color:var(--mt-warn);background:var(--mt-warn-bg);border-color:rgba(242,165,43,.28)}
+.mt-signal--high{color:var(--mt-bad);background:var(--mt-bad-bg);border-color:rgba(239,68,68,.24)}
 
 .mi-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(58px,1fr));gap:6px;margin-bottom:10px}
 .mi-stat{background:rgba(255,255,255,.72);border:1px solid var(--mt-line);border-radius:10px;padding:8px 4px;text-align:center;min-width:0}
@@ -289,6 +309,11 @@ body.mi-modal-open{overflow:hidden}
 .ficha-treo__row--wide span:last-child{font-weight:700}
 
 @media(max-width:720px){
+  .page{padding:10px 10px 30px}
+  .mt-hero{padding:15px 16px!important}
+  .mt-hero h1{font-size:1.35rem!important}
+  .mi-tienda-page .mt-picker{top:6px;width:100%;padding:9px;margin-bottom:12px}
+  .mt-picker__label{width:100%}
   .ficha__grid{grid-template-columns:1fr;padding:12px}
   .ficha__resumen{grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
   .ficha__name{font-size:1.28rem}
@@ -311,4 +336,25 @@ body.mi-modal-open{overflow:hidden}
   .mi-modal__foot{padding:9px 14px 12px}
   .mi-modal__hint{display:inline-flex!important}
   .mi-modal__hint span{display:none}
+}
+
+@media(max-width:480px){
+  .ficha{border-radius:15px}
+  .ficha__head{padding:15px 14px}
+  .ficha__head-top{align-items:flex-start;flex-direction:column}
+  .ficha__status{white-space:normal}
+  .ficha__meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:9px 14px}
+  .mt-current-head{padding:13px 14px}
+  .mt-summary-groups{padding:9px}
+  .mt-summary-group__grid{grid-template-columns:1fr 1fr}
+  .mt-summary-group .rk{min-height:78px}
+  .ficha__alertas{padding:10px 12px}
+  .chip{width:100%;border-radius:10px;padding:8px 10px}
+  .ficha__grid{gap:10px;padding:10px}
+  .mi-section{padding:12px 11px;border-radius:12px}
+  .mi-section-head{align-items:flex-start}
+  .mi-badge--cut{max-width:46%;white-space:normal;text-align:right}
+  .mi-month{min-height:44px}
+  .mi-detail-btn{min-height:40px;padding:9px 0}
+  .mi-gauge-row .mi-gauge-wrap{width:108px}
 }

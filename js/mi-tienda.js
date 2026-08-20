@@ -25,6 +25,17 @@
   const n = (v) => OXXO.formatNum(Math.round(Number(v) || 0));
   const tKey = (v) => OXXO.normalizeCatalogTienda(v);
 
+  function setSectionBadge(id, kicker, value, tone) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = `mi-badge mi-badge--cut${tone ? ' ' + tone : ''}`;
+    el.innerHTML = `<span>${esc(kicker)}</span><strong>${esc(value || '—')}</strong>`;
+  }
+  function signalHTML(level, title, detail) {
+    const icon = level === 'high' ? '!' : level === 'medium' ? '▲' : '✓';
+    return `<div class="mt-signal mt-signal--${level}"><span class="mt-signal__icon">${icon}</span><div><strong>${esc(title)}</strong><small>${esc(detail)}</small></div></div>`;
+  }
+
   // ── Acordeon mensual compartido ────────────────────────
   // Varios paneles (Vacantes, Bajas, Tiempo Extra, Ausentismos,
   // Faltantes/Sobrantes) guardan varios meses en su hoja pero antes solo se
@@ -130,7 +141,7 @@
     const mesKeyFn = (r) => OXXO.metricsRowMonthKeyD1(r, d.mesKey, d.fechaKey);
     const mes = d.currentMonth || '';
     const rows = mes ? allRows.filter((r) => mesKeyFn(r) === mes) : [];
-    document.getElementById('badge-d1').textContent = mes ? mesLabel(mes) : '—';
+    setSectionBadge('badge-d1', 'Corte', mes ? mesLabel(mes) : 'Sin fecha', 'is-current');
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach((r) => { byPuesto[OXXO.metricsTipoPuesto(V(r, d.puestoKey))]++; });
     if (!rows.length) {
@@ -198,7 +209,7 @@
     const mesKeyFn = (r) => OXXO.metricsRowMonthKeyD2(r, d.mesKey, d.fechaKey);
     const mes = d.currentMonth || '';
     const rows = mes ? allRows.filter((r) => mesKeyFn(r) === mes) : [];
-    document.getElementById('badge-d2').textContent = mes ? mesLabel(mes) : '—';
+    setSectionBadge('badge-d2', 'Corte', mes ? mesLabel(mes) : 'Sin fecha', 'is-current');
     const porMotivo = {};
     rows.forEach((r) => { const m = V(r, d.detalleKey) || V(r, d.motivoKey) || 'Sin motivo'; porMotivo[m] = (porMotivo[m] || 0) + 1; });
     const topMotivo = Object.entries(porMotivo).sort((a, b) => b[1] - a[1])[0];
@@ -209,8 +220,12 @@
       document.getElementById('stats-d2').innerHTML =
         statTile(n(rows.length), 'Bajas del mes', 'rojo') +
         statTile(topMotivo ? esc(OXXO.truncate(topMotivo[0], 22)) : '—', 'Motivo más frecuente', 'amarillo txt');
-      document.getElementById('viz-d2').innerHTML = barListHTML(
-        Object.entries(porMotivo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
+      const risk = rows.length >= 3 ? 'high' : rows.length >= 1 ? 'medium' : 'low';
+      const riskTitle = risk === 'high' ? 'Rotación alta' : 'Seguimiento recomendado';
+      const riskDetail = topMotivo ? `${topMotivo[1]} baja${topMotivo[1] > 1 ? 's' : ''} por ${OXXO.truncate(topMotivo[0], 34)}` : 'Revisa el detalle del periodo';
+      const motivosOrdenados = Object.entries(porMotivo).sort((a, b) => b[1] - a[1]);
+      document.getElementById('viz-d2').innerHTML = signalHTML(risk, riskTitle, riskDetail) + barListHTML(
+        motivosOrdenados.map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
       );
     }
     renderMonthsAccordion(document.getElementById('months-d2'), allRows, mesKeyFn, {
@@ -255,7 +270,7 @@
     if (!d) { el.classList.remove('show'); return null; }
     const rows = rowsFor(d, tienda);
     el.classList.add('show');
-    document.getElementById('badge-d3').textContent = d.semana || '—';
+    setSectionBadge('badge-d3', 'Corte', d.semana || 'Sin semana', 'is-current');
     let completas = 0, incompletas = 0, criticas = 0;
     let sinCompletas = 0, sinTotal = 0;
     rows.forEach((r) => {
@@ -337,7 +352,8 @@
     const rowsMes = mesVigente ? allRows.filter((r) => mesKeyFn(r) === mesVigente) : [];
     const semana = d.currentWeek || '';
     const rows = semana ? rowsMes.filter((r) => String(V(r, d.semanaKey) || '').trim() === semana) : rowsMes;
-    document.getElementById('badge-d4').textContent = semana ? (/sem/i.test(semana) ? semana : 'Sem ' + semana) : '—';
+    const corteD4 = semana ? `${/sem/i.test(semana) ? semana : 'Sem ' + semana} · ${mesLabel(mesVigente)}` : (mesVigente ? mesLabel(mesVigente) : 'Sin fecha');
+    setSectionBadge('badge-d4', 'Corte', corteD4, 'is-current');
     const totHoras = rows.reduce((s, r) => s + numParse(V(r, d.horasKey)), 0);
     const totGasto = rows.reduce((s, r) => s + numParse(V(r, d.importeKey)), 0);
     const porEmpleado = {};
@@ -350,8 +366,11 @@
         statTile(n(totHoras), 'Horas TE', 'amarillo') +
         statTile('$' + n(totGasto), 'Gasto TE', 'rojo') +
         statTile(n(rows.length), 'Registros');
-      document.getElementById('viz-d4').innerHTML = barListHTML(
-        Object.entries(porEmpleado).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value })), 'naranja'
+      const risk = totHoras >= 20 ? 'high' : totHoras >= 10 ? 'medium' : 'low';
+      const riskTitle = risk === 'high' ? 'Tiempo extra alto' : risk === 'medium' ? 'Tiempo extra en seguimiento' : 'Tiempo extra controlado';
+      const riskDetail = `${n(totHoras)} horas y $${n(totGasto)} en el corte vigente`;
+      document.getElementById('viz-d4').innerHTML = signalHTML(risk, riskTitle, riskDetail) + barListHTML(
+        Object.entries(porEmpleado).sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value })), 'naranja'
       );
     }
     renderMonthsAccordion(document.getElementById('months-d4'), allRows, mesKeyFn, {
@@ -405,7 +424,7 @@
     if (!d) { el.classList.remove('show'); return null; }
     const rows = rowsFor(d, tienda);
     el.classList.add('show');
-    document.getElementById('badge-d5').textContent = plural(rows.length, 'colaborador', 'colaboradores');
+    setSectionBadge('badge-d5', 'Base', plural(rows.length, 'colaborador', 'colaboradores'));
     const totDias = rows.reduce((s, r) => s + (Number(V(r, d.diasRestKey)) || 0), 0);
     const vencidos = rows.filter((r) => OXXO.metricsNormText(V(r, d.bucketKey)).includes('VENCIERON')).length;
     const proximos = rows.filter((r) => { const b = OXXO.metricsNormText(V(r, d.bucketKey)); return b.includes('0 A 50') || b.includes('0A50'); }).length;
@@ -458,7 +477,7 @@
     const mesKeyFn = (r) => mesKeyFromMesAno(V(r, d.mesKey), V(r, d.anoKey));
     const mesVigente = d.currentMonth || '';
     const rows = mesVigente ? allRows.filter((r) => mesKeyFn(r) === mesVigente) : [];
-    document.getElementById('badge-d6').textContent = mesVigente ? mesLabel(mesVigente) : plural(rows.length, 'registro', 'registros');
+    setSectionBadge('badge-d6', 'Corte', mesVigente ? mesLabel(mesVigente) : 'Sin fecha', 'is-current');
     const empleados = new Set(rows.map((r) => V(r, d.noPersKey) || V(r, d.nombreKey))).size;
     const totDias = rows.reduce((s, r) => s + (parseFloat(V(r, d.diasKey)) || 0), 0);
     const faltas = rows.filter((r) => OXXO.metricsNormText(V(r, d.tipoKey)).includes('FALTA')).length;
@@ -472,8 +491,11 @@
         statTile(n(empleados), 'Empleados', 'rojo') +
         statTile(n(totDias), 'Días ausentes', 'amarillo') +
         statTile(n(faltas), 'Faltas', faltas > 0 ? 'rojo' : 'verde');
-      document.getElementById('viz-d6').innerHTML = barListHTML(
-        Object.entries(porTipo).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
+      const risk = faltas > 0 || totDias >= 10 ? 'high' : totDias >= 5 ? 'medium' : 'low';
+      const riskTitle = risk === 'high' ? 'Ausentismo prioritario' : risk === 'medium' ? 'Ausentismo en seguimiento' : 'Ausentismo controlado';
+      const riskDetail = faltas > 0 ? `${n(faltas)} falta${faltas > 1 ? 's' : ''} y ${n(totDias)} días ausentes` : `${n(totDias)} días ausentes en el corte vigente`;
+      document.getElementById('viz-d6').innerHTML = signalHTML(risk, riskTitle, riskDetail) + barListHTML(
+        Object.entries(porTipo).sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
       );
     }
     renderMonthsAccordion(document.getElementById('months-d6'), allRows, mesKeyFn, {
@@ -548,7 +570,7 @@
     if (!d) { el.classList.remove('show'); return null; }
     const rows = rowsFor(d, tienda);
     el.classList.add('show');
-    document.getElementById('badge-d7').textContent = plural(rows.length, 'registro', 'registros');
+    setSectionBadge('badge-d7', 'Base', plural(rows.length, 'registro', 'registros'));
     const fichaEl = document.getElementById('ficha-d7');
     const statsEl = document.getElementById('stats-d7');
     const detailEl = document.querySelector('.mi-detail-btn[data-modal-target="tbl-d7"]');
@@ -663,7 +685,7 @@
     const rows = rowsFor(d, tienda);
     el.classList.add('show');
     const empleados = new Set(rows.map((r) => V(r, d.noPersKey) || V(r, d.empleadoKey))).size;
-    document.getElementById('badge-d8').textContent = plural(empleados, 'empleado', 'empleados');
+    setSectionBadge('badge-d8', 'Base 2026', plural(empleados, 'empleado', 'empleados'));
     const certStats = CERT_COLS.map((c) => {
       let aplic = 0, comp = 0;
       rows.forEach((r) => { const v = capValue(r, c.key, d.certRealKeys); if (v !== null) { aplic++; if (v >= 1) comp++; } });
@@ -672,10 +694,18 @@
     const aplicTotal = certStats.reduce((s, c) => s + c.aplic, 0);
     const compTotal = certStats.reduce((s, c) => s + c.comp, 0);
     const pctGlobal = aplicTotal ? Math.round((compTotal / aplicTotal) * 100) : 0;
+    const pendientes = new Set(rows.filter((r) => CERT_COLS.some((c) => {
+      const value = capValue(r, c.key, d.certRealKeys);
+      return value !== null && value < 1;
+    })).map((r) => V(r, d.noPersKey) || V(r, d.empleadoKey)).filter(Boolean)).size;
+    const critica = certStats.filter((c) => c.pct !== null).sort((a, b) => a.pct - b.pct)[0] || null;
     document.getElementById('stats-d8').innerHTML = '';
     const certBars = barListHTML(certStats.filter((c) => c.pct !== null).map((c) => ({ label: c.label, value: c.pct, display: c.pct + '%' })), 'verde');
+    const capRisk = !pendientes ? 'low' : (critica && critica.pct < 60 ? 'high' : 'medium');
+    const capTitle = !pendientes ? 'Certificaciones completas' : `${n(pendientes)} persona${pendientes > 1 ? 's' : ''} con pendientes`;
+    const capDetail = critica ? `Módulo más crítico: ${critica.label} (${critica.pct}%)` : 'Sin módulos evaluados';
     document.getElementById('viz-d8').innerHTML = rows.length
-      ? gaugeRowHTML(pctGlobal, null, 'Cumplimiento global', statTile(n(empleados), 'Empleados')) + certBars
+      ? signalHTML(capRisk, capTitle, capDetail) + gaugeRowHTML(pctGlobal, null, 'Cumplimiento global', statTile(n(empleados), 'Empleados') + statTile(n(pendientes), 'Personas pendientes', pendientes ? 'rojo' : 'verde')) + certBars
       : noneBox('Tu tienda no aparece en capacidades');
     const tbody = document.querySelector('#tbl-d8 tbody');
     tbody.innerHTML = certStats.length ? certStats.map((c) => `<tr>
@@ -684,7 +714,7 @@
         <td class="center">${n(c.comp)}</td>
         <td class="center">${c.pct === null ? 'N/A' : c.pct + '%'}</td>
       </tr>`).join('') : emptyRow(4, 'Sin datos de certificaciones.');
-    return rows.length ? { capPct: pctGlobal, empleados } : null;
+    return rows.length ? { capPct: pctGlobal, empleados, pendientes, critica: critica ? critica.label : '' } : null;
   }
 
   // ── D9 · Faltantes y Sobrantes (ultimos 3 meses con datos) ──
@@ -720,7 +750,7 @@
     if (!d) { el.classList.remove('show'); return null; }
     const rows = rowsFor(d, tienda);
     el.classList.add('show');
-    document.getElementById('badge-d9').textContent = d.meses.length ? plural(d.meses.length, 'mes', 'meses') : '—';
+    setSectionBadge('badge-d9', 'Historial', d.meses.length ? plural(d.meses.length, 'mes', 'meses') : 'Sin fecha');
     const { faltante, sobrante } = sumaFaltanteSobrante(rows, d.importeKey);
     const neto = faltante - sobrante;
     const monthsEl = document.getElementById('months-d9');
@@ -780,13 +810,13 @@
     const rows = rowsFor(d, tienda);
     el.classList.add('show');
     if (!rows.length) {
-      document.getElementById('badge-d10').textContent = '—';
+      setSectionBadge('badge-d10', 'Corte', 'Sin datos');
       document.getElementById('stats-d10').innerHTML = '';
       return null;
     }
     const flex = rows.reduce((s, r) => s + (OXXO.metricsNum(V(r, d.flexKey)) || 0), 0);
     const fecha = V(rows[0], d.fechaKey) || '—';
-    document.getElementById('badge-d10').textContent = fecha;
+    setSectionBadge('badge-d10', 'Corte', fecha, 'is-current');
     document.getElementById('stats-d10').innerHTML = statTile(n(flex), 'Colaboradores FLEX');
     return { flex, fecha };
   }
@@ -824,12 +854,12 @@
     el.classList.add('show');
     const tbody = document.querySelector('#tbl-d11 tbody');
     if (!rows.length) {
-      document.getElementById('badge-d11').textContent = '—';
+      setSectionBadge('badge-d11', 'Corte', 'Sin datos');
       document.getElementById('stats-d11').innerHTML = '';
       tbody.innerHTML = emptyRow(9, 'Tu tienda no aparece en Registro y Apego a Horario.');
       return null;
     }
-    document.getElementById('badge-d11').textContent = V(rows[0], d.fechaKey) || '—';
+    setSectionBadge('badge-d11', 'Corte', V(rows[0], d.fechaKey) || 'Sin fecha', 'is-current');
     const avg = (key) => {
       const vals = rows.map((r) => pctVal(V(r, key))).filter((v) => v !== null);
       return vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : null;
@@ -869,7 +899,7 @@
     if (S.d4) operacion.push(rkTile(n(S.d4.horas), 'Horas extra', toneByCount(S.d4.horas, 20), S.d4.gasto ? '$' + n(S.d4.gasto) : ''));
     if (S.d6) operacion.push(rkTile(n(S.d6.diasAus), 'Días ausentismo', toneByCount(S.d6.diasAus, 20), S.d6.ausentes ? S.d6.ausentes + ' empleados' : ''));
     if (S.d5) personas.push(rkTile(n(S.d5.diasVac), 'Días restantes', 'is-info', S.d5.colaboradores ? S.d5.colaboradores + ' colaboradores' : ''));
-    if (S.d8) personas.push(rkTile(S.d8.capPct + '%', 'Capacidades', tonePct(S.d8.capPct, 90, 60)));
+    if (S.d8) personas.push(rkTile(S.d8.capPct + '%', 'Capacidades', tonePct(S.d8.capPct, 90, 60), S.d8.pendientes ? `${n(S.d8.pendientes)} pendientes` : 'Sin pendientes'));
     if (S.d10) personas.push(rkTile(n(S.d10.flex), 'Personal FLEX'));
     if (S.d11 && S.d11.cumplTotal !== null) personas.push(rkTile(S.d11.cumplTotal + '%', 'Cumpl. registro', tonePct(S.d11.cumplTotal, 90, 70)));
     if (S.d3) estructura.push(rkTile(S.d3.ec + '%', 'Equipo completo', tonePct(S.d3.ec, 80, 50),
@@ -888,7 +918,7 @@
     document.getElementById('ficha-resumen').innerHTML = `
       <div class="mt-current-head">
         <div><span class="mt-current-head__eyebrow">Estado actual</span><strong>Resumen de la tienda</strong></div>
-        <span class="mt-current-head__note">Cada indicador usa el último corte disponible</span>
+        <span class="mt-current-head__note">Revisa el corte vigente en cada tarjeta</span>
       </div>
       <div class="mt-summary-groups">
         ${group('Operación', 'Vacantes, bajas y asistencia', 'mt-summary-group--operacion', iconOperacion, operacion)}
@@ -903,10 +933,8 @@
     if (S.d3 && S.d3.criticas) a.push({ t: 'is-bad', txt: `${S.d3.criticas} registro${S.d3.criticas > 1 ? 's' : ''} de estructura crítica` });
     if (S.d4 && S.d4.gasto) a.push({ t: S.d4.horas >= 20 ? 'is-bad' : 'is-warn', txt: `$${n(S.d4.gasto)} en tiempo extra (${n(S.d4.horas)} h)` });
     if (S.d6 && S.d6.faltas) a.push({ t: 'is-bad', txt: `${S.d6.faltas} falta${S.d6.faltas > 1 ? 's' : ''} registrada${S.d6.faltas > 1 ? 's' : ''}` });
-    if (S.d5 && S.d5.vencidos) a.push({ t: 'is-warn', txt: `${S.d5.vencidos} con vacaciones ya vencidas` });
-    if (S.d5 && S.d5.proximos) a.push({ t: 'is-warn', txt: `${S.d5.proximos} vencen en 0-50 días` });
     if (S.d7 && S.d7.dif) a.push({ t: 'is-info', txt: `TREO: ${S.d7.mov.txt.toLowerCase()} ${Math.abs(S.d7.dif)} posición${Math.abs(S.d7.dif) > 1 ? 'es' : ''}` });
-    if (S.d8 && S.d8.capPct < 100) a.push({ t: S.d8.capPct < 60 ? 'is-bad' : 'is-warn', txt: `Capacidades al ${S.d8.capPct}%` });
+    if (S.d8 && S.d8.capPct < 100) a.push({ t: S.d8.capPct < 60 ? 'is-bad' : 'is-warn', txt: `Capacidades al ${S.d8.capPct}%${S.d8.pendientes ? ` · ${n(S.d8.pendientes)} pendientes` : ''}` });
     if (S.d11 && S.d11.cumplTotal !== null && S.d11.cumplTotal < 90) a.push({ t: S.d11.cumplTotal < 70 ? 'is-bad' : 'is-warn', txt: `Cumplimiento de registro al ${S.d11.cumplTotal}%` });
     document.getElementById('ficha-alertas').innerHTML = chipsHTML(a, 'Sin alertas: tu tienda está en orden');
   }
@@ -930,6 +958,20 @@
   }
 
   // ── Orquestacion ───────────────────────────────────────
+  let isInitializing = false;
+  const statePin = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>';
+  function setPageState(mode, title, message) {
+    const empty = document.getElementById('mi-empty');
+    const content = document.getElementById('mi-content');
+    const retry = document.getElementById('mi-retry');
+    const big = empty.querySelector('.big');
+    empty.style.display = 'block';
+    content.style.display = 'none';
+    document.getElementById('mi-state-title').textContent = title;
+    document.getElementById('mi-state-message').textContent = message;
+    retry.hidden = mode !== 'error';
+    big.innerHTML = mode === 'loading' ? '<span class="spinner" aria-hidden="true"></span>' : statePin;
+  }
   function renderFor(tiendaDisplay) {
     if (!tiendaDisplay) return;
     const tienda = tKey(tiendaDisplay);
@@ -946,17 +988,44 @@
   }
 
   async function init() {
-    CATALOG = await OXXO.loadAsesorCatalog();
-    await Promise.all([loadD1(), loadD2(), loadD3(), loadD4(), loadD5(), loadD6(), loadD7(), loadD8(), loadD9(), loadD10(), loadD11()]);
-    document.getElementById('corte-badge').textContent = '⟳ Datos en vivo · Plaza Oaxaca';
-    mountSingleSelect('mi-tienda-select', [...TIENDAS.values()], {
-      placeholder: 'Busca tu tienda',
-      searchId: 'mi-tienda-search',
-      searchPlaceholder: 'Buscar tienda...',
-      onChange: renderFor,
-    });
-    OXXO.updateFooterTime('load-time');
+    if (isInitializing) return;
+    isInitializing = true;
+    const corte = document.getElementById('corte-badge');
+    corte.className = 'hero-badge is-loading';
+    corte.textContent = '⟳ Cargando datos…';
+    setPageState('loading', 'Conectando con Google Sheets', 'Estamos reuniendo los indicadores más recientes de tu tienda.');
+    try {
+      document.getElementById('mi-tienda-select').innerHTML = '';
+      TIENDAS.clear();
+      Object.keys(DATA).forEach((key) => delete DATA[key]);
+      CATALOG = await OXXO.loadAsesorCatalog();
+      const loaders = [loadD1, loadD2, loadD3, loadD4, loadD5, loadD6, loadD7, loadD8, loadD9, loadD10, loadD11];
+      const results = await Promise.allSettled(loaders.map((load) => load()));
+      const failures = results.filter((r) => r.status === 'rejected').length;
+      const loaded = Object.values(DATA).filter(Boolean).length;
+      if (!loaded || !TIENDAS.size) throw new Error('No fue posible recuperar las bases de tiendas.');
+      corte.className = `hero-badge${failures ? ' is-partial' : ''}`;
+      corte.textContent = failures ? `⚠ Datos parciales · ${failures} fuente${failures > 1 ? 's' : ''} sin respuesta` : '✓ Datos actualizados · Plaza Oaxaca';
+      mountSingleSelect('mi-tienda-select', [...TIENDAS.values()], {
+        placeholder: 'Busca tu tienda',
+        searchId: 'mi-tienda-search',
+        searchPlaceholder: 'Buscar tienda por nombre...',
+        onChange: renderFor,
+      });
+      setPageState('ready', 'Busca tu tienda arriba', failures ? 'La ficha está disponible; algunos apartados podrían no mostrarse porque una fuente no respondió.' : 'En cuanto elijas tu tienda vas a ver aquí mismo su ficha completa.');
+      OXXO.updateFooterTime('load-time');
+    } catch (error) {
+      console.error('Mi Tienda: error de carga', error);
+      corte.className = 'hero-badge is-error';
+      corte.textContent = 'No se pudieron cargar los datos';
+      setPageState('error', 'No pudimos conectar con los datos', 'Verifica tu conexión e inténtalo nuevamente. La información guardada en Google Sheets no fue modificada.');
+    } finally {
+      isInitializing = false;
+    }
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('mi-retry').addEventListener('click', init);
+    init();
+  });
 })();
