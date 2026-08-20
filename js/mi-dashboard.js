@@ -662,5 +662,6 @@
     OXXO.updateFooterTime('load-time');
   }
 
+  OXXO.setRetryHandler(init);
   document.addEventListener('DOMContentLoaded', init);
 })();

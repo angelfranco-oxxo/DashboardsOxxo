@@ -139,7 +139,8 @@
 
   async function init(){
     const rows=await OXXO.fetchSheetData(TAB);
-    if(!rows||!rows.length){showSetup();document.getElementById('promo-corte').innerHTML='<span></span>Esperando configuración';return;}
+    if(rows===null){OXXO.showError('promo-grid','Google Sheets no respondió. Puedes reintentar sin perder tu selección.');document.getElementById('promo-corte').innerHTML='<span></span>Sin conexión';return;}
+    if(!rows.length){showSetup();document.getElementById('promo-corte').innerHTML='<span></span>Esperando configuración';return;}
     const populatedRows=rows.filter(row=>Object.values(row||{}).some(value=>String(value||'').trim()));
     promotions=populatedRows.map(mapPromotion);
     const categories=[...new Set(promotions.filter(p=>p.active).map(p=>p.category))].sort((a,b)=>a.localeCompare(b,'es'));
@@ -163,5 +164,6 @@
     if(event.key==='Escape'){closeLightbox();return;}
     if(event.key==='Tab'){event.preventDefault();document.getElementById('lightbox-close').focus();}
   });
+  OXXO.setRetryHandler(init);
   document.addEventListener('DOMContentLoaded',init);
 })();

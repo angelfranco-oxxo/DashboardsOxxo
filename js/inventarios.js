@@ -7,6 +7,7 @@
   let filtered=[];
   let currentPage=1;
   let pageSize=25;
+  let controlsBound=false;
   const tableSort={key:'finalResult',direction:'desc'};
 
   const $=id=>document.getElementById(id);
@@ -278,6 +279,8 @@
   }
 
   function bind(){
+    if(controlsBound)return;
+    controlsBound=true;
     ['filter-period','filter-advisor','filter-type'].forEach(id=>$(id).addEventListener('change',applyFilters));
     let timer;
     const queueSearch=()=>{clearTimeout(timer);timer=setTimeout(applyFilters,120);};
@@ -293,7 +296,8 @@
   async function init(){
     chartDefaults();bind();
     const rows=await OXXO.fetchSheetData(TAB);
-    if(!rows||!rows.length){showSetup();return;}
+    if(rows===null){OXXO.showError('advisor-list','Google Sheets no respondió. Los inventarios no fueron modificados.');$('inventory-cut').innerHTML='<span></span>Sin conexión';return;}
+    if(!rows.length){showSetup();return;}
     records=rows.filter(row=>Object.values(row||{}).some(value=>String(value??'').trim())).map(mapRecord).filter(item=>item.cr||item.store);
     if(!records.length){showSetup();return;}
     const periodCounts=records.reduce((map,item)=>{if(item.period)map.set(item.period,(map.get(item.period)||0)+1);return map;},new Map());
@@ -309,5 +313,6 @@
     applyFilters();
   }
 
+  OXXO.setRetryHandler(init);
   document.addEventListener('DOMContentLoaded',init);
 })();

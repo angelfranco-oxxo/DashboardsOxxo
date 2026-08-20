@@ -1063,6 +1063,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    OXXO.setRetryHandler(init);
     document.getElementById('mi-retry').addEventListener('click', init);
     document.getElementById('mi-pdf-btn')?.addEventListener('click', () => window.print());
     init();

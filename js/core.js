@@ -46,6 +46,9 @@ const SHEET_CACHE_TTL_MS = 2 * 60 * 1000;
 const SHEET_STALE_LIMIT_MS = 10 * 60 * 1000;
 const sheetDataCache = new Map();
 const sheetDataInflight = new Map();
+const sheetDataStatus = new Map();
+const sheetConnectionIssues = new Map();
+let dashboardRetryHandler = null;
 function cloneSheetRows(rows) {
   if (!Array.isArray(rows)) return rows;
   return rows.map((row) => ({ ...row }));
@@ -54,6 +57,63 @@ function clearSheetDataCache(tabName) {
   if (tabName) sheetDataCache.delete(String(tabName));
   else sheetDataCache.clear();
 }
+function setRetryHandler(handler) {
+  dashboardRetryHandler = typeof handler === 'function' ? handler : null;
+}
+function getSheetDataStatus(tabName) {
+  return sheetDataStatus.get(String(tabName || '')) || { status: 'unknown' };
+}
+function connectionAgeLabel(ageMs) {
+  const minutes = Math.max(1, Math.round(Number(ageMs || 0) / 60000));
+  return minutes === 1 ? '1 minuto' : `${minutes} minutos`;
+}
+function renderConnectionBanner() {
+  if (!document.body) return;
+  let banner = document.getElementById('oxxo-connection-banner');
+  const issues = [...sheetConnectionIssues.values()];
+  if (!issues.length) {
+    banner?.remove();
+    return;
+  }
+  const offline = issues.some((issue) => issue.status === 'offline');
+  const stale = issues.find((issue) => issue.status === 'stale');
+  if (!banner) {
+    banner = document.createElement('aside');
+    banner.id = 'oxxo-connection-banner';
+    banner.className = 'connection-banner';
+    banner.setAttribute('role', 'status');
+    banner.setAttribute('aria-live', 'polite');
+    document.body.appendChild(banner);
+  }
+  banner.className = `connection-banner ${offline ? 'is-offline' : 'is-stale'}`;
+  banner.innerHTML = `<span class="connection-banner__icon" aria-hidden="true">${offline ? '!' : '↻'}</span><div><strong>${offline ? 'No pudimos conectar con Google Sheets' : 'Mostrando datos recientes guardados'}</strong><small>${offline ? 'La información no fue modificada. Revisa tu conexión e inténtalo nuevamente.' : `La última respuesta disponible tiene aproximadamente ${connectionAgeLabel(stale.ageMs)}.`}</small></div><button type="button" data-oxxo-retry>${offline ? 'Reintentar' : 'Actualizar ahora'}</button>`;
+}
+function updateConnectionStatus(tabName, status, detail = {}) {
+  const key = String(tabName || '');
+  sheetDataStatus.set(key, { status, ...detail, checkedAt: Date.now() });
+  if (status === 'offline' || status === 'stale') sheetConnectionIssues.set(key, { tabName: key, status, ...detail });
+  else sheetConnectionIssues.delete(key);
+  renderConnectionBanner();
+  document.dispatchEvent(new CustomEvent('oxxo:sheet-status', { detail: { tabName: key, status, ...detail } }));
+}
+async function retryDashboardData(button) {
+  if (button) { button.disabled = true; button.textContent = 'Reintentando…'; }
+  clearSheetDataCache();
+  sheetConnectionIssues.clear();
+  renderConnectionBanner();
+  const inferred = dashboardRetryHandler || window.initDashboard || window.init;
+  try {
+    if (typeof inferred === 'function') await inferred();
+    else location.reload();
+  } catch (error) {
+    console.error('[OXXO] El reintento no pudo completar la carga:', error);
+    if (button) { button.disabled = false; button.textContent = 'Reintentar'; }
+  }
+}
+document.addEventListener('click', (event) => {
+  const button = event.target.closest?.('[data-oxxo-retry]');
+  if (button) retryDashboardData(button);
+});
 async function fetchSheetData(tabName, options = {}) {
   const key = String(tabName || '');
   const now = Date.now();
@@ -63,14 +123,21 @@ async function fetchSheetData(tabName, options = {}) {
   if (!request) {
     const url = buildSheetURL(tabName);
     request = (async () => {
+      let lastError = null;
       try {
-        const response = await fetch(url, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const rows = parseCSV(await response.text());
-        sheetDataCache.set(key, { rows, savedAt: Date.now() });
-        return rows;
-      } catch (error) {
-        console.error(`Error cargando pestaña "${tabName}":`, error);
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            const response = await fetch(url, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const rows = parseCSV(await response.text());
+            sheetDataCache.set(key, { rows, savedAt: Date.now() });
+            return rows;
+          } catch (error) {
+            lastError = error;
+            if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 650));
+          }
+        }
+        console.error(`Error cargando pestaña "${tabName}":`, lastError);
         return null;
       } finally {
         sheetDataInflight.delete(key);
@@ -79,8 +146,15 @@ async function fetchSheetData(tabName, options = {}) {
     sheetDataInflight.set(key, request);
   }
   const rows = await request;
-  if (rows) return cloneSheetRows(rows);
-  if (options.allowStale !== false && cached && now - cached.savedAt < SHEET_STALE_LIMIT_MS) return cloneSheetRows(cached.rows);
+  if (rows) {
+    updateConnectionStatus(key, 'online');
+    return cloneSheetRows(rows);
+  }
+  if (options.allowStale !== false && cached && now - cached.savedAt < SHEET_STALE_LIMIT_MS) {
+    updateConnectionStatus(key, 'stale', { ageMs: now - cached.savedAt });
+    return cloneSheetRows(cached.rows);
+  }
+  updateConnectionStatus(key, 'offline');
   return null;
 }
 
@@ -687,8 +761,9 @@ function showError(containerId, mensaje) {
   el.innerHTML = `
     <div class="state-box">
       <div class="state-box__icon">⚠️</div>
-      <div class="state-box__title">Error al cargar datos</div>
-      <div class="state-box__text">${mensaje}</div>
+      <div class="state-box__title">No pudimos conectar con los datos</div>
+      <div class="state-box__text">${escapeAttr(mensaje || 'Google Sheets no respondió. La información no fue modificada.')}</div>
+      <button type="button" class="state-box__retry" data-oxxo-retry>Reintentar carga</button>
     </div>`;
 }
 
@@ -2260,6 +2335,8 @@ window.OXXO = {
   SHEETS_CONFIG,
   fetchSheetData,
   clearSheetDataCache,
+  getSheetDataStatus,
+  setRetryHandler,
   renderDownloadButton,
   mountAsesorFilter,
   buildSheetURL,

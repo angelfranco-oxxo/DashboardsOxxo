@@ -619,6 +619,7 @@ window.addEventListener('oxxo-theme-change', () => {
   Object.values(charts).forEach((chart) => chart.update('none'));
 });
 
+OXXO.setRetryHandler(initDashboard);
 document.addEventListener('DOMContentLoaded', initDashboard);
 
 window.buildExcelSheets = async function(){
