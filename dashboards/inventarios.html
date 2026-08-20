@@ -3,7 +3,7 @@
 <head>
   <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
   <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
-  <script defer src="../js/site-lock.js?v=2"></script>
+  <script defer src="../js/site-lock.js?v=3"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="../assets/favicon.png">
   <link rel="stylesheet" href="../css/global.css">
   <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final">
-  <link rel="stylesheet" href="../css/inventarios.css?v=1">
+  <link rel="stylesheet" href="../css/inventarios.css?v=20260820a">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -74,7 +74,13 @@
     </section>
 
     <section class="inv-panel inv-detail-panel">
-      <div class="inv-panel__head inv-detail-head"><div><span>Base consultable</span><h2>Detalle por tienda</h2></div><small id="detail-count">— registros</small></div>
+      <div class="inv-panel__head inv-detail-head">
+        <div><span>Base consultable</span><h2>Detalle por tienda</h2></div>
+        <div class="inv-detail-tools">
+          <label class="inv-table-search" for="detail-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><input id="detail-search" type="search" placeholder="Buscar CR, tienda, asesor o tipo…" autocomplete="off"></label>
+          <small id="detail-count">— registros</small>
+        </div>
+      </div>
       <div class="inv-table-wrap">
         <table class="inv-table">
           <thead><tr><th>CR</th><th>Tienda</th><th>Asesor comercial</th><th>Fecha inventario</th><th>Tipo</th><th class="num">Resultado final</th><th class="num">Venta sin TAE</th><th class="num">% Merma</th></tr></thead>
@@ -87,6 +93,6 @@
   <footer class="dash-footer inv-footer"><div class="dash-footer__update"><div class="dash-footer__update-dot"></div>Datos cargados: <span id="load-time">—</span></div><div>Solo lectura · Google Sheets · Comercial</div></footer>
   <script src="../js/config.js?v=20260819b"></script>
   <script src="../js/core.js?v=20260818c"></script>
-  <script src="../js/inventarios.js?v=1"></script>
+  <script src="../js/inventarios.js?v=20260820a"></script>
 </body>
 </html>

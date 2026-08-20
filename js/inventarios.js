@@ -209,8 +209,11 @@
     const period=$('filter-period').value;
     const advisor=$('filter-advisor').value;
     const type=$('filter-type').value;
-    const search=norm($('filter-store').value);
-    filtered=records.filter(item=>(!period||item.period===period)&&(!advisor||item.advisor===advisor)&&(!type||item.type===type)&&(!search||norm(`${item.cr} ${item.store}`).includes(search)));
+    const search=norm($('detail-search').value||$('filter-store').value);
+    filtered=records.filter(item=>{
+      const searchable=norm(`${item.cr} ${item.store} ${item.advisor} ${item.type} ${formatDate(item.inventoryDate)} ${item.period} ${item.finalResult} ${item.totalSales} ${item.finalRatio}`);
+      return(!period||item.period===period)&&(!advisor||item.advisor===advisor)&&(!type||item.type===type)&&(!search||searchable.includes(search));
+    });
     $('inventory-results').textContent=`Mostrando ${filtered.length} de ${records.length} registros`;
     $('inventory-period-note').textContent=period?`Corte: ${formatPeriod(period)}`:'Todos los periodos';
     renderKpis();renderTrend();renderTypes();renderStores();renderAdvisors();renderTable();
@@ -231,8 +234,11 @@
 
   function bind(){
     ['filter-period','filter-advisor','filter-type'].forEach(id=>$(id).addEventListener('change',applyFilters));
-    let timer;$('filter-store').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(applyFilters,160);});
-    $('filter-reset').addEventListener('click',()=>{$('filter-period').value='';$('filter-advisor').value='';$('filter-type').value='';$('filter-store').value='';applyFilters();});
+    let timer;
+    const queueSearch=()=>{clearTimeout(timer);timer=setTimeout(applyFilters,120);};
+    $('filter-store').addEventListener('input',event=>{$('detail-search').value=event.target.value;queueSearch();});
+    $('detail-search').addEventListener('input',event=>{$('filter-store').value=event.target.value;queueSearch();});
+    $('filter-reset').addEventListener('click',()=>{$('filter-period').value='';$('filter-advisor').value='';$('filter-type').value='';$('filter-store').value='';$('detail-search').value='';applyFilters();});
     $('download-inventory').addEventListener('click',downloadFiltered);
   }
 
