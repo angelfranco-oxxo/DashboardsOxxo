@@ -1,0 +1,368 @@
+/* ==========================================================
+   RECURSOS HUMANOS — EXECUTIVE REFRESH 2026
+   Capa final para los dashboards 1–8. Unifica la identidad de
+   RH sin modificar la lógica, los datos ni la geometría propia
+   de cada visualización.
+   ========================================================== */
+
+body.hr-dashboard {
+  --hr-red: #F71926;
+  --hr-red-deep: #8F0008;
+  --hr-ink: #241516;
+  --hr-muted: #7D6967;
+  --hr-line: rgba(115, 45, 42, .13);
+  --hr-surface: rgba(255, 255, 255, .92);
+  --hr-shadow: 0 18px 46px rgba(102, 38, 31, .10);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(255,255,255,.96), transparent 31%),
+    radial-gradient(circle at 94% 6%, rgba(247,25,38,.08), transparent 29%),
+    linear-gradient(145deg, #FFF8F4 0%, #F6ECE7 52%, #FFF9F5 100%) !important;
+  color: var(--hr-ink) !important;
+}
+
+/* Navegación: más ligera para que el tablero sea el protagonista. */
+body.hr-dashboard .topbar {
+  width: min(calc(100% - 32px), 1920px) !important;
+  min-height: 82px !important;
+  margin: 16px auto 20px !important;
+  padding: 10px 18px !important;
+  border: 1px solid rgba(255,255,255,.86) !important;
+  border-left: 4px solid var(--hr-red) !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.86) !important;
+  box-shadow: 0 14px 38px rgba(82,32,27,.10), inset 0 1px 0 #fff !important;
+  -webkit-backdrop-filter: blur(20px) saturate(135%) !important;
+  backdrop-filter: blur(20px) saturate(135%) !important;
+}
+
+body.hr-dashboard .topbar__logo {
+  width: 108px !important;
+  height: 54px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body.hr-dashboard .topbar__logo img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  filter: drop-shadow(0 7px 13px rgba(108,13,18,.12)) !important;
+}
+
+body.hr-dashboard .topbar__title,
+body.hr-dashboard .topbar h1 {
+  color: var(--hr-ink) !important;
+  -webkit-text-fill-color: var(--hr-ink) !important;
+  font-size: 21px !important;
+  letter-spacing: -.02em !important;
+}
+
+body.hr-dashboard .topbar__subtitle {
+  color: #9A6F69 !important;
+  -webkit-text-fill-color: #9A6F69 !important;
+  font-size: 9px !important;
+  font-weight: 850 !important;
+  letter-spacing: .15em !important;
+}
+
+body.hr-dashboard .topbar__meta {
+  color: var(--hr-muted) !important;
+  -webkit-text-fill-color: var(--hr-muted) !important;
+}
+
+body.hr-dashboard .topbar__back {
+  min-height: 40px !important;
+  padding: 9px 16px !important;
+  border: 1px solid rgba(159,6,15,.12) !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, #FA2A35, #CA111E) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  box-shadow: 0 10px 22px rgba(201,17,30,.20), inset 0 1px 0 rgba(255,255,255,.24) !important;
+}
+
+body.hr-dashboard .topbar__back:hover,
+body.hr-dashboard .topbar__back:focus-visible {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 14px 28px rgba(201,17,30,.27), inset 0 1px 0 rgba(255,255,255,.28) !important;
+}
+
+/* Encabezado común de RH. Las variantes antiguas conservan su HTML,
+   pero comparten ahora el mismo lenguaje rojo de la sección. */
+body.hr-dashboard .hero:not(.mt-hero),
+body.hr-dashboard .dashboard-hero,
+body.hr-dashboard .bajas-header {
+  --hero-a: #F71926 !important;
+  --hero-b: #8F0008 !important;
+  border: 1px solid rgba(255,255,255,.28) !important;
+  border-radius: 26px !important;
+  background:
+    radial-gradient(circle at 92% -12%, rgba(255,255,255,.24) 0 12%, transparent 12.3%),
+    radial-gradient(circle at 87% 18%, rgba(255,255,255,.09) 0 19%, transparent 19.3%),
+    linear-gradient(128deg, #F71926 0%, #CB101D 50%, #8F0008 100%) !important;
+  box-shadow: 0 24px 55px rgba(113,10,16,.22), inset 0 1px 0 rgba(255,255,255,.25) !important;
+}
+
+body.hr-dashboard .hero:not(.mt-hero)::after,
+body.hr-dashboard .dashboard-hero::after,
+body.hr-dashboard .bajas-header::after {
+  border-color: rgba(255,255,255,.065) !important;
+}
+
+body.hr-dashboard .hero-badge,
+body.hr-dashboard .dashboard-hero__badge,
+body.hr-dashboard .bajas-header__badge {
+  border-color: rgba(255,255,255,.38) !important;
+  background: rgba(255,255,255,.16) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.20), 0 10px 22px rgba(78,0,5,.12) !important;
+}
+
+/* Superficies y jerarquía de contenido. */
+body.hr-dashboard .card,
+body.hr-dashboard .panel,
+body.hr-dashboard .chart-card,
+body.hr-dashboard .bajas-panel,
+body.hr-dashboard .table-panel,
+body.hr-dashboard .metric-card,
+body.hr-dashboard .state-box {
+  border: 1px solid rgba(255,255,255,.88) !important;
+  border-radius: 20px !important;
+  background:
+    radial-gradient(circle at 4% 0%, rgba(247,25,38,.035), transparent 25%),
+    linear-gradient(145deg, rgba(255,255,255,.96), rgba(255,250,247,.88)) !important;
+  box-shadow: var(--hr-shadow), inset 0 1px 0 #fff !important;
+  -webkit-backdrop-filter: blur(18px) saturate(118%) !important;
+  backdrop-filter: blur(18px) saturate(118%) !important;
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease !important;
+}
+
+body.hr-dashboard .card:hover,
+body.hr-dashboard .panel:hover,
+body.hr-dashboard .chart-card:hover,
+body.hr-dashboard .bajas-panel:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(247,25,38,.14) !important;
+  box-shadow: 0 24px 54px rgba(102,38,31,.14), inset 0 1px 0 #fff !important;
+}
+
+body.hr-dashboard .card-head,
+body.hr-dashboard .panel__header,
+body.hr-dashboard .panel-header,
+body.hr-dashboard .foot {
+  border-color: var(--hr-line) !important;
+}
+
+body.hr-dashboard .card-title,
+body.hr-dashboard .panel__title,
+body.hr-dashboard .panel-title,
+body.hr-dashboard .bajas-panel__title,
+body.hr-dashboard .chart-title,
+body.hr-dashboard .table-title {
+  color: var(--hr-ink) !important;
+  -webkit-text-fill-color: var(--hr-ink) !important;
+  font-weight: 850 !important;
+  letter-spacing: -.012em !important;
+}
+
+body.hr-dashboard .card-title .icon-inline,
+body.hr-dashboard .panel__title .icon-inline,
+body.hr-dashboard .bajas-panel__title .icon-inline {
+  stroke: var(--hr-red) !important;
+  color: var(--hr-red) !important;
+}
+
+body.hr-dashboard .card-badge,
+body.hr-dashboard .panel__badge {
+  border: 1px solid rgba(247,25,38,.12) !important;
+  background: rgba(247,25,38,.07) !important;
+  color: #C51521 !important;
+  -webkit-text-fill-color: #C51521 !important;
+  font-weight: 850 !important;
+}
+
+body.hr-dashboard .panel--dark-title .panel__header,
+body.hr-dashboard .compromiso-title {
+  border-color: rgba(255,255,255,.08) !important;
+  background: linear-gradient(135deg, #681A1E, #321012) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
+body.hr-dashboard .panel--dark-title .panel__title {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
+body.hr-dashboard .panel--dark-title .panel__badge {
+  border-color: rgba(255,255,255,.18) !important;
+  background: rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.86) !important;
+  -webkit-text-fill-color: rgba(255,255,255,.86) !important;
+}
+
+/* KPI: lectura rápida con color semántico, no bloques saturados. */
+body.hr-dashboard .kpis,
+body.hr-dashboard .kpi-grid {
+  gap: 14px !important;
+}
+
+body.hr-dashboard .kpi-card {
+  --kpi-accent: var(--hr-red);
+  min-height: 142px !important;
+  border: 1px solid rgba(255,255,255,.92) !important;
+  border-radius: 18px !important;
+  background: linear-gradient(148deg, rgba(255,255,255,.98), rgba(255,249,246,.90)) !important;
+  box-shadow: 0 15px 38px rgba(91,32,27,.09), inset 0 4px 0 var(--kpi-accent), inset 0 1px 0 #fff !important;
+}
+
+body.hr-dashboard .kpi-card.rojo { --kpi-accent: #F71926; }
+body.hr-dashboard .kpi-card.naranja { --kpi-accent: #F07A24; }
+body.hr-dashboard .kpi-card.amarillo { --kpi-accent: #E5A400; }
+body.hr-dashboard .kpi-card.verde { --kpi-accent: #1A9B55; }
+body.hr-dashboard .kpi-card.azul { --kpi-accent: #12608F; }
+body.hr-dashboard .kpi-card.morado,
+body.hr-dashboard .kpi-card.purple { --kpi-accent: #6E4AA5; }
+
+body.hr-dashboard .kpi-card:hover,
+body.hr-dashboard .kpi-card.active {
+  transform: translateY(-3px) !important;
+  border-color: color-mix(in srgb, var(--kpi-accent) 18%, white) !important;
+  box-shadow: 0 22px 46px rgba(91,32,27,.14), inset 0 4px 0 var(--kpi-accent), inset 0 1px 0 #fff !important;
+}
+
+body.hr-dashboard .kpi-card::after {
+  color: var(--kpi-accent) !important;
+  opacity: .13 !important;
+}
+
+body.hr-dashboard .kpi-card__label,
+body.hr-dashboard .kpi-label {
+  color: #806863 !important;
+  -webkit-text-fill-color: #806863 !important;
+}
+
+body.hr-dashboard .kpi-card__value,
+body.hr-dashboard .kpi-value,
+body.hr-dashboard .metric-value {
+  color: var(--hr-ink) !important;
+  -webkit-text-fill-color: var(--hr-ink) !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* Filtros flotantes: superficie más clara y controles accesibles. */
+body.hr-dashboard .vac-filters,
+body.hr-dashboard .bajas-filters {
+  border: 1px solid rgba(255,255,255,.92) !important;
+  background:
+    linear-gradient(90deg, rgba(247,25,38,.055), transparent 16%),
+    rgba(255,255,255,.96) !important;
+  box-shadow: 0 24px 56px rgba(91,32,27,.17), inset 0 1px 0 #fff !important;
+}
+
+body.hr-dashboard .vac-filters::before,
+body.hr-dashboard .bajas-filters::before {
+  background: linear-gradient(90deg, transparent, #F71926, #F2A52B, transparent) !important;
+}
+
+body.hr-dashboard .vac-fbox > label::before,
+body.hr-dashboard .bajas-filters .filter-title::before {
+  background: var(--hr-red) !important;
+  box-shadow: 0 0 0 3px rgba(247,25,38,.08) !important;
+}
+
+body.hr-dashboard .vac-filters .filtro-select:focus,
+body.hr-dashboard .vac-filters .filtro-input:focus,
+body.hr-dashboard .vac-filters .smart-filter__button:focus,
+body.hr-dashboard .bajas-filters .filter-select:focus,
+body.hr-dashboard .bajas-filters .smart-filter__button:focus {
+  border-color: rgba(247,25,38,.40) !important;
+  box-shadow: 0 0 0 4px rgba(247,25,38,.08), 0 9px 22px rgba(74,37,27,.08) !important;
+}
+
+/* Tablas: encabezado menos pesado, filas más fáciles de seguir. */
+body.hr-dashboard .tbl-wrap,
+body.hr-dashboard .table-wrap {
+  border: 1px solid rgba(115,45,42,.10) !important;
+  border-radius: 15px !important;
+  background: rgba(255,255,255,.74) !important;
+}
+
+body.hr-dashboard .tbl thead th,
+body.hr-dashboard .data-table thead th,
+body.hr-dashboard table thead th {
+  background: linear-gradient(180deg, #6D171B, #431012) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  border-color: rgba(255,255,255,.10) !important;
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.08) !important;
+}
+
+body.hr-dashboard .tbl tbody tr:nth-child(even),
+body.hr-dashboard .data-table tbody tr:nth-child(even),
+body.hr-dashboard table tbody tr:nth-child(even) {
+  background: rgba(247,25,38,.022) !important;
+}
+
+body.hr-dashboard .tbl tbody tr:hover,
+body.hr-dashboard .data-table tbody tr:hover,
+body.hr-dashboard table tbody tr:hover {
+  background: rgba(247,25,38,.055) !important;
+}
+
+body.hr-dashboard .foot {
+  margin-top: 18px !important;
+  padding: 15px 4px 0 !important;
+  color: var(--hr-muted) !important;
+}
+
+body.hr-dashboard .foot-dot {
+  background: #20A45B !important;
+  box-shadow: 0 0 0 4px rgba(32,164,91,.10) !important;
+}
+
+@media (max-width: 760px) {
+  body.hr-dashboard .topbar {
+    width: min(calc(100% - 20px), 1920px) !important;
+    min-height: 70px !important;
+    margin: 10px auto 14px !important;
+    padding: 8px 11px !important;
+    border-radius: 15px !important;
+  }
+
+  body.hr-dashboard .topbar__logo {
+    width: 82px !important;
+    height: 44px !important;
+  }
+
+  body.hr-dashboard .topbar__title { font-size: 17px !important; }
+  body.hr-dashboard .topbar__subtitle { display: none !important; }
+  body.hr-dashboard .topbar__back { min-height: 36px !important; padding: 8px 12px !important; }
+
+  body.hr-dashboard .hero:not(.mt-hero),
+  body.hr-dashboard .dashboard-hero,
+  body.hr-dashboard .bajas-header {
+    border-radius: 20px !important;
+  }
+
+  body.hr-dashboard .card,
+  body.hr-dashboard .panel,
+  body.hr-dashboard .chart-card,
+  body.hr-dashboard .bajas-panel {
+    border-radius: 16px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.hr-dashboard .topbar__back,
+  body.hr-dashboard .card,
+  body.hr-dashboard .panel,
+  body.hr-dashboard .chart-card,
+  body.hr-dashboard .bajas-panel,
+  body.hr-dashboard .kpi-card {
+    transition: none !important;
+  }
+}
