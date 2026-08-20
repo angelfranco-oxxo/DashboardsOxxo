@@ -69,10 +69,12 @@
 .rk{background:var(--mt-tile-2);padding:13px 14px 12px;position:relative}
 .rk::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--mt-line)}
 .rk.is-ok::before{background:var(--mt-ok)}
+.rk.is-info::before{background:var(--mt-info)}
 .rk.is-warn::before{background:#E0A21C}
 .rk.is-bad::before{background:var(--mt-bad)}
 .rk b{display:block;font-family:var(--font-display);font-size:1.75rem;font-weight:800;line-height:1;color:var(--mt-ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .rk.is-ok b{color:var(--mt-ok)}
+.rk.is-info b{color:var(--mt-info)}
 .rk.is-warn b{color:var(--mt-warn)}
 .rk.is-bad b{color:var(--mt-bad)}
 .rk span{display:block;margin-top:4px;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--mt-muted)}

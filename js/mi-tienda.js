@@ -868,7 +868,7 @@
     if (S.d2) operacion.push(rkTile(n(S.d2.bajas), 'Bajas del mes', toneByCount(S.d2.bajas)));
     if (S.d4) operacion.push(rkTile(n(S.d4.horas), 'Horas extra', toneByCount(S.d4.horas, 20), S.d4.gasto ? '$' + n(S.d4.gasto) : ''));
     if (S.d6) operacion.push(rkTile(n(S.d6.diasAus), 'Días ausentismo', toneByCount(S.d6.diasAus, 20), S.d6.ausentes ? S.d6.ausentes + ' empleados' : ''));
-    if (S.d5) personas.push(rkTile(n(S.d5.vencidos), 'Vacaciones vencidas', toneByCount(S.d5.vencidos, 2), S.d5.colaboradores ? 'de ' + S.d5.colaboradores : ''));
+    if (S.d5) personas.push(rkTile(n(S.d5.diasVac), 'Días restantes', 'is-info', S.d5.colaboradores ? S.d5.colaboradores + ' colaboradores' : ''));
     if (S.d8) personas.push(rkTile(S.d8.capPct + '%', 'Capacidades', tonePct(S.d8.capPct, 90, 60)));
     if (S.d10) personas.push(rkTile(n(S.d10.flex), 'Personal FLEX'));
     if (S.d11 && S.d11.cumplTotal !== null) personas.push(rkTile(S.d11.cumplTotal + '%', 'Cumpl. registro', tonePct(S.d11.cumplTotal, 90, 70)));
