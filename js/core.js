@@ -42,17 +42,46 @@ function siteBasePath() {
 // FUNCIÓN: Obtener y parsear datos de una pestaña de Sheets
 // Retorna un array de objetos con las columnas como claves
 // ─────────────────────────────────────────────────────────────
-async function fetchSheetData(tabName) {
-  const url = buildSheetURL(tabName);
-  try {
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const csv = await response.text();
-    return parseCSV(csv);
-  } catch (error) {
-    console.error(`Error cargando pestaña "${tabName}":`, error);
-    return null;
+const SHEET_CACHE_TTL_MS = 2 * 60 * 1000;
+const SHEET_STALE_LIMIT_MS = 10 * 60 * 1000;
+const sheetDataCache = new Map();
+const sheetDataInflight = new Map();
+function cloneSheetRows(rows) {
+  if (!Array.isArray(rows)) return rows;
+  return rows.map((row) => ({ ...row }));
+}
+function clearSheetDataCache(tabName) {
+  if (tabName) sheetDataCache.delete(String(tabName));
+  else sheetDataCache.clear();
+}
+async function fetchSheetData(tabName, options = {}) {
+  const key = String(tabName || '');
+  const now = Date.now();
+  const cached = sheetDataCache.get(key);
+  if (!options.fresh && cached && now - cached.savedAt < SHEET_CACHE_TTL_MS) return cloneSheetRows(cached.rows);
+  let request = sheetDataInflight.get(key);
+  if (!request) {
+    const url = buildSheetURL(tabName);
+    request = (async () => {
+      try {
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const rows = parseCSV(await response.text());
+        sheetDataCache.set(key, { rows, savedAt: Date.now() });
+        return rows;
+      } catch (error) {
+        console.error(`Error cargando pestaña "${tabName}":`, error);
+        return null;
+      } finally {
+        sheetDataInflight.delete(key);
+      }
+    })();
+    sheetDataInflight.set(key, request);
   }
+  const rows = await request;
+  if (rows) return cloneSheetRows(rows);
+  if (options.allowStale !== false && cached && now - cached.savedAt < SHEET_STALE_LIMIT_MS) return cloneSheetRows(cached.rows);
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -2230,6 +2259,7 @@ async function renderDownloadButton(elId, dashboardId, badgeClass = 'hero-badge'
 window.OXXO = {
   SHEETS_CONFIG,
   fetchSheetData,
+  clearSheetDataCache,
   renderDownloadButton,
   mountAsesorFilter,
   buildSheetURL,

@@ -35,6 +35,21 @@
     const icon = level === 'high' ? '!' : level === 'medium' ? '▲' : '✓';
     return `<div class="mt-signal mt-signal--${level}"><span class="mt-signal__icon">${icon}</span><div><strong>${esc(title)}</strong><small>${esc(detail)}</small></div></div>`;
   }
+  function previousMonthKey(ym) {
+    const match = String(ym || '').match(/^(\d{4})-(\d{2})$/);
+    if (!match) return '';
+    const date = new Date(Number(match[1]), Number(match[2]) - 2, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+  function trendHTML(current, previous, label, formatter) {
+    const now = Number(current) || 0;
+    const before = Number(previous) || 0;
+    const delta = now - before;
+    const tone = delta < 0 ? 'good' : delta > 0 ? 'bad' : 'flat';
+    const arrow = delta < 0 ? '↓' : delta > 0 ? '↑' : '→';
+    const fmt = formatter || ((value) => n(value));
+    return `<div class="mt-trend mt-trend--${tone}"><div><span>${esc(label)}</span><strong>${fmt(now)} <i>${arrow} ${fmt(Math.abs(delta))}</i></strong></div><small>Anterior: ${fmt(before)}</small></div>`;
+  }
 
   // ── Acordeon mensual compartido ────────────────────────
   // Varios paneles (Vacantes, Bajas, Tiempo Extra, Ausentismos,
@@ -141,19 +156,21 @@
     const mesKeyFn = (r) => OXXO.metricsRowMonthKeyD1(r, d.mesKey, d.fechaKey);
     const mes = d.currentMonth || '';
     const rows = mes ? allRows.filter((r) => mesKeyFn(r) === mes) : [];
+    const previousRows = mes ? allRows.filter((r) => mesKeyFn(r) === previousMonthKey(mes)) : [];
+    const trend = trendHTML(rows.length, previousRows.length, 'Vacantes vs. mes anterior');
     setSectionBadge('badge-d1', 'Corte', mes ? mesLabel(mes) : 'Sin fecha', 'is-current');
     const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach((r) => { byPuesto[OXXO.metricsTipoPuesto(V(r, d.puestoKey))]++; });
     if (!rows.length) {
       document.getElementById('stats-d1').innerHTML = '';
-      document.getElementById('viz-d1').innerHTML = clearBox('Sin vacantes activas este mes');
+      document.getElementById('viz-d1').innerHTML = trend + clearBox('Sin vacantes activas este mes');
     } else {
       document.getElementById('stats-d1').innerHTML =
         statTile(n(rows.length), 'Vacantes', 'rojo') +
         statTile(n(byPuesto.Lider), 'Líder') +
         statTile(n(byPuesto.Encargado), 'Encargado') +
         statTile(n(byPuesto.Ayudante), 'Ayudante');
-      document.getElementById('viz-d1').innerHTML = barListHTML([
+      document.getElementById('viz-d1').innerHTML = trend + barListHTML([
         { label: 'Líder', value: byPuesto.Lider },
         { label: 'Encargado', value: byPuesto.Encargado },
         { label: 'Ayudante', value: byPuesto.Ayudante },
@@ -209,13 +226,15 @@
     const mesKeyFn = (r) => OXXO.metricsRowMonthKeyD2(r, d.mesKey, d.fechaKey);
     const mes = d.currentMonth || '';
     const rows = mes ? allRows.filter((r) => mesKeyFn(r) === mes) : [];
+    const previousRows = mes ? allRows.filter((r) => mesKeyFn(r) === previousMonthKey(mes)) : [];
+    const trend = trendHTML(rows.length, previousRows.length, 'Bajas vs. mes anterior');
     setSectionBadge('badge-d2', 'Corte', mes ? mesLabel(mes) : 'Sin fecha', 'is-current');
     const porMotivo = {};
     rows.forEach((r) => { const m = V(r, d.detalleKey) || V(r, d.motivoKey) || 'Sin motivo'; porMotivo[m] = (porMotivo[m] || 0) + 1; });
     const topMotivo = Object.entries(porMotivo).sort((a, b) => b[1] - a[1])[0];
     if (!rows.length) {
       document.getElementById('stats-d2').innerHTML = '';
-      document.getElementById('viz-d2').innerHTML = clearBox('Sin bajas este mes');
+      document.getElementById('viz-d2').innerHTML = trend + clearBox('Sin bajas este mes');
     } else {
       document.getElementById('stats-d2').innerHTML =
         statTile(n(rows.length), 'Bajas del mes', 'rojo') +
@@ -224,7 +243,7 @@
       const riskTitle = risk === 'high' ? 'Rotación alta' : 'Seguimiento recomendado';
       const riskDetail = topMotivo ? `${topMotivo[1]} baja${topMotivo[1] > 1 ? 's' : ''} por ${OXXO.truncate(topMotivo[0], 34)}` : 'Revisa el detalle del periodo';
       const motivosOrdenados = Object.entries(porMotivo).sort((a, b) => b[1] - a[1]);
-      document.getElementById('viz-d2').innerHTML = signalHTML(risk, riskTitle, riskDetail) + barListHTML(
+      document.getElementById('viz-d2').innerHTML = trend + signalHTML(risk, riskTitle, riskDetail) + barListHTML(
         motivosOrdenados.map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
       );
     }
@@ -350,17 +369,21 @@
     // jul sem 4 aunque agosto sea mas reciente).
     const mesVigente = d.currentMonth || '';
     const rowsMes = mesVigente ? allRows.filter((r) => mesKeyFn(r) === mesVigente) : [];
+    const previousRowsMes = mesVigente ? allRows.filter((r) => mesKeyFn(r) === previousMonthKey(mesVigente)) : [];
     const semana = d.currentWeek || '';
     const rows = semana ? rowsMes.filter((r) => String(V(r, d.semanaKey) || '').trim() === semana) : rowsMes;
     const corteD4 = semana ? `${/sem/i.test(semana) ? semana : 'Sem ' + semana} · ${mesLabel(mesVigente)}` : (mesVigente ? mesLabel(mesVigente) : 'Sin fecha');
     setSectionBadge('badge-d4', 'Corte', corteD4, 'is-current');
     const totHoras = rows.reduce((s, r) => s + numParse(V(r, d.horasKey)), 0);
     const totGasto = rows.reduce((s, r) => s + numParse(V(r, d.importeKey)), 0);
+    const monthHours = rowsMes.reduce((s, r) => s + numParse(V(r, d.horasKey)), 0);
+    const previousMonthHours = previousRowsMes.reduce((s, r) => s + numParse(V(r, d.horasKey)), 0);
+    const trend = trendHTML(monthHours, previousMonthHours, 'Horas del mes vs. anterior');
     const porEmpleado = {};
     rows.forEach((r) => { const nom = V(r, d.nombreKey) || 'Sin nombre'; porEmpleado[nom] = (porEmpleado[nom] || 0) + numParse(V(r, d.horasKey)); });
     if (!rows.length) {
       document.getElementById('stats-d4').innerHTML = '';
-      document.getElementById('viz-d4').innerHTML = clearBox('Sin tiempo extra esta semana');
+      document.getElementById('viz-d4').innerHTML = trend + clearBox('Sin tiempo extra esta semana');
     } else {
       document.getElementById('stats-d4').innerHTML =
         statTile(n(totHoras), 'Horas TE', 'amarillo') +
@@ -369,7 +392,7 @@
       const risk = totHoras >= 20 ? 'high' : totHoras >= 10 ? 'medium' : 'low';
       const riskTitle = risk === 'high' ? 'Tiempo extra alto' : risk === 'medium' ? 'Tiempo extra en seguimiento' : 'Tiempo extra controlado';
       const riskDetail = `${n(totHoras)} horas y $${n(totGasto)} en el corte vigente`;
-      document.getElementById('viz-d4').innerHTML = signalHTML(risk, riskTitle, riskDetail) + barListHTML(
+      document.getElementById('viz-d4').innerHTML = trend + signalHTML(risk, riskTitle, riskDetail) + barListHTML(
         Object.entries(porEmpleado).sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value })), 'naranja'
       );
     }
@@ -477,15 +500,18 @@
     const mesKeyFn = (r) => mesKeyFromMesAno(V(r, d.mesKey), V(r, d.anoKey));
     const mesVigente = d.currentMonth || '';
     const rows = mesVigente ? allRows.filter((r) => mesKeyFn(r) === mesVigente) : [];
+    const previousRows = mesVigente ? allRows.filter((r) => mesKeyFn(r) === previousMonthKey(mesVigente)) : [];
     setSectionBadge('badge-d6', 'Corte', mesVigente ? mesLabel(mesVigente) : 'Sin fecha', 'is-current');
     const empleados = new Set(rows.map((r) => V(r, d.noPersKey) || V(r, d.nombreKey))).size;
     const totDias = rows.reduce((s, r) => s + (parseFloat(V(r, d.diasKey)) || 0), 0);
+    const previousDays = previousRows.reduce((s, r) => s + (parseFloat(V(r, d.diasKey)) || 0), 0);
+    const trend = trendHTML(totDias, previousDays, 'Días ausentes vs. mes anterior');
     const faltas = rows.filter((r) => OXXO.metricsNormText(V(r, d.tipoKey)).includes('FALTA')).length;
     const porTipo = {};
     rows.forEach((r) => { const tipo = V(r, d.tipoKey) || 'Sin tipo'; porTipo[tipo] = (porTipo[tipo] || 0) + (parseFloat(V(r, d.diasKey)) || 0); });
     if (!rows.length) {
       document.getElementById('stats-d6').innerHTML = '';
-      document.getElementById('viz-d6').innerHTML = clearBox('Sin ausentismos registrados este mes');
+      document.getElementById('viz-d6').innerHTML = trend + clearBox('Sin ausentismos registrados este mes');
     } else {
       document.getElementById('stats-d6').innerHTML =
         statTile(n(empleados), 'Empleados', 'rojo') +
@@ -494,7 +520,7 @@
       const risk = faltas > 0 || totDias >= 10 ? 'high' : totDias >= 5 ? 'medium' : 'low';
       const riskTitle = risk === 'high' ? 'Ausentismo prioritario' : risk === 'medium' ? 'Ausentismo en seguimiento' : 'Ausentismo controlado';
       const riskDetail = faltas > 0 ? `${n(faltas)} falta${faltas > 1 ? 's' : ''} y ${n(totDias)} días ausentes` : `${n(totDias)} días ausentes en el corte vigente`;
-      document.getElementById('viz-d6').innerHTML = signalHTML(risk, riskTitle, riskDetail) + barListHTML(
+      document.getElementById('viz-d6').innerHTML = trend + signalHTML(risk, riskTitle, riskDetail) + barListHTML(
         Object.entries(porTipo).sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label: OXXO.truncate(label, 24), value }))
       );
     }
@@ -764,8 +790,11 @@
       statTile('$' + n(faltante), 'Faltante') +
       statTile('$' + n(sobrante), 'Sobrante') +
       statTile((neto >= 0 ? '$' : '-$') + n(Math.abs(neto)), 'Neto');
-    document.getElementById('viz-d9').innerHTML = '';
     const mesKeyFn = (r) => String(V(r, d.fechaKey) || '').slice(0, 7);
+    const currentMonth = [...d.meses].sort().slice(-1)[0] || '';
+    const currentAmounts = sumaFaltanteSobrante(rows.filter((r) => mesKeyFn(r) === currentMonth), d.importeKey);
+    const previousAmounts = sumaFaltanteSobrante(rows.filter((r) => mesKeyFn(r) === previousMonthKey(currentMonth)), d.importeKey);
+    document.getElementById('viz-d9').innerHTML = trendHTML(currentAmounts.faltante, previousAmounts.faltante, 'Faltante vs. mes anterior', (value) => '$' + n(value));
     renderMonthsAccordion(monthsEl, rows, mesKeyFn, {
       titulo: 'Faltantes y Sobrantes',
       summaryHtml: (mrows) => {
@@ -928,15 +957,24 @@
   }
   function renderAlertas(S) {
     const a = [];
-    if (S.d1 && S.d1.vacantes) a.push({ t: S.d1.vacantes >= 3 ? 'is-bad' : 'is-warn', txt: `${S.d1.vacantes} vacante${S.d1.vacantes > 1 ? 's' : ''} por cubrir` });
-    if (S.d2 && S.d2.bajas) a.push({ t: S.d2.bajas >= 3 ? 'is-bad' : 'is-warn', txt: `${S.d2.bajas} baja${S.d2.bajas > 1 ? 's' : ''} este mes${S.d2.motivo ? ' · ' + OXXO.truncate(S.d2.motivo, 26) : ''}` });
-    if (S.d3 && S.d3.criticas) a.push({ t: 'is-bad', txt: `${S.d3.criticas} registro${S.d3.criticas > 1 ? 's' : ''} de estructura crítica` });
-    if (S.d4 && S.d4.gasto) a.push({ t: S.d4.horas >= 20 ? 'is-bad' : 'is-warn', txt: `$${n(S.d4.gasto)} en tiempo extra (${n(S.d4.horas)} h)` });
-    if (S.d6 && S.d6.faltas) a.push({ t: 'is-bad', txt: `${S.d6.faltas} falta${S.d6.faltas > 1 ? 's' : ''} registrada${S.d6.faltas > 1 ? 's' : ''}` });
-    if (S.d7 && S.d7.dif) a.push({ t: 'is-info', txt: `TREO: ${S.d7.mov.txt.toLowerCase()} ${Math.abs(S.d7.dif)} posición${Math.abs(S.d7.dif) > 1 ? 'es' : ''}` });
-    if (S.d8 && S.d8.capPct < 100) a.push({ t: S.d8.capPct < 60 ? 'is-bad' : 'is-warn', txt: `Capacidades al ${S.d8.capPct}%${S.d8.pendientes ? ` · ${n(S.d8.pendientes)} pendientes` : ''}` });
-    if (S.d11 && S.d11.cumplTotal !== null && S.d11.cumplTotal < 90) a.push({ t: S.d11.cumplTotal < 70 ? 'is-bad' : 'is-warn', txt: `Cumplimiento de registro al ${S.d11.cumplTotal}%` });
-    document.getElementById('ficha-alertas').innerHTML = chipsHTML(a, 'Sin alertas: tu tienda está en orden');
+    if (S.d1 && S.d1.vacantes) a.push({ t: S.d1.vacantes >= 3 ? 'is-bad' : 'is-warn', target: 'sec-d1', txt: `${S.d1.vacantes} vacante${S.d1.vacantes > 1 ? 's' : ''} por cubrir` });
+    if (S.d2 && S.d2.bajas) a.push({ t: S.d2.bajas >= 3 ? 'is-bad' : 'is-warn', target: 'sec-d2', txt: `${S.d2.bajas} baja${S.d2.bajas > 1 ? 's' : ''} este mes${S.d2.motivo ? ' · ' + OXXO.truncate(S.d2.motivo, 26) : ''}` });
+    if (S.d3 && S.d3.criticas) a.push({ t: 'is-bad', target: 'sec-d3', txt: `${S.d3.criticas} registro${S.d3.criticas > 1 ? 's' : ''} de estructura crítica` });
+    if (S.d4 && S.d4.gasto) a.push({ t: S.d4.horas >= 20 ? 'is-bad' : 'is-warn', target: 'sec-d4', txt: `$${n(S.d4.gasto)} en tiempo extra (${n(S.d4.horas)} h)` });
+    if (S.d6 && S.d6.faltas) a.push({ t: 'is-bad', target: 'sec-d6', txt: `${S.d6.faltas} falta${S.d6.faltas > 1 ? 's' : ''} registrada${S.d6.faltas > 1 ? 's' : ''}` });
+    if (S.d7 && S.d7.dif) a.push({ t: 'is-info', target: 'sec-d7', txt: `TREO: ${S.d7.mov.txt.toLowerCase()} ${Math.abs(S.d7.dif)} posición${Math.abs(S.d7.dif) > 1 ? 'es' : ''}` });
+    if (S.d8 && S.d8.capPct < 100) a.push({ t: S.d8.capPct < 60 ? 'is-bad' : 'is-warn', target: 'sec-d8', txt: `Capacidades al ${S.d8.capPct}%${S.d8.pendientes ? ` · ${n(S.d8.pendientes)} pendientes` : ''}` });
+    if (S.d11 && S.d11.cumplTotal !== null && S.d11.cumplTotal < 90) a.push({ t: S.d11.cumplTotal < 70 ? 'is-bad' : 'is-warn', target: 'sec-d11', txt: `Cumplimiento de registro al ${S.d11.cumplTotal}%` });
+    const container = document.getElementById('ficha-alertas');
+    container.innerHTML = a.length ? a.map((item) => `<button type="button" class="chip mt-alert-link ${item.t}" data-target="${item.target}">${esc(item.txt)} <span aria-hidden="true">→</span></button>`).join('') : chipsHTML([], 'Sin alertas: tu tienda está en orden');
+    container.querySelectorAll('.mt-alert-link').forEach((button) => button.addEventListener('click', () => {
+      const target = document.getElementById(button.dataset.target);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.remove('mt-section-focus');
+      requestAnimationFrame(() => target.classList.add('mt-section-focus'));
+      setTimeout(() => target.classList.remove('mt-section-focus'), 1700);
+    }));
   }
   function renderIdentidad(tiendaDisplay, S) {
     document.getElementById('ficha-tienda-title').textContent = tiendaDisplay;
@@ -1026,6 +1064,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('mi-retry').addEventListener('click', init);
+    document.getElementById('mi-pdf-btn')?.addEventListener('click', () => window.print());
     init();
   });
 })();

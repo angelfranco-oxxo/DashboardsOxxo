@@ -139,7 +139,7 @@
     $('admin-area-count').textContent=isCommercial?'Google Sheets':`${available.length} ${available.length===1?'base':'bases'}`;
     $('admin-upload-tab-label').textContent=isCommercial?'PromosD100':'Cargar y Publicar Bases';
     $('tabpanel-upload').dataset.adminArea=area;
-    document.querySelectorAll('.admin-tab').forEach(tab=>tab.classList.toggle('hidden',area!=='rh'&&tab.dataset.tab!=='upload'));
+    document.querySelectorAll('.admin-tab').forEach(tab=>tab.classList.toggle('hidden',area!=='rh'&&!['upload','calidad'].includes(tab.dataset.tab)));
     if(area!=='rh')selectUploadTab();
     $('admin-commercial-panel').classList.toggle('hidden',!isCommercial);
     $('admin-upload-workspace').classList.toggle('hidden',isCommercial);

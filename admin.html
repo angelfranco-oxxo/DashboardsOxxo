@@ -81,8 +81,9 @@
     .admin-area-context{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding:13px 16px;border-left:4px solid var(--area-color,#f71926);border-radius:4px 14px 14px 4px;background:var(--area-soft,#fff0ef);color:#4d3632}.admin-area-context strong{display:block;font-size:14px}.admin-area-context span{font-size:12px;font-weight:650;color:#7a6662}
     .admin-commercial-panel{--area-color:#12608f;--area-soft:#eaf5fb;margin-top:18px;border-color:rgba(18,96,143,.18);background:linear-gradient(135deg,#fff 0%,#f0f9fd 100%)}
     .admin-commercial-panel__layout{display:grid;grid-template-columns:1fr auto;align-items:center;gap:24px}.admin-commercial-panel__eyebrow{font-size:11px;font-weight:950;letter-spacing:.12em;text-transform:uppercase;color:#12608f}.admin-commercial-panel h2{font-size:2rem;margin:7px 0 8px}.admin-commercial-panel p{max-width:720px;margin:0;color:#5d6870;font-size:14px;font-weight:650;line-height:1.55}.admin-commercial-panel__badge{display:grid;place-items:center;width:90px;height:90px;border-radius:24px;background:#12608f;color:#fff;font-family:var(--font-display);font-size:1.8rem;box-shadow:0 16px 36px rgba(18,96,143,.22)}
+    .quality-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}.quality-kpi{border:1px solid #eadbd5;border-radius:16px;background:#fff;padding:15px}.quality-kpi span{display:block;color:#8c6b63;font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.quality-kpi strong{display:block;margin-top:5px;font-family:var(--font-display);font-size:1.8rem}.quality-kpi.ok strong{color:#14894a}.quality-kpi.warn strong{color:#a66c00}.quality-kpi.bad strong{color:#c91822}.quality-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:900}.quality-status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}.quality-status.ok{background:#e9f8ef;color:#14894a}.quality-status.warn{background:#fff4d9;color:#9a6500}.quality-status.bad{background:#fff0ef;color:#c91822}.quality-table td{vertical-align:middle}.quality-table .quality-source{font-weight:900}.quality-table small{display:block;margin-top:2px;color:#8c6b63;font-weight:650}.quality-empty{text-align:center;padding:30px!important;color:#8c6b63!important}
     #tabpanel-upload{--area-color:#f71926;--area-soft:#fff0ef}#tabpanel-upload[data-admin-area="administrativo"]{--area-color:#65529a;--area-soft:#f1eef9}#tabpanel-upload .admin-grid>.admin-card:first-child{border-top:4px solid var(--area-color)}#tabpanel-upload .admin-input:focus,#tabpanel-upload .admin-select:focus{border-color:var(--area-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--area-color) 13%,transparent)}#tabpanel-upload .drop-zone strong{color:var(--area-color)}#tabpanel-upload .admin-btn.primary{background:var(--area-color);box-shadow:0 12px 26px color-mix(in srgb,var(--area-color) 22%,transparent)}
-    @media(max-width:980px){.admin-grid{grid-template-columns:1fr}.admin-shell{padding:16px}.admin-hero{padding:24px}.admin-tabs{overflow-x:auto;flex-wrap:nowrap}.admin-tab{white-space:nowrap}.admin-areas{grid-template-columns:1fr}.admin-area__copy span{white-space:normal}.admin-commercial-panel__layout{grid-template-columns:1fr}.admin-commercial-panel__badge{display:none}}
+    @media(max-width:980px){.admin-grid{grid-template-columns:1fr}.admin-shell{padding:16px}.admin-hero{padding:24px}.admin-tabs{overflow-x:auto;flex-wrap:nowrap}.admin-tab{white-space:nowrap}.admin-areas{grid-template-columns:1fr}.admin-area__copy span{white-space:normal}.admin-commercial-panel__layout{grid-template-columns:1fr}.admin-commercial-panel__badge{display:none}.quality-summary{grid-template-columns:1fr 1fr}}
   </style>
 </head>
 <body>
@@ -141,6 +142,7 @@
     </div>
     <nav class="admin-tabs" role="tablist">
       <button class="admin-tab active" type="button" role="tab" aria-selected="true" data-tab="upload"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg><span id="admin-upload-tab-label">Cargar y Publicar Bases</span></button>
+      <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="calidad"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z"></path><path d="m8 12 3 3 5-6"></path></svg>Calidad de datos</button>
       <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="presentaciones"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Presentaciones</button>
       <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="excels"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Excels</button>
       <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="reasignaciones"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>Reasignaciones</button>
@@ -252,6 +254,16 @@
       </div>
     </section>
     </section>
+    <section class="admin-tabpanel hidden" id="tabpanel-calidad" role="tabpanel">
+      <section class="admin-card">
+        <div class="preview-head"><div><h2>Salud de las fuentes</h2><p style="color:#7a4a42;font-size:13px;font-weight:650;margin:4px 0 0">Revisa disponibilidad, volumen, encabezados críticos y vigencia de las bases conectadas.</p></div><button class="admin-btn primary" type="button" id="quality-refresh-btn">Ejecutar diagnóstico</button></div>
+        <div class="quality-summary" id="quality-summary">
+          <div class="quality-kpi"><span>Fuentes</span><strong>—</strong></div><div class="quality-kpi ok"><span>Correctas</span><strong>—</strong></div><div class="quality-kpi warn"><span>Atención</span><strong>—</strong></div><div class="quality-kpi bad"><span>Errores</span><strong>—</strong></div>
+        </div>
+        <div class="helper-box" id="quality-guidance">Ejecuta el diagnóstico para consultar las fuentes de Google Sheets. Esta revisión es de solo lectura.</div>
+        <div class="table-wrap" style="margin-top:14px;max-height:560px"><table class="preview-table quality-table"><thead><tr><th>Área / fuente</th><th>Estado</th><th>Filas</th><th>Último corte</th><th>Revisión</th></tr></thead><tbody id="quality-table-body"><tr><td colspan="5" class="quality-empty">Diagnóstico pendiente.</td></tr></tbody></table></div>
+      </section>
+    </section>
     <section class="admin-tabpanel hidden" id="tabpanel-presentaciones" role="tabpanel">
     <section class="admin-card">
       <h2>Presentación Foro Bienestar Días Martes</h2>
@@ -334,13 +346,14 @@
     </section>
   </main>
   <script src="js/config.js?v=20260818d"></script>
-  <script src="js/core.js?v=20260818c"></script>
+  <script src="js/core.js?v=20260820d"></script>
   <script src="js/admin/column-aliases.js?v=20260818a"></script>
   <script src="js/admin/normalizers.js?v=20260819a"></script>
   <script src="js/admin/dashboard-definitions.js?v=20260820a"></script>
   <script src="js/admin/publishers.js?v=20260805a"></script>
   <script src="js/admin/ui.js?v=20260805a"></script>
-  <script src="js/admin.js?v=20260820b"></script>
+  <script src="js/admin.js?v=20260820c"></script>
+  <script src="js/admin-data-quality.js?v=3"></script>
   <script src="js/admin-pptx.js?v=20260805c"></script>
   <script src="js/admin-pptx-rae.js?v=20260806a"></script>
   <script src="js/admin-indicadores.js?v=20260805c"></script>
