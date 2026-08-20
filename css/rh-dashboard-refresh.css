@@ -324,6 +324,165 @@ body.hr-dashboard .foot-dot {
   box-shadow: 0 0 0 4px rgba(32,164,91,.10) !important;
 }
 
+/* Navegación directa entre los ocho tableros. */
+body.hr-dashboard .hr-dashboard-switcher {
+  min-width: 210px;
+  display: grid;
+  gap: 3px;
+}
+
+body.hr-dashboard .hr-dashboard-switcher__eyebrow {
+  color: #9A6F69;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+body.hr-dashboard .hr-dashboard-switcher__control {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid rgba(115,45,42,.13);
+  border-radius: 11px;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 6px 15px rgba(82,32,27,.07), inset 0 1px 0 #fff;
+}
+
+body.hr-dashboard .hr-dashboard-switcher__control svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  fill: none;
+  stroke: var(--hr-red);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+body.hr-dashboard .hr-dashboard-switcher select {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 24px 0 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  color: var(--hr-ink) !important;
+  -webkit-text-fill-color: var(--hr-ink) !important;
+  font-size: 11px;
+  font-weight: 850;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+body.hr-dashboard .hr-dashboard-switcher select:focus {
+  outline: none;
+}
+
+body.hr-dashboard .hr-dashboard-switcher__control:focus-within {
+  border-color: rgba(247,25,38,.36);
+  box-shadow: 0 0 0 4px rgba(247,25,38,.07), 0 8px 18px rgba(82,32,27,.08);
+}
+
+/* Lectura ejecutiva automática bajo los KPI. */
+body.hr-dashboard .hr-insights {
+  margin: 0 0 18px;
+  padding: 17px 18px 18px;
+  border: 1px solid rgba(255,255,255,.90);
+  border-radius: 19px;
+  background:
+    radial-gradient(circle at 0 0, rgba(247,25,38,.055), transparent 26%),
+    rgba(255,255,255,.88);
+  box-shadow: 0 15px 38px rgba(91,32,27,.09), inset 0 1px 0 #fff;
+  -webkit-backdrop-filter: blur(18px) saturate(118%);
+  backdrop-filter: blur(18px) saturate(118%);
+}
+
+body.hr-dashboard .hr-insights__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 13px;
+}
+
+body.hr-dashboard .hr-insights__head > div {
+  display: grid;
+  gap: 2px;
+}
+
+body.hr-dashboard .hr-insights__eyebrow {
+  color: #B1222B;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+body.hr-dashboard .hr-insights__head strong {
+  color: var(--hr-ink);
+  font-family: var(--font-display);
+  font-size: 17px;
+}
+
+body.hr-dashboard .hr-insights__freshness {
+  color: #8C7470;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+body.hr-dashboard .hr-insights__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+body.hr-dashboard .hr-insight {
+  --insight-color: #12608F;
+  --insight-bg: rgba(18,96,143,.055);
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 13px 14px;
+  border: 1px solid color-mix(in srgb, var(--insight-color) 14%, transparent);
+  border-radius: 14px;
+  background: var(--insight-bg);
+}
+
+body.hr-dashboard .hr-insight--critical { --insight-color: #D71927; --insight-bg: rgba(215,25,39,.055); }
+body.hr-dashboard .hr-insight--warning { --insight-color: #D77A00; --insight-bg: rgba(242,165,43,.075); }
+body.hr-dashboard .hr-insight--success { --insight-color: #168B4A; --insight-bg: rgba(22,139,74,.06); }
+body.hr-dashboard .hr-insight--compare { --insight-color: #6E4AA5; --insight-bg: rgba(110,74,165,.06); }
+
+body.hr-dashboard .hr-insight__dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--insight-color);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--insight-color) 10%, transparent);
+}
+
+body.hr-dashboard .hr-insight strong {
+  display: block;
+  color: var(--hr-ink);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+body.hr-dashboard .hr-insight p {
+  margin: 4px 0 0;
+  color: #765F5B;
+  font-size: 9.5px;
+  font-weight: 650;
+  line-height: 1.38;
+}
+
 /* Dashboard 7 · TREO: la tarjeta lateral debe ocupar la misma altura que
    el detalle de tiendas. Una regla histórica usaba align-items:start y
    dejaba un hueco visible debajo de Alineación Global. */
@@ -351,6 +510,28 @@ body.hr-dashboard:has(#main-tbl) .alignment-card .donut-wrap {
 }
 
 @media (max-width: 1100px) {
+  body.hr-dashboard .topbar {
+    flex-wrap: wrap !important;
+  }
+
+  body.hr-dashboard .topbar__meta {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+    gap: 9px !important;
+  }
+
+  body.hr-dashboard .hr-dashboard-switcher {
+    min-width: 180px;
+    flex: 1 1 230px;
+    margin-right: auto;
+  }
+
+  body.hr-dashboard .hr-insights__grid {
+    grid-template-columns: 1fr;
+  }
+
   body.hr-dashboard:has(#main-tbl) .row-main {
     grid-template-columns: 1fr !important;
   }
@@ -383,6 +564,24 @@ body.hr-dashboard:has(#main-tbl) .alignment-card .donut-wrap {
   body.hr-dashboard .topbar__title { font-size: 17px !important; }
   body.hr-dashboard .topbar__subtitle { display: none !important; }
   body.hr-dashboard .topbar__back { min-height: 36px !important; padding: 8px 12px !important; }
+
+  body.hr-dashboard .hr-dashboard-switcher {
+    order: 3;
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  body.hr-dashboard .hr-dashboard-switcher__eyebrow { display: none; }
+
+  body.hr-dashboard .hr-insights {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  body.hr-dashboard .hr-insights__head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 
   body.hr-dashboard .hero:not(.mt-hero),
   body.hr-dashboard .dashboard-hero,
