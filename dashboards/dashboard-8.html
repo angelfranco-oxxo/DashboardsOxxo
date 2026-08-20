@@ -3,7 +3,7 @@
 <head>
   <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
   <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
-  <script defer src="../js/site-lock.js?v=2"></script>
+  <script defer src="../js/site-lock.js?v=3"></script>
   <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Capacidades 2026 · Dashboards Ats</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
@@ -113,6 +113,10 @@
   -webkit-text-fill-color:var(--exec-ink,#181112) !important;
 }
 .hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
+.kpi-card--critical .kpi-card__label{font-size:12px !important;letter-spacing:.105em !important;line-height:1.2}
+.kpi-card--critical .kpi-card__value{max-width:82%;margin-top:8px;font-size:1.35rem !important;line-height:1.1 !important}
+.kpi-card--critical .kpi-card__delta{margin-top:7px;font-size:14px !important;font-weight:950 !important}
+@media(max-width:600px){.kpi-card--critical .kpi-card__label{font-size:11px !important}.kpi-card--critical .kpi-card__value{font-size:1.15rem !important}}
 </style>
 <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
   <link rel="stylesheet" href="../css/floating-filter-layout.css?v=2" />
@@ -366,9 +370,9 @@ function renderAll() {
       <div class="kpi-card__delta neu">${compTotal} / ${aplicTotal}</div>
       <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
     </div>
-    <div class="kpi-card rojo">
+    <div class="kpi-card rojo kpi-card--critical">
       <div class="kpi-card__label">Certificación Más Crítica<span class="info-tip" tabindex="0" data-tip="La certificación con el menor % de cumplimiento entre las que tienen al menos un registro aplicable."></span></div>
-      <div class="kpi-card__value" style="font-size:1rem">${critica ? critica.label : '—'}</div>
+      <div class="kpi-card__value">${critica ? critica.label : '—'}</div>
       <div class="kpi-card__delta neg">${critica && critica.pct!==null ? critica.pct+'%' : '—'}</div>
       <div class="kpi-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div>
     </div>
