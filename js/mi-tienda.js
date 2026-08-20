@@ -413,15 +413,8 @@
       document.getElementById('stats-d5').innerHTML = '';
       document.getElementById('viz-d5').innerHTML = noneBox('Sin colaboradores con saldo de vacaciones');
     } else {
-      document.getElementById('stats-d5').innerHTML =
-        statTile(n(totDias), 'Días restantes', 'azul') +
-        statTile(n(vencidos), 'Ya vencidos', vencidos > 0 ? 'rojo' : 'verde') +
-        statTile(n(proximos), 'Vencen 0-50 d', proximos > 0 ? 'amarillo' : 'verde');
-      document.getElementById('viz-d5').innerHTML = barListHTML([
-        { label: 'Ya vencidos', value: vencidos },
-        { label: 'Vencen 0-50 días', value: proximos },
-        { label: 'Resto del equipo', value: Math.max(0, rows.length - vencidos - proximos) },
-      ], 'azul');
+      document.getElementById('stats-d5').innerHTML = statTile(n(totDias), 'Días restantes', 'azul');
+      document.getElementById('viz-d5').innerHTML = '';
     }
     const tbody = document.querySelector('#tbl-d5 tbody');
     const sorted = [...rows].sort((a, b) => (Number(V(b, d.diasRestKey)) || 0) - (Number(V(a, d.diasRestKey)) || 0));
