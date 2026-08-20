@@ -9,6 +9,14 @@
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const norm = (value) => String(OXXO.fixMojibake ? OXXO.fixMojibake(value || '') : value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9%]+/g, ' ').trim();
   const tabs = () => OXXO.SHEETS_CONFIG.TABS;
+  const sheetGids = {
+    Dashboard_1_Diario: '148613755', Dashboard_2_Diario: '871442940', Dashboard_3_Diario: '503610234',
+    Dashboard_4_Semanal: '2049610484', Dashboard_5_Semanal: '211648341', Dashboard_6_Semanal: '773035568',
+    Dashboard_7_Semanal: '302199273', Dashboard_8_Diario: '1011586825', Dashboard_10_FLEX: '1144560330',
+    Dashboard_11_Semanal: '244096847', Dashboard_9_Semanal: '1089270560', Inventarios: '1093120909', Promociones: '1911021880',
+  };
+  let lastResults = [];
+  let activeFilter = 'all';
   const sources = () => [
     { area: 'RH', name: 'Vacantes Diarias', tab: tabs().d1, cadence: 'daily', required: [['tienda'], ['puesto', 'tipo puesto', 'posicion']], dates: ['Fecha', 'Mes'] },
     { area: 'RH', name: 'Bajas Diarias', tab: tabs().d2, cadence: 'daily', required: [['tienda'], ['asesor'], ['fecha', 'mes']], dates: ['Fecha', 'F.Crea', 'Mes'] },
@@ -93,6 +101,11 @@
   function dateLabel(date) {
     return date ? date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : 'No informado';
   }
+  function sheetURL(result) {
+    const id = OXXO.SHEETS_CONFIG.SPREADSHEET_ID;
+    const gid = sheetGids[result.tab] || '0';
+    return `https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/edit#gid=${gid}&range=${encodeURIComponent(result.cell || 'A1')}`;
+  }
   async function inspect(source) {
     const rows = await OXXO.fetchSheetData(source.tab, { fresh: true, allowStale: false });
     if (!Array.isArray(rows)) return { ...source, status: 'bad', rows: 0, cut: null, note: 'La fuente no respondió.' };
@@ -150,18 +163,25 @@
     }
     return { ...source, status, rows: rows.length, cut, note, action, cell };
   }
+  function renderRows() {
+    const visible = activeFilter === 'all' ? lastResults : lastResults.filter((result) => result.status === activeFilter);
+    $('quality-table-body').innerHTML = visible.length ? visible.map((result) => `<tr>
+      <td><span class="quality-source">${esc(result.name)}</span><small>${esc(result.area)} · ${esc(result.tab)}</small></td>
+      <td><span class="quality-status ${result.status}">${result.status === 'ok' ? 'Correcta' : result.status === 'warn' ? 'Atención' : 'Error'}</span></td>
+      <td>${result.rows.toLocaleString('es-MX')}</td><td>${esc(dateLabel(result.cut))}${result.cell ? `<small>Celda ${esc(result.cell)}</small>` : ''}</td><td><strong class="quality-detail">${esc(result.note)}</strong><small>${esc(result.action)}</small></td>
+      <td><a class="quality-open" href="${esc(sheetURL(result))}" target="_blank" rel="noopener">Abrir hoja<span aria-hidden="true">↗</span></a></td>
+    </tr>`).join('') : '<tr><td colspan="6" class="quality-empty">No hay fuentes con este estado.</td></tr>';
+  }
   function render(results) {
+    lastResults = results;
     const count = (status) => results.filter((result) => result.status === status).length;
     $('quality-summary').innerHTML = `
       <div class="quality-kpi"><span>Fuentes</span><strong>${results.length}</strong></div>
       <div class="quality-kpi ok"><span>Correctas</span><strong>${count('ok')}</strong></div>
       <div class="quality-kpi warn"><span>Atención</span><strong>${count('warn')}</strong></div>
       <div class="quality-kpi bad"><span>Errores</span><strong>${count('bad')}</strong></div>`;
-    $('quality-table-body').innerHTML = results.map((result) => `<tr>
-      <td><span class="quality-source">${esc(result.name)}</span><small>${esc(result.area)} · ${esc(result.tab)}</small></td>
-      <td><span class="quality-status ${result.status}">${result.status === 'ok' ? 'Correcta' : result.status === 'warn' ? 'Atención' : 'Error'}</span></td>
-      <td>${result.rows.toLocaleString('es-MX')}</td><td>${esc(dateLabel(result.cut))}${result.cell ? `<small>Celda ${esc(result.cell)}</small>` : ''}</td><td><strong class="quality-detail">${esc(result.note)}</strong><small>${esc(result.action)}</small></td>
-    </tr>`).join('');
+    renderRows();
+    $('quality-last-run').textContent = `Última revisión: ${new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}`;
     const issues = count('warn') + count('bad');
     $('quality-guidance').textContent = issues ? `${issues} fuente${issues > 1 ? 's requieren' : ' requiere'} revisión. Abre la base correspondiente antes de publicar una actualización.` : 'Todas las fuentes revisadas tienen estructura y vigencia correctas.';
   }
@@ -170,14 +190,14 @@
     if (!button || button.disabled) return;
     button.disabled = true;
     button.textContent = 'Revisando fuentes…';
-    $('quality-table-body').innerHTML = '<tr><td colspan="5" class="quality-empty">Consultando Google Sheets…</td></tr>';
+    $('quality-table-body').innerHTML = '<tr><td colspan="6" class="quality-empty">Consultando Google Sheets…</td></tr>';
     try {
       const results = await Promise.all(sources().map(inspect));
       render(results);
     } catch (error) {
       console.error('Diagnóstico de calidad:', error);
       $('quality-guidance').textContent = 'No fue posible completar el diagnóstico. Revisa la conexión e inténtalo nuevamente.';
-      $('quality-table-body').innerHTML = '<tr><td colspan="5" class="quality-empty">El diagnóstico no pudo completarse.</td></tr>';
+      $('quality-table-body').innerHTML = '<tr><td colspan="6" class="quality-empty">El diagnóstico no pudo completarse.</td></tr>';
     } finally {
       button.disabled = false;
       button.textContent = 'Actualizar diagnóstico';
@@ -185,6 +205,11 @@
   }
   document.addEventListener('DOMContentLoaded', () => {
     $('quality-refresh-btn')?.addEventListener('click', run);
+    document.querySelectorAll('[data-quality-filter]').forEach((button) => button.addEventListener('click', () => {
+      activeFilter = button.dataset.qualityFilter;
+      document.querySelectorAll('[data-quality-filter]').forEach((item) => item.classList.toggle('active', item === button));
+      renderRows();
+    }));
     document.querySelector('.admin-tab[data-tab="calidad"]')?.addEventListener('click', () => {
       if ($('quality-table-body')?.textContent.includes('Diagnóstico pendiente')) run();
     });
