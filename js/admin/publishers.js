@@ -51,6 +51,9 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
     fetch(url,{method:'POST',mode:'cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'updateConfigDate',adminPassword:getAdminPassword(),dashboardId:configId})}).catch(()=>{});
   }
   function updatePublishState(){const el=$('publish-state');if(!el)return;const ready=Boolean(publishUrl());el.textContent=ready?'Publicacion directa lista':'Falta configurar Apps Script una sola vez';el.classList.toggle('ready',ready);}
+  function confirmPublication(label,tab,count,mode){
+    return window.confirm(`Vas a publicar ${count.toLocaleString('es-MX')} fila(s) en ${tab}.\n\n${mode}\n\nAntes de reemplazar datos se creara un respaldo automatico y la operacion quedara registrada en la bitacora.\n\n¿Deseas continuar con ${label}?`);
+  }
 
   // Dashboards que ya no tienen su propia opcion en el menu porque salen del
   // MISMO archivo que ya se sube para su dashboard "padre": Bajas otras
@@ -83,7 +86,7 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       if(!matrix.length)continue;
       const parsed=rowsFromMatrix(matrix,dashDef);
       if(!parsed.rows.length)continue;
-      await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:dashDef.tab,rows:parsed.rows,source:`DashboardsOxxo Admin (auto desde ${parentKey})`,updateMode:'replaceAll'});
+      await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:dashDef.tab,rows:parsed.rows,source:`DashboardsOxxo Admin (auto desde ${parentKey})`,sourceFile:state.fileName||'',updateMode:'replaceAll'});
       notifyConfigDate(dashDef.key);
       publicados.push({label:dashDef.label,count:parsed.rows.length});
     }
@@ -95,9 +98,11 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
     if(!url){alert('Falta configurar Apps Script una sola vez. Mientras tanto puedes descargar CSV.');return;}
     if(!state.validation?.ok){alert('La base aun tiene errores de validacion.');return;}
     const dash=dashboard(),period=periodInfo(dash,state.validation.rows);
+    const modeMessage=period.enabled?`Solo se reemplazara ${period.column}: ${period.values.join(', ')}.`:'Se reemplazara la pestana completa.';
+    if(!confirmPublication(dash.label,dash.tab,state.validation.rows.length,modeMessage))return;
     $('publish-btn').disabled=true;$('publish-btn').textContent='Publicando...';
     try{
-      const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows:state.validation.rows,source:'DashboardsOxxo Admin',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};
+      const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows:state.validation.rows,source:'DashboardsOxxo Admin',sourceFile:state.fileName||'',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};
       const result=await postAdminPayload(payload);
       notifyConfigDate(dash.key);
       let autoMsg='';
@@ -128,9 +133,10 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
     }).filter(r=>r.Hallazgo&&r.Accion);
     if(!rows.length){alert('Captura al menos una fila con Hallazgo y Accion.');return;}
     const dash=getDashboards().find(d=>d.key==='d2plan');
+    if(!confirmPublication(dash.label,dash.tab,rows.length,'Se reemplazara la pestana completa.'))return;
     const btn=$('manual-publish-d2plan-btn');btn.disabled=true;btn.textContent='Publicando...';
     try{
-      const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows,source:'DashboardsOxxo Admin Manual',updateMode:'replaceAll'};
+      const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows,source:'DashboardsOxxo Admin Manual',sourceFile:'Captura manual',updateMode:'replaceAll'};
       const result=await postAdminPayload(payload);
       notifyConfigDate(dash.key);
       alert(`${rows.length} fila(s) del plan de accion publicadas en ${dash.tab}.`);
@@ -138,9 +144,9 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
     finally{btn.disabled=false;btn.textContent='Publicar';}
   }
 
-  async function publishManual(){const url=publishUrl();if(!url){alert('Falta configurar Apps Script.');return;}const inputs=document.querySelectorAll('#manual-input-table [data-plaza]');const rows=[...inputs].filter(inp=>inp.value&&Number(inp.value)>0).map(inp=>({'Plazas':inp.dataset.plaza,'Bajas Plaza':inp.value,'Actualizado':isoDate(new Date())})).sort((a,b)=>Number(b['Bajas Plaza'])-Number(a['Bajas Plaza']));if(!rows.length){alert('Ingresa al menos una plaza con bajas mayor a 0.');return;}const dash=dashboard();const btn=$('manual-publish-btn');btn.disabled=true;btn.textContent='Publicando...';try{const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows,source:'DashboardsOxxo Admin Manual',updateMode:'replaceAll'};const result=await postAdminPayload(payload);notifyConfigDate(dash.key);alert(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`${rows.length} plaza(s) publicadas en ${dash.tab}.`);}catch(error){alert('No se pudo publicar: '+error.message);console.error(error);}finally{btn.disabled=false;btn.textContent='Publicar';}}
+  async function publishManual(){const url=publishUrl();if(!url){alert('Falta configurar Apps Script.');return;}const inputs=document.querySelectorAll('#manual-input-table [data-plaza]');const rows=[...inputs].filter(inp=>inp.value&&Number(inp.value)>0).map(inp=>({'Plazas':inp.dataset.plaza,'Bajas Plaza':inp.value,'Actualizado':isoDate(new Date())})).sort((a,b)=>Number(b['Bajas Plaza'])-Number(a['Bajas Plaza']));if(!rows.length){alert('Ingresa al menos una plaza con bajas mayor a 0.');return;}const dash=dashboard();if(!confirmPublication(dash.label,dash.tab,rows.length,'Se reemplazara la pestana completa.'))return;const btn=$('manual-publish-btn');btn.disabled=true;btn.textContent='Publicando...';try{const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows,source:'DashboardsOxxo Admin Manual',sourceFile:'Captura manual',updateMode:'replaceAll'};const result=await postAdminPayload(payload);notifyConfigDate(dash.key);alert(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`${rows.length} plaza(s) publicadas en ${dash.tab}.`);}catch(error){alert('No se pudo publicar: '+error.message);console.error(error);}finally{btn.disabled=false;btn.textContent='Publicar';}}
 
-  async function publishManualD3(){const url=publishUrl();if(!url){alert('Falta configurar Apps Script.');return;}const inputs=document.querySelectorAll('#manual-input-d3 [data-plaza]');const rows=[...inputs].filter(inp=>inp.value&&Number(inp.value)>0).map(inp=>({'PLAZAS':inp.dataset.plaza,'Aprovechamiento de estructura a hoy':inp.value,'Actualizado':isoDate(new Date())})).sort((a,b)=>Number(b['Aprovechamiento de estructura a hoy'])-Number(a['Aprovechamiento de estructura a hoy']));if(!rows.length){alert('Ingresa al menos una plaza con aprovechamiento mayor a 0.');return;}const dash=dashboard();const btn=$('manual-publish-d3-btn');btn.disabled=true;btn.textContent='Publicando...';try{const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows,source:'DashboardsOxxo Admin Manual',updateMode:'replaceAll'};const result=await postAdminPayload(payload);notifyConfigDate(dash.key);alert(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`${rows.length} plaza(s) publicadas en ${dash.tab}.`);}catch(error){alert('No se pudo publicar: '+error.message);console.error(error);}finally{btn.disabled=false;btn.textContent='Publicar';}}
+  async function publishManualD3(){const url=publishUrl();if(!url){alert('Falta configurar Apps Script.');return;}const inputs=document.querySelectorAll('#manual-input-d3 [data-plaza]');const rows=[...inputs].filter(inp=>inp.value&&Number(inp.value)>0).map(inp=>({'PLAZAS':inp.dataset.plaza,'Aprovechamiento de estructura a hoy':inp.value,'Actualizado':isoDate(new Date())})).sort((a,b)=>Number(b['Aprovechamiento de estructura a hoy'])-Number(a['Aprovechamiento de estructura a hoy']));if(!rows.length){alert('Ingresa al menos una plaza con aprovechamiento mayor a 0.');return;}const dash=dashboard();if(!confirmPublication(dash.label,dash.tab,rows.length,'Se reemplazara la pestana completa.'))return;const btn=$('manual-publish-d3-btn');btn.disabled=true;btn.textContent='Publicando...';try{const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows,source:'DashboardsOxxo Admin Manual',sourceFile:'Captura manual',updateMode:'replaceAll'};const result=await postAdminPayload(payload);notifyConfigDate(dash.key);alert(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`${rows.length} plaza(s) publicadas en ${dash.tab}.`);}catch(error){alert('No se pudo publicar: '+error.message);console.error(error);}finally{btn.disabled=false;btn.textContent='Publicar';}}
 
   return {
     downloadCsv,

@@ -13,6 +13,8 @@
  */
 const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
 const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
+const AUDIT_SHEET = '_Admin_Bitacora';
+const BACKUP_PREFIX = '_BK_';
 const ALLOWED_SHEETS = [
   'Dashboard_1_Diario',
   'Dashboard_2_Diario',
@@ -71,6 +73,10 @@ function doPost(e) {
 
     assertAuthorized(payload);
 
+    if (String(payload.action || '') === 'getAudit') {
+      return jsonResponse(readAudit(Number(payload.limit || 100)));
+    }
+
     // Fecha automatica: cada publish() en admin.js llama esta accion aparte
     // despues de publicar, para que "Ultima actualizacion" en la portada
     // (index.html) ya no dependa de que alguien la edite a mano en la hoja
@@ -107,9 +113,19 @@ function doPost(e) {
       const newHeaders = collectHeaders(rows);
       if (!newHeaders.length) throw new Error('Sin columnas para publicar');
 
-      const result = updateMode === 'replacePeriod' && periodColumn
-        ? replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues)
-        : replaceAll(sheet, rows, newHeaders);
+      let backupName = '';
+      let result;
+      try {
+        backupName = backupCurrentSheet(ss, sheet, targetSheet);
+        result = updateMode === 'replacePeriod' && periodColumn
+          ? replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues)
+          : replaceAll(sheet, rows, newHeaders);
+
+        appendAudit(ss, payload, result, 'Correcta', '', backupName);
+      } catch (publishError) {
+        appendAudit(ss, payload, { mode: updateMode, rows: rows.length, keptRows: 0 }, 'Error', String(publishError.message || publishError), backupName);
+        throw publishError;
+      }
 
       sheet.setFrozenRows(2); // fila 1 = sacrificio, fila 2 = encabezados reales
       sheet.autoResizeColumns(1, Math.min(result.columns, 20));
@@ -122,7 +138,9 @@ function doPost(e) {
         periodValues: result.periodValues || [],
         rows: result.rows,
         keptRows: result.keptRows || 0,
-        columns: result.columns
+        columns: result.columns,
+        backupSheet: backupName,
+        audited: true
       });
     } finally {
       lock.releaseLock();
@@ -130,6 +148,55 @@ function doPost(e) {
   } catch (error) {
     return jsonResponse({ ok: false, error: String(error.message || error) });
   }
+}
+
+function backupCurrentSheet(ss, sourceSheet, targetSheet) {
+  if (!sourceSheet || sourceSheet.getLastRow() < 1 || sourceSheet.getLastColumn() < 1) return '';
+  const backupName = (BACKUP_PREFIX + targetSheet).slice(0, 99);
+  let backup = ss.getSheetByName(backupName);
+  if (!backup) backup = ss.insertSheet(backupName);
+
+  const values = sourceSheet.getDataRange().getValues();
+  const requiredRows = values.length + 2;
+  const requiredCols = Math.max(values[0].length, 4);
+  if (backup.getMaxRows() < requiredRows) backup.insertRowsAfter(backup.getMaxRows(), requiredRows - backup.getMaxRows());
+  if (backup.getMaxColumns() < requiredCols) backup.insertColumnsAfter(backup.getMaxColumns(), requiredCols - backup.getMaxColumns());
+  backup.clearContents();
+  backup.getRange(1, 1, 1, 4).setValues([['Respaldo creado', new Date(), 'Hoja origen', targetSheet]]);
+  backup.getRange(3, 1, values.length, values[0].length).setValues(values);
+  backup.hideSheet();
+  SpreadsheetApp.flush();
+  return backupName;
+}
+
+function appendAudit(ss, payload, result, status, message, backupName) {
+  let sheet = ss.getSheetByName(AUDIT_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(AUDIT_SHEET);
+    sheet.appendRow(['Fecha', 'Hoja', 'Modo', 'Filas publicadas', 'Filas conservadas', 'Archivo', 'Origen', 'Usuario', 'Estado', 'Detalle', 'Respaldo']);
+    sheet.setFrozenRows(1);
+    sheet.hideSheet();
+  }
+  sheet.appendRow([
+    new Date(), String(payload.targetSheet || ''), String(result.mode || payload.updateMode || ''), Number(result.rows || 0),
+    Number(result.keptRows || 0), String(payload.sourceFile || ''), String(payload.source || ''), String(payload.adminUser || 'Administrador'),
+    status, message, backupName || ''
+  ]);
+}
+
+function readAudit(limit) {
+  const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(AUDIT_SHEET);
+  if (!sheet || sheet.getLastRow() < 2) return { ok: true, rows: [] };
+  const values = sheet.getDataRange().getDisplayValues();
+  const headers = values.shift();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 100), 500));
+  const rows = values.slice(-safeLimit).reverse().map(function(valuesRow) {
+    const row = {};
+    headers.forEach(function(header, index) { row[String(header)] = valuesRow[index] || ''; });
+    return row;
+  });
+  return { ok: true, rows: rows };
 }
 
 function assertAuthorized(payload) {
