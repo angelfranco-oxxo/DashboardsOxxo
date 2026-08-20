@@ -3,7 +3,7 @@
 <head>
   <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
   <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
-  <script defer src="../js/site-lock.js?v=2"></script>
+  <script defer src="../js/site-lock.js?v=3"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vacantes Diarias · Dashboards Ats</title>
@@ -777,36 +777,104 @@
   }
   .risk-row{
     grid-template-columns:1fr;
-    gap:10px;
+    gap:9px;
     min-height:0;
   }
   .risk-box{
-    min-height:92px !important;
-    padding:14px 16px !important;
+    --risk-color:#C8323A;
+    --risk-soft:#FFF1F2;
+    position:relative;
+    overflow:hidden;
+    min-height:96px !important;
+    padding:14px 15px 14px 18px !important;
     display:grid;
-    grid-template-columns:1fr auto 28px;
+    grid-template-columns:minmax(0,1fr) auto 42px;
     align-items:center;
-    gap:12px;
+    gap:13px;
+    background:linear-gradient(105deg,var(--risk-soft) 0%,rgba(255,255,255,.96) 72%) !important;
+    border:1px solid color-mix(in srgb,var(--risk-color) 18%,white) !important;
+    box-shadow:0 10px 24px color-mix(in srgb,var(--risk-color) 10%,transparent),inset 0 1px 0 #fff;
   }
+  .risk-box::before{
+    content:"";
+    position:absolute;
+    inset:12px auto 12px 0;
+    width:4px;
+    border-radius:0 999px 999px 0;
+    background:var(--risk-color);
+  }
+  .risk-box.medio{--risk-color:#D98216;--risk-soft:#FFF7E9;}
+  .risk-box.bajo{--risk-color:#16945A;--risk-soft:#ECFAF3;}
+  .risk-copy{min-width:0;}
   .risk-lbl{
-    margin-bottom:5px;
-  }
-  .risk-meta{
-    color:#8B6A5F;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin:0 0 5px;
+    color:var(--risk-color) !important;
     font-size:11px;
-    font-weight:700;
+    letter-spacing:.075em;
   }
+  .risk-lbl em{
+    border-radius:999px;
+    padding:3px 7px;
+    background:color-mix(in srgb,var(--risk-color) 10%,white);
+    color:var(--risk-color);
+    font-size:9px;
+    font-style:normal;
+    letter-spacing:.035em;
+  }
+  .risk-dot{width:7px;height:7px;border-radius:50%;background:var(--risk-color);box-shadow:0 0 0 4px color-mix(in srgb,var(--risk-color) 12%,transparent);}
+  .risk-meta{
+    color:#795F59;
+    font-size:10.5px;
+    font-weight:750;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .risk-meter{height:4px;margin-top:9px;border-radius:999px;background:rgba(84,54,49,.08);overflow:hidden;}
+  .risk-meter span{display:block;height:100%;border-radius:inherit;background:var(--risk-color);min-width:4px;}
+  .risk-count{text-align:right;}
   .risk-val{
-    font-size:3rem !important;
+    font-size:2.85rem !important;
+    line-height:.82;
+    color:#211514 !important;
     text-align:right;
+    padding:0;
+    margin:0;
   }
+  .risk-unit{display:block;margin-top:6px;color:#917873;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;}
   .risk-icon{
     grid-column:3;
+    display:grid;
+    place-items:center;
     justify-self:end;
+    width:40px;
+    height:40px;
     margin:0;
-    font-size:24px;
-    opacity:.78;
+    border-radius:13px;
+    background:var(--risk-color);
+    color:#fff;
+    box-shadow:0 9px 18px color-mix(in srgb,var(--risk-color) 22%,transparent);
+    opacity:1;
   }
+  .risk-icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .risk-overview{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:10px;
+    padding:10px 12px;
+    border-radius:15px;
+    background:linear-gradient(110deg,#2A1717,#4B2424);
+    color:#fff;
+    box-shadow:0 10px 22px rgba(42,23,23,.14);
+  }
+  .risk-overview span{display:block;color:rgba(255,255,255,.66);font-size:9px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;}
+  .risk-overview strong{display:block;margin-top:2px;font-size:12px;}
+  .risk-overview__attention{flex:0 0 auto;border-radius:999px;padding:6px 9px;background:rgba(255,255,255,.12);font-size:10px;font-weight:900;white-space:nowrap;}
   .risk-summary{
     position:relative;
     z-index:1;
@@ -1430,10 +1498,11 @@
     <div class="card" style="display:flex;flex-direction:column;">
       <div class="card-head"><div class="card-title">Riesgo operativo por asesor<span class="info-tip" tabindex="0" data-tip="Clasifica a cada Asesor por número de vacantes a su cargo: Alto = 4 o más, Medio = 2-3, Bajo = 0-1, según los filtros activos."></span></div></div>
       <div id="risk-panel" style="flex:1;display:flex;flex-direction:column;">
+        <div class="risk-overview"><div><span>Panorama del equipo</span><strong>Calculando asesores…</strong></div><div class="risk-overview__attention">— con seguimiento</div></div>
         <div class="risk-row">
-          <div class="risk-box alto"><div class="risk-lbl">Alto (≥4 vac.)</div><div class="risk-val" id="risk-alto">—</div><div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div></div>
-          <div class="risk-box medio"><div class="risk-lbl">Medio (2-3 vac.)</div><div class="risk-val" id="risk-medio">—</div><div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div></div>
-          <div class="risk-box bajo"><div class="risk-lbl">Bajo (0-1 vac.)</div><div class="risk-val" id="risk-bajo">—</div><div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M22 11.08V12A10 10 0 1 1 5.93 2.86"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div></div>
+          <div class="risk-box alto"><div class="risk-copy"><div class="risk-lbl"><span class="risk-dot"></span>Alto <em>≥4 vacantes</em></div><div class="risk-meta">Atención prioritaria</div><div class="risk-meter"><span style="width:0%"></span></div></div><div class="risk-count"><div class="risk-val" id="risk-alto">—</div><span class="risk-unit">asesores</span></div><div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9 2.1 18a2 2 0 0 0 1.7 3h16.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg></div></div>
+          <div class="risk-box medio"><div class="risk-copy"><div class="risk-lbl"><span class="risk-dot"></span>Medio <em>2–3 vacantes</em></div><div class="risk-meta">Seguimiento semanal recomendado</div><div class="risk-meter"><span style="width:0%"></span></div></div><div class="risk-count"><div class="risk-val" id="risk-medio">—</div><span class="risk-unit">asesores</span></div><div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4M12 16h.01"></path><circle cx="12" cy="12" r="9"></circle></svg></div></div>
+          <div class="risk-box bajo"><div class="risk-copy"><div class="risk-lbl"><span class="risk-dot"></span>Bajo <em>0–1 vacante</em></div><div class="risk-meta">Cobertura estable o controlada</div><div class="risk-meter"><span style="width:0%"></span></div></div><div class="risk-count"><div class="risk-val" id="risk-bajo">—</div><span class="risk-unit">asesores</span></div><div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></div></div>
         </div>
       </div>
     </div>
@@ -2655,33 +2724,42 @@ function renderOverview(allData){
   const asesoresOrdenados=Object.keys(byAsesor).sort((a,b)=>byAsesor[b]-byAsesor[a]);
   const totalAsesores = asesoresOrdenados.length;
   const pctAlto = totalAsesores ? Math.round(alto/totalAsesores*100) : 0;
+  const pctMedio = totalAsesores ? Math.round(medio/totalAsesores*100) : 0;
+  const pctBajo = totalAsesores ? Math.round(bajo/totalAsesores*100) : 0;
   const riskPanel = document.getElementById('risk-panel');
   if(riskPanel){
     riskPanel.innerHTML = `
+      <div class="risk-overview">
+        <div><span>Panorama del equipo</span><strong>${totalAsesores} asesores evaluados</strong></div>
+        <div class="risk-overview__attention">${alto+medio} con seguimiento</div>
+      </div>
       <div class="risk-row">
         <div class="risk-box alto">
-          <div>
-            <div class="risk-lbl">Alto (≥4 vac.)</div>
+          <div class="risk-copy">
+            <div class="risk-lbl"><span class="risk-dot"></span>Alto <em>≥4 vacantes</em></div>
             <div class="risk-meta">${pctAlto}% del equipo · atención prioritaria</div>
+            <div class="risk-meter"><span style="width:${pctAlto}%"></span></div>
           </div>
-          <div class="risk-val">${alto}</div>
-          <div class="risk-icon">🚨</div>
+          <div class="risk-count"><div class="risk-val">${alto}</div><span class="risk-unit">asesores</span></div>
+          <div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9 2.1 18a2 2 0 0 0 1.7 3h16.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg></div>
         </div>
         <div class="risk-box medio">
-          <div>
-            <div class="risk-lbl">Medio (2-3 vac.)</div>
-            <div class="risk-meta">Seguimiento semanal recomendado</div>
+          <div class="risk-copy">
+            <div class="risk-lbl"><span class="risk-dot"></span>Medio <em>2–3 vacantes</em></div>
+            <div class="risk-meta">${pctMedio}% del equipo · seguimiento semanal</div>
+            <div class="risk-meter"><span style="width:${pctMedio}%"></span></div>
           </div>
-          <div class="risk-val">${medio}</div>
-          <div class="risk-icon">⚠️</div>
+          <div class="risk-count"><div class="risk-val">${medio}</div><span class="risk-unit">asesores</span></div>
+          <div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4M12 16h.01"></path><circle cx="12" cy="12" r="9"></circle></svg></div>
         </div>
         <div class="risk-box bajo">
-          <div>
-            <div class="risk-lbl">Bajo (0-1 vac.)</div>
-            <div class="risk-meta">Cobertura estable o controlada</div>
+          <div class="risk-copy">
+            <div class="risk-lbl"><span class="risk-dot"></span>Bajo <em>0–1 vacante</em></div>
+            <div class="risk-meta">${pctBajo}% del equipo · cobertura controlada</div>
+            <div class="risk-meter"><span style="width:${pctBajo}%"></span></div>
           </div>
-          <div class="risk-val">${bajo}</div>
-          <div class="risk-icon">✅</div>
+          <div class="risk-count"><div class="risk-val">${bajo}</div><span class="risk-unit">asesores</span></div>
+          <div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></div>
         </div>
       </div>`;
   }
