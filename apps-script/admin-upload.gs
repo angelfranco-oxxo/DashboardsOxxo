@@ -77,6 +77,16 @@ function doPost(e) {
       return jsonResponse(readAudit(Number(payload.limit || 100)));
     }
 
+    if (String(payload.action || '') === 'restoreBackup') {
+      const restoreLock = LockService.getScriptLock();
+      restoreLock.waitLock(30000);
+      try {
+        return jsonResponse(restoreLatestBackup(payload));
+      } finally {
+        restoreLock.releaseLock();
+      }
+    }
+
     // Fecha automatica: cada publish() en admin.js llama esta accion aparte
     // despues de publicar, para que "Ultima actualizacion" en la portada
     // (index.html) ya no dependa de que alguien la edite a mano en la hoja
@@ -152,11 +162,13 @@ function doPost(e) {
 
 function backupCurrentSheet(ss, sourceSheet, targetSheet) {
   if (!sourceSheet || sourceSheet.getLastRow() < 1 || sourceSheet.getLastColumn() < 1) return '';
+  return saveSnapshot(ss, targetSheet, sourceSheet.getDataRange().getValues());
+}
+
+function saveSnapshot(ss, targetSheet, values) {
   const backupName = (BACKUP_PREFIX + targetSheet).slice(0, 99);
   let backup = ss.getSheetByName(backupName);
   if (!backup) backup = ss.insertSheet(backupName);
-
-  const values = sourceSheet.getDataRange().getValues();
   const requiredRows = values.length + 2;
   const requiredCols = Math.max(values[0].length, 4);
   if (backup.getMaxRows() < requiredRows) backup.insertRowsAfter(backup.getMaxRows(), requiredRows - backup.getMaxRows());
@@ -167,6 +179,51 @@ function backupCurrentSheet(ss, sourceSheet, targetSheet) {
   backup.hideSheet();
   SpreadsheetApp.flush();
   return backupName;
+}
+
+function writeSnapshot(sheet, values) {
+  if (!values.length || !values[0].length) throw new Error('El respaldo esta vacio');
+  const previousRows = sheet.getMaxRows();
+  const previousCols = sheet.getMaxColumns();
+  const rows = values.length;
+  const columns = values[0].length;
+  if (previousRows < rows) sheet.insertRowsAfter(previousRows, rows - previousRows);
+  if (previousCols < columns) sheet.insertColumnsAfter(previousCols, columns - previousCols);
+  sheet.getRange(1, 1, rows, columns).setValues(values);
+  if (previousRows > rows) sheet.getRange(rows + 1, 1, previousRows - rows, Math.max(previousCols, columns)).clearContent();
+  if (previousCols > columns) sheet.getRange(1, columns + 1, rows, previousCols - columns).clearContent();
+  SpreadsheetApp.flush();
+}
+
+function restoreLatestBackup(payload) {
+  const targetSheet = String(payload.targetSheet || '').trim();
+  const requestedBackup = String(payload.backupSheet || '').trim();
+  if (!targetSheet) throw new Error('targetSheet requerido');
+  if (ALLOWED_SHEETS.indexOf(targetSheet) === -1) throw new Error('targetSheet no permitido: ' + targetSheet);
+  const expectedBackup = (BACKUP_PREFIX + targetSheet).slice(0, 99);
+  if (requestedBackup && requestedBackup !== expectedBackup) throw new Error('El respaldo no corresponde a la hoja seleccionada');
+
+  const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  const target = ss.getSheetByName(targetSheet);
+  const backup = ss.getSheetByName(expectedBackup);
+  if (!target) throw new Error('Hoja destino no encontrada: ' + targetSheet);
+  if (!backup || backup.getLastRow() < 3) throw new Error('No existe un respaldo disponible para ' + targetSheet);
+
+  const backupValues = backup.getRange(3, 1, backup.getLastRow() - 2, backup.getLastColumn()).getValues();
+  const currentValues = target.getDataRange().getValues();
+  writeSnapshot(target, backupValues);
+  saveSnapshot(ss, targetSheet, currentValues); // el estado previo queda listo para deshacer la restauracion
+  target.setFrozenRows(Math.min(2, target.getLastRow()));
+
+  const dataRows = Math.max(0, backupValues.length - 2);
+  const result = { mode: 'restoreBackup', rows: dataRows, keptRows: 0, columns: backupValues[0].length };
+  appendAudit(ss, {
+    targetSheet: targetSheet,
+    source: 'Restauracion desde Panel Admin',
+    sourceFile: expectedBackup,
+    adminUser: String(payload.adminUser || 'Administrador')
+  }, result, 'Restaurada', '', expectedBackup);
+  return { ok: true, restored: true, targetSheet: targetSheet, rows: dataRows, backupSheet: expectedBackup, reversible: true };
 }
 
 function appendAudit(ss, payload, result, status, message, backupName) {
