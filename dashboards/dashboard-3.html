@@ -3,7 +3,7 @@
 <head>
   <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
   <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
-  <script defer src="../js/site-lock.js?v=2"></script>
+  <script defer src="../js/site-lock.js?v=20260820b"></script>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Aprovechamiento de Estructura · Dashboards Ats</title>
@@ -565,7 +565,9 @@
 
   <link rel="stylesheet" href="../css/floating-filter-layout.css?v=2" />
   <link rel="stylesheet" href="../css/rh-dashboard-refresh.css?v=20260820c" />
+  <link rel="stylesheet" href="../css/rh-table-tools.css?v=20260820b" />
   <script defer src="../js/rh-dashboard-enhancements.js?v=20260820b"></script>
+  <script defer src="../js/rh-table-tools.js?v=20260820b"></script>
 </head>
 <body class="hr-dashboard">
 
@@ -1667,7 +1669,7 @@ function renderDetalle(asesorSel, estatusSel){
 
   const ncols = hasAsesor ? 8 : 7;
   document.getElementById('tabla-detalle').innerHTML = `
-    <div class="tbl-wrap"><table class="tbl" id="tbl-detalle">
+    <div class="tbl-wrap"><table class="tbl" id="tbl-detalle" data-rh-tools data-rh-search="false" data-rh-sort="false" data-rh-page-size="15">
       <thead><tr>
         <th style="${thS}" data-sort="tienda">Tienda${arrowD('tienda')}</th>
         ${hasAsesor?`<th style="${thS}" data-sort="asesor">Asesor${arrowD('asesor')}</th>`:''}

@@ -3,7 +3,7 @@
 <head>
   <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
   <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
-  <script defer src="../js/site-lock.js?v=3"></script>
+  <script defer src="../js/site-lock.js?v=20260820b"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vacantes Diarias · Dashboards Ats</title>
@@ -1377,7 +1377,9 @@
 
   <link rel="stylesheet" href="../css/floating-filter-layout.css?v=2" />
   <link rel="stylesheet" href="../css/rh-dashboard-refresh.css?v=20260820c" />
+  <link rel="stylesheet" href="../css/rh-table-tools.css?v=20260820b" />
   <script defer src="../js/rh-dashboard-enhancements.js?v=20260820b"></script>
+  <script defer src="../js/rh-table-tools.js?v=20260820b"></script>
 </head>
 <body class="dashboard-1-page hr-dashboard">
 
@@ -2110,7 +2112,7 @@ function renderTabla(filtered=filtrarDatos()){
     </tr>`;
   }).join('');
 
-  el.innerHTML=`<div class="tbl-wrap"><table class="tbl">
+  el.innerHTML=`<div class="tbl-wrap"><table class="tbl" data-rh-tools data-rh-sort="false" data-rh-page-size="15">
     <thead><tr>
       <th data-col="asesor">Asesor</th>
       <th data-col="tienda">Tienda</th>
@@ -2188,7 +2190,7 @@ function renderVacantesPorAsesorDias(allData){
   }).join('');
   const promTotal = total.count ? (total.sumDias/total.count).toFixed(1) : '0.0';
 
-  el.innerHTML = `<div class="tbl-wrap"><table class="tbl">
+  el.innerHTML = `<div class="tbl-wrap"><table class="tbl" data-rh-tools data-rh-page-size="15">
     <thead><tr>
       <th>Asesor</th>
       <th style="text-align:center">Posiciones vacantes</th>
