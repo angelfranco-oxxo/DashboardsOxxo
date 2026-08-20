@@ -273,21 +273,6 @@
   }
   .smart-filter__label{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .smart-filter__chev{ color:#8f3737; flex:0 0 auto; font-size:12px; }
-  .tienda-search-control{
-    width:100%; min-height:46px; box-sizing:border-box;
-    display:flex; align-items:center; gap:9px;
-    border-radius:999px; border:1px solid rgba(255,255,255,.68);
-    padding:0 7px 0 15px;
-    background:linear-gradient(135deg,rgba(255,255,255,.94),rgba(255,236,236,.80));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.82),0 12px 28px rgba(83,6,12,.14);
-    transition:border-color .16s ease,box-shadow .16s ease;
-  }
-  .tienda-search-control:focus-within{border-color:#d91f2d;box-shadow:0 0 0 4px rgba(217,31,45,.10),0 12px 28px rgba(83,6,12,.14)}
-  .tienda-search-control svg{width:17px;height:17px;flex:0 0 17px;fill:none;stroke:#d91f2d;stroke-width:2;stroke-linecap:round}
-  .tienda-search-control input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:#241413;font:800 12px var(--font-body)}
-  .tienda-search-control input::placeholder{color:#604743;opacity:1}
-  .tienda-search-trigger{display:grid;place-items:center;width:32px;height:32px;flex:0 0 32px;border:0;border-radius:50%;background:rgba(217,31,45,.08);color:#8f3737;cursor:pointer;font-size:12px}
-  .tienda-search-trigger:hover{background:#d91f2d;color:#fff}
   /* El menu se ensancha mas alla de su columna: los nombres de tienda
      ("OXXO SAN DIONISIO OAX") no caben en el ancho del boton, y menos
      con el boton "Solo" al lado. Se ancla a la izquierda y se limita al
@@ -1474,12 +1459,12 @@
       <div class="vac-fbox">
         <label>Tienda</label>
         <div class="smart-filter" id="tienda-filter">
-          <div class="tienda-search-control">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
-            <input id="tienda-search" type="search" placeholder="Buscar tienda…" autocomplete="off" aria-label="Buscar tienda" aria-controls="tienda-options" aria-expanded="false">
-            <button class="tienda-search-trigger" type="button" id="tienda-button" aria-label="Mostrar tiendas">▾</button>
-          </div>
+          <button class="smart-filter__button" type="button" id="tienda-button">
+            <span class="smart-filter__label" id="tienda-label">Todas las tiendas</span>
+            <span class="smart-filter__chev">▾</span>
+          </button>
           <div class="smart-filter__menu" id="tienda-menu">
+            <input class="smart-filter__search" id="tienda-search" type="search" placeholder="Buscar tienda..." autocomplete="off">
             <div class="smart-filter__list" id="tienda-options"></div>
           </div>
           <input type="hidden" id="filtro-tienda" value="">
@@ -1947,15 +1932,12 @@ function setSelectedTiendas(values=defaultTiendaSelection()){
 }
 
 function updateTiendaLabel(){
-  const search=document.getElementById('tienda-search');
-  if(!search) return;
-  let summary='Buscar tienda…';
-  if(!selectedTiendaValues.length) summary='Sin tiendas seleccionadas';
-  else if(selectedTiendaValues.length===1) summary=selectedTiendaValues[0];
-  else if(!isDefaultTiendaSelection()) summary=`${selectedTiendaValues.length} tiendas seleccionadas`;
-  search.placeholder=summary;
-  search.title=summary;
-  search.setAttribute('aria-label',`Buscar tienda. Selección actual: ${summary}`);
+  const label=document.getElementById('tienda-label');
+  if(!label) return;
+  if(isDefaultTiendaSelection()) label.textContent='Tiendas operativas';
+  else if(!selectedTiendaValues.length) label.textContent='Sin tiendas';
+  else if(selectedTiendaValues.length===1) label.textContent=selectedTiendaValues[0];
+  else label.textContent=`${selectedTiendaValues.length} tiendas seleccionadas`;
 }
 
 function normalizeSearchText(value){
@@ -2005,11 +1987,7 @@ function fitSmartFilterMenu(box){
 }
 
 function closeSmartFilters(exceptId=''){
-  document.querySelectorAll('.smart-filter.open').forEach(el=>{
-    if(el.id===exceptId) return;
-    el.classList.remove('open');
-    if(el.id==='tienda-filter') document.getElementById('tienda-search')?.setAttribute('aria-expanded','false');
-  });
+  document.querySelectorAll('.smart-filter.open').forEach(el=>{ if(el.id!==exceptId) el.classList.remove('open'); });
 }
 
 function forceKpiLayout(){
@@ -2397,36 +2375,19 @@ function poblarFiltros(){
     const willOpen=!box.classList.contains('open');
     closeSmartFilters(willOpen ? 'tienda-filter' : '');
     box.classList.toggle('open', willOpen);
-    document.getElementById('tienda-search').setAttribute('aria-expanded',String(willOpen));
     if(willOpen) fitSmartFilterMenu(box);
     if(willOpen) setTimeout(()=>document.getElementById('tienda-search').focus(),0);
   });
 
-  document.getElementById('tienda-search').addEventListener('focus', () => {
-    const box=document.getElementById('tienda-filter');
-    closeSmartFilters('tienda-filter');
-    box.classList.add('open');
-    document.getElementById('tienda-search').setAttribute('aria-expanded','true');
-    fitSmartFilterMenu(box);
-  });
-
   document.getElementById('tienda-search').addEventListener('input', e => {
-    const box=document.getElementById('tienda-filter');
-    box.classList.add('open');
-    e.target.setAttribute('aria-expanded','true');
     renderTiendaOptions(e.target.value);
   });
 
   document.getElementById('tienda-options').addEventListener('click', e => {
-    const search=document.getElementById('tienda-search');
-    const box=document.getElementById('tienda-filter');
     const solo=e.target.closest('[data-solo-tienda]');
     if(solo){
       e.stopPropagation();
-      search.value='';
       setSelectedTiendas([solo.dataset.soloTienda]);
-      box.classList.remove('open');
-      search.setAttribute('aria-expanded','false');
       refreshDashboard();
       return;
     }
@@ -2434,14 +2395,6 @@ function poblarFiltros(){
     if(!btn) return;
     e.stopPropagation();
     const value=btn.dataset.tienda || '';
-    if(value && search.value.trim()){
-      search.value='';
-      setSelectedTiendas([value]);
-      box.classList.remove('open');
-      search.setAttribute('aria-expanded','false');
-      refreshDashboard();
-      return;
-    }
     if(!value){
       setSelectedTiendas(defaultTiendaSelection());
     } else {

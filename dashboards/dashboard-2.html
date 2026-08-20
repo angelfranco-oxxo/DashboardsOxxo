@@ -3,7 +3,7 @@
 <head>
   <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
   <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
-  <script defer src="../js/site-lock.js?v=20260820b"></script>
+  <script defer src="../js/site-lock.js?v=20260820c"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bajas Diarias · Dashboards Ats</title>
@@ -92,6 +92,8 @@
     .smart-filter__button:hover{ background:rgba(255,255,255,0.22); border-color:#fff; }
     .smart-filter__label{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .smart-filter__chev{ color:#fff; flex:0 0 auto; font-size:12px; }
+    .smart-filter__button-main{display:flex;align-items:center;gap:8px;min-width:0}
+    .smart-filter__button-main svg{width:16px;height:16px;flex:0 0 16px;fill:none;stroke:#d91f2d;stroke-width:2;stroke-linecap:round}
     .smart-filter__menu{
       position:absolute; left:0; right:0; top:calc(100% + 8px); z-index:60;
       display:none; max-height:330px; overflow:hidden;
@@ -417,14 +419,14 @@
       text-transform: none !important;
       letter-spacing: .02em !important;
     }
-    .bajas-filters {
+    body .bajas-filters {
       position: absolute !important;
       z-index: 45 !important;
       left: 24px !important;
       right: 24px !important;
       bottom: -44px !important;
       display: grid !important;
-      grid-template-columns: minmax(220px, 1.4fr) repeat(4, minmax(132px, 1fr)) minmax(210px, auto) !important;
+      grid-template-columns: repeat(2, minmax(150px, 1.25fr)) repeat(4, minmax(105px, 1fr)) minmax(190px, auto) !important;
       gap: 14px !important;
       align-items: end !important;
       padding: 16px 18px !important;
@@ -463,7 +465,7 @@
       box-shadow: 0 0 0 3px rgba(217,31,45,.08), 0 8px 18px rgba(90,42,24,.08) !important;
     }
     .bajas-filters .smart-filter__chev { color: #7d655f !important; }
-    .filter-box--actions { min-width: 210px; }
+    body .bajas-filters .filter-box--actions { min-width: 190px !important; }
     .filter-actions { display: grid; grid-template-columns: 1fr 1.15fr; gap: 10px; align-items: center; }
     .bajas-filters .reset-filters {
       height: 40px !important;
@@ -843,6 +845,28 @@ function renderAsesorOptions(data, cols, query=''){
     }).join('');
   wrap.innerHTML = rows || '<div class="smart-filter__empty">Sin resultados</div>';
 }
+function updateTiendaLabel(){
+  const label = document.getElementById('tienda-label');
+  if(!label) return;
+  label.textContent = FILTER_STATE.tienda ? OXXO.truncate(FILTER_STATE.tienda, 24) : 'Buscar tienda…';
+}
+function renderTiendaOptions(data, cols, query=''){
+  const wrap = document.getElementById('tienda-options');
+  if(!wrap) return;
+  const q = String(query||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const all = uniqueFilterOptions(data, cols, 'tienda');
+  const filtered = all.filter(v => !q || v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q));
+  const rows = [{value:'', label:'Todas las tiendas'}]
+    .concat(filtered.map(value => ({value, label:value})))
+    .map(opt => {
+      const active = opt.value ? FILTER_STATE.tienda === opt.value : !FILTER_STATE.tienda;
+      return `<button type="button" class="smart-filter__option ${active?'is-active':''}" data-tienda="${esc2(opt.value)}">
+        <span class="smart-filter__check"></span>
+        <span>${esc2(opt.label)}</span>
+      </button>`;
+    }).join('');
+  wrap.innerHTML = rows || '<div class="smart-filter__empty">Sin resultados</div>';
+}
 function esc2(value){
   return String(value??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
@@ -871,6 +895,24 @@ function setFilterBar(data, cols){
       </div>
     </div>`;
 
+  const tiendaBox = `
+    <div class="filter-box">
+      <label class="filter-title">Tienda</label>
+      <div class="smart-filter" id="tienda-filter">
+        <button class="smart-filter__button" type="button" id="tienda-button">
+          <span class="smart-filter__button-main">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+            <span class="smart-filter__label" id="tienda-label">Buscar tienda…</span>
+          </span>
+          <span class="smart-filter__chev">▾</span>
+        </button>
+        <div class="smart-filter__menu" id="tienda-menu">
+          <input class="smart-filter__search" id="tienda-search" type="search" placeholder="Escribe el nombre de la tienda..." autocomplete="off">
+          <div class="smart-filter__list" id="tienda-options"></div>
+        </div>
+      </div>
+    </div>`;
+
   const selects = filterDefs.map(([key,title]) => {
     const values = uniqueFilterOptions(data, cols, key);
     const selected = FILTER_STATE[key] || '';
@@ -885,7 +927,7 @@ function setFilterBar(data, cols){
       </div>`;
   }).join('');
 
-  document.getElementById('filter-bar').innerHTML = asesorBox + selects +
+  document.getElementById('filter-bar').innerHTML = asesorBox + tiendaBox + selects +
     `<div class="filter-box filter-box--actions"><label class="filter-title">Acciones</label><div class="filter-actions"><button class="reset-filters" id="reset-filters">✕ Limpiar</button><button class="reset-filters download-filter" type="button" id="download-base">Descargar base</button></div></div>`;
 
   document.querySelectorAll('.filter-select').forEach(select => {
@@ -906,6 +948,7 @@ function setFilterBar(data, cols){
     e.stopPropagation();
     const box = document.getElementById('asesor-filter');
     const willOpen = !box.classList.contains('open');
+    document.getElementById('tienda-filter')?.classList.remove('open');
     box.classList.toggle('open', willOpen);
     if(willOpen) setTimeout(()=>document.getElementById('asesor-search').focus(),0);
   });
@@ -936,10 +979,43 @@ function setFilterBar(data, cols){
     document.querySelectorAll('.bajas-kpis .kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
     renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
   });
+
+  // Buscador de tienda (selección única)
+  updateTiendaLabel();
+  renderTiendaOptions(data, cols);
+  document.getElementById('tienda-button').addEventListener('click', e => {
+    e.stopPropagation();
+    const box = document.getElementById('tienda-filter');
+    const willOpen = !box.classList.contains('open');
+    document.getElementById('asesor-filter')?.classList.remove('open');
+    box.classList.toggle('open', willOpen);
+    if(willOpen) setTimeout(()=>document.getElementById('tienda-search').focus(),0);
+  });
+  document.getElementById('tienda-search').addEventListener('input', e => {
+    renderTiendaOptions(BASE_BAJAS_DATA, BAJAS_COLS, e.target.value);
+  });
+  document.getElementById('tienda-options').addEventListener('click', e => {
+    const btn = e.target.closest('[data-tienda]');
+    if(!btn) return;
+    e.stopPropagation();
+    const value = btn.dataset.tienda || '';
+    if(value) FILTER_STATE.tienda = value;
+    else delete FILTER_STATE.tienda;
+    document.getElementById('tienda-search').value = '';
+    updateTiendaLabel();
+    renderTiendaOptions(BASE_BAJAS_DATA, BAJAS_COLS);
+    document.getElementById('tienda-filter').classList.remove('open');
+    document.querySelectorAll('.bajas-kpis .kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
+    renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
+  });
   if(!_asesorDocClickBound){
     document.addEventListener('click', e => {
       if(!e.target.closest('#asesor-filter')){
         const box = document.getElementById('asesor-filter');
+        if(box) box.classList.remove('open');
+      }
+      if(!e.target.closest('#tienda-filter')){
+        const box = document.getElementById('tienda-filter');
         if(box) box.classList.remove('open');
       }
     });
@@ -1467,6 +1543,8 @@ function renderBajasDashboard(data, cols){
       } else {
         FILTER_STATE = defaultFilterState(BASE_BAJAS_DATA, BAJAS_COLS);
       }
+      updateTiendaLabel();
+      renderTiendaOptions(BASE_BAJAS_DATA, BAJAS_COLS);
       renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
     });
   });
