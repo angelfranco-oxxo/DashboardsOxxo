@@ -58,7 +58,14 @@ window.OXXO_CONFIG = {
   // para publicar el nuevo Dashboard 12 (Enfoque del Lider). Es la primera
   // pestana con historico mensual: se carga con updateMode replacePeriod
   // sobre la columna 'Mes', asi que subir un mes NO borra los anteriores.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbwqi_YJQIUSN54G4rWvB1WLCFr8eCx4-5nuw-UfZJRak61N50n5WUt58qF5y4OWrW5D/exec",
+  // 2026-08-21 (b): implementacion NUEVA (URL /exec distinta a la anterior,
+  // que sigue viva pero sin Dashboard_12_Mensual). Verificado contra la URL
+  // de abajo: doGet responde con las 19 hojas permitidas incluyendo
+  // Dashboard_12_Mensual, y action=readSheet sigue funcionando. Para las
+  // proximas veces, ver "COMO REDESPLEGAR SIN CAMBIAR ESTA URL" arriba: si se
+  // publica una version nueva sobre esta misma implementacion, esta constante
+  // ya no se vuelve a tocar.
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbzx4aTaMIkDnHczWBWu2Vz96bLDUQYo0UYIT4ZQp3BPbD29M_M7ClpXiKxTyOGHQsvS/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
