@@ -11,6 +11,7 @@
     ['dashboard-7.html', 'TREO', 'Semanal'],
     ['dashboard-8.html', 'Capacidades', 'Diario'],
     ['dashboard-12.html', 'Enfoque del Líder', 'Mensual'],
+    ['dashboard-13.html', 'Control de Ausentismo', 'Mensual'],
   ];
 
   const currentFile = location.pathname.split('/').pop() || '';
