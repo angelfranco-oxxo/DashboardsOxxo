@@ -24,8 +24,35 @@
   function dashboard(){return dashboards.find(d=>d.key===$('dashboard-select').value)||dashboards[0];}
   function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
   const {setStatus,renderPreview,toggleManualSection,addPlanRow} = window.OXXO_ADMIN_UI({$,escapeHtml,dashboard});
+  // Valida la contrasena contra el Apps Script (action:'auth') en vez de solo
+  // comprobar que no venga vacia. Antes cualquier texto abria el panel: los
+  // datos nunca estuvieron expuestos (cada escritura revalida la contrasena en
+  // el servidor y una mala era rechazada ahi), pero se podia entrar, subir un
+  // Excel completo y enterarse del rechazo hasta el final.
+  //
+  // FALLA ABIERTA A PROPOSITO: solo se rechaza cuando el servidor responde
+  // explicitamente 'No autorizado'. Cualquier otro error deja pasar igual que
+  // antes, para no dejar a nadie fuera del panel si el Apps Script desplegado
+  // en vivo va atrasado respecto al repo (ya paso varias veces). Casos:
+  //  - Deploy nuevo + contrasena buena -> ok:true, entra.
+  //  - Deploy nuevo + contrasena mala  -> 'No autorizado', se rechaza.
+  //  - Deploy viejo SIN action:'auth'  -> cae al flujo de publicacion, que
+  //    valida la contrasena primero: con una mala responde 'No autorizado'
+  //    (se rechaza igual), y con una buena responde 'targetSheet requerido'
+  //    (no es rechazo de credencial -> entra). Es decir, la validacion
+  //    tambien funciona contra deploys viejos.
+  //  - Sin red / CORS bloqueado -> postAdminPayload no puede leer la
+  //    respuesta (modo compatible), no hay forma de verificar -> entra.
   async function authenticateAdmin(password){
     if(!String(password||'').trim())throw new Error('Ingresa la contrasena.');
+    try{
+      await postAdminPayload({action:'auth',adminPassword:password});
+    }catch(error){
+      if(/no autorizado/i.test(String(error?.message||error||''))){
+        throw new Error('Contrasena incorrecta.');
+      }
+      console.warn('[OXXO] No se pudo verificar la contrasena contra Apps Script; se permite el acceso y la validacion real ocurre al publicar.',error);
+    }
     adminPassword=password;
     return true;
   }
@@ -40,7 +67,6 @@
       if(error)error.textContent='Validando...';
       try{
         await authenticateAdmin(password);
-        adminPassword=password;
         input.value='';
         if(error)error.textContent='';
         lock.classList.add('hidden');
