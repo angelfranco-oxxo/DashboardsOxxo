@@ -212,6 +212,62 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
     return salida;
   }
 
+  // ── Dashboard 13: Control de Ausentismo ─────────────────────────────────
+  // Sabana de incapacidades del IMSS: una fila por folio. El encabezado real
+  // esta en la fila 2 del Excel (la 1 trae los titulos de grupo), findHeaderRow
+  // lo ubica solo por las columnas obligatorias.
+  const PUESTOS_D13={
+    'ayudante de tienda':'Ayudante de tienda','ayudanrte de tienda':'Ayudante de tienda',
+    'encargado turno':'Encargado de turno','encargado turni':'Encargado de turno','encargardo turno':'Encargado de turno',
+    'lider de tienda':'Lider de tienda',
+    'ayudante de tienda cubrecontingencias':'Ayudante cubrecontingencias','ayudante cubrecontingencias':'Ayudante cubrecontingencias'
+  };
+  function planoD13(value){return String(value??'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();}
+  // El Excel trae 11 variantes de puesto por espacios de mas y errores de
+  // captura ("Encargado turni", "Ayudanrte de tienda") que en realidad son 4.
+  function puestoD13(value){
+    const clave=planoD13(value).toLowerCase();
+    if(PUESTOS_D13[clave])return PUESTOS_D13[clave];
+    const limpio=String(value??'').replace(/\s+/g,' ').trim();
+    return limpio?limpio.charAt(0).toUpperCase()+limpio.slice(1).toLowerCase():'';
+  }
+  // Hay celdas de fecha con el cero de Excel (1899-12-30) y textos sueltos:
+  // cualquier cosa fuera de 2015-2035 se descarta en vez de publicarse.
+  function fechaD13(value){
+    const iso=isoDate(parseDate(value));
+    if(!iso)return '';
+    const anio=Number(iso.slice(0,4));
+    return anio>=2015&&anio<=2035?iso:'';
+  }
+  function numeroD13(value){
+    const texto=String(value??'').replace(/[$,%\s]/g,'').trim();
+    if(!texto||texto==='-')return '';
+    const n=Number(texto);
+    return Number.isFinite(n)?n:'';
+  }
+  const MESES_COLS_D13=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  function deriveD13(row){
+    const salida={...row};
+    salida.Folio=String(row.Folio||'').replace(/\s+/g,' ').trim();
+    salida['No Empleado']=String(row['No Empleado']||'').trim().replace(/\.0$/,'');
+    salida.Nombre=String(row.Nombre||'').replace(/\s+/g,' ').trim();
+    salida.Clasificacion=planoD13(row.Clasificacion).toUpperCase();
+    salida.Tipo=String(row.Tipo||'').replace(/\s+/g,' ').trim();
+    salida.Puesto=puestoD13(row.Puesto);
+    salida.Tienda=String(row.Tienda||'').replace(/\s+/g,' ').trim().toUpperCase();
+    salida.CR=String(row.CR||'').trim().toUpperCase();
+    salida.Asesor=String(row.Asesor||'').replace(/\s+/g,' ').trim();
+    // "Femenino" y "femenino" conviven en el origen
+    const genero=String(row.Genero||'').trim();
+    salida.Genero=genero?genero.charAt(0).toUpperCase()+genero.slice(1).toLowerCase():'';
+    ['Fecha Captura','Fecha Inicio','Fecha Termino','Fecha Ingreso','Fecha Accidente']
+      .forEach(col=>{salida[col]=fechaD13(row[col]);});
+    ['Dias','Dias Acumulados','Antiguedad'].forEach(col=>{salida[col]=numeroD13(row[col]);});
+    MESES_COLS_D13.forEach(m=>{salida['D '+m]=numeroD13(row['D '+m]);});
+    salida.Plaza='OXXO OAXACA';
+    return salida;
+  }
+
   return [
     {key:'d1',label:'Dashboard 1 - Vacantes diarias',tab:OXXO.SHEETS_CONFIG.TABS.d1,periodColumn:'Mes',preferredSheets:['Estructura','Dashboard_1_Diario'],output:['Plaza','Asesor','Unidad org','CR TIENDA','ID posiciones','Descripcion de Posicion','Status ocupacion','Empleados','Fecha','Dias Vacantes','Mes'],required:['Plaza','Asesor','Unidad org','ID posiciones','Descripcion de Posicion','Status ocupacion'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD1,notes:'Estructura cruda. Mes se toma del nombre del archivo; Dias Vacantes se deriva del texto vacante si no viene en el archivo. Se publican TODAS las posiciones (no solo vacantes) para que TREO calcule SAP/Activos por tienda; Dashboard 1 filtra por su cuenta las que son vacante (Status/Empleados vacio).'},
     {key:'d2',label:'Dashboard 2 - Bajas diarias',tab:OXXO.SHEETS_CONFIG.TABS.d2,periodColumn:'Mes',preferredSheets:['Bajas'],output:['Plaza','Asesor','Nombre del empleado','No Personal','Fecha','Mes','Semana','Temporalidad','Rot_Temp','Puesto','Tienda','Motivo','Detalle','Edad','Genero'],required:['Plaza','Asesor','Nombre del empleado','Fecha','Semana','Temporalidad','Rot_Temp','Puesto','Tienda'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD2,notes:'Base principal de bajas. Mes se toma del nombre del archivo si trae fecha; si no, se calcula con F. Validez/Fecha.'},
@@ -244,6 +300,7 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
     {key:'d10',label:'Dashboard 10 - Personal FLEX',tab:OXXO.SHEETS_CONFIG.TABS.d10,preferredSheets:['Sheet 1','Hoja1'],output:['Tienda','Zona','Region','Plaza','Asesor','Fecha','COLABORADORESFLEX_NUM'],required:['Tienda','Asesor','Fecha'],filter:r=>containsOaxaca(r.Plaza),derive:r=>r,notes:'Numero de colaboradores FLEX por tienda (foto). Cada carga reemplaza toda la pestana. Fecha llega como texto en espanol (ej. "9 de agosto de 2026"), no requiere parseo.'},
     {key:'d11',label:'Dashboard 11 - Registro y Apego a Horario',tab:OXXO.SHEETS_CONFIG.TABS.d11,preferredSheets:['Sheet 1','Hoja1'],output:['Tienda','Zona','Region','Plaza','Asesor','Fecha','% Cumpl Reg Entradas','% Cumpl Reg Salidas','% Cumpl Reg Total','% Edicion Registros','% Anadidos','% Sin Editar','% Apego Ejecutado','% Apego Publicado'],required:['Tienda','Asesor','Fecha'],filter:r=>containsOaxaca(r.Plaza),derive:r=>r,notes:'Cumplimiento de registro de entrada/salida y apego a horario (checador), por asesor. Foto semanal: cada carga reemplaza toda la pestana. Fecha llega como texto en espanol, no requiere parseo. Las columnas de % vienen como fraccion 0-1 (1 = 100%).'},
     {key:'m12',label:'Dashboard 12 - Enfoque del Lider',tab:OXXO.SHEETS_CONFIG.TABS.m12,periodColumn:'Mes',preferredSheets:['Hoja1','Sheet1'],output:['Mes','Zona','Region','Plaza','CR Plaza','CR Tienda','Tienda','Asesor','Lider','No Empleado','Tipo Lider','Meses Ops','Faltante Inventario','Faltante Inventario %','Faltante Efectivo','Plantilla Completa','MEP PP','Venta Lealtad','Evaluacion Operativa','Est Faltante Inv','Est Faltante Efectivo','Est Ingreso','Est Equipo Completo','Est MEP PP','Est Equipo','Est Venta Lealtad','Est Evaluacion Op','Est Cliente','Etapa Anterior','Etapa Final','Clas Final','Mes Completo','A+ Consecutivos','C Consecutivas','% Var Ventas','Numero de Clientes','% Var Trafico','Ticket Promedio','Venta Neta'],required:['Mes','Plaza','CR Tienda','Tienda','Asesor','Clas Final'],filter:r=>containsOaxaca(r.Plaza)&&Boolean(String(r.Mes||'').trim())&&Boolean(String(r['CR Tienda']||'').trim()),derive:deriveD12,notes:'Reporte Enfoque del Lider (mensual, una fila por tienda por mes). Se publica por periodo sobre la columna Mes: subir el reporte de un mes reemplaza SOLO ese mes y conserva los anteriores, que es lo que alimenta las graficas de 12 meses. El Excel de origen trae \"MEP P.P.\" y \"EVALUACION OPERATIVA\" repetidas (valor numerico y despues su OK/NO OK): la segunda ocurrencia se resuelve por posicion, ver buildSourceMap en normalizers.js. La letra A+/A/B/C/N no se publica porque es un recodificado 1 a 1 de Clas Final; el dashboard la deriva.'},
+    {key:'a13',label:'Dashboard 13 - Control de Ausentismo',tab:OXXO.SHEETS_CONFIG.TABS.a13,periodColumn:'',preferredSheets:['Sábana','Sabana'],output:['Fecha Captura','Folio','No Empleado','Nombre','Clasificacion','Tipo','Fecha Inicio','Fecha Termino','Dias','Dias Acumulados','Puesto','Tienda','CR','Asesor','Genero','Fecha Ingreso','Antiguedad','Documento Entregado','Mecanismo RT','Especificacion Mecanismo','Area Anatomica','Fecha Accidente','Turno Accidente','Lugar Accidente','Calificacion RT IMSS','Dictamen ST7','ST2','Acto o Condicion Insegura','Descripcion ST7','D Ene','D Feb','D Mar','D Abr','D May','D Jun','D Jul','D Ago','D Sep','D Oct','D Nov','D Dic','Plaza'],required:['Nombre','Clasificacion','Tienda','Asesor'],filter:r=>Boolean(String(r.Nombre||'').trim()),derive:deriveD13,notes:'Sabana de incapacidades del IMSS, una fila por folio. Sube la hoja "Sabana" del Control de Ausentismo; cada carga reemplaza toda la pestana. NO se publican telefono, diagnosticos ni los resumenes de caso de la hoja Cronicos: son datos de salud y la hoja de Google es legible por cualquiera con el link. El filtro conserva las filas sin folio a proposito, porque el registro de Fatalidad no trae uno.'},
     {key:'inventories',label:'Administrativo - Inventarios',tab:OXXO.SHEETS_CONFIG.TABS.inventories,periodColumn:'Periodo',preferredSheets:['Resultado de Inventario'],output:['Periodo','#','CR','Tienda','Plaza','Asesor Comercial','Fecha de Inventario Anterior','Fecha de Inventario','# Días de Inventario','Resultado de Inventario','Resultado del Mes Actual','Diferencias','Ventas sin TAE del mes','% Merma / Vta sin TAE del Mes','Tipo Inventario','Resultado Inventarios Mayo','Resultado Inventarios Junio','Resultado Inventarios Julio','Resultado de Merma  (Final c/s proyectos)','Ventas Mayo','Ventas Junio','Ventas Julio','SUMA TOTAL VTA S/TAE','% Merma / Vta sin TAE (Final c/s proyectos)','Observaciones'],required:['CR','Tienda','Plaza','Asesor Comercial','Fecha de Inventario','Resultado de Inventario','Ventas sin TAE del mes'],filter:r=>containsOaxaca(r.Plaza),derive:deriveInventories,notes:'Resultados de Inventario Administrativo. Detecta la hoja "Resultado de Inventario", genera Periodo como AAAA-MM desde el mes y ano del archivo (o desde la fecha del inventario como respaldo) y reemplaza solo el mes cargado, conservando los demas periodos.'}
   ];
 };

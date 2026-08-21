@@ -29,6 +29,7 @@
     { area: 'RH', name: 'Personal FLEX', tab: tabs().d10, cadence: 'weekly', required: [['tienda'], ['asesor'], ['fecha']], dates: ['Fecha'] },
     { area: 'RH', name: 'Registro y Apego', tab: tabs().d11, cadence: 'weekly', required: [['tienda'], ['asesor'], ['fecha']], dates: ['Fecha'] },
     { area: 'RH', name: 'Enfoque del Lider', tab: tabs().m12, cadence: 'monthly', required: [['tienda'], ['asesor'], ['mes']], dates: ['Mes'] },
+    { area: 'RH', name: 'Control de Ausentismo', tab: tabs().a13, cadence: 'monthly', required: [['tienda'], ['nombre'], ['clasificacion']], dates: ['Fecha Captura', 'Fecha Inicio'] },
     { area: 'Administrativo', name: 'Faltantes y Sobrantes', tab: tabs().s9, cadence: 'weekly', required: [['cr'], ['fecha'], ['importe']], dates: ['Fecha'] },
     { area: 'Administrativo', name: 'Inventarios', tab: tabs().inventories, cadence: 'monthly', required: [['cr'], ['tienda'], ['fecha de inventario']], dates: ['Fecha de Inventario', 'Periodo'] },
     { area: 'Comercial', name: 'PromosD100', tab: tabs().promos, cadence: 'snapshot', required: [['titulo', 'promocion'], ['imagen', 'imagen url', 'url']], dates: ['Fecha fin', 'Fin', 'Vigencia hasta'] },

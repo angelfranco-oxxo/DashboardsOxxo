@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
+  <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
+  <script defer src="../js/site-lock.js?v=20260820d"></script>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Control de Ausentismo · Dashboards Ats</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <link rel="icon" type="image/png" href="../assets/favicon.png"/>
+  <link rel="apple-touch-icon" href="../assets/favicon.png"/>
+  <link rel="stylesheet" href="../css/global.css?v=20260820f"/>
+  <link rel="stylesheet" href="../css/mascota-chat.css?v=20260818a" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+.page{max-width:1500px;margin:0 auto;padding:18px 20px 36px}
+.hero-download-link{ text-decoration:none !important; cursor:pointer; }
+
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.card{background:var(--color-surface);border-radius:14px;padding:20px;box-shadow:var(--shadow-card)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-border)}
+.card-title{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--color-dark)}
+.card-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--color-bg);color:var(--color-gray)}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.row2-wide{display:grid;grid-template-columns:1.35fr 0.65fr;gap:14px;margin-bottom:16px}
+.chart-wrap{position:relative}
+.chart-md{height:280px}
+.chart-lg{height:320px}
+
+.tbl-wrap{overflow-x:auto;max-height:460px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#FF6B00 rgba(0,0,0,.06)}
+.tbl-wrap::-webkit-scrollbar{width:5px;height:5px}
+.tbl-wrap::-webkit-scrollbar-thumb{background:#FF6B00;border-radius:3px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl thead th{position:sticky;top:0;z-index:2;background:#2D2D44;color:#fff;padding:9px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;white-space:nowrap;border-right:1px solid rgba(255,255,255,.1)}
+.tbl thead th:last-child{border-right:none}
+.tbl tbody tr{border-bottom:1px solid var(--color-border)}
+.tbl tbody tr:hover{background:var(--color-bg);cursor:pointer}
+.tbl tbody td{padding:8px 12px;color:var(--color-dark);vertical-align:middle}
+.tbl td.center{text-align:center}
+
+#tabla-asesor tbody tr.is-selected{background:rgba(247,25,38,.14);box-shadow:inset 5px 0 0 var(--color-red),inset 0 0 0 2px rgba(247,25,38,.38)}
+#tabla-asesor tbody tr.is-selected td{font-weight:800}
+.detalle-head-tools{display:flex;align-items:center;flex-wrap:wrap;gap:0}
+.lid-clear{display:none;align-items:center;gap:6px;margin-left:8px;padding:3px 10px;border:1px solid var(--color-red);border-radius:20px;background:var(--color-surface);color:var(--color-red);font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:.02em;cursor:pointer}
+.lid-clear.show{display:inline-flex}
+.lid-clear:hover{background:var(--color-red);color:#fff}
+
+/* Etiqueta de etapa */
+.etapa{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:.02em;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.etapa i{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.etapa.e-dcien{background:#e8f8f0;color:#138c3e}
+.etapa.e-cliente{background:#e6f0fb;color:#0a4f9c}
+.etapa.e-equipo{background:#fff0e3;color:#B45309}
+.etapa.e-ingreso{background:#fdeaea;color:#C0393B}
+.etapa.e-nuevo{background:#f2ecfd;color:#6D31C7}
+.etapa.e-na{background:#f0f0f0;color:#999}
+
+/* Calificación y semáforos */
+.calif{display:inline-flex;align-items:center;justify-content:center;min-width:30px;font-family:var(--font-display);font-weight:800;font-size:11px;padding:2px 7px;border-radius:7px}
+.calif.c-ap{background:#d8f5e5;color:#0f7a37}
+.calif.c-a{background:#e8f8f0;color:#138c3e}
+.calif.c-b{background:#fff4d6;color:#B8860B}
+.calif.c-c{background:#fdeaea;color:#C0393B}
+.calif.c-n{background:#f0f0f0;color:#888}
+.pilar{display:inline-block;width:11px;height:11px;border-radius:50%}
+.pilar.ok{background:#1DB954}
+.pilar.no{background:#D92B2B}
+.pilar.na{background:#d8d8d8}
+.mov{font-family:var(--font-display);font-weight:800;font-size:11px}
+.mov.up{color:#138c3e}
+.mov.down{color:#C0393B}
+.mov.same{color:#b0a49f}
+.kpi-card__value .mov-up{color:#138c3e !important}
+.kpi-card__value .mov-down{color:#C0393B !important}
+
+.leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--color-gray);margin-top:10px}
+.leyenda span{display:inline-flex;align-items:center;gap:5px}
+.leyenda i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px 20px;color:var(--color-gray);text-align:center}
+.spinner{width:32px;height:32px;border:3px solid var(--color-border);border-top-color:var(--color-yellow);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Modal */
+.am-overlay{position:fixed;inset:0;background:rgba(20,10,10,.55);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.am-overlay.open{display:flex}
+.am-dialog{background:var(--color-surface);border-radius:16px;max-width:720px;width:100%;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.am-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--color-border)}
+.am-head h3{font-family:var(--font-display);font-size:1.05rem;margin:0}
+.am-head__sub{display:block;font-size:11px;font-weight:600;color:var(--color-gray);margin-top:3px;text-transform:none;letter-spacing:0}
+.am-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--color-gray);line-height:1}
+.am-body{padding:18px 22px;overflow-y:auto}
+.am-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.am-kpi{background:var(--color-bg);border-radius:10px;padding:12px;text-align:center}
+.am-kpi b{display:block;font-family:var(--font-display);font-size:1.3rem}
+.am-kpi span{font-size:10px;color:var(--color-gray);text-transform:uppercase;letter-spacing:.06em}
+.am-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.am-chip{display:inline-flex;flex-direction:column;gap:2px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:10px;padding:7px 12px;min-width:0}
+.am-chip span{font-family:var(--font-display);font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-gray)}
+.am-chip b{font-size:12px;font-weight:700;color:var(--color-dark);word-break:break-word}
+
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.row2,.row2-wide{grid-template-columns:1fr}}
+@media(max-width:600px){.kpis{grid-template-columns:1fr !important}.row2,.row2-wide{grid-template-columns:1fr}.chart-md{height:220px}.chart-lg{height:250px}}
+</style>
+<link rel="stylesheet" href="../css/dashboard-skin.css"/>
+<style id="d13-propios">
+/* Rejilla del bloque de riesgos de trabajo: 4 graficas pequenas juntas */
+.rt-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px 22px}
+.rt-title{font-family:var(--font-display);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--color-gray);margin-bottom:8px}
+.etapa.e-fatal{background:#2D2D44;color:#fff}
+.cm-rt-box{border-top:1px solid var(--color-border);margin-top:4px}
+.cm-rt-item{padding:10px 0;border-bottom:1px dashed var(--color-border)}
+.cm-rt-item:last-child{border-bottom:none}
+.cm-rt-nota{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-red);margin-bottom:6px}
+.cm-rt-desc{margin:0;font-size:12px;line-height:1.5;color:var(--color-dark);background:var(--color-bg);border-radius:10px;padding:10px 12px}
+#rt-docs b{font-family:var(--font-display);font-size:14px;color:var(--color-dark)}
+@media(max-width:900px){.rt-grid{grid-template-columns:1fr}}
+</style>
+<style id="d13-extras">
+.hero{flex-direction:column !important;align-items:stretch !important;gap:18px}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px 16px;align-items:end}
+.vac-fbox{display:flex;flex-direction:column;gap:6px;min-width:0}
+.vac-fbox > label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.85)}
+.hero .filtro-select,.hero .filtro-btn{
+  width:100%;box-sizing:border-box;
+  background:rgba(255,255,255,0.78) !important;
+  border:1px solid var(--exec-line-strong,rgba(42,27,25,0.2)) !important;
+  color:var(--exec-ink,#181112) !important;
+  -webkit-text-fill-color:var(--exec-ink,#181112) !important;
+  font-weight:700;border-radius:999px !important;padding:10px 16px !important;
+  transition:background .2s,color .2s,border-color .2s;
+}
+.hero .filtro-select:focus{outline:none;border-color:#fff !important}
+.hero .filtro-select option{color:#1a1a1a;background:#fff}
+.hero .filtro-btn:hover{background:#fff !important;color:var(--hb-red) !important;border-color:#fff !important}
+.hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
+</style>
+<link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
+  <link rel="stylesheet" href="../css/floating-filter-layout.css?v=2" />
+  <link rel="stylesheet" href="../css/rh-dashboard-refresh.css?v=20260820c" />
+  <link rel="stylesheet" href="../css/rh-table-tools.css?v=20260820b" />
+  <link rel="stylesheet" href="../css/rh-filter-summary.css?v=20260820a" />
+  <script defer src="../js/rh-dashboard-enhancements.js?v=20260821a"></script>
+  <script defer src="../js/rh-table-tools.js?v=20260820b"></script>
+  <script defer src="../js/rh-filter-summary.js?v=20260820b"></script>
+</head>
+<body class="hr-dashboard">
+<nav class="topbar">
+  <div class="topbar__brand">
+    <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+    <div>
+      <div class="topbar__title">Dashboards Ats</div>
+      <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
+    </div>
+  </div>
+  <div class="topbar__meta">
+    <a href="../index.html" class="topbar__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="hero hero--blue">
+    <div class="hero-top">
+      <div>
+        <h1>Control de Ausentismo</h1>
+        <p>Incapacidades del IMSS, días perdidos y análisis de riesgos de trabajo · Plaza Oaxaca</p>
+      </div>
+      <span class="hero-badge" id="corte-badge">⟳ Control de Ausentismo · Plaza Oaxaca</span>
+      <span id="hero-download" style="display:none"></span>
+    </div>
+    <div class="vac-filters">
+      <div class="vac-fbox"><label>Asesor</label><div id="filtro-asesor"></div></div>
+      <div class="vac-fbox">
+        <label>Clasificación</label>
+        <select class="filtro-select" id="filtro-clas" onchange="applyFilters()"><option value="">Todas</option></select>
+      </div>
+      <div class="vac-fbox">
+        <label>Puesto</label>
+        <select class="filtro-select" id="filtro-puesto" onchange="applyFilters()"><option value="">Todos</option></select>
+      </div>
+      <div class="vac-fbox"><label>&nbsp;</label><button class="filtro-btn" onclick="limpiarFiltros()">Limpiar filtros</button></div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpi-section">
+    <div class="kpi-card"><div class="state-box"><div class="spinner"></div></div></div>
+  </div>
+
+  <div class="row2-wide">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Días perdidos por mes<span class="info-tip" tabindex="0" data-tip="Días de incapacidad repartidos en el mes en que caen, no en el mes de captura: una incapacidad que cruza de un mes a otro suma en los dos. Viene de las columnas mensuales del reporte."></span></div>
+        <span class="card-badge" id="badge-meses">—</span>
+      </div>
+      <div class="chart-wrap chart-lg"><canvas id="chart-meses"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>Por clasificación<span class="info-tip" tabindex="0" data-tip="EG = Enfermedad General · RT = Riesgo de Trabajo · RTY = Riesgo de Trabajo en Trayecto · más Maternidad y Fatalidad."></span></div>
+        <span class="card-badge" id="badge-clas">—</span>
+      </div>
+      <div class="chart-wrap chart-lg"><canvas id="chart-clas"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>Análisis de riesgos de trabajo<span class="info-tip" tabindex="0" data-tip="Solo los folios clasificados como RT o RTY. Sirve para ubicar dónde y cómo se están accidentando, y qué documentación falta."></span></div>
+      <span class="card-badge" id="badge-rt">— folios RT</span>
+    </div>
+    <div class="rt-grid">
+      <div><div class="rt-title">Mecanismo</div><div class="chart-wrap chart-md"><canvas id="chart-mecanismo"></canvas></div></div>
+      <div><div class="rt-title">Área anatómica</div><div class="chart-wrap chart-md"><canvas id="chart-area"></canvas></div></div>
+      <div><div class="rt-title">Lugar</div><div class="chart-wrap chart-md"><canvas id="chart-lugar"></canvas></div></div>
+      <div><div class="rt-title">Turno</div><div class="chart-wrap chart-md"><canvas id="chart-turno"></canvas></div></div>
+    </div>
+    <div class="leyenda" id="rt-docs"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Ausentismo por Asesor<span class="info-tip" tabindex="0" data-tip="Folios, días perdidos y colaboradores afectados por asesor. Clic en una fila para filtrar el detalle de abajo."></span></div>
+      <span class="card-badge" id="asesor-badge">— asesores</span>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl" id="tabla-asesor" data-rh-tools data-rh-page-size="15">
+        <thead><tr>
+          <th>Asesor</th><th class="center">Folios</th><th class="center">Días</th><th class="center">Colab.</th>
+          <th class="center">Tiendas</th><th class="center">RT + RTY</th><th class="center">Días / colab.</th>
+        </tr></thead>
+        <tbody><tr><td colspan="7"><div class="state-box"><div class="spinner"></div></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Detalle por Folio<span class="info-tip" tabindex="0" data-tip="Un renglón por incapacidad. Clic en una fila para ver la ficha del colaborador con todas sus incapacidades."></span></div>
+      <div class="detalle-head-tools">
+        <span class="card-badge" id="row-count">— folios</span>
+        <button type="button" class="lid-clear" id="detalle-clear" onclick="clearAsesorDetalle()"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span>Quitar filtro</span></button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl" id="tabla-detalle" data-rh-tools data-rh-page-size="25">
+        <tbody><tr><td colspan="10"><div class="state-box"><div class="spinner"></div></div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="leyenda">
+      <span><i style="background:#0066CC"></i> EG · Enfermedad General</span>
+      <span><i style="background:#D92B2B"></i> RT · Riesgo de Trabajo</span>
+      <span><i style="background:#FF6B00"></i> RTY · RT en Trayecto</span>
+      <span><i style="background:#8B4CF7"></i> Maternidad</span>
+      <span><i style="background:#2D2D44"></i> Fatalidad</span>
+    </div>
+  </div>
+
+  <div class="dash-footer">
+    <div class="dash-footer__update"><div class="dash-footer__update-dot"></div>
+      Datos cargados: <span id="load-time">—</span></div>
+    <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
+  </div>
+</div>
+
+<!-- Modal ficha del colaborador -->
+<div class="am-overlay" id="colab-modal" onclick="if(event.target===this)closeColabModal()">
+  <div class="am-dialog">
+    <div class="am-head">
+      <h3 id="cm-title">Colaborador<small class="am-head__sub"></small></h3>
+      <button class="am-close" onclick="closeColabModal()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="am-body">
+      <div class="am-kpis" id="cm-kpis"></div>
+      <div class="am-chips" id="cm-chips"></div>
+      <div class="tbl-wrap" style="max-height:300px">
+        <table class="tbl" id="cm-table">
+          <thead><tr><th>Folio</th><th>Clasif.</th><th>Tipo</th><th>Inicio</th><th>Término</th><th class="center">Días</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="cm-rt"></div>
+    </div>
+  </div>
+</div>
+
+  <script src="../js/config.js?v=20260821b"></script>
+  <script src="../js/core.js?v=20260820f"></script>
+<script src="../js/mascota-chat.js?v=20260805d"></script>
+<script>
+const TAB = OXXO.SHEETS_CONFIG.TABS.a13;
+
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const CLAS = ['EG','RT','RTY','MATERNIDAD','FATALIDAD'];
+const CLAS_COLOR = {EG:'#0066CC', RT:'#D92B2B', RTY:'#FF6B00', MATERNIDAD:'#8B4CF7', FATALIDAD:'#2D2D44'};
+const CLAS_CLASE = {EG:'e-cliente', RT:'e-ingreso', RTY:'e-equipo', MATERNIDAD:'e-nuevo', FATALIDAD:'e-fatal'};
+const CLAS_LARGO = {EG:'Enfermedad General', RT:'Riesgo de Trabajo', RTY:'RT en Trayecto', MATERNIDAD:'Maternidad', FATALIDAD:'Fatalidad'};
+// RT y RTY son los dos que entran al analisis de seguridad; el resto no lo hace.
+const ES_RT = (c) => c === 'RT' || c === 'RTY';
+
+const ALIASES_D13 = {
+  folio:['Folio'], noEmp:['No Empleado','Número de Empleado (SOLO PROPIOS)'], nombre:['Nombre'],
+  clas:['Clasificacion','Clasificación'], tipo:['Tipo'],
+  fIni:['Fecha Inicio','Fecha de Inicio'], fFin:['Fecha Termino','Fecha de Termino'],
+  fCap:['Fecha Captura','Fecha de Captura'],
+  dias:['Dias','Días'], acum:['Dias Acumulados','Días acumulados x persona'],
+  puesto:['Puesto'], tienda:['Tienda'], cr:['CR'], asesor:['Asesor'], genero:['Genero','Género de Nac'],
+  ingreso:['Fecha Ingreso'], antig:['Antiguedad','Antigüedad'], doc:['Documento Entregado'],
+  mec:['Mecanismo RT'], espMec:['Especificacion Mecanismo'], area:['Area Anatomica'],
+  fAcc:['Fecha Accidente'], turno:['Turno Accidente'], lugar:['Lugar Accidente'],
+  califRT:['Calificacion RT IMSS'], st7:['Dictamen ST7'], st2:['ST2'],
+  acto:['Acto o Condicion Insegura'], desc:['Descripcion ST7'], plaza:['Plaza'],
+};
+let C = {};
+function buildColsD13(sample){
+  const cols = {};
+  Object.entries(ALIASES_D13).forEach(([k,a]) => { cols[k] = OXXO.metricsFindKey(sample, a) || a[0]; });
+  MESES.forEach(m => { cols['m'+m] = OXXO.metricsFindKey(sample, ['D '+m, 'Dias '+m, m]) || ('D '+m); });
+  return cols;
+}
+
+let BASE = [];
+let SELECTED_ASESORES = null, asesorFilterHandle = null;
+let DETALLE_ASESOR = null, DETALLE_FILAS = [];
+let POR_COLAB = {};
+let chartMeses=null, chartClas=null, chartMec=null, chartArea=null, chartLugar=null, chartTurno=null;
+
+const val = (r,k) => String(r?.[k] ?? '').trim();
+const nDias = (r) => { const n = OXXO.metricsNum(r[C.dias]); return Number.isFinite(n) ? n : 0; };
+const claveColab = (r) => val(r, C.noEmp) || val(r, C.nombre).toUpperCase();
+function fechaCorta(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||'').trim());
+  return m ? `${m[3]}/${m[2]}/${m[1].slice(2)}` : '—';
+}
+function clasHtml(c){
+  const k = String(c||'').toUpperCase();
+  return `<span class="etapa ${CLAS_CLASE[k]||'e-na'}"><i style="background:${CLAS_COLOR[k]||'#bbb'}"></i>${OXXO.escHtml(k||'—')}</span>`;
+}
+
+function filteredData(){
+  let d = BASE;
+  const cl = document.getElementById('filtro-clas')?.value;
+  const pu = document.getElementById('filtro-puesto')?.value;
+  if(SELECTED_ASESORES) d = d.filter(r => SELECTED_ASESORES.includes(val(r, C.asesor)));
+  if(cl) d = d.filter(r => val(r, C.clas).toUpperCase() === cl);
+  if(pu) d = d.filter(r => val(r, C.puesto) === pu);
+  return d;
+}
+
+function renderAll(){
+  const data = filteredData();
+  const dias = data.reduce((s,r) => s + nDias(r), 0);
+  const colabs = new Set(data.map(claveColab));
+  const porColab = {};
+  data.forEach(r => { const k = claveColab(r); (porColab[k] = porColab[k] || []).push(r); });
+  const reincidentes = Object.values(porColab).filter(l => l.length >= 2).length;
+  const rt = data.filter(r => ES_RT(val(r, C.clas).toUpperCase()));
+  const diasRT = rt.reduce((s,r) => s + nDias(r), 0);
+  const fatal = data.filter(r => val(r, C.clas).toUpperCase() === 'FATALIDAD');
+  const mater = data.filter(r => val(r, C.clas).toUpperCase() === 'MATERNIDAD');
+  const largos = Object.entries(porColab)
+    .map(([k,l]) => ({ k, dias: l.reduce((s,r)=>s+nDias(r),0), n: l.length, nombre: val(l[0], C.nombre) }))
+    .sort((a,b) => b.dias - a.dias);
+  const criticos = largos.filter(p => p.dias >= 60).length;
+  // Falta documentacion cuando el folio es RT/RTY y el ST7 no esta entregado.
+  const sinST7 = rt.filter(r => !/^(fisica|física|digital)$/i.test(val(r, C.st7))).length;
+
+  const kpi = (clase,label,tip,valor,delta,dclase) => `
+    <div class="kpi-card ${clase}">
+      <div class="kpi-card__label">${label}<span class="info-tip" tabindex="0" data-tip="${OXXO.escHtml(tip)}"></span></div>
+      <div class="kpi-card__value">${valor}</div>
+      <div class="kpi-card__delta ${dclase}">${delta}</div>
+    </div>`;
+
+  document.getElementById('kpi-section').innerHTML =
+    kpi('azul','Días perdidos','Suma de la columna Días de todos los folios con los filtros activos.',
+        dias.toLocaleString('es-MX'), `${data.length} folios`, 'neu') +
+    kpi('','Colaboradores afectados','Personas distintas con al menos una incapacidad.',
+        colabs.size, `${reincidentes} con 2 o más folios`, reincidentes ? 'neg' : 'neu') +
+    kpi('rojo','Riesgos de trabajo','Folios clasificados RT (en la tienda) o RTY (en trayecto).',
+        rt.length, `${diasRT.toLocaleString('es-MX')} días perdidos`, 'neg') +
+    kpi(fatal.length ? 'rojo' : '','Fatalidades','Folios con clasificación Fatalidad. Cualquier valor distinto de cero exige seguimiento.',
+        fatal.length, fatal.length ? OXXO.truncate(val(fatal[0], C.tienda), 22) : 'Ninguna', fatal.length ? 'neg' : 'pos') +
+    kpi('amarillo','Casos de 60+ días','Colaboradores cuyos días acumulados en el periodo llegan a 60 o más.',
+        criticos, largos[0] ? `máximo ${largos[0].dias} días` : '—', criticos ? 'neg' : 'neu') +
+    kpi('verde','Maternidad', 'Folios de maternidad. Se separan porque son incapacidades previstas, no ausentismo a gestionar.',
+        mater.length, `${mater.reduce((s,r)=>s+nDias(r),0).toLocaleString('es-MX')} días`, 'neu');
+
+  renderMeses(data); renderClas(data); renderRT(rt, sinST7);
+  renderAsesores(data); renderDetalle(data);
+}
+
+function renderMeses(data){
+  const vals = MESES.map(m => data.reduce((s,r) => {
+    const n = OXXO.metricsNum(r[C['m'+m]]); return s + (Number.isFinite(n) ? n : 0);
+  }, 0));
+  const total = vals.reduce((a,b)=>a+b,0);
+  const pico = vals.indexOf(Math.max(...vals));
+  document.getElementById('badge-meses').textContent = total ? `pico en ${MESES[pico]} · ${vals[pico]} días` : 'Sin datos';
+  if(chartMeses) chartMeses.destroy();
+  chartMeses = new Chart(document.getElementById('chart-meses').getContext('2d'), {
+    type:'bar',
+    data:{ labels:MESES, datasets:[{ data:vals,
+      backgroundColor: vals.map((v,i) => i===pico ? '#D92B2B' : '#FF6B00'),
+      borderRadius:6, borderSkipped:false, barPercentage:.72 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>` ${c.raw} días perdidos`}} },
+      scales:{ x:{border:{display:false},grid:{display:false},ticks:{color:'#5A4037',font:{family:'Barlow',size:11,weight:'800'}}},
+               y:{beginAtZero:true,border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'}}} } },
+  });
+}
+
+function renderClas(data){
+  const cuenta = {};
+  data.forEach(r => { const k = val(r, C.clas).toUpperCase() || '—'; cuenta[k] = (cuenta[k]||0) + 1; });
+  const orden = CLAS.filter(c => cuenta[c]);
+  document.getElementById('badge-clas').textContent = `${orden.length} tipos`;
+  if(chartClas) chartClas.destroy();
+  chartClas = new Chart(document.getElementById('chart-clas').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels: orden.map(c => CLAS_LARGO[c] || c),
+      datasets:[{ data: orden.map(c => cuenta[c]), backgroundColor: orden.map(c => CLAS_COLOR[c]),
+        borderWidth:4, borderColor:'#FFF8EE', borderRadius:8, spacing:3, hoverOffset:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'58%',
+      plugins:{ legend:{position:'right',labels:{color:'#5A4037',usePointStyle:true,pointStyle:'circle',font:{family:'Barlow',size:10,weight:'800'},boxWidth:10}},
+        tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,
+          callbacks:{label:c=>` ${c.raw} folios (${Math.round(c.raw/data.length*100)}%)`}} } },
+  });
+}
+
+function barrasRT(canvasId, actual, filas, key, color){
+  const cuenta = {};
+  filas.forEach(r => { const v = val(r, key); if(v) cuenta[v] = (cuenta[v]||0) + 1; });
+  const orden = Object.entries(cuenta).sort((a,b) => b[1]-a[1]).slice(0,8);
+  if(actual) actual.destroy();
+  if(!orden.length){
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+    return null;
+  }
+  return new Chart(document.getElementById(canvasId).getContext('2d'), {
+    type:'bar',
+    data:{ labels: orden.map(o => OXXO.truncate(o[0], 22)), datasets:[{ data: orden.map(o=>o[1]), backgroundColor: color, borderRadius:999, borderSkipped:false, barPercentage:.7 }] },
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{display:false}, tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:10,cornerRadius:12,displayColors:false,callbacks:{label:c=>` ${c.raw} folios`}} },
+      scales:{ x:{beginAtZero:true,border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{precision:0,color:'#6A5148',font:{family:'Barlow',size:10,weight:'800'}}},
+               y:{border:{display:false},grid:{display:false},ticks:{color:'#5A4037',font:{family:'Barlow',size:10,weight:'800'}}} } },
+  });
+}
+
+function renderRT(rt, sinST7){
+  document.getElementById('badge-rt').textContent = `${rt.length} folios RT + RTY`;
+  chartMec   = barrasRT('chart-mecanismo', chartMec,   rt, C.mec,   '#D92B2B');
+  chartArea  = barrasRT('chart-area',      chartArea,  rt, C.area,  '#FF6B00');
+  chartLugar = barrasRT('chart-lugar',     chartLugar, rt, C.lugar, '#0066CC');
+  chartTurno = barrasRT('chart-turno',     chartTurno, rt, C.turno, '#8B4CF7');
+  const califa = rt.filter(r => /^si/i.test(val(r, C.califRT))).length;
+  document.getElementById('rt-docs').innerHTML = rt.length ? `
+    <span><b>${califa}</b>&nbsp;calificados por el IMSS como riesgo de trabajo</span>
+    <span><b>${rt.length - sinST7}</b>&nbsp;con dictamen ST7 entregado</span>
+    <span style="color:${sinST7 ? 'var(--color-red)' : 'inherit'}"><b>${sinST7}</b>&nbsp;sin ST7 en expediente</span>` : '';
+}
+
+function renderAsesores(data){
+  const porA = {};
+  data.forEach(r => {
+    const a = val(r, C.asesor) || 'Sin Asesor Asignado';
+    if(!porA[a]) porA[a] = { asesor:a, folios:0, dias:0, colabs:new Set(), tiendas:new Set(), rt:0 };
+    const x = porA[a];
+    x.folios++; x.dias += nDias(r);
+    x.colabs.add(claveColab(r)); x.tiendas.add(val(r, C.tienda));
+    if(ES_RT(val(r, C.clas).toUpperCase())) x.rt++;
+  });
+  const filas = Object.values(porA).map(x => ({...x,
+    colabsN:x.colabs.size, tiendasN:x.tiendas.size,
+    porColab: x.colabs.size ? Math.round(x.dias / x.colabs.size) : 0 })).sort((a,b) => b.dias - a.dias);
+  document.getElementById('asesor-badge').textContent = `${filas.length} ${filas.length===1?'asesor':'asesores'}`;
+  document.getElementById('tabla-asesor').querySelector('tbody').innerHTML = filas.length === 0
+    ? '<tr><td colspan="7"><div class="state-box">Sin datos</div></td></tr>'
+    : filas.map(x => {
+        const sel = x.asesor === DETALLE_ASESOR ? ' is-selected' : '';
+        return `<tr class="${sel.trim()}" data-asesor="${OXXO.escHtml(x.asesor)}" onclick="selectAsesorDetalle('${escapeAttr(x.asesor)}')" title="Clic para filtrar el Detalle por Folio">
+          <td>${OXXO.escHtml(OXXO.truncate(x.asesor,28))}</td>
+          <td class="center">${x.folios}</td>
+          <td class="center"><b>${x.dias.toLocaleString('es-MX')}</b></td>
+          <td class="center">${x.colabsN}</td>
+          <td class="center">${x.tiendasN}</td>
+          <td class="center">${x.rt ? `<span class="calif c-c">${x.rt}</span>` : '0'}</td>
+          <td class="center">${x.porColab}</td>
+        </tr>`;
+      }).join('');
+}
+
+function renderDetalle(data){
+  const filas = DETALLE_ASESOR
+    ? data.filter(r => (val(r, C.asesor) || 'Sin Asesor Asignado') === DETALLE_ASESOR)
+    : data;
+  DETALLE_FILAS = filas;
+  const cuerpo = filas.map((r,i) => `<tr onclick="openColabModal(${i})" title="Ver ficha del colaborador">
+      <td>${OXXO.escHtml(val(r, C.folio) || '—')}</td>
+      <td>${OXXO.escHtml(OXXO.truncate(val(r, C.nombre) || '—', 26))}</td>
+      <td style="font-size:10px">${OXXO.escHtml(OXXO.truncate(val(r, C.puesto) || '—', 18))}</td>
+      <td style="font-size:10px">${OXXO.escHtml(OXXO.truncate(val(r, C.tienda) || '—', 22))}</td>
+      <td style="font-size:10px">${OXXO.escHtml(OXXO.truncate(val(r, C.asesor) || '—', 20))}</td>
+      <td>${clasHtml(val(r, C.clas))}</td>
+      <td style="font-size:10px">${OXXO.escHtml(val(r, C.tipo) || '—')}</td>
+      <td class="center" style="font-size:10px">${fechaCorta(val(r, C.fIni))}</td>
+      <td class="center" style="font-size:10px">${fechaCorta(val(r, C.fFin))}</td>
+      <td class="center"><b>${nDias(r) || '—'}</b></td>
+    </tr>`).join('');
+  document.getElementById('tabla-detalle').innerHTML = `
+    <thead><tr>
+      <th>Folio</th><th>Colaborador</th><th>Puesto</th><th>Tienda</th><th>Asesor</th>
+      <th>Clasif.</th><th>Tipo</th><th class="center">Inicio</th><th class="center">Término</th><th class="center">Días</th>
+    </tr></thead>
+    <tbody>${cuerpo || '<tr><td colspan="10"><div class="state-box">Sin datos</div></td></tr>'}</tbody>`;
+  const dias = filas.reduce((s,r) => s + nDias(r), 0);
+  document.getElementById('row-count').textContent = DETALLE_ASESOR
+    ? `${filas.length} de ${data.length} folios · ${dias.toLocaleString('es-MX')} días`
+    : `${filas.length} folios · ${dias.toLocaleString('es-MX')} días`;
+  document.getElementById('detalle-clear').classList.toggle('show', !!DETALLE_ASESOR);
+}
+
+function escapeAttr(s){ return String(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+function selectAsesorDetalle(asesor){
+  DETALLE_ASESOR = (DETALLE_ASESOR === asesor) ? null : asesor;
+  syncAsesorSelection();
+  renderDetalle(filteredData());
+  if(DETALLE_ASESOR){
+    const card = document.getElementById('tabla-detalle').closest('.card');
+    if(card) card.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+}
+function clearAsesorDetalle(){
+  if(!DETALLE_ASESOR) return;
+  DETALLE_ASESOR = null; syncAsesorSelection(); renderDetalle(filteredData());
+}
+function syncAsesorSelection(){
+  document.querySelectorAll('#tabla-asesor tbody tr[data-asesor]').forEach(tr => {
+    tr.classList.toggle('is-selected', tr.dataset.asesor === DETALLE_ASESOR);
+  });
+}
+
+// Ficha del colaborador: TODAS sus incapacidades del periodo, no solo la fila
+// que se clico. Es lo que permite ver reincidencia de un vistazo.
+function openColabModal(idx){
+  const r = DETALLE_FILAS[idx];
+  if(!r) return;
+  const hist = (POR_COLAB[claveColab(r)] || [r]).slice()
+    .sort((a,b) => val(b, C.fIni).localeCompare(val(a, C.fIni)));
+  const dias = hist.reduce((s,x) => s + nDias(x), 0);
+  const rt = hist.filter(x => ES_RT(val(x, C.clas).toUpperCase()));
+
+  document.getElementById('cm-title').innerHTML =
+    `${OXXO.escHtml(val(r, C.nombre) || 'Sin nombre')}<small class="am-head__sub">${OXXO.escHtml(val(r, C.tienda) || '—')} · ${val(r, C.noEmp) ? 'Nº ' + OXXO.escHtml(val(r, C.noEmp)) : 'sin Nº'}</small>`;
+  document.getElementById('cm-kpis').innerHTML = `
+    <div class="am-kpi"><b>${hist.length}</b><span>Incapacidades</span></div>
+    <div class="am-kpi"><b>${dias}</b><span>Días perdidos</span></div>
+    <div class="am-kpi"><b>${rt.length}</b><span>Riesgos de trabajo</span></div>`;
+  document.getElementById('cm-chips').innerHTML = [
+    ['Puesto', val(r, C.puesto)], ['Asesor', val(r, C.asesor)], ['CR', val(r, C.cr)],
+    ['Género', val(r, C.genero)], ['Ingreso', fechaCorta(val(r, C.ingreso))],
+    ['Antigüedad', val(r, C.antig) ? Number(val(r, C.antig)).toFixed(1) + ' años' : ''],
+  ].filter(([,v]) => String(v||'').trim() && v !== '—')
+   .map(([l,v]) => `<div class="am-chip"><span>${l}</span><b>${OXXO.escHtml(String(v).trim())}</b></div>`).join('');
+
+  document.getElementById('cm-table').querySelector('tbody').innerHTML = hist.map(x => `<tr${val(x, C.folio) === val(r, C.folio) ? ' style="font-weight:700;background:var(--color-bg)"' : ''}>
+      <td>${OXXO.escHtml(val(x, C.folio) || '—')}</td>
+      <td>${clasHtml(val(x, C.clas))}</td>
+      <td style="font-size:10px">${OXXO.escHtml(val(x, C.tipo) || '—')}</td>
+      <td style="font-size:10px">${fechaCorta(val(x, C.fIni))}</td>
+      <td style="font-size:10px">${fechaCorta(val(x, C.fFin))}</td>
+      <td class="center"><b>${nDias(x) || '—'}</b></td>
+    </tr>`).join('');
+
+  // El bloque de accidente solo aparece si hay RT: en una incapacidad por
+  // enfermedad general estas columnas vienen vacias y estorbarian.
+  // Un accidente puede generar varios folios (uno Inicial y sus Subsecuentes)
+  // con exactamente los mismos datos de investigacion. Se agrupa por la firma
+  // del accidente para mostrarlo UNA vez, indicando cuantos folios derivo.
+  const porAccidente = new Map();
+  rt.filter(x => val(x, C.mec) || val(x, C.lugar) || val(x, C.desc)).forEach(x => {
+    const firma = [C.fAcc, C.mec, C.espMec, C.area, C.lugar, C.turno, C.desc].map(k => val(x, k)).join('|');
+    if(!porAccidente.has(firma)) porAccidente.set(firma, { fila:x, folios:0, dias:0 });
+    const g = porAccidente.get(firma);
+    g.folios++; g.dias += nDias(x);
+  });
+  const acc = [...porAccidente.values()];
+  document.getElementById('cm-rt').innerHTML = acc.length ? `
+    <div class="cm-rt-box">
+      <div class="rt-title" style="margin-top:16px">Detalle del accidente</div>
+      ${acc.map(({fila:x, folios, dias}) => `<div class="cm-rt-item">
+        ${folios > 1 ? `<div class="cm-rt-nota">${folios} folios derivados de este accidente · ${dias} días</div>` : ''}
+        <div class="am-chips" style="margin-bottom:8px">
+          ${[['Fecha', fechaCorta(val(x, C.fAcc))], ['Mecanismo', val(x, C.mec)], ['Área', val(x, C.area)],
+             ['Lugar', val(x, C.lugar)], ['Turno', val(x, C.turno)], ['IMSS', val(x, C.califRT)],
+             ['ST7', val(x, C.st7)], ['ST2', val(x, C.st2)], ['Acto/Condición', val(x, C.acto)]]
+            .filter(([,v]) => String(v||'').trim() && v !== '—')
+            .map(([l,v]) => `<div class="am-chip"><span>${l}</span><b>${OXXO.escHtml(String(v).trim())}</b></div>`).join('')}
+        </div>
+        ${val(x, C.desc) ? `<p class="cm-rt-desc">${OXXO.escHtml(val(x, C.desc))}</p>` : ''}
+      </div>`).join('')}
+    </div>` : '';
+
+  document.getElementById('colab-modal').classList.add('open');
+}
+function closeColabModal(){ document.getElementById('colab-modal').classList.remove('open'); }
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeColabModal(); });
+
+function applyFilters(){ DETALLE_ASESOR = null; renderAll(); }
+
+function limpiarFiltros(){
+  DETALLE_ASESOR = null;
+  ['filtro-clas','filtro-puesto'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  if(asesorFilterHandle) asesorFilterHandle.reset(); else renderAll();
+}
+
+async function initDashboard(){
+  OXXO.renderDownloadButton('hero-download','a13');
+  let data = await OXXO.fetchSheetData(TAB);
+  if(data === null){ ['kpi-section','tabla-asesor','tabla-detalle'].forEach(id => OXXO.showError(id,'No se pudo conectar.')); return; }
+  if(data.length === 0){ ['kpi-section','tabla-asesor','tabla-detalle'].forEach(id => OXXO.showEmpty(id)); return; }
+
+  C = buildColsD13(data[0]);
+  const catalog = await OXXO.loadAsesorCatalog();
+  data.forEach(row => OXXO.applyAsesorCatalog(row, catalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
+  // Se conservan las filas sin folio: el registro de Fatalidad no trae uno y es
+  // precisamente el que no puede desaparecer del tablero.
+  BASE = data.filter(r => val(r, C.nombre));
+
+  POR_COLAB = {};
+  BASE.forEach(r => { const k = claveColab(r); (POR_COLAB[k] = POR_COLAB[k] || []).push(r); });
+
+  const fechas = BASE.map(r => val(r, C.fIni)).filter(Boolean).sort();
+  document.getElementById('corte-badge').textContent = fechas.length
+    ? `⟳ ${fechaCorta(fechas[0])} a ${fechaCorta(fechas[fechas.length-1])} · Plaza Oaxaca`
+    : '⟳ Control de Ausentismo · Plaza Oaxaca';
+
+  const asesores = [...new Set(BASE.map(r => val(r, C.asesor)).filter(Boolean))].sort();
+  asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
+    onChange: (sel) => { SELECTED_ASESORES = sel; DETALLE_ASESOR = null; renderAll(); },
+  });
+  const selC = document.getElementById('filtro-clas');
+  CLAS.filter(c => BASE.some(r => val(r, C.clas).toUpperCase() === c))
+      .forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = CLAS_LARGO[c] || c; selC.appendChild(o); });
+  const selP = document.getElementById('filtro-puesto');
+  [...new Set(BASE.map(r => val(r, C.puesto)).filter(Boolean))].sort()
+      .forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; selP.appendChild(o); });
+
+  renderAll();
+  OXXO.updateFooterTime('load-time');
+}
+document.addEventListener('DOMContentLoaded', initDashboard);
+
+window.buildExcelSheets = async function(){
+  return [
+    { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
+    { name: 'Ausentismo por Asesor', rows: OXXO.scrapeHtmlTable('#tabla-asesor') },
+    { name: 'Detalle por Folio', rows: OXXO.scrapeHtmlTable('#tabla-detalle') }
+  ];
+};
+</script>
+</body></html>

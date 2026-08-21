@@ -44,5 +44,20 @@ window.OXXO_ADMIN_COLUMN_ALIASES = {
     'A+ Consecutivos':['a+ consecutivos','a mas consecutivos'],'C Consecutivas':['c consecutivas'],
     '% Var Ventas':['% var ventas'],'Numero de Clientes':['numero de clientes'],
     '% Var Trafico':['% var trafico','% var tráfico'],'Ticket Promedio':['ticket promedio'],
-    'Venta Neta':['monto de venta neta en tiendas','venta neta']
+    'Venta Neta':['monto de venta neta en tiendas','venta neta'],
+    // Dashboard 13 - Control de Ausentismo
+    'Folio':['folio'],'No Empleado':['numero de empleado solo propios','numero de empleado','no empleado','# de empleado'],
+    'Nombre':['nombre'],'Clasificacion':['clasificacion'],'Tipo':['tipo'],
+    'Fecha Captura':['fecha de captura'],'Fecha Inicio':['fecha de inicio'],'Fecha Termino':['fecha de termino'],
+    'Dias':['dias'],'Dias Acumulados':['dias acumulados x persona'],
+    'Genero':['genero de nac','genero'],'Fecha Ingreso':['fecha de ingreso'],'Antiguedad':['antiguedad'],
+    'Documento Entregado':['documento entregado'],
+    'Mecanismo RT':['mecanismo de rt'],'Especificacion Mecanismo':['especificacion mecanismo'],
+    'Area Anatomica':['area anatomica'],'Fecha Accidente':['fecha del accidente'],
+    'Turno Accidente':['turno en que ocurrio'],'Lugar Accidente':['lugar del accidente'],
+    'Calificacion RT IMSS':['calificacion rt imss'],'Dictamen ST7':['cuenta con dictamen st7'],
+    'ST2':['cuenta con st2'],'Acto o Condicion Insegura':['acto o condicion insegura'],
+    'Descripcion ST7':['descripcion de st7'],
+    'D Ene':['ene'],'D Feb':['feb'],'D Mar':['mar'],'D Abr':['abr'],'D May':['may'],'D Jun':['jun'],
+    'D Jul':['jul'],'D Ago':['ago'],'D Sep':['sep'],'D Oct':['oct'],'D Nov':['nov'],'D Dic':['dic']
   };

@@ -58,6 +58,8 @@ window.OXXO_CONFIG = {
   // para publicar el nuevo Dashboard 12 (Enfoque del Lider). Es la primera
   // pestana con historico mensual: se carga con updateMode replacePeriod
   // sobre la columna 'Mes', asi que subir un mes NO borra los anteriores.
+  // 2026-08-21 (c): se agrego 'Dashboard_13_Ausentismo' a ALLOWED_SHEETS para
+  // publicar el nuevo Dashboard 13 (Control de Ausentismo).
   // 2026-08-21 (b): implementacion NUEVA (URL /exec distinta a la anterior,
   // que sigue viva pero sin Dashboard_12_Mensual). Verificado contra la URL
   // de abajo: doGet responde con las 19 hojas permitidas incluyendo
@@ -85,6 +87,7 @@ window.OXXO_CONFIG = {
     d10: "Dashboard_10_FLEX",
     d11: "Dashboard_11_Semanal",
     m12: "Dashboard_12_Mensual",
+    a13: "Dashboard_13_Ausentismo",
     promos: "Promociones",
     inventories: "Inventarios"
   }
