@@ -15,6 +15,7 @@ const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
 const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const AUDIT_SHEET = '_Admin_Bitacora';
 const BACKUP_PREFIX = '_BK_';
+const BACKUP_LIMIT = 5;
 const ALLOWED_SHEETS = [
   'Dashboard_1_Diario',
   'Dashboard_2_Diario',
@@ -77,6 +78,10 @@ function doPost(e) {
       return jsonResponse(readAudit(Number(payload.limit || 100)));
     }
 
+    if (String(payload.action || '') === 'getAdminOverview') {
+      return jsonResponse(getAdminOverview(Number(payload.limit || 100)));
+    }
+
     if (String(payload.action || '') === 'getBackupPreview') {
       return jsonResponse(getBackupPreview(payload));
     }
@@ -130,7 +135,7 @@ function doPost(e) {
       let backupName = '';
       let result;
       try {
-        backupName = backupCurrentSheet(ss, sheet, targetSheet);
+        backupName = backupCurrentSheet(ss, sheet, targetSheet, String(payload.sourceFile || payload.source || 'Publicación desde Panel Admin'));
         result = updateMode === 'replacePeriod' && periodColumn
           ? replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues)
           : replaceAll(sheet, rows, newHeaders);
@@ -164,25 +169,72 @@ function doPost(e) {
   }
 }
 
-function backupCurrentSheet(ss, sourceSheet, targetSheet) {
+function backupCurrentSheet(ss, sourceSheet, targetSheet, sourceLabel) {
   if (!sourceSheet || sourceSheet.getLastRow() < 1 || sourceSheet.getLastColumn() < 1) return '';
-  return saveSnapshot(ss, targetSheet, sourceSheet.getDataRange().getValues());
+  return saveSnapshot(ss, targetSheet, sourceSheet.getDataRange().getValues(), sourceLabel);
 }
 
-function saveSnapshot(ss, targetSheet, values) {
-  const backupName = (BACKUP_PREFIX + targetSheet).slice(0, 99);
-  let backup = ss.getSheetByName(backupName);
-  if (!backup) backup = ss.insertSheet(backupName);
+function saveSnapshot(ss, targetSheet, values, sourceLabel) {
+  if (!values.length || !values[0].length) throw new Error('No hay datos para respaldar');
+  const createdAt = new Date();
+  const stamp = Utilities.formatDate(createdAt, ss.getSpreadsheetTimeZone() || 'America/Mexico_City', 'yyyyMMdd_HHmmss_SSS');
+  const baseName = (BACKUP_PREFIX + targetSheet).slice(0, 76);
+  let backupName = (baseName + '_' + stamp).slice(0, 99);
+  let suffix = 2;
+  while (ss.getSheetByName(backupName)) {
+    backupName = (baseName + '_' + stamp + '_' + suffix).slice(0, 99);
+    suffix++;
+  }
+  const backup = ss.insertSheet(backupName);
   const requiredRows = values.length + 2;
-  const requiredCols = Math.max(values[0].length, 4);
+  const requiredCols = Math.max(values[0].length, 6);
   if (backup.getMaxRows() < requiredRows) backup.insertRowsAfter(backup.getMaxRows(), requiredRows - backup.getMaxRows());
   if (backup.getMaxColumns() < requiredCols) backup.insertColumnsAfter(backup.getMaxColumns(), requiredCols - backup.getMaxColumns());
-  backup.clearContents();
-  backup.getRange(1, 1, 1, 4).setValues([['Respaldo creado', new Date(), 'Hoja origen', targetSheet]]);
+  backup.getRange(1, 1, 1, 6).setValues([['Respaldo creado', createdAt, 'Hoja origen', targetSheet, 'Archivo origen', String(sourceLabel || '')]]);
   backup.getRange(3, 1, values.length, values[0].length).setValues(values);
   backup.hideSheet();
   SpreadsheetApp.flush();
+  pruneBackups(ss, targetSheet, BACKUP_LIMIT);
   return backupName;
+}
+
+function readBackupMetadata(ss, targetSheet) {
+  const timezone = ss.getSpreadsheetTimeZone() || 'America/Mexico_City';
+  const items = [];
+  ss.getSheets().forEach(function(sheet) {
+    if (sheet.getName().indexOf(BACKUP_PREFIX) !== 0 || sheet.getLastRow() < 3) return;
+    const metadata = sheet.getRange(1, 1, 1, 6).getValues()[0];
+    const origin = String(metadata[3] || '').trim();
+    if (!origin || (targetSheet && origin !== targetSheet)) return;
+    const createdValue = metadata[1];
+    const createdMillis = Object.prototype.toString.call(createdValue) === '[object Date]' && !isNaN(createdValue) ? createdValue.getTime() : 0;
+    items.push({
+      sheet: sheet,
+      backupSheet: sheet.getName(),
+      targetSheet: origin,
+      createdAt: createdMillis ? Utilities.formatDate(createdValue, timezone, 'dd/MM/yyyy HH:mm:ss') : 'Fecha no disponible',
+      createdMillis: createdMillis,
+      sourceFile: String(metadata[5] || ''),
+      rows: Math.max(0, sheet.getLastRow() - 4),
+      columns: sheet.getLastColumn()
+    });
+  });
+  return items.sort(function(a, b) { return b.createdMillis - a.createdMillis; });
+}
+
+function pruneBackups(ss, targetSheet, limit) {
+  const backups = readBackupMetadata(ss, targetSheet);
+  backups.slice(Math.max(1, Number(limit || BACKUP_LIMIT))).forEach(function(item) {
+    ss.deleteSheet(item.sheet);
+  });
+}
+
+function resolveBackup(ss, targetSheet, requestedBackup) {
+  const backups = readBackupMetadata(ss, targetSheet);
+  if (!backups.length) throw new Error('No existe un respaldo disponible para ' + targetSheet);
+  const selected = requestedBackup ? backups.find(function(item) { return item.backupSheet === requestedBackup; }) : backups[0];
+  if (!selected) throw new Error('El respaldo no corresponde a la hoja seleccionada o ya vencio');
+  return selected;
 }
 
 function writeSnapshot(sheet, values) {
@@ -204,14 +256,11 @@ function getBackupPreview(payload) {
   const requestedBackup = String(payload.backupSheet || '').trim();
   if (!targetSheet) throw new Error('targetSheet requerido');
   if (ALLOWED_SHEETS.indexOf(targetSheet) === -1) throw new Error('targetSheet no permitido: ' + targetSheet);
-  const expectedBackup = (BACKUP_PREFIX + targetSheet).slice(0, 99);
-  if (requestedBackup && requestedBackup !== expectedBackup) throw new Error('El respaldo no corresponde a la hoja seleccionada');
-
   const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
   const target = ss.getSheetByName(targetSheet);
-  const backup = ss.getSheetByName(expectedBackup);
   if (!target) throw new Error('Hoja destino no encontrada: ' + targetSheet);
-  if (!backup || backup.getLastRow() < 3) throw new Error('No existe un respaldo disponible para ' + targetSheet);
+  const selected = resolveBackup(ss, targetSheet, requestedBackup);
+  const backup = selected.sheet;
 
   const currentValues = target.getDataRange().getDisplayValues();
   const backupValues = backup.getRange(3, 1, backup.getLastRow() - 2, backup.getLastColumn()).getDisplayValues();
@@ -219,8 +268,9 @@ function getBackupPreview(payload) {
   return {
     ok: true,
     targetSheet: targetSheet,
-    backupSheet: expectedBackup,
-    createdAt: backup.getRange(1, 2).getDisplayValue(),
+    backupSheet: selected.backupSheet,
+    createdAt: selected.createdAt,
+    sourceFile: selected.sourceFile,
     current: { rows: Math.max(0, currentValues.length - 2), columns: currentValues[0] ? currentValues[0].length : 0, values: currentValues },
     backup: { rows: Math.max(0, backupValues.length - 2), columns: backupValues[0] ? backupValues[0].length : 0, values: backupValues },
     changedRows: difference.changedRows,
@@ -253,19 +303,16 @@ function restoreLatestBackup(payload) {
   const requestedBackup = String(payload.backupSheet || '').trim();
   if (!targetSheet) throw new Error('targetSheet requerido');
   if (ALLOWED_SHEETS.indexOf(targetSheet) === -1) throw new Error('targetSheet no permitido: ' + targetSheet);
-  const expectedBackup = (BACKUP_PREFIX + targetSheet).slice(0, 99);
-  if (requestedBackup && requestedBackup !== expectedBackup) throw new Error('El respaldo no corresponde a la hoja seleccionada');
-
   const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
   const target = ss.getSheetByName(targetSheet);
-  const backup = ss.getSheetByName(expectedBackup);
   if (!target) throw new Error('Hoja destino no encontrada: ' + targetSheet);
-  if (!backup || backup.getLastRow() < 3) throw new Error('No existe un respaldo disponible para ' + targetSheet);
+  const selected = resolveBackup(ss, targetSheet, requestedBackup);
+  const backup = selected.sheet;
 
   const backupValues = backup.getRange(3, 1, backup.getLastRow() - 2, backup.getLastColumn()).getValues();
   const currentValues = target.getDataRange().getValues();
+  const undoBackup = saveSnapshot(ss, targetSheet, currentValues, 'Estado anterior a restaurar ' + selected.backupSheet);
   writeSnapshot(target, backupValues);
-  saveSnapshot(ss, targetSheet, currentValues); // el estado previo queda listo para deshacer la restauracion
   target.setFrozenRows(Math.min(2, target.getLastRow()));
 
   const dataRows = Math.max(0, backupValues.length - 2);
@@ -273,10 +320,10 @@ function restoreLatestBackup(payload) {
   appendAudit(ss, {
     targetSheet: targetSheet,
     source: 'Restauracion desde Panel Admin',
-    sourceFile: expectedBackup,
+    sourceFile: selected.backupSheet,
     adminUser: String(payload.adminUser || 'Administrador')
-  }, result, 'Restaurada', '', expectedBackup);
-  return { ok: true, restored: true, targetSheet: targetSheet, rows: dataRows, backupSheet: expectedBackup, reversible: true };
+  }, result, 'Restaurada', '', undoBackup);
+  return { ok: true, restored: true, targetSheet: targetSheet, rows: dataRows, restoredFrom: selected.backupSheet, backupSheet: undoBackup, reversible: true };
 }
 
 function appendAudit(ss, payload, result, status, message, backupName) {
@@ -307,6 +354,91 @@ function readAudit(limit) {
     return row;
   });
   return { ok: true, rows: rows };
+}
+
+function getAdminOverview(limit) {
+  const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  const audit = readAudit(limit);
+  const auditSheet = ss.getSheetByName(AUDIT_SHEET);
+  const latestBySheet = {};
+  if (auditSheet && auditSheet.getLastRow() >= 2) {
+    const values = auditSheet.getDataRange().getValues();
+    const headers = values.shift().map(String);
+    const sheetIndex = headers.indexOf('Hoja');
+    const dateIndex = headers.indexOf('Fecha');
+    const statusIndex = headers.indexOf('Estado');
+    const rowsIndex = headers.indexOf('Filas publicadas');
+    for (let index = values.length - 1; index >= 0; index--) {
+      const sheetName = String(values[index][sheetIndex] || '');
+      if (!sheetName || latestBySheet[sheetName]) continue;
+      const dateValue = values[index][dateIndex];
+      const dateMillis = Object.prototype.toString.call(dateValue) === '[object Date]' && !isNaN(dateValue) ? dateValue.getTime() : 0;
+      latestBySheet[sheetName] = {
+        publishedAt: dateMillis ? Utilities.formatDate(dateValue, ss.getSpreadsheetTimeZone() || 'America/Mexico_City', 'dd/MM/yyyy HH:mm') : '',
+        publishedMillis: dateMillis,
+        status: String(values[index][statusIndex] || ''),
+        rows: Number(values[index][rowsIndex] || 0)
+      };
+    }
+  }
+
+  const allBackups = readBackupMetadata(ss).filter(function(item) { return ALLOWED_SHEETS.indexOf(item.targetSheet) !== -1; });
+  const backupsBySheet = {};
+  allBackups.forEach(function(item) {
+    if (!backupsBySheet[item.targetSheet]) backupsBySheet[item.targetSheet] = [];
+    backupsBySheet[item.targetSheet].push(item);
+  });
+
+  const now = Date.now();
+  const sources = ALLOWED_SHEETS.map(function(sheetName) {
+    const latest = latestBySheet[sheetName] || null;
+    const backups = backupsBySheet[sheetName] || [];
+    const thresholds = publicationThresholds(sheetName);
+    const ageDays = latest && latest.publishedMillis ? Math.floor((now - latest.publishedMillis) / 86400000) : null;
+    let health = 'neutral';
+    let healthLabel = 'Sin registro';
+    if (latest) {
+      health = String(latest.status).toLowerCase() === 'error' ? 'bad' : ageDays > thresholds.bad ? 'bad' : ageDays > thresholds.warn ? 'warn' : 'ok';
+      healthLabel = health === 'bad' ? 'Requiere atención' : health === 'warn' ? 'Por actualizar' : 'Al día';
+    }
+    return {
+      sheet: sheetName,
+      status: latest ? latest.status : '',
+      health: health,
+      healthLabel: healthLabel,
+      publishedAt: latest ? latest.publishedAt : '',
+      publishedRows: latest ? latest.rows : 0,
+      ageDays: ageDays,
+      backupCount: backups.length,
+      latestBackup: backups[0] ? backups[0].createdAt : ''
+    };
+  });
+
+  const backups = allBackups.map(function(item) {
+    return { targetSheet: item.targetSheet, backupSheet: item.backupSheet, createdAt: item.createdAt, sourceFile: item.sourceFile, rows: item.rows, columns: item.columns };
+  });
+  return {
+    ok: true,
+    rows: audit.rows,
+    sources: sources,
+    backups: backups,
+    summary: {
+      sources: sources.length,
+      withBackups: sources.filter(function(item) { return item.backupCount > 0; }).length,
+      backups: backups.length,
+      attention: sources.filter(function(item) { return item.health === 'warn' || item.health === 'bad'; }).length
+    }
+  };
+}
+
+function publicationThresholds(sheetName) {
+  const daily = ['Dashboard_1_Diario', 'Dashboard_2_Diario', 'Dashboard_2_Otras_Plazas', 'Denominaciones_Dashboard_2_Diario', 'Dashboard_2_Plan_Accion'];
+  const weekly = ['Dashboard_3_Diario', 'Dashboard_3_Otras_Plazas', 'Dashboard_7_Semanal', 'Dashboard_9_Semanal', 'Dashboard_10_FLEX', 'Dashboard_11_Semanal'];
+  const monthly = ['Dashboard_4_Semanal', 'Dashboard_6_Semanal', 'Inventarios'];
+  if (daily.indexOf(sheetName) !== -1) return { warn: 14, bad: 45 };
+  if (weekly.indexOf(sheetName) !== -1) return { warn: 14, bad: 35 };
+  if (monthly.indexOf(sheetName) !== -1) return { warn: 45, bad: 75 };
+  return { warn: 90, bad: 180 };
 }
 
 function assertAuthorized(payload) {

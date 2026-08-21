@@ -4,17 +4,50 @@
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   let pendingRestore = null;
+  let overviewData = { backups: [], sources: [] };
 
   function render(rows) {
     $('audit-summary').textContent = rows.length ? `${rows.length} operación${rows.length === 1 ? '' : 'es'} reciente${rows.length === 1 ? '' : 's'} · los respaldos se conservan ocultos dentro del Google Sheets.` : 'Aún no hay publicaciones registradas en la nueva bitácora.';
-    const restoreAvailable = new Set();
     $('audit-table-body').innerHTML = rows.length ? rows.map((row) => {
       const ok = ['correcta', 'restaurada'].includes(String(row.Estado || '').toLowerCase());
       const sheet = String(row.Hoja || '');
-      const canRestore = Boolean(sheet && row.Respaldo && !restoreAvailable.has(sheet));
-      if (canRestore) restoreAvailable.add(sheet);
-      return `<tr><td><strong>${esc(row.Fecha || '—')}</strong></td><td><strong>${esc(sheet || '—')}</strong><small>${esc(row.Archivo || row.Origen || 'Sin archivo informado')}</small></td><td>${esc(row['Filas publicadas'] || '0')} filas<small>${esc(row.Modo || '—')}${row['Filas conservadas'] ? ` · ${esc(row['Filas conservadas'])} conservadas` : ''}</small></td><td>${esc(row.Usuario || 'Administrador')}</td><td><span class="audit-status ${ok ? 'ok' : 'bad'}">${esc(row.Estado || '—')}</span>${row.Detalle ? `<small>${esc(row.Detalle)}</small>` : ''}</td><td><span class="audit-backup">${esc(row.Respaldo || '—')}</span>${canRestore ? `<button type="button" class="audit-restore" data-restore-sheet="${esc(sheet)}" data-restore-backup="${esc(row.Respaldo)}">Restaurar último respaldo</button>` : ''}</td></tr>`;
+      return `<tr><td><strong>${esc(row.Fecha || '—')}</strong></td><td><strong>${esc(sheet || '—')}</strong><small>${esc(row.Archivo || row.Origen || 'Sin archivo informado')}</small></td><td>${esc(row['Filas publicadas'] || '0')} filas<small>${esc(row.Modo || '—')}${row['Filas conservadas'] ? ` · ${esc(row['Filas conservadas'])} conservadas` : ''}</small></td><td>${esc(row.Usuario || 'Administrador')}</td><td><span class="audit-status ${ok ? 'ok' : 'bad'}">${esc(row.Estado || '—')}</span>${row.Detalle ? `<small>${esc(row.Detalle)}</small>` : ''}</td><td><span class="audit-backup">${esc(row.Respaldo || '—')}</span></td></tr>`;
     }).join('') : '<tr><td colspan="6" class="quality-empty">No hay operaciones registradas.</td></tr>';
+  }
+
+  function renderBackupHistory() {
+    const filter = $('backup-sheet-filter')?.value || 'all';
+    const matches = filter === 'all' ? overviewData.backups.slice(0, 15) : overviewData.backups.filter((item) => item.targetSheet === filter);
+    $('backup-history-list').innerHTML = matches.length ? matches.map((item, index) => `<article class="backup-card">
+      <div class="backup-card__number">${String(index + 1).padStart(2, '0')}</div>
+      <div class="backup-card__copy"><strong>${esc(item.targetSheet)}</strong><span>${esc(item.createdAt || 'Fecha no disponible')}</span><small>${esc(item.sourceFile || 'Origen no registrado')} · ${Number(item.rows || 0).toLocaleString('es-MX')} filas · ${Number(item.columns || 0).toLocaleString('es-MX')} columnas</small></div>
+      <button type="button" class="audit-restore" data-restore-sheet="${esc(item.targetSheet)}" data-restore-backup="${esc(item.backupSheet)}">Comparar y restaurar</button>
+    </article>`).join('') : '<div class="backup-empty">Esta base todavía no tiene respaldos disponibles.</div>';
+    $('backup-history-note').textContent = filter === 'all' && overviewData.backups.length > 15 ? `Mostrando los 15 más recientes de ${overviewData.backups.length}. Filtra una base para ver sus cinco respaldos.` : `${matches.length} respaldo${matches.length === 1 ? '' : 's'} disponible${matches.length === 1 ? '' : 's'}. Se conservan hasta cinco por base.`;
+  }
+
+  function renderOverview(result) {
+    overviewData = { backups: Array.isArray(result.backups) ? result.backups : [], sources: Array.isArray(result.sources) ? result.sources : [] };
+    const summary = result.summary || {};
+    $('admin-overview-summary').innerHTML = `
+      <div class="overview-kpi"><span>Bases monitoreadas</span><strong>${Number(summary.sources || 0)}</strong></div>
+      <div class="overview-kpi ok"><span>Con respaldo</span><strong>${Number(summary.withBackups || 0)}</strong></div>
+      <div class="overview-kpi"><span>Respaldos vigentes</span><strong>${Number(summary.backups || 0)}</strong></div>
+      <div class="overview-kpi ${Number(summary.attention || 0) ? 'warn' : 'ok'}"><span>Por revisar</span><strong>${Number(summary.attention || 0)}</strong></div>`;
+
+    const sheets = [...new Set(overviewData.backups.map((item) => item.targetSheet))].sort((a, b) => a.localeCompare(b, 'es'));
+    const filter = $('backup-sheet-filter');
+    const previous = filter.value;
+    filter.innerHTML = '<option value="all">Todos los dashboards</option>' + sheets.map((sheet) => `<option value="${esc(sheet)}">${esc(sheet)}</option>`).join('');
+    filter.value = sheets.includes(previous) ? previous : 'all';
+    renderBackupHistory();
+
+    $('overview-sources-body').innerHTML = overviewData.sources.length ? overviewData.sources.map((source) => `<tr>
+      <td><strong>${esc(source.sheet)}</strong></td>
+      <td><span class="overview-health ${esc(source.health || 'neutral')}">${esc(source.healthLabel || 'Sin registro')}</span></td>
+      <td>${esc(source.publishedAt || 'Sin publicación registrada')}${source.ageDays != null ? `<small>Hace ${Number(source.ageDays).toLocaleString('es-MX')} día${Number(source.ageDays) === 1 ? '' : 's'} · ${Number(source.publishedRows || 0).toLocaleString('es-MX')} filas</small>` : ''}</td>
+      <td>${esc(source.latestBackup || 'Sin respaldo')}<small>${Number(source.backupCount || 0)} de 5 espacios usados</small></td>
+    </tr>`).join('') : '<tr><td colspan="4" class="quality-empty">No fue posible construir el resumen operativo.</td></tr>';
   }
 
   function csvCell(value) {
@@ -54,7 +87,7 @@
     $('restore-backup-columns').textContent = `${Number(preview.backup?.columns || 0).toLocaleString('es-MX')} columnas guardadas`;
     $('restore-changed-rows').textContent = Number(preview.changedRows || 0).toLocaleString('es-MX');
     $('restore-changed-cells').textContent = Number(preview.changedCells || 0).toLocaleString('es-MX');
-    $('restore-created-at').textContent = `Respaldo creado: ${preview.createdAt || 'fecha no disponible'}. El estado actual se guardará automáticamente antes de restaurar.`;
+    $('restore-created-at').textContent = `Respaldo creado: ${preview.createdAt || 'fecha no disponible'}${preview.sourceFile ? ` · Origen: ${preview.sourceFile}` : ''}. El estado actual se guardará automáticamente antes de restaurar.`;
     $('restore-dialog').showModal();
     $('restore-confirm-input').focus();
   }
@@ -112,8 +145,9 @@
     button.textContent = 'Consultando…';
     $('audit-table-body').innerHTML = '<tr><td colspan="6" class="quality-empty">Consultando bitácora…</td></tr>';
     try {
-      const result = await ctx.postAdminPayload({ action: 'getAudit', adminPassword: ctx.getAdminPassword(), limit: 100 });
+      const result = await ctx.postAdminPayload({ action: 'getAdminOverview', adminPassword: ctx.getAdminPassword(), limit: 100 });
       if (result.compatibilityMode) throw new Error('La versión publicada de Apps Script aún no permite consultar la bitácora.');
+      renderOverview(result);
       render(Array.isArray(result.rows) ? result.rows : []);
     } catch (error) {
       console.error('Bitácora administrativa:', error);
@@ -121,16 +155,17 @@
       $('audit-table-body').innerHTML = '<tr><td colspan="6" class="quality-empty">No se pudo cargar la bitácora.</td></tr>';
     } finally {
       button.disabled = false;
-      button.textContent = 'Actualizar bitácora';
+      button.textContent = 'Actualizar resumen';
     }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     $('audit-refresh-btn')?.addEventListener('click', loadAudit);
-    $('audit-table-body')?.addEventListener('click', (event) => {
+    $('backup-history-list')?.addEventListener('click', (event) => {
       const button = event.target.closest('.audit-restore');
       if (button) openRestorePreview(button);
     });
+    $('backup-sheet-filter')?.addEventListener('change', renderBackupHistory);
     $('restore-dialog-close')?.addEventListener('click', closeRestoreDialog);
     $('restore-cancel-btn')?.addEventListener('click', closeRestoreDialog);
     $('restore-dialog')?.addEventListener('cancel', (event) => { event.preventDefault(); closeRestoreDialog(); });

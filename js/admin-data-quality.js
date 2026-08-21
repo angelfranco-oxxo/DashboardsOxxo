@@ -161,7 +161,7 @@
       note = `Han pasado ${age} días desde el corte (${latest.key}, celda ${cell}).`;
       action = 'Revisa si la carga diaria dejó de actualizarse.';
     }
-    return { ...source, status, rows: rows.length, cut, note, action, cell };
+    return { ...source, status, rows: rows.length, cut, note, action, cell, age, monthGap };
   }
   function renderRows() {
     const visible = activeFilter === 'all' ? lastResults : lastResults.filter((result) => result.status === activeFilter);
@@ -180,6 +180,12 @@
       <div class="quality-kpi ok"><span>Correctas</span><strong>${count('ok')}</strong></div>
       <div class="quality-kpi warn"><span>Atención</span><strong>${count('warn')}</strong></div>
       <div class="quality-kpi bad"><span>Errores</span><strong>${count('bad')}</strong></div>`;
+    const alerts = results.filter((result) => result.status === 'warn' || result.status === 'bad');
+    $('quality-alerts').innerHTML = alerts.length ? alerts.map((result) => `<div class="quality-alert ${result.status === 'bad' ? 'bad' : ''}">
+      <div class="quality-alert__icon">${result.status === 'bad' ? '×' : '!'}</div>
+      <div><strong>${esc(result.name)} · ${esc(result.area)}</strong><span>${esc(result.note)}</span></div>
+      <div class="quality-alert__age">${result.age != null && result.age >= 0 ? `${result.age} días` : result.monthGap != null && result.monthGap >= 0 ? `${result.monthGap} meses` : 'Revisar ahora'}</div>
+    </div>`).join('') : '<div class="quality-alert ok"><div class="quality-alert__icon">✓</div><div><strong>Fuentes al día</strong><span>No se detectaron alertas de estructura o vigencia.</span></div><div class="quality-alert__age">Correcto</div></div>';
     renderRows();
     $('quality-last-run').textContent = `Última revisión: ${new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}`;
     const issues = count('warn') + count('bad');
