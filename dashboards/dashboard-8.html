@@ -90,6 +90,11 @@
 .am-body{padding:18px 22px;overflow-y:auto}
 .am-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .am-kpi{background:var(--color-bg);border-radius:10px;padding:12px;text-align:center}
+.am-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.am-chip{display:inline-flex;flex-direction:column;gap:2px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:10px;padding:7px 12px;min-width:0}
+.am-chip span{font-family:var(--font-display);font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-gray)}
+.am-chip b{font-size:12px;font-weight:700;color:var(--color-dark);word-break:break-word}
+.am-head__sub{display:block;font-family:var(--font-body,inherit);font-size:11px;font-weight:600;color:var(--color-gray);margin-top:2px;text-transform:none;letter-spacing:0}
 .am-kpi b{display:block;font-family:var(--font-display);font-size:1.3rem}
 .am-kpi span{font-size:10px;color:var(--color-gray);text-transform:uppercase;letter-spacing:.06em}
 
@@ -265,6 +270,26 @@
   </div>
 </div>
 
+<!-- Modal detalle de empleado -->
+<div class="am-overlay" id="empleado-modal" onclick="if(event.target===this)closeEmpleadoModal()">
+  <div class="am-dialog">
+    <div class="am-head">
+      <h3 id="emp-title">Empleado<small class="am-head__sub"></small></h3>
+      <button class="am-close" onclick="closeEmpleadoModal()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="am-body">
+      <div class="am-kpis" id="emp-kpis"></div>
+      <div class="am-chips" id="emp-chips"></div>
+      <div class="tbl-wrap" style="max-height:320px">
+        <table class="tbl" id="emp-table">
+          <thead><tr><th>Certificación</th><th class="center">Avance</th><th class="center">Estatus</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
   <script src="../js/config.js?v=20260818d"></script>
   <script src="../js/core.js?v=20260820f"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
@@ -317,6 +342,7 @@ let SELECTED_ASESORES = null;
 let asesorFilterHandle = null;
 let ASESOR_STATS = {};
 let DETALLE_ASESOR = null;
+let DETALLE_FILAS = [];
 
 function filteredData() {
   let d = BASE_DATA;
@@ -460,14 +486,15 @@ function renderDetalle(data) {
   const filas = DETALLE_ASESOR
     ? data.filter(r => (r[C.asesor] || 'Sin Asesor Asignado') === DETALLE_ASESOR)
     : data;
-  const rows = filas.map(r => {
+  DETALLE_FILAS = filas;
+  const rows = filas.map((r, i) => {
     const certCells = CERT_COLS.map(c => {
       const v = capValue(r, c.key);
       const cls = v===null?'na':(v>=1?'verde':(v>0?'amarillo':'rojo'));
       const txt = v===null?'N/A':(v>=1?'100%':Math.round(v*100)+'%');
       return `<td class="center"><span class="cap-badge ${cls}" style="font-size:9px;min-width:auto;padding:2px 6px">${txt}</span></td>`;
     }).join('');
-    return `<tr>
+    return `<tr onclick="openEmpleadoModal(${i})" title="Ver ficha del empleado">
       <td>${OXXO.escHtml(OXXO.truncate(r[C.asesor]||'—',20))}</td>
       <td>${OXXO.escHtml(OXXO.truncate(r[C.empleado]||'—',24))}</td>
       <td style="font-size:10px">${OXXO.escHtml(OXXO.truncate(r[C.puesto]||'—',16))}</td>
@@ -533,7 +560,54 @@ function openAsesorCapModal(asesor){
   document.getElementById('asesor-cap-modal').classList.add('open');
 }
 function closeAsesorCapModal(){ document.getElementById('asesor-cap-modal').classList.remove('open'); }
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeAsesorCapModal(); });
+
+// Clic en una fila de "Detalle por Empleado": ficha del empleado con su
+// avance certificacion por certificacion.
+function openEmpleadoModal(idx){
+  const r = DETALLE_FILAS[idx];
+  if(!r) return;
+
+  const nombre = String(r[C.empleado] || '').trim() || 'Empleado sin nombre';
+  const noPers = String(r[C.noPers] || '').trim();
+  document.getElementById('emp-title').innerHTML =
+    `${OXXO.escHtml(nombre)}<small class="am-head__sub">${noPers ? 'N&ordm; personal ' + OXXO.escHtml(noPers) : 'Sin N&ordm; personal'}</small>`;
+
+  const certs = CERT_COLS.map(c => ({ label: c.label, v: capValue(r, c.key) }));
+  const aplic = certs.filter(c => c.v !== null);
+  const comp = aplic.filter(c => c.v >= 1);
+  const pct = aplic.length ? Math.round(comp.length / aplic.length * 100) : null;
+
+  document.getElementById('emp-kpis').innerHTML = `
+    <div class="am-kpi"><b>${pct === null ? '—' : pct + '%'}</b><span>Cumplimiento</span></div>
+    <div class="am-kpi"><b>${comp.length}/${aplic.length}</b><span>Completadas</span></div>
+    <div class="am-kpi"><b>${aplic.length - comp.length}</b><span>Pendientes</span></div>`;
+
+  document.getElementById('emp-chips').innerHTML = [
+    ['Puesto',  r[C.puesto]],
+    ['Tienda',  r[C.unidad]],
+    ['CR',      r[C.cr]],
+    ['Asesor',  r[C.asesor] || 'Sin Asesor Asignado'],
+  ].filter(([, value]) => String(value || '').trim())
+   .map(([label, value]) => `<div class="am-chip"><span>${label}</span><b>${OXXO.escHtml(String(value).trim())}</b></div>`)
+   .join('');
+
+  document.getElementById('emp-table').querySelector('tbody').innerHTML = certs.map(c => {
+    if(c.v === null) return `<tr><td>${OXXO.escHtml(c.label)}</td><td class="center">—</td><td class="center"><span class="cap-badge na">No aplica</span></td></tr>`;
+    const avance = Math.round(c.v * 100);
+    const cls = c.v >= 1 ? 'verde' : (c.v > 0 ? 'amarillo' : 'rojo');
+    const txt = c.v >= 1 ? 'Completada' : (c.v > 0 ? 'En proceso' : 'Pendiente');
+    return `<tr><td>${OXXO.escHtml(c.label)}</td><td class="center">${avance}%</td><td class="center"><span class="cap-badge ${cls}">${txt}</span></td></tr>`;
+  }).join('');
+
+  document.getElementById('empleado-modal').classList.add('open');
+}
+function closeEmpleadoModal(){ document.getElementById('empleado-modal').classList.remove('open'); }
+
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  closeEmpleadoModal();
+  closeAsesorCapModal();
+});
 
 function applyFilters(){ renderAll(); }
 
