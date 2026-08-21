@@ -21,5 +21,28 @@ window.OXXO_ADMIN_COLUMN_ALIASES = {
     'Promedio de ModuloCercaSiempre2026':['promedio de modulocercasiempre2026','modulocercasiempre2026','modulo cerca siempre 2026'],
     'Promedio de Resultado Certificación Alimentos y Bebidas 2026':['promedio de resultado certificacion alimentos y bebidas 2026','resultado certificacion alimentos y bebidas 2026','certificacion alimentos y bebidas'],
     'Pan Horneado':['pan horneado'],
-    'CR':['cr'],'Concepto':['faltante sobrante','concepto']
+    'CR':['cr'],'Concepto':['faltante sobrante','concepto'],
+    // Dashboard 12 - Enfoque del Lider. El Excel de origen trae "MEP P.P." y
+    // "EVALUACION OPERATIVA" DOS VECES cada una (primero el valor numerico,
+    // despues su OK/NO OK); el sufijo 2 apunta a la segunda ocurrencia, ver
+    // buildSourceMap() en normalizers.js.
+    'CR Plaza':['cr plaza'],'CR Tienda':['cr tienda','cr de tienda','cr'],'Lider':['lider','líder'],
+    'No Empleado':['rfc no emp','rfc / no. emp','no empleado','numero de empleado'],
+    'Tipo Lider':['ep o lc','ep ó lc','tipo lider'],'Meses Ops':['mesops','meses ops'],
+    'Faltante Inventario':['faltante de inventario'],'Faltante Inventario %':['faltante de inventario %'],
+    'Faltante Efectivo':['falt ef','faltante efectivo $'],
+    'Plantilla Completa':['empleados tabulador','plantilla completa'],
+    'MEP PP':['mep p p','mep p.p.'],'Venta Lealtad':['venta lealtad'],
+    'Evaluacion Operativa':['evaluacion operativa'],
+    'Est Faltante Inv':['faltante de inv'],'Est Faltante Efectivo':['faltante efectivo'],
+    'Est Ingreso':['ingreso'],'Est Equipo Completo':['equipo completo'],
+    'Est MEP PP':['mep p p 2'],'Est Equipo':['equipo'],
+    'Est Venta Lealtad':['venta lealtad c'],'Est Evaluacion Op':['evaluacion operativa 2'],
+    'Est Cliente':['cliente'],
+    'Etapa Anterior':['etapa anterior'],'Etapa Final':['etapa final'],'Clas Final':['clas final'],
+    'Mes Completo':['mes completo'],
+    'A+ Consecutivos':['a+ consecutivos','a mas consecutivos'],'C Consecutivas':['c consecutivas'],
+    '% Var Ventas':['% var ventas'],'Numero de Clientes':['numero de clientes'],
+    '% Var Trafico':['% var trafico','% var tráfico'],'Ticket Promedio':['ticket promedio'],
+    'Venta Neta':['monto de venta neta en tiendas','venta neta']
   };

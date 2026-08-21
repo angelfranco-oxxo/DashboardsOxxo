@@ -10,6 +10,7 @@
     ['dashboard-6.html', 'Ausentismos', 'Semanal'],
     ['dashboard-7.html', 'TREO', 'Semanal'],
     ['dashboard-8.html', 'Capacidades', 'Diario'],
+    ['dashboard-12.html', 'Enfoque del Líder', 'Mensual'],
   ];
 
   const currentFile = location.pathname.split('/').pop() || '';

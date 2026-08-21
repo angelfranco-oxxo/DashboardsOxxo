@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
+  <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
+  <script defer src="../js/site-lock.js?v=20260820d"></script>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Enfoque del Líder · Dashboards Ats</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <link rel="icon" type="image/png" href="../assets/favicon.png"/>
+  <link rel="apple-touch-icon" href="../assets/favicon.png"/>
+  <link rel="stylesheet" href="../css/global.css?v=20260820f"/>
+  <link rel="stylesheet" href="../css/mascota-chat.css?v=20260818a" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+.page{max-width:1500px;margin:0 auto;padding:18px 20px 36px}
+.hero-download-link{ text-decoration:none !important; cursor:pointer; }
+
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.card{background:var(--color-surface);border-radius:14px;padding:20px;box-shadow:var(--shadow-card)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-border)}
+.card-title{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--color-dark)}
+.card-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--color-bg);color:var(--color-gray)}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.row2-wide{display:grid;grid-template-columns:1.35fr 0.65fr;gap:14px;margin-bottom:16px}
+.chart-wrap{position:relative}
+.chart-md{height:280px}
+.chart-lg{height:320px}
+
+.tbl-wrap{overflow-x:auto;max-height:460px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#FF6B00 rgba(0,0,0,.06)}
+.tbl-wrap::-webkit-scrollbar{width:5px;height:5px}
+.tbl-wrap::-webkit-scrollbar-thumb{background:#FF6B00;border-radius:3px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl thead th{position:sticky;top:0;z-index:2;background:#2D2D44;color:#fff;padding:9px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;white-space:nowrap;border-right:1px solid rgba(255,255,255,.1)}
+.tbl thead th:last-child{border-right:none}
+.tbl tbody tr{border-bottom:1px solid var(--color-border)}
+.tbl tbody tr:hover{background:var(--color-bg);cursor:pointer}
+.tbl tbody td{padding:8px 12px;color:var(--color-dark);vertical-align:middle}
+.tbl td.center{text-align:center}
+
+#tabla-asesor tbody tr.is-selected{background:rgba(247,25,38,.14);box-shadow:inset 5px 0 0 var(--color-red),inset 0 0 0 2px rgba(247,25,38,.38)}
+#tabla-asesor tbody tr.is-selected td{font-weight:800}
+.detalle-head-tools{display:flex;align-items:center;flex-wrap:wrap;gap:0}
+.lid-clear{display:none;align-items:center;gap:6px;margin-left:8px;padding:3px 10px;border:1px solid var(--color-red);border-radius:20px;background:var(--color-surface);color:var(--color-red);font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:.02em;cursor:pointer}
+.lid-clear.show{display:inline-flex}
+.lid-clear:hover{background:var(--color-red);color:#fff}
+
+/* Etiqueta de etapa */
+.etapa{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:.02em;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.etapa i{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.etapa.e-dcien{background:#e8f8f0;color:#138c3e}
+.etapa.e-cliente{background:#e6f0fb;color:#0a4f9c}
+.etapa.e-equipo{background:#fff0e3;color:#B45309}
+.etapa.e-ingreso{background:#fdeaea;color:#C0393B}
+.etapa.e-nuevo{background:#f2ecfd;color:#6D31C7}
+.etapa.e-na{background:#f0f0f0;color:#999}
+
+/* Calificación y semáforos */
+.calif{display:inline-flex;align-items:center;justify-content:center;min-width:30px;font-family:var(--font-display);font-weight:800;font-size:11px;padding:2px 7px;border-radius:7px}
+.calif.c-ap{background:#d8f5e5;color:#0f7a37}
+.calif.c-a{background:#e8f8f0;color:#138c3e}
+.calif.c-b{background:#fff4d6;color:#B8860B}
+.calif.c-c{background:#fdeaea;color:#C0393B}
+.calif.c-n{background:#f0f0f0;color:#888}
+.pilar{display:inline-block;width:11px;height:11px;border-radius:50%}
+.pilar.ok{background:#1DB954}
+.pilar.no{background:#D92B2B}
+.pilar.na{background:#d8d8d8}
+.mov{font-family:var(--font-display);font-weight:800;font-size:11px}
+.mov.up{color:#138c3e}
+.mov.down{color:#C0393B}
+.mov.same{color:#b0a49f}
+.kpi-card__value .mov-up{color:#138c3e !important}
+.kpi-card__value .mov-down{color:#C0393B !important}
+
+.leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--color-gray);margin-top:10px}
+.leyenda span{display:inline-flex;align-items:center;gap:5px}
+.leyenda i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px 20px;color:var(--color-gray);text-align:center}
+.spinner{width:32px;height:32px;border:3px solid var(--color-border);border-top-color:var(--color-yellow);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Modal */
+.am-overlay{position:fixed;inset:0;background:rgba(20,10,10,.55);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.am-overlay.open{display:flex}
+.am-dialog{background:var(--color-surface);border-radius:16px;max-width:720px;width:100%;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.am-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--color-border)}
+.am-head h3{font-family:var(--font-display);font-size:1.05rem;margin:0}
+.am-head__sub{display:block;font-size:11px;font-weight:600;color:var(--color-gray);margin-top:3px;text-transform:none;letter-spacing:0}
+.am-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--color-gray);line-height:1}
+.am-body{padding:18px 22px;overflow-y:auto}
+.am-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.am-kpi{background:var(--color-bg);border-radius:10px;padding:12px;text-align:center}
+.am-kpi b{display:block;font-family:var(--font-display);font-size:1.3rem}
+.am-kpi span{font-size:10px;color:var(--color-gray);text-transform:uppercase;letter-spacing:.06em}
+.am-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.am-chip{display:inline-flex;flex-direction:column;gap:2px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:10px;padding:7px 12px;min-width:0}
+.am-chip span{font-family:var(--font-display);font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-gray)}
+.am-chip b{font-size:12px;font-weight:700;color:var(--color-dark);word-break:break-word}
+
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.row2,.row2-wide{grid-template-columns:1fr}}
+@media(max-width:600px){.kpis{grid-template-columns:1fr !important}.row2,.row2-wide{grid-template-columns:1fr}.chart-md{height:220px}.chart-lg{height:250px}}
+</style>
+<link rel="stylesheet" href="../css/dashboard-skin.css"/>
+<style id="d12-extras">
+.hero{flex-direction:column !important;align-items:stretch !important;gap:18px}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px 16px;align-items:end}
+.vac-fbox{display:flex;flex-direction:column;gap:6px;min-width:0}
+.vac-fbox > label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.85)}
+.hero .filtro-select,.hero .filtro-btn{
+  width:100%;box-sizing:border-box;
+  background:rgba(255,255,255,0.78) !important;
+  border:1px solid var(--exec-line-strong,rgba(42,27,25,0.2)) !important;
+  color:var(--exec-ink,#181112) !important;
+  -webkit-text-fill-color:var(--exec-ink,#181112) !important;
+  font-weight:700;border-radius:999px !important;padding:10px 16px !important;
+  transition:background .2s,color .2s,border-color .2s;
+}
+.hero .filtro-select:focus{outline:none;border-color:#fff !important}
+.hero .filtro-select option{color:#1a1a1a;background:#fff}
+.hero .filtro-btn:hover{background:#fff !important;color:var(--hb-red) !important;border-color:#fff !important}
+.hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
+</style>
+<link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
+  <link rel="stylesheet" href="../css/floating-filter-layout.css?v=2" />
+  <link rel="stylesheet" href="../css/rh-dashboard-refresh.css?v=20260820c" />
+  <link rel="stylesheet" href="../css/rh-table-tools.css?v=20260820b" />
+  <link rel="stylesheet" href="../css/rh-filter-summary.css?v=20260820a" />
+  <script defer src="../js/rh-dashboard-enhancements.js?v=20260821a"></script>
+  <script defer src="../js/rh-table-tools.js?v=20260820b"></script>
+  <script defer src="../js/rh-filter-summary.js?v=20260820b"></script>
+</head>
+<body class="hr-dashboard">
+<nav class="topbar">
+  <div class="topbar__brand">
+    <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+    <div>
+      <div class="topbar__title">Dashboards Ats</div>
+      <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
+    </div>
+  </div>
+  <div class="topbar__meta">
+    <a href="../index.html" class="topbar__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="hero hero--blue">
+    <div class="hero-top">
+      <div>
+        <h1>Enfoque del Líder</h1>
+        <p>Etapa de desarrollo de cada líder de tienda, su trayectoria mes a mes y la rotación del puesto · Plaza Oaxaca</p>
+      </div>
+      <span class="hero-badge" id="corte-badge">⟳ Mensual · Plaza Oaxaca</span>
+      <span id="hero-download" style="display:none"></span>
+    </div>
+    <div class="vac-filters">
+      <div class="vac-fbox">
+        <label>Asesor</label>
+        <div id="filtro-asesor"></div>
+      </div>
+      <div class="vac-fbox">
+        <label>Etapa</label>
+        <select class="filtro-select" id="filtro-etapa" onchange="applyFilters()">
+          <option value="">Todas las etapas</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
+        <label>&nbsp;</label>
+        <button class="filtro-btn" onclick="limpiarFiltros()">Limpiar filtros</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpi-section">
+    <div class="kpi-card"><div class="state-box"><div class="spinner"></div></div></div>
+  </div>
+
+  <div class="row2-wide">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Evolución de etapas · 12 meses<span class="info-tip" tabindex="0" data-tip="Cómo se reparten los líderes entre las etapas en cada mes. Cada barra suma 100%: si la franja verde crece, más líderes llegaron a Líder D-CIEN."></span></div>
+        <span class="card-badge" id="badge-evolucion">— meses</span>
+      </div>
+      <div class="chart-wrap chart-lg"><canvas id="chart-evolucion"></canvas></div>
+      <div class="leyenda" id="leyenda-etapas"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>Los 3 pilares<span class="info-tip" tabindex="0" data-tip="Porcentaje de líderes con el pilar en OK, mes a mes. Equipo = plantilla completa + MEP. Ingreso = faltante de inventario + faltante de efectivo. Cliente = venta lealtad + evaluación operativa."></span></div>
+        <span class="card-badge" id="badge-pilares">—</span>
+      </div>
+      <div class="chart-wrap chart-lg"><canvas id="chart-pilares"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Etapas por Asesor<span class="info-tip" tabindex="0" data-tip="Distribución de los líderes de cada asesor entre las etapas, en el mes de corte. Clic en una fila para filtrar el Detalle por Líder de abajo."></span></div>
+      <span class="card-badge" id="asesor-badge">— asesores</span>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl" id="tabla-asesor" data-rh-tools data-rh-page-size="15">
+        <thead><tr>
+          <th>Asesor</th><th class="center">Líderes</th><th class="center">D-CIEN</th><th class="center">Cliente</th><th class="center">Ingreso</th><th class="center">Equipo</th><th class="center">Nuevo</th><th class="center">% D-CIEN</th>
+        </tr></thead>
+        <tbody><tr><td colspan="8"><div class="state-box"><div class="spinner"></div></div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="leyenda">
+      <span><i style="background:#1DB954"></i> Líder D-CIEN (los 3 pilares OK)</span>
+      <span><i style="background:#0066CC"></i> Enfoque Cliente</span>
+      <span><i style="background:#D92B2B"></i> Enfoque Ingreso</span>
+      <span><i style="background:#FF6B00"></i> Enfoque Equipo</span>
+      <span><i style="background:#8B4CF7"></i> Líder Nuevo</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Detalle por Líder<span class="info-tip" tabindex="0" data-tip="Un renglón por tienda en el mes de corte. Clic en una fila para ver la trayectoria del líder mes a mes. La etapa se toma tal cual del reporte, que la arrastra un mes cuando el líder ya la cerró: por eso a veces no coincide al pie de la letra con los tres semáforos de la derecha. La racha viene del reporte y no todos los líderes la traen calculada."></span></div>
+      <div class="detalle-head-tools">
+        <span class="card-badge" id="row-count">— líderes</span>
+        <button type="button" class="lid-clear" id="detalle-clear" onclick="clearAsesorDetalle()"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span>Quitar filtro</span></button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl" id="tabla-detalle" data-rh-tools data-rh-page-size="25">
+        <tbody><tr><td colspan="11"><div class="state-box"><div class="spinner"></div></div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="leyenda">
+      <span><i class="pilar ok" style="border-radius:50%"></i> Pilar en OK</span>
+      <span><i class="pilar no" style="border-radius:50%"></i> Pilar en NO OK</span>
+      <span><b class="mov up">▲</b> Avanzó de etapa vs. mes anterior</span>
+      <span><b class="mov same">⇄</b> Cambió de líder</span>
+      <span><b class="mov down">▼</b> Retrocedió</span>
+    </div>
+  </div>
+
+  <div class="dash-footer">
+    <div class="dash-footer__update"><div class="dash-footer__update-dot"></div>
+      Datos cargados: <span id="load-time">—</span></div>
+    <div>Solo lectura · Google Sheets · Plaza Oaxaca</div>
+  </div>
+</div>
+
+<!-- Modal trayectoria del líder -->
+<div class="am-overlay" id="lider-modal" onclick="if(event.target===this)closeLiderModal()">
+  <div class="am-dialog">
+    <div class="am-head">
+      <h3 id="lm-title">Líder<small class="am-head__sub"></small></h3>
+      <button class="am-close" onclick="closeLiderModal()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="am-body">
+      <div class="am-kpis" id="lm-kpis"></div>
+      <div class="am-chips" id="lm-chips"></div>
+      <div class="tbl-wrap" style="max-height:330px">
+        <table class="tbl" id="lm-table">
+          <thead><tr><th>Mes</th><th>Etapa</th><th class="center">Calif.</th><th class="center">Equipo</th><th class="center">Ingreso</th><th class="center">Cliente</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script src="../js/config.js?v=20260821a"></script>
+  <script src="../js/core.js?v=20260820f"></script>
+<script src="../js/mascota-chat.js?v=20260805d"></script>
+<script>
+const TAB = OXXO.SHEETS_CONFIG.TABS.m12;
+
+// La escalera de desarrollo: primero se cierra Equipo, luego Ingreso, luego
+// Cliente. Quien tiene los 3 pilares en OK es Líder D-CIEN. El nivel sirve
+// para saber si un líder avanzó o retrocedió respecto al mes anterior; la
+// etapa en sí SIEMPRE se toma del reporte (columna "Clas Final"), que ya
+// aplica su propia regla de cierre y arrastre.
+const ETAPAS = ['Líder D-CIEN','Enfoque Cliente','Enfoque Ingreso','Enfoque Equipo','Líder Nuevo'];
+const ETAPA_NIVEL = {'Líder Nuevo':0,'Enfoque Equipo':1,'Enfoque Ingreso':2,'Enfoque Cliente':3,'Líder D-CIEN':4};
+const ETAPA_COLOR = {'Líder D-CIEN':'#1DB954','Enfoque Cliente':'#0066CC','Enfoque Ingreso':'#D92B2B','Enfoque Equipo':'#FF6B00','Líder Nuevo':'#8B4CF7'};
+const ETAPA_CLASE = {'Líder D-CIEN':'e-dcien','Enfoque Cliente':'e-cliente','Enfoque Ingreso':'e-ingreso','Enfoque Equipo':'e-equipo','Líder Nuevo':'e-nuevo'};
+const CALIF_CLASE = {'A+':'c-ap','A':'c-a','B':'c-b','C':'c-c','N':'c-n'};
+// La letra del reporte (A+/A/B/C/N) es un recodificado 1 a 1 de la etapa
+// -- verificado sobre los 2,942 registros de los 12 meses, sin una sola
+// excepcion -- asi que no se publica como columna: se deriva aqui. Las
+// rachas si vienen del origen, porque cuentan meses consecutivos.
+const CALIF_DE_ETAPA = {'Líder D-CIEN':'A+','Enfoque Cliente':'A','Enfoque Ingreso':'B','Enfoque Equipo':'C','Líder Nuevo':'N'};
+const califDe = (etapa) => CALIF_DE_ETAPA[etapa] || '';
+
+const ALIASES_D12 = {
+  mes:      ['Mes'],
+  zona:     ['Zona'],
+  plaza:    ['Plaza'],
+  cr:       ['CR Tienda','CR TIENDA','Cr de tienda'],
+  tienda:   ['Tienda'],
+  asesor:   ['Asesor','Asesor_Correcto'],
+  lider:    ['Lider','Líder','LIDER'],
+  noEmp:    ['No Empleado','No. Empleado','RFC / NO. EMP'],
+  tipo:     ['Tipo Lider','EP Ó LC'],
+  estIng:   ['Est Ingreso','INGRESO'],
+  estEq:    ['Est Equipo','EQUIPO'],
+  estCli:   ['Est Cliente','CLIENTE'],
+  etapa:    ['Clas Final','CLAS FINAL'],
+  etapaFin: ['Etapa Final','ETAPA FINAL'],
+  rachaA:   ['A+ Consecutivos'],
+  rachaC:   ['C Consecutivas'],
+  mesComp:  ['Mes Completo'],
+};
+let C = {};
+function buildColsD12(sample){
+  const cols = {};
+  Object.entries(ALIASES_D12).forEach(([k,aliases]) => { cols[k] = OXXO.metricsFindKey(sample, aliases) || aliases[0]; });
+  return cols;
+}
+
+let BASE = [];              // todas las filas de los 12 meses
+let MESES = [];             // meses ordenados asc
+let MES_ACT = '', MES_PREV = '';
+let POR_TIENDA_MES = {};    // "CR|Mes" -> fila
+let HIST_TIENDA = {};       // CR -> filas ordenadas por mes
+let SELECTED_ASESORES = null;
+let asesorFilterHandle = null;
+let DETALLE_ASESOR = null;
+let DETALLE_FILAS = [];
+let chartEvolucion = null, chartPilares = null;
+
+const val = (r, k) => String(r?.[k] ?? '').trim();
+const esOK = (v) => String(v || '').trim().toUpperCase() === 'OK';
+const nivel = (etapa) => (etapa in ETAPA_NIVEL) ? ETAPA_NIVEL[etapa] : null;
+function nombreMes(iso){
+  const m = /^(\d{4})-(\d{2})$/.exec(String(iso || '').trim());
+  if(!m) return String(iso || '');
+  const nombres = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  return `${nombres[Number(m[2]) - 1] || m[2]} ${m[1]}`;
+}
+function etapaHtml(etapa){
+  const cls = ETAPA_CLASE[etapa] || 'e-na';
+  const color = ETAPA_COLOR[etapa] || '#bbb';
+  return `<span class="etapa ${cls}"><i style="background:${color}"></i>${OXXO.escHtml(etapa || '—')}</span>`;
+}
+function califHtml(letra){
+  if(!letra) return '<span class="calif c-n">—</span>';
+  return `<span class="calif ${CALIF_CLASE[letra] || 'c-n'}">${OXXO.escHtml(letra)}</span>`;
+}
+function pilarHtml(v){
+  const t = String(v || '').trim().toUpperCase();
+  if(t === 'OK') return '<span class="pilar ok" title="OK"></span>';
+  if(t === 'NO OK') return '<span class="pilar no" title="NO OK"></span>';
+  return '<span class="pilar na" title="Sin dato"></span>';
+}
+
+// Meses seguidos (terminando en el mes de corte) que la tienda lleva en la
+// misma etapa CON EL MISMO LÍDER. Un cambio de líder reinicia la cuenta:
+// la etapa la hereda la tienda, pero el desarrollo es de la persona.
+function mesesEnEtapa(cr, hastaMes){
+  const hist = HIST_TIENDA[cr] || [];
+  const idx = hist.findIndex(r => val(r, C.mes) === hastaMes);
+  if(idx < 0) return 0;
+  const etapa = val(hist[idx], C.etapa);
+  const lider = val(hist[idx], C.lider);
+  let n = 0;
+  for(let i = idx; i >= 0; i--){
+    if(val(hist[i], C.etapa) !== etapa) break;
+    if(val(hist[i], C.lider) !== lider) break;
+    n++;
+  }
+  return n;
+}
+
+function filaMesAnterior(cr){ return POR_TIENDA_MES[`${cr}|${MES_PREV}`] || null; }
+
+// Movimiento vs. mes anterior: solo cuenta si es la MISMA persona; si la
+// tienda cambió de líder no hay avance ni retroceso que atribuir.
+function movimiento(fila){
+  const prev = filaMesAnterior(val(fila, C.cr));
+  if(!prev) return { tipo:'nuevo', txt:'—', detalle:'Sin mes anterior' };
+  if(val(prev, C.lider) !== val(fila, C.lider)) return { tipo:'cambio', txt:'⇄', detalle:`Cambió de líder (antes ${val(prev, C.lider) || 'sin líder'})` };
+  const a = nivel(val(prev, C.etapa)), b = nivel(val(fila, C.etapa));
+  if(a === null || b === null) return { tipo:'same', txt:'—', detalle:'Sin comparación' };
+  if(b > a) return { tipo:'up', txt:'▲', detalle:`Avanzó desde ${val(prev, C.etapa)}` };
+  if(b < a) return { tipo:'down', txt:'▼', detalle:`Retrocedió desde ${val(prev, C.etapa)}` };
+  return { tipo:'same', txt:'=', detalle:'Se mantuvo' };
+}
+
+function filasDelMes(mes){ return BASE.filter(r => val(r, C.mes) === mes); }
+
+function filteredData(){
+  let d = filasDelMes(MES_ACT);
+  const etapa = document.getElementById('filtro-etapa')?.value;
+  if(SELECTED_ASESORES) d = d.filter(r => SELECTED_ASESORES.includes(val(r, C.asesor)));
+  if(etapa) d = d.filter(r => val(r, C.etapa) === etapa);
+  return d;
+}
+
+function renderAll(){
+  const data = filteredData();
+  const prevData = filasDelMes(MES_PREV).filter(r => !SELECTED_ASESORES || SELECTED_ASESORES.includes(val(r, C.asesor)));
+
+  // ── KPIs ──
+  const total = data.length;
+  const sinLider = data.filter(r => /sin\s*l[ií]der/i.test(val(r, C.tipo)) || !val(r, C.lider)).length;
+  const dcien = data.filter(r => val(r, C.etapa) === 'Líder D-CIEN').length;
+  const pctD = total ? Math.round(dcien / total * 100) : 0;
+  const dcienPrev = prevData.filter(r => val(r, C.etapa) === 'Líder D-CIEN').length;
+  const pctDPrev = prevData.length ? Math.round(dcienPrev / prevData.length * 100) : null;
+  const deltaD = pctDPrev === null ? null : pctD - pctDPrev;
+
+  let subieron = 0, bajaron = 0, cambios = 0;
+  data.forEach(r => {
+    const m = movimiento(r);
+    if(m.tipo === 'up') subieron++;
+    else if(m.tipo === 'down') bajaron++;
+    else if(m.tipo === 'cambio') cambios++;
+  });
+
+  const rachaA = data.filter(r => (Number(val(r, C.rachaA)) || 0) >= 6).length;
+  const enRiesgo = data.filter(r => {
+    const letra = califDe(val(r, C.etapa));
+    if(letra === 'C' || letra === 'N') return true;
+    if(val(r, C.etapa) === 'Líder D-CIEN') return false;
+    return mesesEnEtapa(val(r, C.cr), MES_ACT) >= 4;
+  }).length;
+
+  const kpi = (clase, label, tip, valor, delta, deltaClase) => `
+    <div class="kpi-card ${clase}">
+      <div class="kpi-card__label">${label}<span class="info-tip" tabindex="0" data-tip="${OXXO.escHtml(tip)}"></span></div>
+      <div class="kpi-card__value">${valor}</div>
+      <div class="kpi-card__delta ${deltaClase}">${delta}</div>
+    </div>`;
+
+  document.getElementById('kpi-section').innerHTML =
+    kpi('azul', 'Líderes evaluados', 'Tiendas con evaluación en el mes de corte, con los filtros activos.', total,
+        sinLider ? `${sinLider} sin líder asignado` : 'Todas con líder', sinLider ? 'neg' : 'neu') +
+    kpi(pctD >= 40 ? 'verde' : pctD >= 25 ? 'amarillo' : 'rojo', 'Líder D-CIEN',
+        'Etapa más alta de la escalera. En el 92% de los casos significa los 3 pilares en OK; el reporte arrastra la etapa cuando el líder ya la había cerrado, así que en algunos renglones verás un pilar en rojo aun estando en D-CIEN.',
+        `${dcien} <span style="font-size:.55em;font-weight:700;opacity:.75">(${pctD}%)</span>`,
+        deltaD === null ? 'Sin mes anterior' : `${deltaD > 0 ? '+' : ''}${deltaD} pp vs ${nombreMes(MES_PREV)}`,
+        deltaD === null ? 'neu' : (deltaD > 0 ? 'pos' : deltaD < 0 ? 'neg' : 'neu')) +
+    kpi('', 'Movimiento del mes', 'Líderes que subieron o bajaron de etapa respecto al mes anterior. Solo cuenta cuando es la misma persona en la tienda.',
+        `<span class="mov-up">▲${subieron}</span> <span style="opacity:.35">/</span> <span class="mov-down">▼${bajaron}</span>`,
+        `${subieron - bajaron >= 0 ? '+' : ''}${subieron - bajaron} neto`, subieron - bajaron > 0 ? 'pos' : subieron - bajaron < 0 ? 'neg' : 'neu') +
+    kpi('', 'Rotación de líder', 'Tiendas donde cambió la persona al frente respecto al mes anterior, incluidas las que se quedaron sin líder.', cambios,
+        `${total ? Math.round(cambios / total * 100) : 0}% de las tiendas`, cambios ? 'neg' : 'neu') +
+    kpi('verde', 'Racha alta (6+ meses)', 'Líderes con seis meses o más seguidos en las dos etapas altas: A+ (Líder D-CIEN) o A (Enfoque Cliente). Es la columna "A+ Consecutivos" del reporte, que cuenta ambas letras, no solo A+. Candidatos naturales a reconocimiento.', rachaA,
+        `${total ? Math.round(rachaA / total * 100) : 0}% de los líderes`, 'pos') +
+    kpi('rojo', 'Requieren atención', 'Líderes con calificación C o N, o con cuatro meses o más atorados en la misma etapa sin llegar a D-CIEN.', enRiesgo,
+        `${total ? Math.round(enRiesgo / total * 100) : 0}% de los líderes`, enRiesgo ? 'neg' : 'neu');
+
+  renderEvolucion();
+  renderPilares();
+  renderAsesores(data);
+  renderDetalle(data);
+}
+
+// ── Gráfica 1: evolución de etapas (barras apiladas al 100%) ──
+function renderEvolucion(){
+  const datasets = ETAPAS.map(etapa => ({
+    label: etapa,
+    backgroundColor: ETAPA_COLOR[etapa],
+    borderColor: 'rgba(255,255,255,.7)',
+    borderWidth: 1,
+    borderRadius: 3,
+    data: MESES.map(mes => {
+      const filas = filasDelMes(mes).filter(r => !SELECTED_ASESORES || SELECTED_ASESORES.includes(val(r, C.asesor)));
+      if(!filas.length) return 0;
+      return Math.round(filas.filter(r => val(r, C.etapa) === etapa).length / filas.length * 1000) / 10;
+    }),
+  }));
+  document.getElementById('badge-evolucion').textContent = `${MESES.length} meses`;
+  document.getElementById('leyenda-etapas').innerHTML = ETAPAS
+    .map(e => `<span><i style="background:${ETAPA_COLOR[e]}"></i>${OXXO.escHtml(e)}</span>`).join('');
+  if(chartEvolucion) chartEvolucion.destroy();
+  chartEvolucion = new Chart(document.getElementById('chart-evolucion').getContext('2d'), {
+    type: 'bar',
+    data: { labels: MESES.map(nombreMes), datasets },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,
+          callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}},
+      },
+      scales:{
+        x:{stacked:true,border:{display:false},grid:{display:false},ticks:{color:'#5A4037',font:{family:'Barlow',size:10,weight:'800'}}},
+        y:{stacked:true,min:0,max:100,border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'},callback:v=>v+'%'}},
+      },
+    },
+  });
+}
+
+// ── Gráfica 2: % OK de cada pilar mes a mes ──
+function renderPilares(){
+  const pilares = [
+    { label:'Equipo',  key:'estEq',  color:'#FF6B00' },
+    { label:'Ingreso', key:'estIng', color:'#D92B2B' },
+    { label:'Cliente', key:'estCli', color:'#0066CC' },
+  ];
+  const datasets = pilares.map(p => ({
+    label: p.label,
+    borderColor: p.color,
+    backgroundColor: p.color,
+    pointBackgroundColor: p.color,
+    pointRadius: 3,
+    borderWidth: 2.5,
+    tension: .32,
+    data: MESES.map(mes => {
+      const filas = filasDelMes(mes).filter(r => !SELECTED_ASESORES || SELECTED_ASESORES.includes(val(r, C.asesor)));
+      if(!filas.length) return 0;
+      return Math.round(filas.filter(r => esOK(r[C[p.key]])).length / filas.length * 100);
+    }),
+  }));
+  const ultimo = datasets.map(d => ({ label:d.label, v:d.data[d.data.length - 1] })).sort((a,b) => a.v - b.v)[0];
+  document.getElementById('badge-pilares').textContent = ultimo ? `${ultimo.label}: ${ultimo.v}% — el más bajo` : '—';
+  if(chartPilares) chartPilares.destroy();
+  chartPilares = new Chart(document.getElementById('chart-pilares').getContext('2d'), {
+    type: 'line',
+    data: { labels: MESES.map(nombreMes), datasets },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'top',labels:{color:'#5A4037',usePointStyle:true,pointStyle:'circle',font:{family:'Barlow',size:10,weight:'800'},boxWidth:10}},
+        tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}% OK`}},
+      },
+      scales:{
+        x:{border:{display:false},grid:{display:false},ticks:{color:'#5A4037',font:{family:'Barlow',size:9,weight:'800'},maxRotation:0,autoSkipPadding:8}},
+        y:{min:0,max:100,border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'},callback:v=>v+'%'}},
+      },
+    },
+  });
+}
+
+// ── Tabla: etapas por asesor ──
+function renderAsesores(data){
+  const porAsesor = {};
+  data.forEach(r => {
+    const a = val(r, C.asesor) || 'Sin Asesor Asignado';
+    if(!porAsesor[a]) porAsesor[a] = { asesor:a, total:0, etapas:{} };
+    porAsesor[a].total++;
+    const e = val(r, C.etapa) || '—';
+    porAsesor[a].etapas[e] = (porAsesor[a].etapas[e] || 0) + 1;
+  });
+  const filas = Object.values(porAsesor).map(a => {
+    a.dcien = a.etapas['Líder D-CIEN'] || 0;
+    a.pct = a.total ? Math.round(a.dcien / a.total * 100) : 0;
+    return a;
+  }).sort((x, y) => y.pct - x.pct || y.total - x.total);
+
+  document.getElementById('asesor-badge').textContent = `${filas.length} ${filas.length === 1 ? 'asesor' : 'asesores'}`;
+  const cuerpo = document.getElementById('tabla-asesor').querySelector('tbody');
+  cuerpo.innerHTML = filas.length === 0
+    ? '<tr><td colspan="8"><div class="state-box">Sin datos</div></td></tr>'
+    : filas.map(a => {
+        const sel = a.asesor === DETALLE_ASESOR ? ' is-selected' : '';
+        const cel = (etapa) => `<td class="center">${a.etapas[etapa] || 0}</td>`;
+        const color = a.pct >= 40 ? 'c-a' : a.pct >= 25 ? 'c-b' : 'c-c';
+        return `<tr class="${sel.trim()}" data-asesor="${OXXO.escHtml(a.asesor)}" onclick="selectAsesorDetalle('${escapeAttr(a.asesor)}')" title="Clic para filtrar el Detalle por Líder">
+          <td>${OXXO.escHtml(OXXO.truncate(a.asesor, 28))}</td>
+          <td class="center">${a.total}</td>
+          ${cel('Líder D-CIEN')}${cel('Enfoque Cliente')}${cel('Enfoque Ingreso')}${cel('Enfoque Equipo')}${cel('Líder Nuevo')}
+          <td class="center"><span class="calif ${color}">${a.pct}%</span></td>
+        </tr>`;
+      }).join('');
+}
+
+// ── Tabla: detalle por líder ──
+function renderDetalle(data){
+  const filas = DETALLE_ASESOR
+    ? data.filter(r => (val(r, C.asesor) || 'Sin Asesor Asignado') === DETALLE_ASESOR)
+    : data;
+  DETALLE_FILAS = filas;
+
+  const cuerpo = filas.map((r, i) => {
+    const mov = movimiento(r);
+    const meses = mesesEnEtapa(val(r, C.cr), MES_ACT);
+    const rA = Number(val(r, C.rachaA)) || 0;
+    const rC = Number(val(r, C.rachaC)) || 0;
+    const racha = rA ? `<span class="calif c-a" title="Meses seguidos en A+ o A (D-CIEN o Enfoque Cliente)">A+/A ×${rA}</span>`
+                 : rC ? `<span class="calif c-c" title="Meses seguidos en C (Enfoque Equipo)">C ×${rC}</span>` : '—';
+    return `<tr onclick="openLiderModal(${i})" title="Ver trayectoria del líder">
+      <td>${OXXO.escHtml(OXXO.truncate(val(r, C.tienda) || '—', 22))}</td>
+      <td style="font-size:10px">${OXXO.escHtml(val(r, C.cr) || '—')}</td>
+      <td>${OXXO.escHtml(OXXO.truncate(val(r, C.lider) || 'Sin líder', 26))}</td>
+      <td style="font-size:10px">${OXXO.escHtml(OXXO.truncate(val(r, C.asesor) || '—', 20))}</td>
+      <td>${etapaHtml(val(r, C.etapa))}</td>
+      <td class="center">${meses || '—'}</td>
+      <td class="center">${racha}</td>
+      <td class="center">${pilarHtml(r[C.estEq])}</td>
+      <td class="center">${pilarHtml(r[C.estIng])}</td>
+      <td class="center">${pilarHtml(r[C.estCli])}</td>
+      <td class="center"><span class="mov ${mov.tipo === 'up' ? 'up' : mov.tipo === 'down' ? 'down' : 'same'}" title="${OXXO.escHtml(mov.detalle)}">${mov.txt}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tabla-detalle').innerHTML = `
+    <thead><tr>
+      <th>Tienda</th><th>CR</th><th>Líder</th><th>Asesor</th><th>Etapa</th>
+      <th class="center">Meses<br>en etapa</th><th class="center">Racha<br>A+/A · C</th>
+      <th class="center">Equipo</th><th class="center">Ingreso</th><th class="center">Cliente</th><th class="center">Mov.</th>
+    </tr></thead>
+    <tbody>${cuerpo || '<tr><td colspan="11"><div class="state-box">Sin datos</div></td></tr>'}</tbody>`;
+
+  const badge = document.getElementById('row-count');
+  badge.textContent = DETALLE_ASESOR
+    ? `${filas.length} de ${data.length} líderes · ${OXXO.truncate(DETALLE_ASESOR, 24)}`
+    : `${filas.length} ${filas.length === 1 ? 'líder' : 'líderes'}`;
+  document.getElementById('detalle-clear').classList.toggle('show', !!DETALLE_ASESOR);
+}
+
+function escapeAttr(s){ return String(s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+// Clic en la tabla de asesores: filtra solo el Detalle por Líder.
+function selectAsesorDetalle(asesor){
+  DETALLE_ASESOR = (DETALLE_ASESOR === asesor) ? null : asesor;
+  syncAsesorSelection();
+  renderDetalle(filteredData());
+  if(DETALLE_ASESOR){
+    const card = document.getElementById('tabla-detalle').closest('.card');
+    if(card) card.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+}
+function clearAsesorDetalle(){
+  if(!DETALLE_ASESOR) return;
+  DETALLE_ASESOR = null;
+  syncAsesorSelection();
+  renderDetalle(filteredData());
+}
+function syncAsesorSelection(){
+  document.querySelectorAll('#tabla-asesor tbody tr[data-asesor]').forEach(tr => {
+    tr.classList.toggle('is-selected', tr.dataset.asesor === DETALLE_ASESOR);
+  });
+}
+
+// ── Modal: trayectoria del líder mes a mes ──
+function openLiderModal(idx){
+  const r = DETALLE_FILAS[idx];
+  if(!r) return;
+  const cr = val(r, C.cr);
+  const lider = val(r, C.lider) || 'Sin líder asignado';
+  const hist = (HIST_TIENDA[cr] || []).filter(x => val(x, C.lider) === val(r, C.lider));
+
+  document.getElementById('lm-title').innerHTML =
+    `${OXXO.escHtml(lider)}<small class="am-head__sub">${OXXO.escHtml(val(r, C.tienda) || '—')} · CR ${OXXO.escHtml(cr || '—')}</small>`;
+
+  const evaluados = hist.length;
+  const dcien = hist.filter(x => val(x, C.etapa) === 'Líder D-CIEN').length;
+  const rA = Number(val(r, C.rachaA)) || 0;
+  const rC = Number(val(r, C.rachaC)) || 0;
+  document.getElementById('lm-kpis').innerHTML = `
+    <div class="am-kpi"><b>${evaluados}</b><span>Meses evaluado</span></div>
+    <div class="am-kpi"><b>${evaluados ? Math.round(dcien / evaluados * 100) : 0}%</b><span>Meses en D-CIEN</span></div>
+    <div class="am-kpi"><b>${rA ? 'A+/A ×' + rA : rC ? 'C ×' + rC : '—'}</b><span>Racha actual</span></div>`;
+
+  document.getElementById('lm-chips').innerHTML = [
+    ['Asesor', val(r, C.asesor)],
+    ['Nº empleado', val(r, C.noEmp)],
+    ['Tipo', val(r, C.tipo)],
+    ['Meses en la etapa', mesesEnEtapa(cr, MES_ACT) || ''],
+  ].filter(([, v]) => String(v || '').trim())
+   .map(([l, v]) => `<div class="am-chip"><span>${l}</span><b>${OXXO.escHtml(String(v).trim())}</b></div>`).join('');
+
+  document.getElementById('lm-table').querySelector('tbody').innerHTML = hist.length === 0
+    ? '<tr><td colspan="6"><div class="state-box">Sin historial</div></td></tr>'
+    : hist.slice().reverse().map(x => `<tr${val(x, C.mes) === MES_ACT ? ' style="font-weight:700;background:var(--color-bg)"' : ''}>
+        <td>${OXXO.escHtml(nombreMes(val(x, C.mes)))}</td>
+        <td>${etapaHtml(val(x, C.etapa))}</td>
+        <td class="center">${califHtml(califDe(val(x, C.etapa)))}</td>
+        <td class="center">${pilarHtml(x[C.estEq])}</td>
+        <td class="center">${pilarHtml(x[C.estIng])}</td>
+        <td class="center">${pilarHtml(x[C.estCli])}</td>
+      </tr>`).join('');
+
+  document.getElementById('lider-modal').classList.add('open');
+}
+function closeLiderModal(){ document.getElementById('lider-modal').classList.remove('open'); }
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeLiderModal(); });
+
+function applyFilters(){ renderAll(); }
+
+function limpiarFiltros(){
+  DETALLE_ASESOR = null;
+  ['filtro-etapa'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  if(asesorFilterHandle) asesorFilterHandle.reset(); else renderAll();
+}
+
+async function initDashboard(){
+  OXXO.renderDownloadButton('hero-download','m12');
+  let data = await OXXO.fetchSheetData(TAB);
+  if(data === null){ ['kpi-section','tabla-asesor','tabla-detalle'].forEach(id => OXXO.showError(id, 'No se pudo conectar.')); return; }
+  if(data.length === 0){ ['kpi-section','tabla-asesor','tabla-detalle'].forEach(id => OXXO.showEmpty(id)); return; }
+
+  C = buildColsD12(data[0]);
+  const asesorCatalog = await OXXO.loadAsesorCatalog();
+  data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
+  // Filas sin mes o sin tienda no son evaluaciones reales (renglones de total,
+  // filas en blanco al final de la hoja); se descartan antes de agrupar.
+  BASE = data.filter(r => /^\d{4}-\d{2}$/.test(val(r, C.mes)) && val(r, C.cr));
+
+  MESES = [...new Set(BASE.map(r => val(r, C.mes)))].sort();
+  MES_ACT = MESES[MESES.length - 1] || '';
+  MES_PREV = MESES[MESES.length - 2] || '';
+
+  POR_TIENDA_MES = {};
+  HIST_TIENDA = {};
+  BASE.forEach(r => {
+    const cr = val(r, C.cr);
+    POR_TIENDA_MES[`${cr}|${val(r, C.mes)}`] = r;
+    (HIST_TIENDA[cr] = HIST_TIENDA[cr] || []).push(r);
+  });
+  Object.values(HIST_TIENDA).forEach(lista => lista.sort((a, b) => val(a, C.mes).localeCompare(val(b, C.mes))));
+
+  document.getElementById('corte-badge').textContent = `⟳ Corte ${nombreMes(MES_ACT)} · Plaza Oaxaca`;
+
+  const actuales = filasDelMes(MES_ACT);
+  const asesores = [...new Set(actuales.map(r => val(r, C.asesor)).filter(Boolean))].sort();
+  asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
+    onChange: (selected) => { SELECTED_ASESORES = selected; DETALLE_ASESOR = null; renderAll(); },
+  });
+
+  const selE = document.getElementById('filtro-etapa');
+  ETAPAS.filter(e => actuales.some(r => val(r, C.etapa) === e))
+        .forEach(e => { const o = document.createElement('option'); o.value = e; o.textContent = e; selE.appendChild(o); });
+
+  renderAll();
+  OXXO.updateFooterTime('load-time');
+}
+document.addEventListener('DOMContentLoaded', initDashboard);
+
+window.buildExcelSheets = async function(){
+  return [
+    { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
+    { name: 'Etapas por Asesor', rows: OXXO.scrapeHtmlTable('#tabla-asesor') },
+    { name: 'Detalle por Lider', rows: OXXO.scrapeHtmlTable('#tabla-detalle') }
+  ];
+};
+</script>
+</body></html>
