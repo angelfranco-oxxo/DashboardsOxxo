@@ -813,6 +813,125 @@
     return { faltante, sobrante, neto };
   }
 
+  // ── Administrativo · Resultados de Inventario ─────────
+  // La tarjeta principal usa solo el ultimo corte disponible de la tienda.
+  // El historial permanece accesible por periodo en los botones inferiores.
+  const invNorm = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  function invValue(row, aliases) {
+    const lookup = new Map(Object.keys(row || {}).map((key) => [invNorm(key), row[key]]));
+    for (const alias of aliases) if (lookup.has(invNorm(alias))) return lookup.get(invNorm(alias));
+    return '';
+  }
+  function invNumber(value) {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    let raw = String(value ?? '').trim();
+    if (!raw || raw === '-') return 0;
+    const isPercent = raw.includes('%');
+    raw = raw.replace(/[$%\s]/g, '').replace(/[^0-9,.-]/g, '');
+    if (raw.includes(',') && raw.includes('.')) raw = raw.replace(/,/g, '');
+    else if (raw.includes(',')) {
+      const parts = raw.split(',');
+      raw = parts.length === 2 ? parts.join('.') : parts.join('');
+    }
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? (isPercent && Math.abs(parsed) > 1 ? parsed / 100 : parsed) : 0;
+  }
+  function invDate(value) {
+    const raw = String(value || '').trim();
+    if (!raw || raw === '-') return null;
+    let match = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    match = raw.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/);
+    if (match) return new Date(Number(match[3]) + (match[3].length === 2 ? 2000 : 0), Number(match[2]) - 1, Number(match[1]));
+    if (/^\d+(?:\.\d+)?$/.test(raw)) return new Date(1899, 11, 30 + Math.floor(Number(raw)));
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  function invPeriod(value, date) {
+    const raw = String(value || '').trim();
+    const direct = raw.match(/^(20\d{2})[-/](\d{1,2})/);
+    if (direct) return `${direct[1]}-${String(direct[2]).padStart(2, '0')}`;
+    const normalized = invNorm(raw);
+    const month = MESES_NOMBRE.findIndex((name) => normalized.includes(invNorm(name)));
+    const year = normalized.match(/20\d{2}/)?.[0];
+    if (month >= 0 && year) return `${year}-${String(month + 1).padStart(2, '0')}`;
+    return date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` : '';
+  }
+  const invMoney = (value) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(Number(value) || 0);
+  const invMoneyCompact = (value) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', notation: 'compact', maximumFractionDigits: 1 }).format(Number(value) || 0);
+  const invPercent = (value) => new Intl.NumberFormat('es-MX', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0);
+  const invDateText = (value) => value ? new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).format(value) : 'Sin fecha';
+  function invRatio(row) { return row.totalSales ? row.finalResult / row.totalSales : row.finalRatio; }
+  async function loadInventarios() {
+    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.inventories || 'Inventarios');
+    if (!raw || !raw.length) { DATA.inventarios = null; return; }
+    const rows = raw.map((row) => {
+      const inventoryDate = invDate(invValue(row, ['Fecha de Inventario', 'Fecha Inventario', 'Fecha inventario actual']));
+      return {
+        cr: String(invValue(row, ['CR', 'Código CR', 'Codigo CR']) || '').trim(),
+        store: String(invValue(row, ['Tienda', 'Nombre Tienda']) || '').trim(),
+        advisor: String(invValue(row, ['Asesor Comercial', 'Asesor', 'AT']) || '').trim(),
+        inventoryDate,
+        period: invPeriod(invValue(row, ['Periodo', 'Período', 'Mes', 'Corte']), inventoryDate),
+        type: String(invValue(row, ['Tipo Inventario', 'Tipo de Inventario']) || 'Sin tipo').trim(),
+        inventoryResult: invNumber(invValue(row, ['Resultado de Inventario', 'Resultado Inventario'])),
+        finalResult: invNumber(invValue(row, ['Resultado de Merma (Final c/s proyectos)', 'Resultado de Merma  (Final c/s proyectos)', 'Resultado Merma Final', 'Resultado Final'])),
+        totalSales: invNumber(invValue(row, ['SUMA TOTAL VTA S/TAE', 'Suma Total Ventas sin TAE', 'Total Ventas sin TAE'])),
+        finalRatio: invNumber(invValue(row, ['% Merma / Vta sin TAE (Final c/s proyectos)', '% Merma/Venta Final', 'Porcentaje Merma Final'])),
+        notes: String(invValue(row, ['Observaciones', 'Notas']) || '').trim(),
+      };
+    }).filter((row) => row.store);
+    DATA.inventarios = { rows, tiendaKey: 'store', crKey: 'cr' };
+    addTiendas(rows, 'store', 'cr');
+  }
+  function renderInventarios(tienda) {
+    const d = DATA.inventarios;
+    const el = document.getElementById('sec-inventarios');
+    if (!d) { el.classList.remove('show'); return null; }
+    const allRows = rowsFor(d, tienda);
+    el.classList.add('show');
+    const periods = [...new Set(allRows.map((row) => row.period).filter(Boolean))].sort();
+    const latestPeriod = periods.at(-1) || '';
+    const rows = latestPeriod ? allRows.filter((row) => row.period === latestPeriod) : allRows;
+    const monthsEl = document.getElementById('months-inventarios');
+    if (!rows.length) {
+      setSectionBadge('badge-inventarios', 'Corte', 'Sin datos');
+      document.getElementById('stats-inventarios').innerHTML = '';
+      document.getElementById('viz-inventarios').innerHTML = noneBox('Tu tienda no aparece en Resultados de Inventario');
+      monthsEl.innerHTML = '';
+      return null;
+    }
+    const merma = rows.reduce((sum, row) => sum + row.finalResult, 0);
+    const ventas = rows.reduce((sum, row) => sum + row.totalSales, 0);
+    const ratio = ventas ? merma / ventas : rows.reduce((sum, row) => sum + row.finalRatio, 0) / rows.length;
+    const latestDate = rows.map((row) => row.inventoryDate).filter(Boolean).sort((a, b) => b - a)[0] || null;
+    setSectionBadge('badge-inventarios', 'Último corte', latestPeriod ? mesLabel(latestPeriod) : invDateText(latestDate), 'is-current');
+    document.getElementById('stats-inventarios').innerHTML =
+      statTile(n(rows.length), 'Inventarios') +
+      statTile(invMoneyCompact(merma), 'Merma final', ratio > .01 ? 'rojo' : ratio > .005 ? 'amarillo' : 'verde') +
+      statTile(invMoneyCompact(ventas), 'Venta sin TAE') +
+      statTile(invPercent(ratio), '% Merma / venta', ratio > .01 ? 'rojo' : ratio > .005 ? 'amarillo' : 'verde');
+    const risk = ratio > .01 ? 'high' : ratio > .005 ? 'medium' : 'low';
+    document.getElementById('viz-inventarios').innerHTML = signalHTML(risk,
+      risk === 'high' ? 'Merma por arriba de 1%' : risk === 'medium' ? 'Merma en seguimiento' : 'Merma controlada',
+      `${invPercent(ratio)} sobre venta sin TAE · inventario ${invDateText(latestDate)}`);
+    renderMonthsAccordion(monthsEl, allRows, (row) => row.period, {
+      titulo: 'Resultados de Inventario',
+      summaryHtml: (periodRows) => {
+        const result = periodRows.reduce((sum, row) => sum + row.finalResult, 0);
+        const sales = periodRows.reduce((sum, row) => sum + row.totalSales, 0);
+        return `<span><b class="${sales && result / sales > .01 ? 'rojo' : 'verde'}">${invPercent(sales ? result / sales : 0)}</b> merma</span><span><b>${invMoneyCompact(result)}</b></span>`;
+      },
+      theadHtml: '<tr><th>Fecha</th><th>Tipo</th><th>Asesor</th><th class="center">Resultado</th><th class="center">Merma final</th><th class="center">Venta sin TAE</th><th class="center">% Merma</th><th>Observaciones</th></tr>',
+      rowsHtml: (periodRows) => [...periodRows].sort((a, b) => (b.inventoryDate || 0) - (a.inventoryDate || 0)).map((row) => `<tr>
+          <td>${esc(invDateText(row.inventoryDate))}</td><td>${esc(row.type)}</td><td>${esc(row.advisor || '—')}</td>
+          <td class="center">${esc(invMoney(row.inventoryResult))}</td><td class="center">${esc(invMoney(row.finalResult))}</td>
+          <td class="center">${esc(invMoney(row.totalSales))}</td><td class="center">${esc(invPercent(invRatio(row)))}</td><td>${esc(row.notes || '—')}</td>
+        </tr>`).join(''),
+    });
+    return { count: rows.length, merma, ventas, ratio, period: latestPeriod };
+  }
+
   // ── D10 · Personal FLEX (foto: colaboradores FLEX por tienda) ──
   async function loadD10() {
     const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d10);
@@ -923,6 +1042,7 @@
     const operacion = [];
     const personas = [];
     const estructura = [];
+    const administrativo = [];
     if (S.d1) operacion.push(rkTile(n(S.d1.vacantes), 'Vacantes', toneByCount(S.d1.vacantes)));
     if (S.d2) operacion.push(rkTile(n(S.d2.bajas), 'Bajas del mes', toneByCount(S.d2.bajas)));
     if (S.d4) operacion.push(rkTile(n(S.d4.horas), 'Horas extra', toneByCount(S.d4.horas, 20), S.d4.gasto ? '$' + n(S.d4.gasto) : ''));
@@ -937,6 +1057,10 @@
       const dif = Number(S.d7.dif) || 0;
       estructura.push(rkTile((dif > 0 ? '+' : '') + dif, 'Diferencia TREO', dif === 0 ? 'is-ok' : Math.abs(dif) <= 2 ? 'is-warn' : 'is-bad', S.d7.mov?.txt || ''));
     }
+    if (S.inventarios) {
+      administrativo.push(rkTile(invMoneyCompact(S.inventarios.merma), 'Merma final', S.inventarios.ratio > .01 ? 'is-bad' : S.inventarios.ratio > .005 ? 'is-warn' : 'is-ok'));
+      administrativo.push(rkTile(invPercent(S.inventarios.ratio), '% Merma / venta', S.inventarios.ratio > .01 ? 'is-bad' : S.inventarios.ratio > .005 ? 'is-warn' : 'is-ok', S.inventarios.period ? mesLabel(S.inventarios.period) : ''));
+    }
     const group = (title, subtitle, cls, icon, tiles) => tiles.length ? `<section class="mt-summary-group ${cls}">
       <div class="mt-summary-group__head"><span class="mt-summary-group__icon">${icon}</span><div><strong>${title}</strong><small>${subtitle}</small></div></div>
       <div class="mt-summary-group__grid">${tiles.join('')}</div>
@@ -944,6 +1068,7 @@
     const iconOperacion = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-7 4 14 2-7h6"></path></svg>';
     const iconPersonas = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>';
     const iconEstructura = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"></path></svg>';
+    const iconAdministrativo = '<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 21 7 12 12 3 7 12 2"></polygon><polyline points="3 7 3 17 12 22 21 17 21 7"></polyline></svg>';
     document.getElementById('ficha-resumen').innerHTML = `
       <div class="mt-current-head">
         <div><span class="mt-current-head__eyebrow">Estado actual</span><strong>Resumen de la tienda</strong></div>
@@ -953,6 +1078,7 @@
         ${group('Operación', 'Vacantes, bajas y asistencia', 'mt-summary-group--operacion', iconOperacion, operacion)}
         ${group('Personas', 'Desarrollo y cumplimiento', 'mt-summary-group--personas', iconPersonas, personas)}
         ${group('Estructura', 'Cobertura y recomendación TREO', 'mt-summary-group--estructura', iconEstructura, estructura)}
+        ${group('Administrativo', 'Inventario y merma', 'mt-summary-group--administrativo', iconAdministrativo, administrativo)}
       </div>`;
   }
   function renderAlertas(S) {
@@ -965,6 +1091,7 @@
     if (S.d7 && S.d7.dif) a.push({ t: 'is-info', target: 'sec-d7', txt: `TREO: ${S.d7.mov.txt.toLowerCase()} ${Math.abs(S.d7.dif)} posición${Math.abs(S.d7.dif) > 1 ? 'es' : ''}` });
     if (S.d8 && S.d8.capPct < 100) a.push({ t: S.d8.capPct < 60 ? 'is-bad' : 'is-warn', target: 'sec-d8', txt: `Capacidades al ${S.d8.capPct}%${S.d8.pendientes ? ` · ${n(S.d8.pendientes)} pendientes` : ''}` });
     if (S.d11 && S.d11.cumplTotal !== null && S.d11.cumplTotal < 90) a.push({ t: S.d11.cumplTotal < 70 ? 'is-bad' : 'is-warn', target: 'sec-d11', txt: `Cumplimiento de registro al ${S.d11.cumplTotal}%` });
+    if (S.inventarios && S.inventarios.ratio > .005) a.push({ t: S.inventarios.ratio > .01 ? 'is-bad' : 'is-warn', target: 'sec-inventarios', txt: `Merma de inventario al ${invPercent(S.inventarios.ratio)}` });
     const container = document.getElementById('ficha-alertas');
     container.innerHTML = a.length ? a.map((item) => `<button type="button" class="chip mt-alert-link ${item.t}" data-target="${item.target}">${esc(item.txt)} <span aria-hidden="true">→</span></button>`).join('') : chipsHTML([], 'Sin alertas: tu tienda está en orden');
     container.querySelectorAll('.mt-alert-link').forEach((button) => button.addEventListener('click', () => {
@@ -1019,6 +1146,7 @@
       d1: renderD1(tienda), d2: renderD2(tienda), d3: renderD3(tienda), d4: renderD4(tienda),
       d5: renderD5(tienda), d6: renderD6(tienda), d7: renderD7(tienda), d8: renderD8(tienda),
       d9: renderD9(tienda), d10: renderD10(tienda), d11: renderD11(tienda),
+      inventarios: renderInventarios(tienda),
     };
     renderIdentidad(tiendaDisplay, S);
     renderResumen(S);
@@ -1037,7 +1165,7 @@
       TIENDAS.clear();
       Object.keys(DATA).forEach((key) => delete DATA[key]);
       CATALOG = await OXXO.loadAsesorCatalog();
-      const loaders = [loadD1, loadD2, loadD3, loadD4, loadD5, loadD6, loadD7, loadD8, loadD9, loadD10, loadD11];
+      const loaders = [loadD1, loadD2, loadD3, loadD4, loadD5, loadD6, loadD7, loadD8, loadD9, loadD10, loadD11, loadInventarios];
       const results = await Promise.allSettled(loaders.map((load) => load()));
       const failures = results.filter((r) => r.status === 'rejected').length;
       const loaded = Object.values(DATA).filter(Boolean).length;

@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="../assets/favicon.png"/>
   <link rel="stylesheet" href="../css/global.css?v=20260820f"/>
   <link rel="stylesheet" href="../css/mascota-chat.css?v=20260818a" />
-<link rel="stylesheet" href="../css/mi-ficha.css?v=11"/>
+<link rel="stylesheet" href="../css/mi-ficha.css?v=12"/>
 <link rel="stylesheet" href="../css/dashboard-skin.css"/>
 </head>
 <body class="mi-tienda-page">
@@ -35,7 +35,7 @@
   <div class="hero mt-hero">
     <div>
       <h1><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>Mi Tienda</h1>
-      <p>Todo lo de tu tienda en una sola ficha: vacantes, bajas, estructura, tiempo extra, vacaciones, ausentismos, TREO y capacidades.</p>
+      <p>Todo lo de tu tienda en una sola ficha: operación, personas, estructura e indicadores administrativos.</p>
     </div>
     <span class="hero-badge" id="corte-badge">⟳ Cargando datos…</span>
   </div>
@@ -73,6 +73,7 @@
         <article><strong>Capacidades</strong><p>Avance de certificaciones aplicables por persona; los vacíos que no aplican no reducen el porcentaje.</p></article>
         <article><strong>Cumplimiento de registro</strong><p>Porcentaje de entradas y salidas registradas correctamente en el periodo publicado.</p></article>
         <article><strong>Apego a horario</strong><p>Coincidencia entre el horario publicado, el ejecutado y los registros realizados.</p></article>
+        <article><strong>Merma de inventario</strong><p>Resultado final del inventario comparado contra la venta sin TAE del periodo; el porcentaje permite dimensionar su impacto.</p></article>
       </div>
     </details>
 
@@ -172,6 +173,16 @@
       <div id="months-d9" class="mi-months"></div>
     </div>
 
+    <div class="mi-section" id="sec-inventarios">
+      <div class="mi-section-head">
+        <div class="mi-section-title"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 21 7 12 12 3 7 12 2"></polygon><polyline points="3 7 3 17 12 22 21 17 21 7"></polyline><line x1="12" y1="12" x2="12" y2="22"></line></svg></span><h3>Resultados de Inventario</h3></div>
+        <span class="mi-badge" id="badge-inventarios">—</span>
+      </div>
+      <div id="stats-inventarios" class="mi-stats"></div>
+      <div id="viz-inventarios" class="mi-viz"></div>
+      <div id="months-inventarios" class="mi-months"></div>
+    </div>
+
     <div class="mi-section" id="sec-d10">
       <div class="mi-section-head">
         <div class="mi-section-title"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span><h3>Personal FLEX</h3></div>
@@ -230,5 +241,5 @@
   <script src="../js/core.js?v=20260820f"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script src="../js/mi-ficha-ui.js?v=4"></script>
-<script src="../js/mi-tienda.js?v=24"></script>
+<script src="../js/mi-tienda.js?v=25"></script>
 </body></html>
