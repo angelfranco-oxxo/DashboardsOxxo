@@ -6,18 +6,23 @@ Posibles causas:
 
 - El navegador esta usando una URL vieja de Apps Script guardada en cache.
 - Brave bloqueo la respuesta del Web App.
-- El Web App de Apps Script fue redeployado y la URL cambio.
+- Se creo una implementacion NUEVA del Apps Script (en vez de publicar una version nueva sobre la existente) y la URL cambio.
 - El Apps Script no tiene permisos correctos.
 
 Soluciones:
 
 1. Presiona `Ctrl + F5` en el panel admin.
-2. Revisa que `js/core.js` tenga la URL correcta en `ADMIN_UPLOAD_URL`.
+2. Revisa que `js/config.js` tenga la URL correcta en `ADMIN_UPLOAD_URL`.
 3. Si el campo de URL del panel muestra una URL vieja, reemplazala con la nueva y presiona `Guardar URL`.
 4. Verifica que el Web App de Apps Script este publicado como:
    - Ejecutar como: propietario.
    - Acceso: cualquiera con el enlace, segun la politica permitida.
 5. Si Brave sigue bloqueando, prueba el modo compatible del panel o usa Chrome para validar.
+
+Para evitar que la URL vuelva a cambiar, redespliega siempre editando la
+implementacion existente (`Administrar implementaciones` > lapiz > Version:
+"Nueva version"), nunca con `Nueva implementacion`. Ver la seccion
+"Redesplegar el Apps Script sin romper la URL" en `docs/GUIA_ACTUALIZACION.md`.
 
 ## El dashboard no actualiza datos
 

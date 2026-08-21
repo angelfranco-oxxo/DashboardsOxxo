@@ -194,6 +194,69 @@ Reglas:
 - TREO, SAP, activos y vacantes alimentan la tabla principal.
 - El catalogo de asesores puede corregir asesor por CR/Tienda.
 
+## Dashboard 12 - Enfoque del Lider
+
+Base esperada: `Reporte Enfoque del Lider` (una fila por tienda por mes).
+
+Columnas clave:
+
+- Mes
+- CR TIENDA / TIENDA / ASESOR
+- LIDER / RFC-NO. EMP / EP O LC
+- INGRESO / EQUIPO / CLIENTE (los tres semaforos)
+- CLAS FINAL (la etapa del mes)
+
+Reglas:
+
+- **Este es el unico dashboard que NO reemplaza toda la pestana.** Se publica
+  por periodo sobre la columna `Mes`: subir el reporte de un mes reemplaza
+  solo ese mes y conserva los anteriores. El historico de 12 meses es lo que
+  alimenta las dos graficas de tendencia, asi que no se debe borrar la
+  pestana a mano.
+- Sube el archivo completo tal como sale del reporte; el panel se queda con
+  Plaza Oaxaca y normaliza las columnas.
+- El Excel de origen trae `MEP P.P.` y `EVALUACION OPERATIVA` repetidas dos
+  veces cada una (primero el valor numerico, despues su OK / NO OK). El panel
+  ya resuelve la segunda por posicion; no hay que renombrar nada en el Excel.
+- La letra A+/A/B/C/N no se publica: es un recodificado 1 a 1 de `CLAS FINAL`
+  y el dashboard la deriva sola.
+- La etapa se toma tal cual del reporte. El reporte la arrastra un mes cuando
+  el lider ya la habia cerrado, asi que en algunos renglones la etapa no
+  coincide al pie de la letra con los tres semaforos. Es el comportamiento
+  esperado, no un error de carga.
+
+## Redesplegar el Apps Script sin romper la URL
+
+Solo hace falta cuando se cambia `apps-script/admin-upload.gs` (por ejemplo,
+al agregar una pestana nueva a `ALLOWED_SHEETS`).
+
+**Camino correcto** (conserva la URL, no se toca ningun archivo del repo):
+
+1. Abre el proyecto de Apps Script y pega el `.gs` actualizado.
+2. `Implementar` > `Administrar implementaciones`.
+3. Selecciona la implementacion que ya esta activa.
+4. Clic en el **icono de lapiz (Editar)**, arriba a la derecha.
+5. En `Version` elige **"Nueva version"**, escribe una descripcion.
+6. `Implementar`.
+
+La URL `/exec` es la misma de siempre. Cada implementacion tiene su propio ID
+y su propia direccion estable; lo que cambia con cada version es el codigo que
+sirve, no la direccion.
+
+**Camino que cuesta caro:** el boton `Nueva implementacion` crea una
+implementacion DISTINTA con URL nueva, y deja la anterior viva pero congelada
+con el codigo de ese momento. Si se usa ese camino hay que copiar la URL nueva
+a `ADMIN_UPLOAD_URL` en `js/config.js` y publicar el cambio, o el panel seguira
+hablando con la version vieja.
+
+Sintoma tipico de haber caido ahi: publicas un cambio en el `.gs`, la
+implementacion aparece como exitosa, pero el panel admin sigue comportandose
+como antes (por ejemplo, sigue rechazando una pestana que ya agregaste a
+`ALLOWED_SHEETS`).
+
+Despues de redesplegar, verifica en el panel admin que la pestana nueva ya
+acepte una publicacion de prueba.
+
 ## Catalogo de asesores
 
 Base esperada: catalogo actualizado de tiendas y responsables.

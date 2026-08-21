@@ -19,27 +19,42 @@ window.OXXO_CONFIG = {
 
   // Web App de Apps Script usado por el panel admin para publicar bases y
   // para leer hojas directo (sin pasar por gviz, ver ADMIN_READ_ACTION mas
-  // abajo). Cada vez que se redespliega el Apps Script (Implementar >
-  // Administrar implementaciones > Nueva version) Google genera una URL
-  // /exec NUEVA -- la anterior queda congelada con el codigo de ese momento,
-  // ya no responde con los cambios. Toca actualizar esta URL cada vez.
-  // Redeploy 2026-08-14 (b): se agrego doGet(e) con action=readSheet, que
+  // abajo).
+  //
+  // COMO REDESPLEGAR SIN CAMBIAR ESTA URL (importante):
+  //   Implementar > Administrar implementaciones > selecciona la
+  //   implementacion activa > icono de lapiz (Editar) > Version: "Nueva
+  //   version" > Implementar.
+  // Ese camino publica el codigo nuevo CONSERVANDO la misma URL /exec, y
+  // entonces este archivo no se toca. Cada implementacion tiene su propio ID
+  // y su propia URL estable; lo que cambia con cada version es el codigo que
+  // sirve, no la direccion.
+  //
+  // El boton "Nueva implementacion" (el otro camino) crea una implementacion
+  // DISTINTA, con URL /exec nueva, y deja la anterior viva pero congelada con
+  // el codigo de ese momento. Si alguna vez el panel deja de ver los cambios
+  // recien publicados, casi siempre es eso: se creo una implementacion nueva
+  // y esta constante seguia apuntando a la vieja. Solo en ese caso hay que
+  // actualizar la URL de abajo.
+  //
+  // Historial de versiones publicadas (que se cambio en el .gs cada vez):
+  // 2026-08-14 (b): se agrego doGet(e) con action=readSheet, que
   // devuelve una hoja completa via SpreadsheetApp (sin gviz). Necesario
   // porque gviz corrompe la exportacion CSV de Catalogo_Asesores (fusiona
   // decenas de filas en una sola celda, ver loadAsesorCatalog en core.js).
-  // Redeploy 2026-08-14 (c): se agrego 'Dashboard_9_Semanal' a ALLOWED_SHEETS
+  // 2026-08-14 (c): se agrego 'Dashboard_9_Semanal' a ALLOWED_SHEETS
   // para publicar el nuevo Dashboard 9 (Faltantes y Sobrantes).
-  // Redeploy 2026-08-17: se agrego 'Dashboard_10_FLEX' a ALLOWED_SHEETS para
+  // 2026-08-17: se agrego 'Dashboard_10_FLEX' a ALLOWED_SHEETS para
   // publicar el nuevo Dashboard 10 (Personal FLEX).
-  // Redeploy 2026-08-18: se agrego 'Dashboard_11_Semanal' a ALLOWED_SHEETS
+  // 2026-08-18: se agrego 'Dashboard_11_Semanal' a ALLOWED_SHEETS
   // para publicar el nuevo Dashboard 11 (Registro y Apego a Horario).
-  // Redeploy 2026-08-18 (b): se restauro doGet(e) con action=readSheet, que
+  // 2026-08-18 (b): se restauro doGet(e) con action=readSheet, que
   // se habia perdido en el redeploy anterior (el doGet() de ese momento no
   // leia parametros en absoluto). Sin esto Catalogo_Asesores se publicaba
   // desde el respaldo estatico del repo en vez del Sheet en vivo.
-  // Redeploy 2026-08-18 (c): se agrego 'Reasignaciones' a ALLOWED_SHEETS,
+  // 2026-08-18 (c): se agrego 'Reasignaciones' a ALLOWED_SHEETS,
   // para que el panel admin (pestana Reasignaciones) pueda publicar ahi.
-  // Redeploy 2026-08-21: se agrego 'Dashboard_12_Mensual' a ALLOWED_SHEETS
+  // 2026-08-21: se agrego 'Dashboard_12_Mensual' a ALLOWED_SHEETS
   // para publicar el nuevo Dashboard 12 (Enfoque del Lider). Es la primera
   // pestana con historico mensual: se carga con updateMode replacePeriod
   // sobre la columna 'Mes', asi que subir un mes NO borra los anteriores.
