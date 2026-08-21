@@ -59,7 +59,11 @@ window.OXXO_CONFIG = {
   // pestana con historico mensual: se carga con updateMode replacePeriod
   // sobre la columna 'Mes', asi que subir un mes NO borra los anteriores.
   // 2026-08-21 (c): se agrego 'Dashboard_13_Ausentismo' a ALLOWED_SHEETS para
-  // publicar el nuevo Dashboard 13 (Control de Ausentismo).
+  // publicar el nuevo Dashboard 13 (Control de Ausentismo). Se publico otra vez
+  // como implementacion NUEVA, asi que la URL /exec volvio a cambiar y esta
+  // constante se actualizo con ella. Verificado antes de fijarla: doGet lista
+  // las 20 hojas permitidas con Dashboard_13_Ausentismo incluida, y
+  // action=readSheet sigue respondiendo.
   // 2026-08-21 (b): implementacion NUEVA (URL /exec distinta a la anterior,
   // que sigue viva pero sin Dashboard_12_Mensual). Verificado contra la URL
   // de abajo: doGet responde con las 19 hojas permitidas incluyendo
@@ -67,7 +71,7 @@ window.OXXO_CONFIG = {
   // proximas veces, ver "COMO REDESPLEGAR SIN CAMBIAR ESTA URL" arriba: si se
   // publica una version nueva sobre esta misma implementacion, esta constante
   // ya no se vuelve a tocar.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbzx4aTaMIkDnHczWBWu2Vz96bLDUQYo0UYIT4ZQp3BPbD29M_M7ClpXiKxTyOGHQsvS/exec",
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxKpfUor_x24elwOsj3KESXj-FRlginDwoCIB_Fiw9wgOc3LX1334HFGhFSUKl5nyaj/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
