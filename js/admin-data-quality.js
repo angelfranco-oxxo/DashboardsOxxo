@@ -28,6 +28,7 @@
     { area: 'RH', name: 'Capacidades', tab: tabs().d8, cadence: 'snapshot', required: [['unidad org'], ['empleados'], ['asesor correcto', 'asesor']] },
     { area: 'RH', name: 'Personal FLEX', tab: tabs().d10, cadence: 'weekly', required: [['tienda'], ['asesor'], ['fecha']], dates: ['Fecha'] },
     { area: 'RH', name: 'Registro y Apego', tab: tabs().d11, cadence: 'weekly', required: [['tienda'], ['asesor'], ['fecha']], dates: ['Fecha'] },
+    { area: 'RH', name: 'Enfoque del Lider', tab: tabs().m12, cadence: 'monthly', required: [['tienda'], ['asesor'], ['mes']], dates: ['Mes'] },
     { area: 'Administrativo', name: 'Faltantes y Sobrantes', tab: tabs().s9, cadence: 'weekly', required: [['cr'], ['fecha'], ['importe']], dates: ['Fecha'] },
     { area: 'Administrativo', name: 'Inventarios', tab: tabs().inventories, cadence: 'monthly', required: [['cr'], ['tienda'], ['fecha de inventario']], dates: ['Fecha de Inventario', 'Periodo'] },
     { area: 'Comercial', name: 'PromosD100', tab: tabs().promos, cadence: 'snapshot', required: [['titulo', 'promocion'], ['imagen', 'imagen url', 'url']], dates: ['Fecha fin', 'Fin', 'Vigencia hasta'] },

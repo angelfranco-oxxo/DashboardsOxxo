@@ -95,7 +95,27 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
   }
 
   function findHeaderRow(matrix,dash){const limit=Math.min(matrix.length,40);let best={index:0,score:-1};for(let i=0;i<limit;i++){const cells=(matrix[i]||[]).map(norm).filter(Boolean);const score=dash.required.reduce((total,col)=>total+(aliasesFor(col).some(alias=>cells.includes(alias))?1:0),0)+Math.min(cells.length,12)/100;if(score>best.score)best={index:i,score};}return best;}
-  function buildSourceMap(sourceHeaders){const sourceMap=new Map();sourceHeaders.forEach((header,index)=>{const key=norm(header);if(key&&!sourceMap.has(key))sourceMap.set(key,index);});return sourceMap;}
+  // Encabezados repetidos: algunos reportes traen el mismo nombre de columna
+  // dos veces con contenidos distintos (el Reporte Enfoque del Lider trae
+  // "MEP P.P." y "EVALUACION OPERATIVA" dos veces cada una: primero el valor
+  // numerico y despues su OK/NO OK). La primera ocurrencia se queda con la
+  // clave limpia -- eso NO cambia para ningun dashboard existente -- y las
+  // siguientes se registran ademas con un sufijo 2, 3, ... para que un alias
+  // pueda apuntarles. Misma convencion que makeUniqueHeaders() en core.js,
+  // que ya hace esto del lado de la lectura del CSV publicado.
+  function buildSourceMap(sourceHeaders){
+    const sourceMap=new Map();
+    const conteo=new Map();
+    sourceHeaders.forEach((header,index)=>{
+      const key=norm(header);
+      if(!key)return;
+      const veces=(conteo.get(key)||0)+1;
+      conteo.set(key,veces);
+      const clave=veces===1?key:`${key}${veces}`;
+      if(!sourceMap.has(clave))sourceMap.set(clave,index);
+    });
+    return sourceMap;
+  }
   function matchColumns(sourceMap,columns){const matched={};columns.forEach(col=>{const exact=aliasesFor(col).find(alias=>sourceMap.has(alias));if(exact)matched[col]=sourceMap.get(exact);});return matched;}
   // dash.sourceColumns: columnas a extraer del Excel crudo, cuando difieren de
   // dash.output (ej. d2otras extrae la columna cruda "Plaza" ademas de

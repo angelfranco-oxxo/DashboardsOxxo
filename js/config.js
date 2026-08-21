@@ -39,6 +39,10 @@ window.OXXO_CONFIG = {
   // desde el respaldo estatico del repo en vez del Sheet en vivo.
   // Redeploy 2026-08-18 (c): se agrego 'Reasignaciones' a ALLOWED_SHEETS,
   // para que el panel admin (pestana Reasignaciones) pueda publicar ahi.
+  // Redeploy 2026-08-21: se agrego 'Dashboard_12_Mensual' a ALLOWED_SHEETS
+  // para publicar el nuevo Dashboard 12 (Enfoque del Lider). Es la primera
+  // pestana con historico mensual: se carga con updateMode replacePeriod
+  // sobre la columna 'Mes', asi que subir un mes NO borra los anteriores.
   ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbwqi_YJQIUSN54G4rWvB1WLCFr8eCx4-5nuw-UfZJRak61N50n5WUt58qF5y4OWrW5D/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
@@ -58,6 +62,7 @@ window.OXXO_CONFIG = {
     s9: "Dashboard_9_Semanal",
     d10: "Dashboard_10_FLEX",
     d11: "Dashboard_11_Semanal",
+    m12: "Dashboard_12_Mensual",
     promos: "Promociones",
     inventories: "Inventarios"
   }
