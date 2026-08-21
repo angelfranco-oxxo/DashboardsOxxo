@@ -331,9 +331,22 @@ let chartMeses=null, chartClas=null, chartMec=null, chartArea=null, chartLugar=n
 const val = (r,k) => String(r?.[k] ?? '').trim();
 const nDias = (r) => { const n = OXXO.metricsNum(r[C.dias]); return Number.isFinite(n) ? n : 0; };
 const claveColab = (r) => val(r, C.noEmp) || val(r, C.nombre).toUpperCase();
-function fechaCorta(iso){
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||'').trim());
-  return m ? `${m[3]}/${m[2]}/${m[1].slice(2)}` : '—';
+// Las fechas pueden llegar en dos formatos segun como se haya cargado la hoja:
+// AAAA-MM-DD si el texto se respeto, o DD/MM/AAAA si Google Sheets las
+// convirtio a fecha real al importar (la casilla "Convertir el texto en
+// numeros, fechas y formulas"). Se normaliza a ISO para que ordenar y comparar
+// funcione igual en ambos casos.
+function fechaIso(valor){
+  const t = String(valor||'').trim();
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(t);
+  if(m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  m = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/.exec(t);
+  if(m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+  return '';
+}
+function fechaCorta(valor){
+  const iso = fechaIso(valor);
+  return iso ? `${iso.slice(8,10)}/${iso.slice(5,7)}/${iso.slice(2,4)}` : '—';
 }
 function clasHtml(c){
   const k = String(c||'').toUpperCase();
@@ -551,7 +564,7 @@ function openColabModal(idx){
   const r = DETALLE_FILAS[idx];
   if(!r) return;
   const hist = (POR_COLAB[claveColab(r)] || [r]).slice()
-    .sort((a,b) => val(b, C.fIni).localeCompare(val(a, C.fIni)));
+    .sort((a,b) => fechaIso(val(b, C.fIni)).localeCompare(fechaIso(val(a, C.fIni))));
   const dias = hist.reduce((s,x) => s + nDias(x), 0);
   const rt = hist.filter(x => ES_RT(val(x, C.clas).toUpperCase()));
 
@@ -635,7 +648,7 @@ async function initDashboard(){
   POR_COLAB = {};
   BASE.forEach(r => { const k = claveColab(r); (POR_COLAB[k] = POR_COLAB[k] || []).push(r); });
 
-  const fechas = BASE.map(r => val(r, C.fIni)).filter(Boolean).sort();
+  const fechas = BASE.map(r => fechaIso(val(r, C.fIni))).filter(Boolean).sort();
   document.getElementById('corte-badge').textContent = fechas.length
     ? `⟳ ${fechaCorta(fechas[0])} a ${fechaCorta(fechas[fechas.length-1])} · Plaza Oaxaca`
     : '⟳ Control de Ausentismo · Plaza Oaxaca';
