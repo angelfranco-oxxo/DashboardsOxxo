@@ -56,6 +56,15 @@
 #tabla-asesor tbody tr.row-verde{background:rgba(29,185,84,.09);box-shadow:inset 3px 0 0 #1DB954}
 #tabla-asesor tbody tr.row-amarillo{background:rgba(255,193,7,.12);box-shadow:inset 3px 0 0 #FFC107}
 #tabla-asesor tbody tr.row-rojo{background:rgba(217,43,43,.09);box-shadow:inset 3px 0 0 #D92B2B}
+#tabla-asesor tbody tr.is-selected{background:rgba(247,25,38,.14);box-shadow:inset 5px 0 0 var(--color-red),inset 0 0 0 2px rgba(247,25,38,.38)}
+#tabla-asesor tbody tr.is-selected td{font-weight:800}
+.cap-row-more{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-left:6px;padding:0;border:1px solid var(--color-border);border-radius:7px;background:var(--color-surface);color:var(--color-gray);cursor:pointer;vertical-align:middle}
+.cap-row-more:hover{color:var(--color-red);border-color:var(--color-red)}
+.cap-row-more svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.detalle-head-tools{display:flex;align-items:center;flex-wrap:wrap;gap:0}
+.cap-clear{display:none;align-items:center;gap:6px;margin-left:8px;padding:3px 10px;border:1px solid var(--color-red);border-radius:20px;background:var(--color-surface);color:var(--color-red);font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:.02em;cursor:pointer}
+.cap-clear.show{display:inline-flex}
+.cap-clear:hover{background:var(--color-red);color:#fff}
 
 .cap-badge{display:inline-flex;align-items:center;justify-content:center;min-width:44px;font-family:var(--font-display);font-weight:800;font-size:11px;padding:3px 8px;border-radius:20px}
 .cap-badge.verde{background:#e8f8f0;color:#138c3e}
@@ -200,7 +209,7 @@
 
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
-      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>Cumplimiento por Asesor · %<span class="info-tip" tabindex="0" data-tip="Promedio de cumplimiento de todas las certificaciones aplicables, agrupado por asesor. Verde ≥80%, amarillo 50-79%, rojo &lt;50%. Clic en una fila para ver el detalle."></span></div>
+      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>Cumplimiento por Asesor · %<span class="info-tip" tabindex="0" data-tip="Promedio de cumplimiento de todas las certificaciones aplicables, agrupado por asesor. Verde ≥80%, amarillo 50-79%, rojo &lt;50%. Clic en una fila para filtrar el Detalle por Empleado de abajo."></span></div>
       <span class="card-badge" id="asesor-badge">— asesores</span>
     </div>
     <div class="tbl-wrap">
@@ -221,7 +230,7 @@
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
       <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Detalle por Empleado<span class="info-tip" tabindex="0" data-tip="Listado fila por fila de Dashboard_8_Diario con los filtros activos aplicados (Asesor, Puesto, Certificación)."></span></div>
-      <span class="card-badge" id="row-count">— registros</span>
+      <div class="detalle-head-tools"><span class="card-badge" id="row-count">— registros</span><button type="button" class="cap-clear" id="detalle-clear" onclick="clearAsesorDetalle()"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span id="detalle-clear-label">Quitar filtro</span></button></div>
     </div>
     <div class="tbl-wrap">
       <table class="tbl" id="tabla-detalle" data-rh-tools data-rh-page-size="25">
@@ -307,6 +316,7 @@ let chartCerts = null, chartPuesto = null;
 let SELECTED_ASESORES = null;
 let asesorFilterHandle = null;
 let ASESOR_STATS = {};
+let DETALLE_ASESOR = null;
 
 function filteredData() {
   let d = BASE_DATA;
@@ -421,23 +431,36 @@ function renderAll() {
 
   // ── Tabla cumplimiento por asesor ──
   ASESOR_STATS = computeAsesorStats(data);
+  if(DETALLE_ASESOR && !ASESOR_STATS[DETALLE_ASESOR]) DETALLE_ASESOR = null;
   const asesores = Object.values(ASESOR_STATS).sort((a,b)=>b.pct-a.pct);
   document.getElementById('asesor-badge').textContent = asesores.length + ' asesores';
   document.getElementById('tabla-asesor').querySelector('tbody').innerHTML = asesores.length===0
     ? '<tr><td colspan="5"><div class="state-box">Sin datos</div></td></tr>'
     : asesores.map(a => {
         const color = capColorPct(a.pct);
-        return `<tr class="row-${color}" data-asesor="${escapeAttr(a.asesor)}" onclick="openAsesorCapModal('${escapeAttr(a.asesor)}')">
+        const sel = a.asesor === DETALLE_ASESOR ? ' is-selected' : '';
+        return `<tr class="row-${color}${sel}" data-asesor="${OXXO.escHtml(a.asesor)}" onclick="selectAsesorDetalle('${escapeAttr(a.asesor)}')" title="Clic para filtrar el Detalle por Empleado">
           <td>${OXXO.escHtml(OXXO.truncate(a.asesor,26))}</td>
           <td class="center">${a.emps}</td>
           <td class="center">${a.aplic}</td>
           <td class="center">${a.comp}</td>
-          <td class="center"><span class="cap-badge ${color}">${a.pct}%</span></td>
+          <td class="center"><span class="cap-badge ${color}">${a.pct}%</span><button type="button" class="cap-row-more" title="Ver detalle por certificacion" aria-label="Ver detalle por certificacion" onclick="event.stopPropagation();openAsesorCapModal('${escapeAttr(a.asesor)}')"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></button></td>
         </tr>`;
       }).join('');
 
   // ── Tabla detalle ──
-  const rows = data.map(r => {
+  renderDetalle(data);
+
+  requestAnimationFrame(()=>{});
+}
+
+// Detalle por Empleado: respeta los filtros globales y, ademas, el asesor
+// seleccionado con un clic en la tabla "Cumplimiento por Asesor".
+function renderDetalle(data) {
+  const filas = DETALLE_ASESOR
+    ? data.filter(r => (r[C.asesor] || 'Sin Asesor Asignado') === DETALLE_ASESOR)
+    : data;
+  const rows = filas.map(r => {
     const certCells = CERT_COLS.map(c => {
       const v = capValue(r, c.key);
       const cls = v===null?'na':(v>=1?'verde':(v>0?'amarillo':'rojo'));
@@ -458,9 +481,37 @@ function renderAll() {
       ${CERT_COLS.map(c=>`<th class="center" style="font-size:9px">${c.label}</th>`).join('')}
     </tr></thead>
     <tbody>${rows}</tbody>`;
-  document.getElementById('row-count').textContent = `${data.length} registros`;
+  const badge = document.getElementById('row-count');
+  badge.textContent = DETALLE_ASESOR
+    ? `${filas.length} de ${data.length} registros · ${OXXO.truncate(DETALLE_ASESOR,24)}`
+    : `${filas.length} registros`;
+  const clearBtn = document.getElementById('detalle-clear');
+  clearBtn.classList.toggle('show', !!DETALLE_ASESOR);
+}
 
-  requestAnimationFrame(()=>{});
+// Clic en una fila de "Cumplimiento por Asesor": filtra unicamente la tabla
+// de Detalle por Empleado. Volver a hacer clic en el mismo asesor lo quita.
+function selectAsesorDetalle(asesor){
+  DETALLE_ASESOR = (DETALLE_ASESOR === asesor) ? null : asesor;
+  syncAsesorSelection();
+  renderDetalle(filteredData());
+  if(DETALLE_ASESOR){
+    const card = document.getElementById('tabla-detalle').closest('.card');
+    if(card) card.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+}
+
+function clearAsesorDetalle(){
+  if(!DETALLE_ASESOR) return;
+  DETALLE_ASESOR = null;
+  syncAsesorSelection();
+  renderDetalle(filteredData());
+}
+
+function syncAsesorSelection(){
+  document.querySelectorAll('#tabla-asesor tbody tr[data-asesor]').forEach(tr => {
+    tr.classList.toggle('is-selected', tr.dataset.asesor === DETALLE_ASESOR);
+  });
 }
 
 function escapeAttr(s){ return String(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
@@ -487,6 +538,7 @@ document.addEventListener('keydown', e => { if(e.key==='Escape') closeAsesorCapM
 function applyFilters(){ renderAll(); }
 
 function limpiarFiltros(){
+  DETALLE_ASESOR = null;
   ['filtro-puesto','filtro-cert'].forEach(id=>{ document.getElementById(id).value=''; });
   if (asesorFilterHandle) asesorFilterHandle.reset(); else renderAll();
 }
