@@ -532,6 +532,28 @@ body.hr-dashboard:has(#main-tbl) .alignment-card .donut-wrap {
     grid-template-columns: 1fr;
   }
 
+  /* Dashboard 2 tenía una regla embebida más específica que conservaba las
+     siete columnas del filtro aun en móvil. Eso dejaba Mes, Temporalidad,
+     Puesto y Acciones fuera del viewport y el body los recortaba. */
+  body.hr-dashboard .bajas-header {
+    padding-bottom: 24px !important;
+    margin-bottom: 18px !important;
+  }
+
+  body.hr-dashboard .bajas-filters {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    margin: 18px 0 0 !important;
+    transform: none !important;
+  }
+
+  body.hr-dashboard .bajas-filters .filter-box--actions {
+    min-width: 0 !important;
+  }
+
   body.hr-dashboard:has(#main-tbl) .row-main {
     grid-template-columns: 1fr !important;
   }
@@ -572,6 +594,44 @@ body.hr-dashboard:has(#main-tbl) .alignment-card .donut-wrap {
   }
 
   body.hr-dashboard .hr-dashboard-switcher__eyebrow { display: none; }
+
+  body.hr-dashboard .bajas-filters {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 14px !important;
+    border-radius: 17px !important;
+  }
+
+  body.hr-dashboard .bajas-filters .filter-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Chart.js conserva en algunos canvas el ancho calculado en escritorio.
+     Limitar tanto el contenedor como el canvas evita que las donas se corten
+     dentro de tarjetas estrechas (D3 y D4). */
+  body.hr-dashboard .chart-wrap,
+  body.hr-dashboard .chart-container,
+  body.hr-dashboard .bar-chart-area,
+  body.hr-dashboard .donut-chart-wrap,
+  body.hr-dashboard .donut-body,
+  body.hr-dashboard .estatus-distribution,
+  body.hr-dashboard .estatus-distribution > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.hr-dashboard .chart-wrap canvas,
+  body.hr-dashboard .chart-container canvas,
+  body.hr-dashboard .bar-chart-area canvas,
+  body.hr-dashboard .donut-chart-wrap canvas {
+    display: block !important;
+    max-width: 100% !important;
+  }
+
+  body.hr-dashboard .estatus-distribution {
+    min-height: 0 !important;
+    padding-inline: 0 !important;
+  }
 
   body.hr-dashboard .hr-insights {
     padding: 14px;

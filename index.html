@@ -2403,6 +2403,33 @@
         transition: background .35s ease, border-color .35s ease, color .35s ease, box-shadow .35s ease;
       }
     }
+
+    /* Cabecera compacta para teléfono: separa visualmente la marca, el acceso
+       al panel y la hora sin ocultar ninguna de las tres piezas. */
+    @media (max-width: 600px) {
+      body > .topbar {
+        gap: 7px !important;
+        padding: 9px 10px !important;
+      }
+
+      body > .topbar .topbar__brand { gap: 8px !important; min-width: 0; }
+      body > .topbar .topbar__logo { width: 76px !important; height: 42px !important; }
+      body > .topbar .topbar__title { font-size: 20px !important; line-height: .95 !important; }
+      body > .topbar .topbar__subtitle { display: none !important; }
+      body > .topbar .topbar__meta { flex: 0 0 auto; gap: 5px !important; }
+      body > .topbar .topbar__back {
+        min-height: 34px;
+        padding: 7px 8px !important;
+        font-size: 10px !important;
+        white-space: nowrap;
+      }
+      body > .topbar #topbar-time {
+        width: 34px;
+        font-size: 9px !important;
+        line-height: 1.25;
+        text-align: center;
+      }
+    }
   </style>
 </head>
 <body data-area="rh">
