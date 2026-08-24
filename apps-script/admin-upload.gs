@@ -66,6 +66,61 @@ function doGet(e) {
   return jsonResponse({ ok: true, app: 'DashboardsOxxo Admin Upload', sheets: ALLOWED_SHEETS });
 }
 
+/**
+ * Reparacion segura de la estructura del libro.
+ *
+ * - Crea unicamente las pestanas de soporte que falten.
+ * - No reemplaza ni modifica Catalogo_Asesores ni ninguna base existente.
+ * - Oculta respaldos que por accidente hayan quedado visibles.
+ *
+ * Esta funcion se ejecuta manualmente una sola vez desde el editor de Apps
+ * Script cuando se instala o recupera el proyecto.
+ */
+function repairSystemStructure() {
+  const ss = SPREADSHEET_ID
+    ? SpreadsheetApp.openById(SPREADSHEET_ID)
+    : SpreadsheetApp.getActiveSpreadsheet();
+  const requiredSupportSheets = [
+    {
+      name: 'Dashboard_2_Plan_Accion',
+      headers: ['Hallazgo', 'Accion', 'Responsable', 'Plazo', 'Indicador', 'Prioridad']
+    },
+    {
+      name: 'Reasignaciones',
+      headers: ['CR', 'Tienda', 'Asesor_Entrante', 'Nota', 'Fecha']
+    }
+  ];
+  const created = [];
+  const existing = [];
+  requiredSupportSheets.forEach(function(definition) {
+    let sheet = ss.getSheetByName(definition.name);
+    if (sheet) {
+      existing.push(definition.name);
+      return;
+    }
+    sheet = ss.insertSheet(definition.name);
+    writeWithBufferRow(sheet, [definition.headers], definition.headers.length);
+    sheet.setFrozenRows(2);
+    sheet.autoResizeColumns(1, definition.headers.length);
+    created.push(definition.name);
+  });
+
+  const hiddenBackups = [];
+  ss.getSheets().forEach(function(sheet) {
+    if (sheet.getName().indexOf(BACKUP_PREFIX) !== 0 || sheet.isSheetHidden()) return;
+    sheet.hideSheet();
+    hiddenBackups.push(sheet.getName());
+  });
+  SpreadsheetApp.flush();
+  return {
+    ok: true,
+    created: created,
+    alreadyExisted: existing,
+    hiddenBackups: hiddenBackups,
+    catalogUntouched: true
+  };
+}
+
 function doPost(e) {
   try {
     const payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');

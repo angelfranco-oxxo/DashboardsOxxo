@@ -71,7 +71,9 @@ window.OXXO_CONFIG = {
   // proximas veces, ver "COMO REDESPLEGAR SIN CAMBIAR ESTA URL" arriba: si se
   // publica una version nueva sobre esta misma implementacion, esta constante
   // ya no se vuelve a tocar.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxKpfUor_x24elwOsj3KESXj-FRlginDwoCIB_Fiw9wgOc3LX1334HFGhFSUKl5nyaj/exec",
+  // 2026-08-24 (v34): se restauro la app web, la lectura directa del
+  // catalogo, la reparacion segura de pestanas y el soporte de D12/D13.
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbzTVlxLyHaKAphlRRwH1kI6aDga15rfKumCkquAUuvY1_X7ifx-XPrNT87IZN54_Gtk/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
