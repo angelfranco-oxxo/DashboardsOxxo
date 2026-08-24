@@ -22,7 +22,8 @@ const ALLOWED_SHEETS = [
   'Dashboard_5_Semanal',
   'Dashboard_6_Semanal',
   'Dashboard_7_Semanal',
-  'Catalogo_Asesores'
+  'Catalogo_Asesores',
+  'Plazas_Bajas_D2'
 ];
 
 function doGet() {

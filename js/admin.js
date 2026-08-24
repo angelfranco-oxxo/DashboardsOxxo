@@ -139,5 +139,95 @@
   function urlFromQuery(){try{return new URLSearchParams(location.search).get('uploadUrl')||'';}catch(_){return ''}}
   async function publish(){const url=publishUrl();if(!url){alert('Falta configurar Apps Script una sola vez. Mientras tanto puedes descargar CSV.');return;}if(!state.validation?.ok){alert('La base aun tiene errores de validacion.');return;}const dash=dashboard(),period=periodInfo(dash,state.validation.rows);$('publish-btn').disabled=true;$('publish-btn').textContent='Publicando...';try{const payload={adminPassword,targetSheet:dash.tab,rows:state.validation.rows,source:'DashboardsOxxo Admin',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};const response=await fetch(url,{method:'POST',mode:'cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});if(!response.ok)throw new Error('HTTP '+response.status);const result=await response.json().catch(()=>({ok:true}));if(result.ok===false)throw new Error(result.error||'Apps Script rechazo la publicacion');alert(`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestana reemplazada completa'}.`);}catch(error){alert('No se pudo publicar. Descarga el CSV o revisa la URL de Apps Script.');console.error(error);}finally{$('publish-btn').disabled=false;$('publish-btn').textContent='Publicar en Sheets';}}
   function bind(){$('drop-zone').addEventListener('click',()=>$('file-input').click());$('file-input').addEventListener('change',event=>handleFile(event.target.files[0]));['dragenter','dragover'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.add('drag');}));['dragleave','drop'].forEach(ev=>$('drop-zone').addEventListener(ev,event=>{event.preventDefault();$('drop-zone').classList.remove('drag');}));$('drop-zone').addEventListener('drop',event=>handleFile(event.dataTransfer.files[0]));$('sheet-select').addEventListener('change',event=>{state.sheetName=event.target.value;loadCurrentSheet();});$('dashboard-select').addEventListener('change',()=>{autoSelectSheet();loadCurrentSheet();});$('apps-script-url').addEventListener('input',updatePublishState);$('download-csv-btn').addEventListener('click',downloadCsv);$('publish-btn').addEventListener('click',publish);$('save-config-btn').addEventListener('click',()=>{const url=$('apps-script-url').value.trim();if(!url){alert('No hay URL para guardar.');return;}localStorage.setItem(ADMIN_CONFIG_KEY,url);updatePublishState();alert('URL guardada en este navegador.');});}
-  document.addEventListener('DOMContentLoaded',()=>{initAdminLock();fillDashboardSelect();const queryUrl=urlFromQuery();const saved=localStorage.getItem(ADMIN_CONFIG_KEY)||'';$('apps-script-url').value=queryUrl||saved||DEFAULT_UPLOAD_URL;if(queryUrl)localStorage.setItem(ADMIN_CONFIG_KEY,queryUrl);updatePublishState();setStatus([{type:'warn',title:'Esperando archivo',text:'Selecciona el dashboard y sube un Excel para iniciar validacion.',badge:'Pendiente'}]);bind();});
+  // ── Bajas por Plaza (Dashboard 2) ──────────────────────────────────────────
+  const PLAZA_BAJAS_KEY = 'oxxo_plazas_bajas_d2';
+  const DEFAULT_PLAZAS = ['Tuxtla','Costa Istmo','Villahermosa','Chontalpa'];
+
+  function currentMes() {
+    const d = new Date();
+    const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return months[d.getMonth()] + '-' + String(d.getFullYear()).slice(-2);
+  }
+
+  function loadPlazaRows() {
+    try { return JSON.parse(localStorage.getItem(PLAZA_BAJAS_KEY) || '[]'); } catch(_) { return []; }
+  }
+
+  function savePlazaRowsLocal(rows) {
+    localStorage.setItem(PLAZA_BAJAS_KEY, JSON.stringify(rows));
+  }
+
+  function renderPlazaForm() {
+    const container = $('plazas-rows');
+    if (!container) return;
+    const saved = loadPlazaRows();
+    const initial = saved.length ? saved : DEFAULT_PLAZAS.map(p => ({ plaza: p, bajas: '' }));
+    container.innerHTML = initial.map((row, i) => `
+      <div class="plaza-row" data-index="${i}" style="display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center">
+        <input class="admin-input plaza-name" type="text" placeholder="Nombre de plaza" value="${escapeHtml(row.plaza || '')}" style="border-radius:10px;padding:9px 12px">
+        <input class="admin-input plaza-bajas" type="number" min="0" placeholder="Bajas" value="${escapeHtml(String(row.bajas || ''))}" style="border-radius:10px;padding:9px 12px">
+        <button type="button" class="admin-btn secondary plaza-remove" style="padding:9px 12px;border-radius:10px;white-space:nowrap">✕</button>
+      </div>`).join('');
+    container.querySelectorAll('.plaza-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.closest('.plaza-row').remove();
+      });
+    });
+  }
+
+  function collectPlazaRows() {
+    const rows = [];
+    ($('plazas-rows') || { querySelectorAll: () => [] }).querySelectorAll('.plaza-row').forEach(div => {
+      const plaza = div.querySelector('.plaza-name')?.value.trim() || '';
+      const bajas = Number(div.querySelector('.plaza-bajas')?.value || 0);
+      if (plaza) rows.push({ plaza, bajas });
+    });
+    return rows;
+  }
+
+  async function publishPlazas() {
+    const url = publishUrl();
+    if (!url) { alert('Configura la URL de Apps Script primero.'); return; }
+    const rows = collectPlazaRows();
+    if (!rows.length) { alert('Agrega al menos una plaza.'); return; }
+    savePlazaRowsLocal(rows);
+    const mes = currentMes();
+    const payload = {
+      adminPassword,
+      targetSheet: 'Plazas_Bajas_D2',
+      rows: rows.map(r => ({ Plaza: r.plaza, Bajas: r.bajas, Mes: mes })),
+      updateMode: 'replacePeriod',
+      periodColumn: 'Mes',
+      periodValues: [mes],
+    };
+    const btn = $('plaza-save');
+    const status = $('plaza-status');
+    btn.disabled = true; btn.textContent = 'Publicando...';
+    if (status) status.textContent = '';
+    try {
+      const res = await fetch(url, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const result = await res.json().catch(() => ({ ok: true }));
+      if (result.ok === false) throw new Error(result.error || 'Error en Apps Script');
+      if (status) { status.textContent = `Publicado correctamente para ${mes}`; status.style.color = '#14894a'; }
+    } catch(err) {
+      if (status) { status.textContent = 'Error: ' + err.message; status.style.color = '#f71926'; }
+    } finally {
+      btn.disabled = false; btn.textContent = 'Guardar y publicar';
+    }
+  }
+
+  function bindPlazas() {
+    $('plaza-add-row')?.addEventListener('click', () => {
+      const div = document.createElement('div');
+      div.className = 'plaza-row';
+      div.style.cssText = 'display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center';
+      div.innerHTML = `<input class="admin-input plaza-name" type="text" placeholder="Nombre de plaza" style="border-radius:10px;padding:9px 12px"><input class="admin-input plaza-bajas" type="number" min="0" placeholder="Bajas" style="border-radius:10px;padding:9px 12px"><button type="button" class="admin-btn secondary plaza-remove" style="padding:9px 12px;border-radius:10px;white-space:nowrap">✕</button>`;
+      div.querySelector('.plaza-remove').addEventListener('click', () => div.remove());
+      $('plazas-rows').appendChild(div);
+    });
+    $('plaza-save')?.addEventListener('click', publishPlazas);
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>{initAdminLock();fillDashboardSelect();const queryUrl=urlFromQuery();const saved=localStorage.getItem(ADMIN_CONFIG_KEY)||'';$('apps-script-url').value=queryUrl||saved||DEFAULT_UPLOAD_URL;if(queryUrl)localStorage.setItem(ADMIN_CONFIG_KEY,queryUrl);updatePublishState();setStatus([{type:'warn',title:'Esperando archivo',text:'Selecciona el dashboard y sube un Excel para iniciar validacion.',badge:'Pendiente'}]);bind();renderPlazaForm();bindPlazas();});
 })();

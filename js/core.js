@@ -31,6 +31,7 @@ const SHEETS_CONFIG = {
     s5: "Dashboard_5_Semanal",  // Vacaciones: Asesor,Plaza,Empleado,Puesto,Fecha_Inicio,Fecha_Fin,Dias,Semana
     s6: "Dashboard_6_Semanal",  // Ausentismos: Asesor,Plaza,Empleado,Puesto,Tipo_Ausentismo,Fecha,Semana,Dias
     s7: "Dashboard_7_Semanal",  // Liberacion Estructuras P2: Plaza,CR,Tienda,Asesor,Est SAP,Est Final P2,Empleados,Vacantes,Dif,Movimiento
+    plazas_d2: "Plazas_Bajas_D2", // Bajas por plaza para ranking D2: Plaza, Bajas, Mes
   }
 };
 

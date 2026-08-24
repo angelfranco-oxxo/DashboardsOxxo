@@ -1408,37 +1408,36 @@ function renderBajasDashboard(data, cols){
   OXXO.updateFooterTime('load-time');
 }
 
-function renderPlazas(data, cols) {
-  // Leer columnas "Plazas" y "Bajas Plaza" que vienen junto a los datos
-  // Estas columnas tienen los datos en las primeras filas (ej: fila 0=Oaxaca/35, fila 1=Chontalpa/21...)
-  let plazasData = [];
+async function renderPlazas(data, cols) {
+  // Contar bajas Oaxaca desde la base principal
+  let oaxacaBajas = 0;
+  if(cols.plaza) {
+    const byPlaza = countBy(data, r => val(r, cols, 'plaza', 'Sin plaza'));
+    oaxacaBajas = Object.entries(byPlaza)
+      .filter(([p]) => /oaxaca/i.test(p))
+      .reduce((s,[,n]) => s + n, 0);
+    if(!oaxacaBajas) oaxacaBajas = data.length; // si plaza no discrimina, todos son Oaxaca
+  } else {
+    oaxacaBajas = data.length;
+  }
 
-  const keyPlaza = cols.colPlazas;
-  const keyBajas = cols.colBajas;
-
-  if(keyPlaza && keyBajas) {
-    // Leer todas las filas que tengan plaza y bajas
-    data.forEach(r => {
-      const plaza = String(r[keyPlaza]||'').trim();
-      const bajas = Number(String(r[keyBajas]||'').replace(/[^0-9.-]/g,''));
-      if(plaza && !isNaN(bajas) && bajas > 0) {
-        // Evitar duplicados
-        if(!plazasData.find(p => p.plaza === plaza)) {
-          plazasData.push({ plaza, bajas });
+  // Cargar plazas externas desde Plazas_Bajas_D2
+  let externalPlazas = [];
+  try {
+    const extRows = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.plazas_d2);
+    (extRows || []).forEach(r => {
+      const plaza = String(r['Plaza']||r['plaza']||'').trim();
+      const bajas = Number(String(r['Bajas']||r['bajas']||'').replace(/[^0-9.-]/g,''));
+      if(plaza && !isNaN(bajas) && bajas > 0 && !/oaxaca/i.test(plaza)) {
+        if(!externalPlazas.find(p => p.plaza.toLowerCase() === plaza.toLowerCase())) {
+          externalPlazas.push({ plaza, bajas });
         }
       }
     });
-    plazasData.sort((a,b) => b.bajas - a.bajas);
-  }
+  } catch(_) { /* si no hay datos externos, solo se muestra Oaxaca */ }
 
-  // Fallback: contar por columna Plaza
-  if(!plazasData.length && cols.plaza) {
-    const byPlaza = countBy(data, r => val(r, cols, 'plaza', 'Sin plaza'));
-    plazasData = Object.entries(byPlaza)
-      .map(([plaza, bajas]) => ({ plaza, bajas }))
-      .sort((a,b) => b.bajas - a.bajas)
-      .slice(0, 8);
-  }
+  let plazasData = [{ plaza: 'Oaxaca', bajas: oaxacaBajas }, ...externalPlazas]
+    .sort((a,b) => b.bajas - a.bajas);
 
   if(!plazasData.length) {
     document.getElementById('tabla-plazas').innerHTML = '<div style="font-size:12px;color:var(--color-gray);padding:16px">No se encontraron columnas de plazas en los datos.</div>';
