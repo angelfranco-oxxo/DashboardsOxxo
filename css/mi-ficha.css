@@ -146,6 +146,12 @@
    .tbl-wrap haga su propio scroll horizontal. */
 .mi-section{background:var(--mt-tile);border:1px solid var(--mt-line);border-radius:14px;padding:13px 14px;display:none;min-width:0}
 .mi-section.show{display:block}
+.mi-section.is-loading,.mi-section.is-source-error{display:block;overflow:hidden;position:relative}
+.mi-section.is-loading>:not(.mi-section-head),.mi-section.is-source-error>:not(.mi-section-head){display:none!important}
+.mi-section.is-loading::after{content:'';display:block;height:108px;border-radius:12px;background:linear-gradient(100deg,rgba(130,54,38,.055) 20%,rgba(255,255,255,.88) 42%,rgba(130,54,38,.055) 64%);background-size:220% 100%;animation:mtSkeleton 1.15s ease-in-out infinite}
+.mi-section.is-source-error::after{content:attr(data-source-message);display:flex;align-items:center;min-height:72px;padding:13px;border:1px solid rgba(239,68,68,.18);border-radius:11px;background:var(--mt-bad-bg);color:var(--mt-bad);font-size:10.5px;font-weight:700;line-height:1.45}
+@keyframes mtSkeleton{0%{background-position:100% 0}100%{background-position:-120% 0}}
+@media(prefers-reduced-motion:reduce){.mi-section.is-loading::after{animation:none;background:rgba(130,54,38,.055)}}
 .mi-section-head{display:flex;align-items:center;gap:9px;margin-bottom:11px}
 .mi-section-title{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
 .mi-section-title .ico{width:26px;height:26px;flex:0 0 26px;display:grid;place-items:center;border-radius:8px;background:rgba(227,6,19,.09);font-size:.92rem;line-height:1}

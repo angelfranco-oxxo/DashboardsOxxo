@@ -196,6 +196,30 @@
     publishManualD3,
     publishManualD2Plan
   } = window.OXXO_ADMIN_PUBLISHERS({$,state,OXXO,DEFAULT_UPLOAD_URL,dashboard,getDashboards:()=>dashboards,periodInfo,isoDate,getAdminPassword:()=>adminPassword,rowsFromMatrix,getSheetMatrix});
+  async function refreshRuntimeVersion(){
+    const el=$('admin-runtime-version'),url=publishUrl();
+    if(!el)return;
+    el.classList.remove('ok','bad');
+    el.textContent='Apps Script · verificando…';
+    if(!url){el.textContent='Apps Script · sin configurar';el.classList.add('bad');return;}
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),7000);
+    try{
+      const separator=url.includes('?')?'&':'?';
+      const response=await fetch(`${url}${separator}health=${Date.now()}`,{cache:'no-store',signal:controller.signal});
+      if(!response.ok)throw new Error(`HTTP ${response.status}`);
+      const result=await response.json();
+      if(result.ok===false)throw new Error(result.error||'Servicio no disponible');
+      const version=result.version?`v${result.version}`:'sin versión';
+      const sources=Array.isArray(result.sheets)?` · ${result.sheets.length} fuentes`:'';
+      el.textContent=`Apps Script ${version}${sources}`;
+      el.classList.add(result.version?'ok':'bad');
+    }catch(error){
+      el.textContent='Apps Script · no verificable';
+      el.classList.add('bad');
+      console.warn('[OXXO] No se pudo comprobar la versión productiva de Apps Script.',error);
+    }finally{clearTimeout(timeout);}
+  }
   // Contexto minimo para que otras herramientas del panel (ej.
   // js/admin-reasignaciones.js) publiquen con el MISMO mecanismo -- misma
   // URL, misma contrasena, mismo manejo de CORS/modo compatible -- sin
@@ -208,5 +232,5 @@
   // (confirmado: causaba publicaciones silenciosas a un deployment desactualizado, sin
   // ningun error visible). Ahora localStorage solo se usa como respaldo si el codigo no
   // trae ninguna URL default.
-  document.addEventListener('DOMContentLoaded',()=>{initDashboardDefinitions();initAdminLock();fillDashboardSelect();const queryUrl=urlFromQuery();const saved=localStorage.getItem(ADMIN_CONFIG_KEY)||'';$('apps-script-url').value=queryUrl||DEFAULT_UPLOAD_URL||saved;if(queryUrl)localStorage.setItem(ADMIN_CONFIG_KEY,queryUrl);updatePublishState();setStatus([{type:'warn',title:'Esperando archivo',text:'Selecciona el dashboard y sube un Excel para iniciar validacion.',badge:'Pendiente'}]);bind();setAdminArea('rh');});
+  document.addEventListener('DOMContentLoaded',()=>{initDashboardDefinitions();initAdminLock();fillDashboardSelect();const queryUrl=urlFromQuery();const saved=localStorage.getItem(ADMIN_CONFIG_KEY)||'';$('apps-script-url').value=queryUrl||DEFAULT_UPLOAD_URL||saved;if(queryUrl)localStorage.setItem(ADMIN_CONFIG_KEY,queryUrl);updatePublishState();refreshRuntimeVersion();setStatus([{type:'warn',title:'Esperando archivo',text:'Selecciona el dashboard y sube un Excel para iniciar validacion.',badge:'Pendiente'}]);bind();setAdminArea('rh');});
 })();

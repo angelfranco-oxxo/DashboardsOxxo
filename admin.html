@@ -21,7 +21,11 @@
     .admin-eyebrow{font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#ffd7d5}
     .admin-title{font-family:var(--font-display);font-size:clamp(2.6rem,5vw,4.6rem);line-height:.95;margin:8px 0 10px;color:#fff}
     .admin-sub{max-width:760px;font-size:15px;font-weight:650;color:rgba(255,255,255,.88)}
+    .admin-runtime-pills{display:flex;align-items:flex-end;gap:8px;flex-direction:column}
     .admin-pill{border:1px solid rgba(255,255,255,.42);background:rgba(255,255,255,.14);border-radius:999px;padding:10px 16px;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+    .admin-pill.runtime{font-size:10px;padding:7px 12px;color:#ffe8a8;border-color:rgba(255,232,168,.45)}
+    .admin-pill.runtime.ok{color:#d9ffe7;border-color:rgba(125,240,168,.55);background:rgba(19,119,65,.24)}
+    .admin-pill.runtime.bad{color:#fff0b8;border-color:rgba(255,221,113,.62);background:rgba(126,76,0,.24)}
     .admin-grid{display:grid;grid-template-columns:370px 1fr;gap:18px;margin-top:18px}
     .admin-card{background:rgba(255,255,255,.9);border:1px solid rgba(220,80,55,.18);border-radius:20px;box-shadow:0 18px 50px rgba(90,36,20,.09);padding:20px}
     .admin-card h2{font-family:var(--font-display);font-size:1.45rem;color:#211312;margin-bottom:12px}
@@ -125,7 +129,10 @@
           <h1 class="admin-title">Administrador de bases</h1>
           <p class="admin-sub">Carga un Excel, valida columnas obligatorias y prepara los datos para el dashboard correcto. La contrasena se valida al publicar en Sheets.</p>
         </div>
-        <div class="admin-pill">Plaza Oaxaca - Google Sheets</div>
+        <div class="admin-runtime-pills">
+          <div class="admin-pill">Plaza Oaxaca - Google Sheets</div>
+          <div class="admin-pill runtime" id="admin-runtime-version" role="status">Apps Script · verificando…</div>
+        </div>
       </div>
     </section>
     <nav class="admin-areas" role="tablist" aria-label="Área del Panel Admin">
@@ -382,9 +389,9 @@
   <script src="js/admin/column-aliases.js?v=20260818a"></script>
   <script src="js/admin/normalizers.js?v=20260819a"></script>
   <script src="js/admin/dashboard-definitions.js?v=20260820a"></script>
-  <script src="js/admin/publishers.js?v=20260824a"></script>
+  <script src="js/admin/publishers.js?v=20260824b"></script>
   <script src="js/admin/ui.js?v=20260805a"></script>
-  <script src="js/admin.js?v=20260821a"></script>
+  <script src="js/admin.js?v=20260824b"></script>
   <script src="js/admin-data-quality.js?v=7"></script>
   <script src="js/admin-audit.js?v=5"></script>
   <script src="js/admin-pptx.js?v=20260805c"></script>

@@ -12,6 +12,7 @@
  * Despues de eso, admin.html publica directo sin pedir URL.
  */
 const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
+const APP_VERSION = '36';
 const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const AUDIT_SHEET = '_Admin_Bitacora';
 const BACKUP_PREFIX = '_BK_';
@@ -58,12 +59,12 @@ function doGet(e) {
       const sheet = ss.getSheetByName(sheetName);
       if (!sheet) return jsonResponse({ ok: false, error: 'hoja no encontrada: ' + sheetName });
       const values = sheet.getDataRange().getValues();
-      return jsonResponse({ ok: true, values: values });
+      return jsonResponse({ ok: true, version: APP_VERSION, values: values });
     } catch (error) {
       return jsonResponse({ ok: false, error: String(error.message || error) });
     }
   }
-  return jsonResponse({ ok: true, app: 'DashboardsOxxo Admin Upload', sheets: ALLOWED_SHEETS });
+  return jsonResponse({ ok: true, app: 'DashboardsOxxo Admin Upload', version: APP_VERSION, sheets: ALLOWED_SHEETS });
 }
 
 /**
@@ -205,9 +206,11 @@ function doPost(e) {
 
       sheet.setFrozenRows(2); // fila 1 = sacrificio, fila 2 = encabezados reales
       sheet.autoResizeColumns(1, Math.min(result.columns, 20));
+      const verification = verifyPublishedSheet(sheet, result, newHeaders);
 
       return jsonResponse({
         ok: true,
+        version: APP_VERSION,
         targetSheet: targetSheet,
         mode: result.mode,
         periodColumn: result.periodColumn || '',
@@ -216,7 +219,8 @@ function doPost(e) {
         keptRows: result.keptRows || 0,
         columns: result.columns,
         backupSheet: backupName,
-        audited: true
+        audited: true,
+        verification: verification
       });
     } finally {
       lock.releaseLock();
@@ -489,9 +493,9 @@ function getAdminOverview(limit) {
 }
 
 function publicationThresholds(sheetName) {
-  const daily = ['Dashboard_1_Diario', 'Dashboard_2_Diario', 'Dashboard_2_Otras_Plazas', 'Denominaciones_Dashboard_2_Diario', 'Dashboard_2_Plan_Accion'];
-  const weekly = ['Dashboard_3_Diario', 'Dashboard_3_Otras_Plazas', 'Dashboard_7_Semanal', 'Dashboard_9_Semanal', 'Dashboard_10_FLEX', 'Dashboard_11_Semanal'];
-  const monthly = ['Dashboard_4_Semanal', 'Dashboard_6_Semanal', 'Inventarios'];
+  const daily = ['Dashboard_1_Diario', 'Dashboard_2_Diario', 'Dashboard_2_Otras_Plazas', 'Denominaciones_Dashboard_2_Diario', 'Dashboard_2_Plan_Accion', 'Dashboard_3_Diario', 'Dashboard_3_Otras_Plazas', 'Dashboard_8_Diario'];
+  const weekly = ['Dashboard_4_Semanal', 'Dashboard_5_Semanal', 'Dashboard_6_Semanal', 'Dashboard_7_Semanal', 'Dashboard_9_Semanal', 'Dashboard_10_FLEX', 'Dashboard_11_Semanal'];
+  const monthly = ['Dashboard_12_Mensual', 'Dashboard_13_Ausentismo', 'Inventarios'];
   if (daily.indexOf(sheetName) !== -1) return { warn: 14, bad: 45 };
   if (weekly.indexOf(sheetName) !== -1) return { warn: 14, bad: 35 };
   if (monthly.indexOf(sheetName) !== -1) return { warn: 45, bad: 75 };
@@ -654,6 +658,45 @@ function replaceAll(sheet, rows, headers) {
   const values = rowsToValues(rows, headers);
   writeWithBufferRow(sheet, values, headers.length);
   return { mode: 'replaceAll', rows: rows.length, columns: headers.length };
+}
+
+// Comprobacion inmediata posterior a la escritura. No vuelve a modificar la
+// hoja: confirma que la fila buffer, los encabezados y el volumen final que
+// quedaron en Sheets coinciden con lo que el panel acaba de publicar.
+function verifyPublishedSheet(sheet, result, expectedHeaders) {
+  SpreadsheetApp.flush();
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+  const expectedRows = Number(result.rows || 0) + Number(result.keptRows || 0);
+  const actualRows = Math.max(0, lastRow - 2);
+  const expectedColumns = Number(result.columns || expectedHeaders.length || 0);
+  const firstRows = lastRow >= 2 && lastColumn >= 1
+    ? sheet.getRange(1, 1, 2, Math.max(1, Math.min(lastColumn, expectedColumns))).getDisplayValues()
+    : [];
+  const bufferOk = firstRows.length === 2 && firstRows[0].every(function(value) { return String(value) === BUFFER_ROW_VALUE; });
+  const actualHeaders = firstRows.length === 2 ? firstRows[1].slice(0, expectedColumns).map(String) : [];
+  const headersOk = expectedHeaders.length === actualHeaders.length && expectedHeaders.every(function(header, index) {
+    return normalizeHeader(header) === normalizeHeader(actualHeaders[index]);
+  });
+  const rowsOk = actualRows === expectedRows;
+  const columnsOk = lastColumn >= expectedColumns;
+  const checks = {
+    buffer: bufferOk,
+    headers: headersOk,
+    rows: rowsOk,
+    columns: columnsOk
+  };
+  return {
+    ok: bufferOk && headersOk && rowsOk && columnsOk,
+    checks: checks,
+    expectedRows: expectedRows,
+    actualRows: actualRows,
+    expectedColumns: expectedColumns,
+    actualColumns: lastColumn,
+    message: bufferOk && headersOk && rowsOk && columnsOk
+      ? 'Publicacion verificada en Google Sheets'
+      : 'La escritura termino, pero una comprobacion posterior requiere revision'
+  };
 }
 
 function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues) {

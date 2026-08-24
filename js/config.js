@@ -75,6 +75,8 @@ window.OXXO_CONFIG = {
   // catalogo, la reparacion segura de pestanas y el soporte de D12/D13.
   // 2026-08-24 (v35): se agrego penalizacion progresiva y bitacora muestreada
   // para intentos de acceso incorrectos, protegiendo las cuotas de Apps Script.
+  // 2026-08-24 (v36): verificacion de filas/columnas tras cada publicacion,
+  // version visible en el panel y cadencias completas para todas las fuentes.
   // Se actualizo la implementacion existente; la URL /exec no cambio.
   ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbzTVlxLyHaKAphlRRwH1kI6aDga15rfKumCkquAUuvY1_X7ifx-XPrNT87IZN54_Gtk/exec",
 

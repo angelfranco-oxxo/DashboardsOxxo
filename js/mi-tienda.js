@@ -97,6 +97,10 @@
   let CATALOG = null;
   const TIENDAS = new Map(); // normKey -> nombre a mostrar (canonico del catalogo si existe, si no el nombre crudo)
   const DATA = {};
+  const SOURCE_KEYS = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8', 'd9', 'd10', 'd11', 'inventarios'];
+  const SOURCE_STATE = Object.fromEntries(SOURCE_KEYS.map((key) => [key, 'pending']));
+  let activeTiendaDisplay = '';
+  let progressiveRenderFrame = 0;
 
   // El nombre de tienda no viene igual en todas las bases, y en 7 casos ni
   // siquiera empata al normalizar: TREO manda "Bacocho OAX" donde el resto
@@ -813,6 +817,14 @@
     return { faltante, sobrante, neto };
   }
 
+  function seedTiendasFromCatalog() {
+    (CATALOG?.rows || []).forEach((row) => {
+      const raw = String(row.tienda || '').trim();
+      const key = tKey(raw);
+      if (key && raw && !TIENDAS.has(key)) TIENDAS.set(key, raw);
+    });
+  }
+
   // ── Administrativo · Resultados de Inventario ─────────
   // La tarjeta principal usa solo el ultimo corte disponible de la tienda.
   // El historial permanece accesible por periodo en los botones inferiores.
@@ -1137,16 +1149,70 @@
     retry.hidden = mode !== 'error';
     big.innerHTML = mode === 'loading' ? '<span class="spinner" aria-hidden="true"></span>' : statePin;
   }
+
+  function sectionState(key, mode) {
+    const section = document.getElementById(`sec-${key}`);
+    if (!section) return;
+    section.classList.remove('is-loading', 'is-source-error');
+    section.removeAttribute('aria-busy');
+    section.removeAttribute('data-source-message');
+    if (mode === 'pending') {
+      section.classList.add('show', 'is-loading');
+      section.setAttribute('aria-busy', 'true');
+    } else if (mode === 'failed') {
+      section.classList.add('show', 'is-source-error');
+      section.dataset.sourceMessage = 'Esta fuente no respondió. Puedes reintentar la carga desde la parte superior.';
+    }
+  }
+
+  function renderSource(key, renderer, tienda) {
+    const state = SOURCE_STATE[key];
+    if (state === 'pending' || state === 'failed') {
+      sectionState(key, state);
+      return null;
+    }
+    sectionState(key, 'loaded');
+    return renderer(tienda);
+  }
+
+  function scheduleProgressiveRender() {
+    if (!activeTiendaDisplay || progressiveRenderFrame) return;
+    progressiveRenderFrame = requestAnimationFrame(() => {
+      progressiveRenderFrame = 0;
+      renderFor(activeTiendaDisplay);
+    });
+  }
+
+  function updateLoadProgress() {
+    const corte = document.getElementById('corte-badge');
+    const completed = SOURCE_KEYS.filter((key) => SOURCE_STATE[key] !== 'pending').length;
+    const failures = SOURCE_KEYS.filter((key) => SOURCE_STATE[key] === 'failed').length;
+    if (completed < SOURCE_KEYS.length) {
+      corte.className = 'hero-badge is-loading';
+      corte.textContent = `⟳ ${completed} de ${SOURCE_KEYS.length} fuentes listas`;
+      return;
+    }
+    corte.className = `hero-badge${failures ? ' is-partial' : ''}`;
+    corte.textContent = failures
+      ? `⚠ Datos parciales · ${failures} fuente${failures > 1 ? 's' : ''} sin respuesta`
+      : '✓ Datos actualizados · Plaza Oaxaca';
+    OXXO.updateFooterTime('load-time');
+  }
+
   function renderFor(tiendaDisplay) {
     if (!tiendaDisplay) return;
+    activeTiendaDisplay = tiendaDisplay;
     const tienda = tKey(tiendaDisplay);
     document.getElementById('mi-empty').style.display = 'none';
     document.getElementById('mi-content').style.display = 'block';
     const S = {
-      d1: renderD1(tienda), d2: renderD2(tienda), d3: renderD3(tienda), d4: renderD4(tienda),
-      d5: renderD5(tienda), d6: renderD6(tienda), d7: renderD7(tienda), d8: renderD8(tienda),
-      d9: renderD9(tienda), d10: renderD10(tienda), d11: renderD11(tienda),
-      inventarios: renderInventarios(tienda),
+      d1: renderSource('d1', renderD1, tienda), d2: renderSource('d2', renderD2, tienda),
+      d3: renderSource('d3', renderD3, tienda), d4: renderSource('d4', renderD4, tienda),
+      d5: renderSource('d5', renderD5, tienda), d6: renderSource('d6', renderD6, tienda),
+      d7: renderSource('d7', renderD7, tienda), d8: renderSource('d8', renderD8, tienda),
+      d9: renderSource('d9', renderD9, tienda), d10: renderSource('d10', renderD10, tienda),
+      d11: renderSource('d11', renderD11, tienda),
+      inventarios: renderSource('inventarios', renderInventarios, tienda),
     };
     renderIdentidad(tiendaDisplay, S);
     renderResumen(S);
@@ -1164,22 +1230,37 @@
       document.getElementById('mi-tienda-select').innerHTML = '';
       TIENDAS.clear();
       Object.keys(DATA).forEach((key) => delete DATA[key]);
+      SOURCE_KEYS.forEach((key) => { SOURCE_STATE[key] = 'pending'; });
+      activeTiendaDisplay = '';
       CATALOG = await OXXO.loadAsesorCatalog();
-      const loaders = [loadD1, loadD2, loadD3, loadD4, loadD5, loadD6, loadD7, loadD8, loadD9, loadD10, loadD11, loadInventarios];
-      const results = await Promise.allSettled(loaders.map((load) => load()));
-      const failures = results.filter((r) => r.status === 'rejected').length;
-      const loaded = Object.values(DATA).filter(Boolean).length;
-      if (!loaded || !TIENDAS.size) throw new Error('No fue posible recuperar las bases de tiendas.');
-      corte.className = `hero-badge${failures ? ' is-partial' : ''}`;
-      corte.textContent = failures ? `⚠ Datos parciales · ${failures} fuente${failures > 1 ? 's' : ''} sin respuesta` : '✓ Datos actualizados · Plaza Oaxaca';
+      seedTiendasFromCatalog();
+      if (!TIENDAS.size) throw new Error('El catálogo no contiene tiendas disponibles.');
       mountSingleSelect('mi-tienda-select', [...TIENDAS.values()], {
         placeholder: 'Busca tu tienda',
         searchId: 'mi-tienda-search',
         searchPlaceholder: 'Buscar tienda por nombre...',
         onChange: renderFor,
       });
-      setPageState('ready', 'Busca tu tienda arriba', failures ? 'La ficha está disponible; algunos apartados podrían no mostrarse porque una fuente no respondió.' : 'En cuanto elijas tu tienda vas a ver aquí mismo su ficha completa.');
-      OXXO.updateFooterTime('load-time');
+      setPageState('ready', 'Busca tu tienda arriba', 'Ya puedes elegirla. Cada apartado aparecerá en cuanto termine de cargar su fuente.');
+
+      const sources = [
+        ['d1', loadD1], ['d2', loadD2], ['d3', loadD3], ['d4', loadD4],
+        ['d5', loadD5], ['d6', loadD6], ['d7', loadD7], ['d8', loadD8],
+        ['d9', loadD9], ['d10', loadD10], ['d11', loadD11], ['inventarios', loadInventarios],
+      ];
+      updateLoadProgress();
+      await Promise.allSettled(sources.map(async ([key, load]) => {
+        try {
+          await load();
+          SOURCE_STATE[key] = DATA[key] ? 'loaded' : 'failed';
+        } catch (error) {
+          SOURCE_STATE[key] = 'failed';
+          console.error(`Mi Tienda: no se pudo cargar ${key}`, error);
+        } finally {
+          updateLoadProgress();
+          scheduleProgressiveRender();
+        }
+      }));
     } catch (error) {
       console.error('Mi Tienda: error de carga', error);
       corte.className = 'hero-badge is-error';
