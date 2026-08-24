@@ -44,6 +44,7 @@ function siteBasePath() {
 // ─────────────────────────────────────────────────────────────
 const SHEET_CACHE_TTL_MS = 2 * 60 * 1000;
 const SHEET_STALE_LIMIT_MS = 10 * 60 * 1000;
+const SHEET_PERSISTENT_CACHE = 'oxxo-sheet-data-v1';
 const sheetDataCache = new Map();
 const sheetDataInflight = new Map();
 const sheetDataStatus = new Map();
@@ -53,9 +54,74 @@ function cloneSheetRows(rows) {
   if (!Array.isArray(rows)) return rows;
   return rows.map((row) => ({ ...row }));
 }
+
+// Conserva las respuestas entre navegaciones. Antes, cada dashboard empezaba
+// con un Map vacio y volvia a descargar Google Sheets y el catalogo aunque el
+// usuario acabara de consultarlos en otra pantalla. Cache Storage admite bases
+// grandes y no compite con el pequeno limite de localStorage/sessionStorage.
+function persistentCacheRequest(cacheKey) {
+  if (!('caches' in window) || !window.location?.origin || window.location.origin === 'null') return null;
+  const book = encodeURIComponent(SHEETS_CONFIG.SPREADSHEET_ID || 'default');
+  const key = encodeURIComponent(String(cacheKey || ''));
+  return new Request(`${window.location.origin}/__oxxo_cache__/${book}/${key}`);
+}
+async function readPersistentRows(cacheKey) {
+  const request = persistentCacheRequest(cacheKey);
+  if (!request) return null;
+  try {
+    const cache = await caches.open(SHEET_PERSISTENT_CACHE);
+    const response = await cache.match(request);
+    if (!response) return null;
+    const payload = await response.json();
+    if (!Array.isArray(payload?.rows) || !Number.isFinite(payload?.savedAt)) return null;
+    return payload;
+  } catch (error) {
+    console.warn('[OXXO] No se pudo leer la cache local:', error);
+    return null;
+  }
+}
+async function writePersistentRows(cacheKey, rows, savedAt = Date.now()) {
+  const request = persistentCacheRequest(cacheKey);
+  if (!request || !Array.isArray(rows)) return;
+  try {
+    const cache = await caches.open(SHEET_PERSISTENT_CACHE);
+    await cache.put(request, new Response(JSON.stringify({ rows, savedAt }), {
+      headers: { 'Content-Type': 'application/json; charset=utf-8' }
+    }));
+  } catch (error) {
+    // La cache es una optimizacion: una cuota llena nunca debe impedir cargar.
+    console.warn('[OXXO] No se pudo guardar la cache local:', error);
+  }
+}
+async function deletePersistentRows(cacheKey) {
+  if (!('caches' in window)) return;
+  try {
+    if (!cacheKey) {
+      await caches.delete(SHEET_PERSISTENT_CACHE);
+      return;
+    }
+    const cache = await caches.open(SHEET_PERSISTENT_CACHE);
+    const request = persistentCacheRequest(cacheKey);
+    if (request) await cache.delete(request);
+  } catch (error) {
+    console.warn('[OXXO] No se pudo limpiar la cache local:', error);
+  }
+}
 function clearSheetDataCache(tabName) {
-  if (tabName) sheetDataCache.delete(String(tabName));
-  else sheetDataCache.clear();
+  if (tabName) {
+    const key = String(tabName);
+    sheetDataCache.delete(key);
+    void deletePersistentRows(`sheet:${key}`);
+    if (key === (SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores')) {
+      void deletePersistentRows(`catalog:${key}`);
+      asesorCatalogPromise = null;
+    }
+  } else {
+    sheetDataCache.clear();
+    void deletePersistentRows();
+    asesorCatalogPromise = null;
+    reasignacionesPromise = null;
+  }
 }
 function setRetryHandler(handler) {
   dashboardRetryHandler = typeof handler === 'function' ? handler : null;
@@ -117,8 +183,19 @@ document.addEventListener('click', (event) => {
 async function fetchSheetData(tabName, options = {}) {
   const key = String(tabName || '');
   const now = Date.now();
-  const cached = sheetDataCache.get(key);
+  let cached = sheetDataCache.get(key);
   if (!options.fresh && cached && now - cached.savedAt < SHEET_CACHE_TTL_MS) return cloneSheetRows(cached.rows);
+  if (!options.fresh && !cached) {
+    const persistent = await readPersistentRows(`sheet:${key}`);
+    if (persistent) {
+      cached = persistent;
+      sheetDataCache.set(key, persistent);
+      if (now - persistent.savedAt < SHEET_CACHE_TTL_MS) {
+        updateConnectionStatus(key, 'online', { source: 'cache' });
+        return cloneSheetRows(persistent.rows);
+      }
+    }
+  }
   let request = sheetDataInflight.get(key);
   if (!request) {
     const url = buildSheetURL(tabName);
@@ -127,10 +204,14 @@ async function fetchSheetData(tabName, options = {}) {
       try {
         for (let attempt = 0; attempt < 2; attempt += 1) {
           try {
-            const response = await fetch(url, { cache: 'no-store' });
+            // Permite validacion HTTP del navegador; la vigencia funcional se
+            // sigue controlando con savedAt y las constantes de arriba.
+            const response = await fetch(url, { cache: 'default' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const rows = parseCSV(await response.text());
-            sheetDataCache.set(key, { rows, savedAt: Date.now() });
+            const entry = { rows, savedAt: Date.now() };
+            sheetDataCache.set(key, entry);
+            void writePersistentRows(`sheet:${key}`, rows, entry.savedAt);
             return rows;
           } catch (error) {
             lastError = error;
@@ -1385,10 +1466,22 @@ async function fetchCatalogRowsDirect() {
   return rows;
 }
 async function loadAsesorCatalogRows() {
+  const catalogName = SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores';
+  const catalogCacheKey = `catalog:${catalogName}`;
+  const cached = await readPersistentRows(catalogCacheKey);
+  // El catalogo cambia mucho menos que las bases diarias. Cinco minutos evita
+  // descargarlo otra vez al recorrer varios dashboards, sin ocultar una
+  // actualizacion administrativa durante una sesion larga.
+  if (cached && Date.now() - cached.savedAt < 5 * 60 * 1000) {
+    return buildAsesorCatalog(cloneSheetRows(cached.rows));
+  }
   // 1) Fuente principal: lectura directa via Apps Script (ver arriba).
   try {
     const rows = await fetchCatalogRowsDirect();
-    if (rows && rows.length) return buildAsesorCatalog(rows);
+    if (rows && rows.length) {
+      void writePersistentRows(catalogCacheKey, rows);
+      return buildAsesorCatalog(rows);
+    }
     if (rows) console.warn('[OXXO] Lectura directa de Catalogo_Asesores vino vacia, usando respaldo.');
   } catch (e) {
     console.warn('[OXXO] No se pudo leer Catalogo_Asesores via Apps Script, usando respaldo:', e);
@@ -1400,7 +1493,10 @@ async function loadAsesorCatalogRows() {
     const resp = await fetch(localUrl, { cache: 'no-store' });
     if (resp.ok) {
       const rows = parseAsesorCatalogCSV(await resp.text());
-      if (rows.length) return buildAsesorCatalog(rows);
+      if (rows.length) {
+        void writePersistentRows(catalogCacheKey, rows);
+        return buildAsesorCatalog(rows);
+      }
       console.warn('[OXXO] catalogo_asesores.csv sin filas validas, usando gviz.');
     }
   } catch (e) {
@@ -1419,6 +1515,9 @@ async function loadAsesorCatalogRows() {
     return catalog;
   } catch (error) {
     console.warn('[OXXO] No se pudo cargar Catalogo_Asesores:', error);
+    if (cached && Date.now() - cached.savedAt < 60 * 60 * 1000) {
+      return buildAsesorCatalog(cloneSheetRows(cached.rows));
+    }
     return { loaded: false, rows: [], byCr: new Map(), byTienda: new Map() };
   }
 }
@@ -2418,3 +2517,11 @@ window.OXXO = {
   metricsD3Rows,
   metricsD7Rows,
 };
+
+// Arranca el catalogo al mismo tiempo que cada dashboard descarga su propia
+// base. Las pantallas lo esperan mas adelante para corregir asesores; iniciar
+// aqui elimina esa espera secuencial sin modificar el orden del renderizado.
+if (/\/dashboards\//i.test(location.pathname.replace(/\\/g, '/'))
+    && !/\/(promociones|inventarios)\.html$/i.test(location.pathname)) {
+  void loadAsesorCatalog().catch(() => {});
+}
