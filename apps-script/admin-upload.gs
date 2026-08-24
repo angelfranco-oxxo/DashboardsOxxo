@@ -498,11 +498,50 @@ function publicationThresholds(sheetName) {
   return { warn: 90, bad: 180 };
 }
 
+// La URL /exec es publica ("cualquiera con el enlace") y aparece en el codigo
+// del sitio, asi que cualquiera puede lanzarle intentos de contrasena. Apps
+// Script no expone la IP de quien llama, de modo que un bloqueo por origen no
+// es posible; y un bloqueo global tras N fallos permitiria que un tercero deje
+// fuera al administrador real. Por eso se frena con retardo, no con bloqueo:
+// cada fallo cuesta segundos y crecen con los intentos recientes, lo que hace
+// inviable la fuerza bruta sin poder negarle el servicio a nadie. Los intentos
+// quedan ademas registrados en la bitacora para que sean visibles.
+const AUTH_FAIL_CACHE_KEY = 'oxxo_auth_fallos';
+const AUTH_FAIL_WINDOW_SECONDS = 900;   // 15 minutos
+const AUTH_FAIL_MAX_DELAY_MS = 8000;
+
+function registrarFalloAuth() {
+  try {
+    const cache = CacheService.getScriptCache();
+    const previos = Number(cache.get(AUTH_FAIL_CACHE_KEY) || 0);
+    const total = previos + 1;
+    cache.put(AUTH_FAIL_CACHE_KEY, String(total), AUTH_FAIL_WINDOW_SECONDS);
+    return total;
+  } catch (error) {
+    return 1;
+  }
+}
+
+function registrarIntentoFallido(total) {
+  try {
+    const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+    appendAudit(ss, { targetSheet: '', sourceFile: '', source: 'Endpoint publico', adminUser: 'Desconocido' },
+      {}, 'RECHAZADO', 'Contrasena incorrecta (' + total + ' intentos fallidos en los ultimos 15 min)', '');
+  } catch (error) {
+    // Registrar el intento nunca debe impedir que se rechace la peticion.
+  }
+}
+
 function assertAuthorized(payload) {
   const configured = PropertiesService.getScriptProperties().getProperty(ADMIN_PASSWORD_PROPERTY) || '';
   if (!configured) throw new Error('ADMIN_PASSWORD no configurado en Script Properties');
   const received = String((payload && payload.adminPassword) || '');
-  if (received !== configured) throw new Error('No autorizado');
+  if (received !== configured) {
+    const total = registrarFalloAuth();
+    Utilities.sleep(Math.min(total * 1000, AUTH_FAIL_MAX_DELAY_MS));
+    registrarIntentoFallido(total);
+    throw new Error('No autorizado');
+  }
 }
 
 // FIX 1: antes se hacia sheet.clearContents() y luego setValues() como dos pasos separados.
