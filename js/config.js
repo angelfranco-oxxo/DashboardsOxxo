@@ -73,6 +73,9 @@ window.OXXO_CONFIG = {
   // ya no se vuelve a tocar.
   // 2026-08-24 (v34): se restauro la app web, la lectura directa del
   // catalogo, la reparacion segura de pestanas y el soporte de D12/D13.
+  // 2026-08-24 (v35): se agrego penalizacion progresiva y bitacora muestreada
+  // para intentos de acceso incorrectos, protegiendo las cuotas de Apps Script.
+  // Se actualizo la implementacion existente; la URL /exec no cambio.
   ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbzTVlxLyHaKAphlRRwH1kI6aDga15rfKumCkquAUuvY1_X7ifx-XPrNT87IZN54_Gtk/exec",
 
   // Nombres exactos de pestanas en Google Sheets.

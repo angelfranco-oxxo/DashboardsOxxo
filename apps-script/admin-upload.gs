@@ -498,37 +498,55 @@ function publicationThresholds(sheetName) {
   return { warn: 90, bad: 180 };
 }
 
-// La URL /exec es publica ("cualquiera con el enlace") y aparece en el codigo
-// del sitio, asi que cualquiera puede lanzarle intentos de contrasena. Apps
-// Script no expone la IP de quien llama, de modo que un bloqueo por origen no
-// es posible; y un bloqueo global tras N fallos permitiria que un tercero deje
-// fuera al administrador real. Por eso se frena con retardo, no con bloqueo:
-// cada fallo cuesta segundos y crecen con los intentos recientes, lo que hace
-// inviable la fuerza bruta sin poder negarle el servicio a nadie. Los intentos
-// quedan ademas registrados en la bitacora para que sean visibles.
+// La Web App es publica para que el panel pueda llamarla, pero todas las
+// acciones que modifican o exponen administracion siguen protegidas por la
+// contrasena guardada en Script Properties. Apps Script no entrega la IP del
+// cliente: se usa una penalizacion corta y global para desacelerar intentos
+// automatizados sin bloquear al administrador que si conoce la contrasena.
+//
+// El retardo se limita a 2 segundos porque Utilities.sleep() mantiene una
+// ejecucion ocupada. Registrar cada fallo tambien agotaria la cuota de Sheets;
+// por eso la bitacora conserva solo los primeros eventos y muestras posteriores.
 const AUTH_FAIL_CACHE_KEY = 'oxxo_auth_fallos';
-const AUTH_FAIL_WINDOW_SECONDS = 900;   // 15 minutos
-const AUTH_FAIL_MAX_DELAY_MS = 8000;
+const AUTH_FAIL_WINDOW_SECONDS = 15 * 60;
+const AUTH_FAIL_MAX_DELAY_MS = 2000;
 
 function registrarFalloAuth() {
+  let lock;
   try {
+    lock = LockService.getScriptLock();
+    if (!lock.tryLock(500)) return 1;
     const cache = CacheService.getScriptCache();
-    const previos = Number(cache.get(AUTH_FAIL_CACHE_KEY) || 0);
-    const total = previos + 1;
+    const total = Number(cache.get(AUTH_FAIL_CACHE_KEY) || 0) + 1;
     cache.put(AUTH_FAIL_CACHE_KEY, String(total), AUTH_FAIL_WINDOW_SECONDS);
     return total;
   } catch (error) {
     return 1;
+  } finally {
+    if (lock && lock.hasLock()) lock.releaseLock();
   }
 }
 
+function debeRegistrarFalloAuth(total) {
+  if (total <= 3) return true;
+  // 4, 8, 16, 32... y una muestra cada 25 intentos.
+  return (total & (total - 1)) === 0 || total % 25 === 0;
+}
+
 function registrarIntentoFallido(total) {
+  if (!debeRegistrarFalloAuth(total)) return;
+  let lock;
   try {
+    lock = LockService.getScriptLock();
+    if (!lock.tryLock(500)) return;
     const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
-    appendAudit(ss, { targetSheet: '', sourceFile: '', source: 'Endpoint publico', adminUser: 'Desconocido' },
-      {}, 'RECHAZADO', 'Contrasena incorrecta (' + total + ' intentos fallidos en los ultimos 15 min)', '');
+    appendAudit(ss, {
+      targetSheet: '', sourceFile: '', source: 'Endpoint publico', adminUser: 'Desconocido'
+    }, {}, 'RECHAZADO', 'Contrasena incorrecta (' + total + ' intentos recientes)', '');
   } catch (error) {
-    // Registrar el intento nunca debe impedir que se rechace la peticion.
+    // La bitacora es informativa; nunca debe interferir con el rechazo.
+  } finally {
+    if (lock && lock.hasLock()) lock.releaseLock();
   }
 }
 
@@ -538,7 +556,8 @@ function assertAuthorized(payload) {
   const received = String((payload && payload.adminPassword) || '');
   if (received !== configured) {
     const total = registrarFalloAuth();
-    Utilities.sleep(Math.min(total * 1000, AUTH_FAIL_MAX_DELAY_MS));
+    const delay = Math.min(250 * Math.pow(2, Math.min(total - 1, 3)), AUTH_FAIL_MAX_DELAY_MS);
+    Utilities.sleep(delay);
     registrarIntentoFallido(total);
     throw new Error('No autorizado');
   }
