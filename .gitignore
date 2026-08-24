@@ -6,3 +6,7 @@ dist
 *.log
 .claude/worktrees/
 outputs/
+
+# Instantaneas de datos: no deben versionarse, el sitio es publico
+assets/data/
+assets/backups/

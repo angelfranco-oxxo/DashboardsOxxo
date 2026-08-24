@@ -1,0 +1,10 @@
+# Tablero interno de Recursos Humanos de Plaza Oaxaca.
+# No es contenido publico: se pide a los buscadores que no lo indexen ni lo
+# sigan, para que las paginas y los datos que cargan no aparezcan en
+# resultados de busqueda.
+#
+# Esto NO es un control de acceso: solo lo respetan los rastreadores que
+# quieren respetarlo. Quien tenga la direccion sigue entrando igual. El
+# control de acceso real requiere poner el sitio detras de un login.
+User-agent: *
+Disallow: /
