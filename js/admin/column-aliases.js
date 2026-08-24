@@ -58,6 +58,7 @@ window.OXXO_ADMIN_COLUMN_ALIASES = {
     'Calificacion RT IMSS':['calificacion rt imss'],'Dictamen ST7':['cuenta con dictamen st7'],
     'ST2':['cuenta con st2'],'Acto o Condicion Insegura':['acto o condicion insegura'],
     'Descripcion ST7':['descripcion de st7'],
+    'Edad':['edad'],
     'D Ene':['ene'],'D Feb':['feb'],'D Mar':['mar'],'D Abr':['abr'],'D May':['may'],'D Jun':['jun'],
     'D Jul':['jul'],'D Ago':['ago'],'D Sep':['sep'],'D Oct':['oct'],'D Nov':['nov'],'D Dic':['dic']
   };

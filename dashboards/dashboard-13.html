@@ -113,6 +113,42 @@
 .cm-rt-box{border-top:1px solid var(--color-border);margin-top:4px}
 .cm-rt-item{padding:10px 0;border-bottom:1px dashed var(--color-border)}
 .cm-rt-item:last-child{border-bottom:none}
+/* Semaforo de seguimiento */
+.sem{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:.02em;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.sem i{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sem.s-fuera{background:#fdeaea;color:#C0393B}
+.sem.s-pronto{background:#fff4d6;color:#B8860B}
+.sem.s-ok{background:#e8f8f0;color:#138c3e}
+.sem.s-na{background:#f0f0f0;color:#999}
+.sem-resumen{display:flex;gap:10px;flex-wrap:wrap}
+.sem-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-border);border-radius:12px;padding:7px 12px;background:var(--color-surface)}
+.sem-chip b{font-family:var(--font-display);font-size:1.05rem}
+.sem-chip span{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--color-gray)}
+
+/* Mapa de calor: asesor x mes */
+.hm-wrap{display:flex;gap:24px;align-items:flex-start;flex-wrap:nowrap}
+.hm-scroll{flex:1 1 auto;min-width:0;overflow-x:auto}
+.hm-table{border-collapse:separate;border-spacing:5px;font-size:12px;width:100%}
+#mapa-calor .hm-table th,#mapa-calor .hm-table td{
+  text-align:center;padding:0;border:none!important;box-shadow:none!important;position:static!important}
+#mapa-calor .hm-table tbody tr,#mapa-calor .hm-table tbody th,#mapa-calor .hm-table tbody td{
+  background:transparent!important}
+#mapa-calor .hm-table thead th{background:var(--index-red,#7a1f22)!important;color:#fff!important;
+  border-radius:7px;padding:6px 4px!important}
+#mapa-calor .hm-table thead th.hm-esquina{background:transparent!important}
+#mapa-calor .hm-table tbody th{color:var(--color-dark)!important;text-align:right!important}
+.hm-table thead th{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-gray)!important;padding:0 0 8px!important}
+.hm-table tbody th{font-size:11px;font-weight:700;color:var(--color-dark)!important;text-transform:none!important;letter-spacing:0!important;text-align:right;padding-right:12px;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis}
+.hm-cell{height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:12px;color:#3a2a26;cursor:pointer;transition:transform .12s}
+.hm-cell:hover{transform:scale(1.07)}
+.hm-cell.is-empty{background:var(--color-bg);color:#c9bfbe;font-weight:600;cursor:default}
+.hm-cell.is-empty:hover{transform:none}
+.hm-cell.is-active{outline:3px solid var(--color-red);outline-offset:-3px}
+.hm-legend{display:flex;flex-direction:column;gap:9px;min-width:118px;flex:0 0 auto;padding-top:22px}
+.hm-legend__t{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-gray)}
+.hm-legend__i{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--color-dark);font-weight:600}
+.hm-legend__s{width:20px;height:20px;border-radius:6px;flex:0 0 auto}
+@media(max-width:900px){.hm-wrap{flex-wrap:wrap}.hm-legend{flex-direction:row;padding-top:0}}
 .cm-rt-nota{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-red);margin-bottom:6px}
 .cm-rt-desc{margin:0;font-size:12px;line-height:1.5;color:var(--color-dark);background:var(--color-bg);border-radius:10px;padding:10px 12px}
 #rt-docs b{font-family:var(--font-display);font-size:14px;color:var(--color-dark)}
@@ -240,6 +276,33 @@
 
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
+      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path><path d="M3 9h18"></path></svg>Días perdidos por asesor y mes<span class="info-tip" tabindex="0" data-tip="Cada celda son los días de incapacidad de ese asesor en ese mes. Entre más intenso el color, más días. Clic en una celda para filtrar el detalle de abajo; clic otra vez para quitarlo."></span></div>
+      <span class="card-badge" id="hm-badge">—</span>
+    </div>
+    <div id="mapa-calor"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>Seguimiento de incapacidades<span class="info-tip" tabindex="0" data-tip="Estado de cada incapacidad segun su fecha de termino comparada con el dia de hoy. Rojo: la persona sigue fuera. Amarillo: regresa dentro de los proximos 7 dias. Verde: ya concluyo."></span></div>
+      <div class="detalle-head-tools">
+        <span class="card-badge" id="seg-badge">— en seguimiento</span>
+      </div>
+    </div>
+    <div class="sem-resumen" id="seg-resumen" style="margin-bottom:14px"></div>
+    <div class="tbl-wrap">
+      <table class="tbl" id="tabla-seguimiento" data-rh-tools data-rh-page-size="15">
+        <thead><tr>
+          <th>Estado</th><th>Asesor</th><th>Suc.</th><th>Nombre</th>
+          <th class="center">Término</th><th class="center">Ingreso</th><th class="center">Antig.</th><th class="center">Edad</th>
+        </tr></thead>
+        <tbody><tr><td colspan="8"><div class="state-box"><div class="spinner"></div></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
       <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Detalle por Folio<span class="info-tip" tabindex="0" data-tip="Un renglón por incapacidad. Clic en una fila para ver la ficha del colaborador con todas sus incapacidades."></span></div>
       <div class="detalle-head-tools">
         <span class="card-badge" id="row-count">— folios</span>
@@ -309,7 +372,7 @@ const ALIASES_D13 = {
   fCap:['Fecha Captura','Fecha de Captura'],
   dias:['Dias','Días'], acum:['Dias Acumulados','Días acumulados x persona'],
   puesto:['Puesto'], tienda:['Tienda'], cr:['CR'], asesor:['Asesor'], genero:['Genero','Género de Nac'],
-  ingreso:['Fecha Ingreso'], antig:['Antiguedad','Antigüedad'], doc:['Documento Entregado'],
+  ingreso:['Fecha Ingreso'], antig:['Antiguedad','Antigüedad'], edad:['Edad'], doc:['Documento Entregado'],
   mec:['Mecanismo RT'], espMec:['Especificacion Mecanismo'], area:['Area Anatomica'],
   fAcc:['Fecha Accidente'], turno:['Turno Accidente'], lugar:['Lugar Accidente'],
   califRT:['Calificacion RT IMSS'], st7:['Dictamen ST7'], st2:['ST2'],
@@ -328,6 +391,7 @@ let SELECTED_ASESORES = null, asesorFilterHandle = null;
 let DETALLE_ASESOR = null, DETALLE_FILAS = [];
 let POR_COLAB = {};
 let chartMeses=null, chartClas=null, chartMec=null, chartArea=null, chartLugar=null, chartTurno=null;
+let CELDA_CALOR = null;   // {asesor, mes} seleccionado en el mapa de calor
 
 const val = (r,k) => String(r?.[k] ?? '').trim();
 const nDias = (r) => { const n = OXXO.metricsNum(r[C.dias]); return Number.isFinite(n) ? n : 0; };
@@ -404,7 +468,10 @@ function renderAll(){
         mater.length, `${mater.reduce((s,r)=>s+nDias(r),0).toLocaleString('es-MX')} días`, 'neu');
 
   renderMeses(data); renderClas(data); renderRT(rt, sinST7);
-  renderAsesores(data); renderDetalle(data);
+  renderMapaCalor(data);
+  renderAsesores(data);
+  renderSeguimiento(data);
+  renderDetalle(recorteCalor(data));
 }
 
 function renderMeses(data){
@@ -532,26 +599,169 @@ function renderDetalle(data){
     </tr></thead>
     <tbody>${cuerpo || '<tr><td colspan="10"><div class="state-box">Sin datos</div></td></tr>'}</tbody>`;
   const dias = filas.reduce((s,r) => s + nDias(r), 0);
-  document.getElementById('row-count').textContent = DETALLE_ASESOR
-    ? `${filas.length} de ${data.length} folios · ${dias.toLocaleString('es-MX')} días`
-    : `${filas.length} folios · ${dias.toLocaleString('es-MX')} días`;
-  document.getElementById('detalle-clear').classList.toggle('show', !!DETALLE_ASESOR);
+  const etiqueta = DETALLE_ASESOR
+    ? ` · ${OXXO.truncate(DETALLE_ASESOR, 22)}`
+    : (CELDA_CALOR ? ` · ${OXXO.truncate(CELDA_CALOR.asesor, 18)} en ${CELDA_CALOR.mes}` : '');
+  document.getElementById('row-count').textContent =
+    `${filas.length} folios · ${dias.toLocaleString('es-MX')} días${etiqueta}`;
+  document.getElementById('detalle-clear').classList.toggle('show', !!(DETALLE_ASESOR || CELDA_CALOR));
+}
+
+// ── Semaforo de seguimiento ─────────────────────────────────────────────
+// El estado se calcula contra el dia de HOY, no contra el corte del reporte:
+// lo que Recursos Humanos necesita saber es quien esta fuera ahora mismo.
+// Usando el corte, el 99.7% saldria "concluida" y la tabla no serviria.
+const MS_DIA = 86400000;
+function estadoIncapacidad(fila){
+  const iso = fechaIso(val(fila, C.fFin));
+  if(!iso) return { clave:'na', clase:'s-na', color:'#bbb', texto:'Sin fecha', orden:3 };
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const fin = new Date(iso + 'T00:00:00');
+  const dias = Math.round((fin - hoy) / MS_DIA);
+  if(dias < 0)  return { clave:'ok',    clase:'s-ok',    color:'#1DB954', texto:'Concluida', orden:2, dias };
+  if(dias <= 7) return { clave:'pronto',clase:'s-pronto',color:'#FFC107', texto: dias === 0 ? 'Regresa hoy' : `Regresa en ${dias} d`, orden:1, dias };
+  return { clave:'fuera', clase:'s-fuera', color:'#D92B2B', texto:`Fuera ${dias} d más`, orden:0, dias };
+}
+
+function renderSeguimiento(data){
+  const filas = data.map(r => ({ r, e: estadoIncapacidad(r) }))
+    .sort((a,b) => a.e.orden - b.e.orden || (a.e.dias ?? 0) - (b.e.dias ?? 0));
+  const cuenta = { fuera:0, pronto:0, ok:0, na:0 };
+  filas.forEach(f => { cuenta[f.e.clave]++; });
+  const activos = cuenta.fuera + cuenta.pronto;
+
+  document.getElementById('seg-badge').textContent = activos
+    ? `${activos} requieren seguimiento` : 'Ninguna activa';
+  document.getElementById('seg-resumen').innerHTML = [
+    ['s-fuera','#D92B2B', cuenta.fuera,  'Siguen fuera'],
+    ['s-pronto','#FFC107', cuenta.pronto,'Regresan en 7 días'],
+    ['s-ok','#1DB954',     cuenta.ok,    'Concluidas'],
+    ['s-na','#bbb',        cuenta.na,    'Sin fecha'],
+  ].filter(([,,n]) => n > 0)
+   .map(([cls,color,n,txt]) => `<div class="sem-chip"><span class="sem ${cls}"><i style="background:${color}"></i></span><div><b>${n}</b><br><span>${txt}</span></div></div>`)
+   .join('');
+
+  document.getElementById('tabla-seguimiento').querySelector('tbody').innerHTML = filas.length === 0
+    ? '<tr><td colspan="8"><div class="state-box">Sin datos</div></td></tr>'
+    : filas.map(({r, e}) => {
+        const edad = val(r, C.edad);
+        const ant = val(r, C.antig);
+        return `<tr>
+          <td><span class="sem ${e.clase}"><i style="background:${e.color}"></i>${OXXO.escHtml(e.texto)}</span></td>
+          <td style="font-size:11px">${OXXO.escHtml(OXXO.truncate(val(r, C.asesor) || '—', 22))}</td>
+          <td style="font-size:11px">${OXXO.escHtml(OXXO.truncate(val(r, C.tienda) || '—', 24))}</td>
+          <td>${OXXO.escHtml(OXXO.truncate(val(r, C.nombre) || '—', 26))}</td>
+          <td class="center" style="font-size:11px">${fechaCorta(val(r, C.fFin))}</td>
+          <td class="center" style="font-size:11px">${fechaCorta(val(r, C.ingreso))}</td>
+          <td class="center" style="font-size:11px">${ant ? Number(ant).toFixed(1) + ' a' : '—'}</td>
+          <td class="center">${edad || '—'}</td>
+        </tr>`;
+      }).join('');
+}
+
+// ── Mapa de calor: asesor x mes, dias perdidos ──────────────────────────
+// Mismo lenguaje visual que el mapa del Dashboard 2 (Bajas): degradado del
+// crema al rojo OXXO, celda clicable que filtra, y leyenda de intensidad.
+function colorCalor(razon){
+  const a = [255,242,224], b = [192,24,31];
+  const t = Math.max(0, Math.min(1, razon));
+  return `rgb(${Math.round(a[0]+(b[0]-a[0])*t)},${Math.round(a[1]+(b[1]-a[1])*t)},${Math.round(a[2]+(b[2]-a[2])*t)})`;
+}
+
+function renderMapaCalor(data){
+  const cont = document.getElementById('mapa-calor');
+  const asesores = [...new Set(data.map(r => val(r, C.asesor) || 'Sin Asesor Asignado'))];
+  const matriz = {}, totalPorAsesor = {};
+  asesores.forEach(a => { matriz[a] = {}; MESES.forEach(m => { matriz[a][m] = 0; }); totalPorAsesor[a] = 0; });
+  data.forEach(r => {
+    const a = val(r, C.asesor) || 'Sin Asesor Asignado';
+    MESES.forEach(m => {
+      const n = OXXO.metricsNum(r[C['m'+m]]);
+      if(Number.isFinite(n)){ matriz[a][m] += n; totalPorAsesor[a] += n; }
+    });
+  });
+  const orden = asesores.filter(a => totalPorAsesor[a] > 0).sort((x,y) => totalPorAsesor[y] - totalPorAsesor[x]);
+  if(!orden.length){
+    cont.innerHTML = '<div class="state-box">Sin días distribuidos por mes con los filtros activos.</div>';
+    document.getElementById('hm-badge').textContent = '—';
+    return;
+  }
+  let max = 0;
+  orden.forEach(a => MESES.forEach(m => { max = Math.max(max, matriz[a][m]); }));
+  document.getElementById('hm-badge').textContent = CELDA_CALOR
+    ? `${OXXO.truncate(CELDA_CALOR.asesor,18)} · ${CELDA_CALOR.mes}`
+    : `${orden.length} asesores · máx ${max} días`;
+
+  const encabezado = MESES.map(m => `<th>${m}</th>`).join('');
+  const cuerpo = orden.map(a => MESES.map(m => {
+      const v = matriz[a][m];
+      const activa = CELDA_CALOR && CELDA_CALOR.asesor === a && CELDA_CALOR.mes === m;
+      const attrs = `data-asesor="${OXXO.escHtml(a)}" data-mes="${m}" title="${OXXO.escHtml(a)} · ${m}: ${v} días"`;
+      if(!v) return `<td><div class="hm-cell is-empty${activa?' is-active':''}" ${attrs}>—</div></td>`;
+      return `<td><div class="hm-cell${activa?' is-active':''}" style="background:${colorCalor(v/max)}" ${attrs}>${v}</div></td>`;
+    }).join('')
+  ).map((celdas,i) => `<tr><th title="${OXXO.escHtml(orden[i])}">${OXXO.escHtml(OXXO.truncate(orden[i],24))}</th>${celdas}</tr>`).join('');
+
+  cont.innerHTML = `
+    <div class="hm-wrap">
+      <div class="hm-scroll">
+        <table class="hm-table">
+          <thead><tr><th class="hm-esquina"></th>${encabezado}</tr></thead>
+          <tbody>${cuerpo}</tbody>
+        </table>
+      </div>
+      <div class="hm-legend">
+        <div class="hm-legend__t">Intensidad</div>
+        <div class="hm-legend__i"><span class="hm-legend__s" style="background:${colorCalor(.12)}"></span>Pocos días</div>
+        <div class="hm-legend__i"><span class="hm-legend__s" style="background:${colorCalor(.55)}"></span>Medio</div>
+        <div class="hm-legend__i"><span class="hm-legend__s" style="background:${colorCalor(1)}"></span>Máximo (${max})</div>
+      </div>
+    </div>`;
+
+  cont.querySelectorAll('.hm-cell:not(.is-empty)').forEach(celda => {
+    celda.addEventListener('click', () => {
+      const a = celda.dataset.asesor, m = celda.dataset.mes;
+      const misma = CELDA_CALOR && CELDA_CALOR.asesor === a && CELDA_CALOR.mes === m;
+      CELDA_CALOR = misma ? null : { asesor:a, mes:m };
+      DETALLE_ASESOR = null;
+      renderAll();
+      if(!misma){
+        const card = document.getElementById('tabla-detalle').closest('.card');
+        if(card) card.scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    });
+  });
+}
+
+// Recorte extra que aplica SOLO a la tabla de detalle: la celda elegida en el
+// mapa de calor. Las graficas y el propio mapa siguen viendo todo, para no
+// dejar el mapa reducido a una sola celda en cuanto se hace clic.
+function recorteCalor(data){
+  if(!CELDA_CALOR) return data;
+  const col = C['m' + CELDA_CALOR.mes];
+  return data.filter(r => {
+    if((val(r, C.asesor) || 'Sin Asesor Asignado') !== CELDA_CALOR.asesor) return false;
+    const n = OXXO.metricsNum(r[col]);
+    return Number.isFinite(n) && n > 0;
+  });
 }
 
 function escapeAttr(s){ return String(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 
 function selectAsesorDetalle(asesor){
   DETALLE_ASESOR = (DETALLE_ASESOR === asesor) ? null : asesor;
+  CELDA_CALOR = null;
   syncAsesorSelection();
-  renderDetalle(filteredData());
+  renderDetalle(recorteCalor(filteredData()));
   if(DETALLE_ASESOR){
     const card = document.getElementById('tabla-detalle').closest('.card');
     if(card) card.scrollIntoView({behavior:'smooth', block:'start'});
   }
 }
 function clearAsesorDetalle(){
-  if(!DETALLE_ASESOR) return;
-  DETALLE_ASESOR = null; syncAsesorSelection(); renderDetalle(filteredData());
+  if(!DETALLE_ASESOR && !CELDA_CALOR) return;
+  DETALLE_ASESOR = null; CELDA_CALOR = null;
+  syncAsesorSelection(); renderAll();
 }
 function syncAsesorSelection(){
   document.querySelectorAll('#tabla-asesor tbody tr[data-asesor]').forEach(tr => {
@@ -625,10 +835,10 @@ function openColabModal(idx){
 function closeColabModal(){ document.getElementById('colab-modal').classList.remove('open'); }
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeColabModal(); });
 
-function applyFilters(){ DETALLE_ASESOR = null; renderAll(); }
+function applyFilters(){ DETALLE_ASESOR = null; CELDA_CALOR = null; renderAll(); }
 
 function limpiarFiltros(){
-  DETALLE_ASESOR = null;
+  DETALLE_ASESOR = null; CELDA_CALOR = null;
   ['filtro-clas','filtro-puesto'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   if(asesorFilterHandle) asesorFilterHandle.reset(); else renderAll();
 }
@@ -656,7 +866,7 @@ async function initDashboard(){
 
   const asesores = [...new Set(BASE.map(r => val(r, C.asesor)).filter(Boolean))].sort();
   asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
-    onChange: (sel) => { SELECTED_ASESORES = sel; DETALLE_ASESOR = null; renderAll(); },
+    onChange: (sel) => { SELECTED_ASESORES = sel; DETALLE_ASESOR = null; CELDA_CALOR = null; renderAll(); },
   });
   const selC = document.getElementById('filtro-clas');
   CLAS.filter(c => BASE.some(r => val(r, C.clas).toUpperCase() === c))
@@ -674,6 +884,7 @@ window.buildExcelSheets = async function(){
   return [
     { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
     { name: 'Ausentismo por Asesor', rows: OXXO.scrapeHtmlTable('#tabla-asesor') },
+    { name: 'Seguimiento', rows: OXXO.scrapeHtmlTable('#tabla-seguimiento') },
     { name: 'Detalle por Folio', rows: OXXO.scrapeHtmlTable('#tabla-detalle') }
   ];
 };
