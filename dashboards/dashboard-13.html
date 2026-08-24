@@ -382,6 +382,10 @@ let C = {};
 function buildColsD13(sample){
   const cols = {};
   Object.entries(ALIASES_D13).forEach(([k,a]) => { cols[k] = OXXO.metricsFindKey(sample, a) || a[0]; });
+  // "Edad" no puede resolverse por coincidencia parcial: cuando la hoja
+  // todavia no incluye esa columna, metricsFindKey() la confundiria con
+  // "Antiguedad" y mostraria valores como 5.18 como si fueran edades.
+  cols.edad = OXXO.metricsFindKeyExact(sample, ALIASES_D13.edad) || ALIASES_D13.edad[0];
   MESES.forEach(m => { cols['m'+m] = OXXO.metricsFindKey(sample, ['D '+m, 'Dias '+m, m]) || ('D '+m); });
   return cols;
 }
@@ -654,7 +658,7 @@ function renderSeguimiento(data){
           <td class="center" style="font-size:11px">${fechaCorta(val(r, C.fFin))}</td>
           <td class="center" style="font-size:11px">${fechaCorta(val(r, C.ingreso))}</td>
           <td class="center" style="font-size:11px">${ant ? Number(ant).toFixed(1) + ' a' : '—'}</td>
-          <td class="center">${edad || '—'}</td>
+          <td class="center">${OXXO.escHtml(edad || '—')}</td>
         </tr>`;
       }).join('');
 }
