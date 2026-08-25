@@ -8,6 +8,8 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
   const {
     OXXO,
     state,
+    parseDate,
+    isoDate,
     containsOaxaca,
     isVacancyRow,
     deriveD1,
@@ -232,9 +234,23 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
     return limpio?limpio.charAt(0).toUpperCase()+limpio.slice(1).toLowerCase():'';
   }
   // Hay celdas de fecha con el cero de Excel (1899-12-30) y textos sueltos:
-  // cualquier cosa fuera de 2015-2035 se descarta en vez de publicarse.
+  // cualquier cosa fuera de 2015-2035 se descarta en vez de publicarse. Este
+  // libro esta formateado M/D/YYYY (p. ej. 12/9/2025 = 9 de diciembre), por
+  // eso no debe pasar por el parser general DD/MM usado por otras bases.
+  function parseDateD13(value){
+    if(value instanceof Date&&!isNaN(value))return value;
+    const raw=String(value??'').trim();
+    const match=raw.match(/^(\d{1,4})[.\/-](\d{1,2})[.\/-](\d{1,4})/);
+    if(!match)return parseDate(value);
+    let year,month,day;
+    if(match[1].length===4){year=Number(match[1]);month=Number(match[2]);day=Number(match[3]);}
+    else{month=Number(match[1]);day=Number(match[2]);year=Number(match[3]);}
+    if(year<100)year+=2000;
+    const date=new Date(year,month-1,day);
+    return date.getFullYear()===year&&date.getMonth()===month-1&&date.getDate()===day?date:null;
+  }
   function fechaD13(value){
-    const iso=isoDate(parseDate(value));
+    const iso=isoDate(parseDateD13(value));
     if(!iso)return '';
     const anio=Number(iso.slice(0,4));
     return anio>=2015&&anio<=2035?iso:'';
@@ -244,6 +260,19 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
     if(!texto||texto==='-')return '';
     const n=Number(texto);
     return Number.isFinite(n)?n:'';
+  }
+  function clasificacionCalculoD13(clasificacion,calificacionImss){
+    const clas=planoD13(clasificacion).toUpperCase();
+    const imss=planoD13(calificacionImss).toUpperCase();
+    if(clas==='RT'&&imss==='NO DE TRABAJO')return 'EG';
+    if(clas==='RTY'&&imss==='NO DE TRAYECTO')return 'EG';
+    if(/ENF(ERMEDAD)?\s*PROF(ESIONAL)?/.test(clas)&&imss==='NO PROFESIONAL')return 'EG';
+    if(clas==='MATERNIDAD')return 'MATERNIDAD';
+    if(clas==='FATALIDAD')return 'FATALIDAD';
+    if(/^(IPP|IPT)$/.test(clas))return clas;
+    if(clas==='INVALIDEZ')return 'INVALIDEZ';
+    if(/ENF(ERMEDAD)?\s*PROF(ESIONAL)?/.test(clas))return 'ENF PROF';
+    return clas;
   }
   const MESES_COLS_D13=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   function deriveD13(row){
@@ -263,6 +292,9 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
     ['Fecha Captura','Fecha Inicio','Fecha Termino','Fecha Ingreso','Fecha Accidente']
       .forEach(col=>{salida[col]=fechaD13(row[col]);});
     ['Dias','Dias Acumulados','Antiguedad','Edad'].forEach(col=>{salida[col]=numeroD13(row[col]);});
+    salida['Mes Expedicion']=numeroD13(row['Mes Expedicion']);
+    salida['Clasificacion Calculo']=clasificacionCalculoD13(salida.Clasificacion,row['Calificacion RT IMSS']);
+    salida['Registro Tipo']='INCAPACIDAD';
     MESES_COLS_D13.forEach(m=>{salida['D '+m]=numeroD13(row['D '+m]);});
     salida.Plaza='OXXO OAXACA';
     return salida;
@@ -300,7 +332,7 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
     {key:'d10',label:'Dashboard 10 - Personal FLEX',tab:OXXO.SHEETS_CONFIG.TABS.d10,preferredSheets:['Sheet 1','Hoja1'],output:['Tienda','Zona','Region','Plaza','Asesor','Fecha','COLABORADORESFLEX_NUM'],required:['Tienda','Asesor','Fecha'],filter:r=>containsOaxaca(r.Plaza),derive:r=>r,notes:'Numero de colaboradores FLEX por tienda (foto). Cada carga reemplaza toda la pestana. Fecha llega como texto en espanol (ej. "9 de agosto de 2026"), no requiere parseo.'},
     {key:'d11',label:'Dashboard 11 - Registro y Apego a Horario',tab:OXXO.SHEETS_CONFIG.TABS.d11,preferredSheets:['Sheet 1','Hoja1'],output:['Tienda','Zona','Region','Plaza','Asesor','Fecha','% Cumpl Reg Entradas','% Cumpl Reg Salidas','% Cumpl Reg Total','% Edicion Registros','% Anadidos','% Sin Editar','% Apego Ejecutado','% Apego Publicado'],required:['Tienda','Asesor','Fecha'],filter:r=>containsOaxaca(r.Plaza),derive:r=>r,notes:'Cumplimiento de registro de entrada/salida y apego a horario (checador), por asesor. Foto semanal: cada carga reemplaza toda la pestana. Fecha llega como texto en espanol, no requiere parseo. Las columnas de % vienen como fraccion 0-1 (1 = 100%).'},
     {key:'m12',label:'Dashboard 12 - Enfoque del Lider',tab:OXXO.SHEETS_CONFIG.TABS.m12,periodColumn:'Mes',preferredSheets:['Hoja1','Sheet1'],output:['Mes','Zona','Region','Plaza','CR Plaza','CR Tienda','Tienda','Asesor','Lider','No Empleado','Tipo Lider','Meses Ops','Faltante Inventario','Faltante Inventario %','Faltante Efectivo','Plantilla Completa','MEP PP','Venta Lealtad','Evaluacion Operativa','Est Faltante Inv','Est Faltante Efectivo','Est Ingreso','Est Equipo Completo','Est MEP PP','Est Equipo','Est Venta Lealtad','Est Evaluacion Op','Est Cliente','Etapa Anterior','Etapa Final','Clas Final','Mes Completo','A+ Consecutivos','C Consecutivas','% Var Ventas','Numero de Clientes','% Var Trafico','Ticket Promedio','Venta Neta'],required:['Mes','Plaza','CR Tienda','Tienda','Asesor','Clas Final'],filter:r=>containsOaxaca(r.Plaza)&&Boolean(String(r.Mes||'').trim())&&Boolean(String(r['CR Tienda']||'').trim()),derive:deriveD12,notes:'Reporte Enfoque del Lider (mensual, una fila por tienda por mes). Se publica por periodo sobre la columna Mes: subir el reporte de un mes reemplaza SOLO ese mes y conserva los anteriores, que es lo que alimenta las graficas de 12 meses. El Excel de origen trae \"MEP P.P.\" y \"EVALUACION OPERATIVA\" repetidas (valor numerico y despues su OK/NO OK): la segunda ocurrencia se resuelve por posicion, ver buildSourceMap en normalizers.js. La letra A+/A/B/C/N no se publica porque es un recodificado 1 a 1 de Clas Final; el dashboard la deriva.'},
-    {key:'a13',label:'Dashboard 13 - Control de Ausentismo',tab:OXXO.SHEETS_CONFIG.TABS.a13,periodColumn:'',preferredSheets:['Sábana','Sabana'],output:['Fecha Captura','Folio','No Empleado','Nombre','Clasificacion','Tipo','Fecha Inicio','Fecha Termino','Dias','Dias Acumulados','Puesto','Tienda','CR','Asesor','Genero','Edad','Fecha Ingreso','Antiguedad','Documento Entregado','Mecanismo RT','Especificacion Mecanismo','Area Anatomica','Fecha Accidente','Turno Accidente','Lugar Accidente','Calificacion RT IMSS','Dictamen ST7','ST2','Acto o Condicion Insegura','Descripcion ST7','D Ene','D Feb','D Mar','D Abr','D May','D Jun','D Jul','D Ago','D Sep','D Oct','D Nov','D Dic','Plaza'],required:['Nombre','Clasificacion','Tienda','Asesor'],filter:r=>Boolean(String(r.Nombre||'').trim()),derive:deriveD13,notes:'Sabana de incapacidades del IMSS, una fila por folio. Sube la hoja "Sabana" del Control de Ausentismo; cada carga reemplaza toda la pestana. NO se publican telefono, diagnosticos ni los resumenes de caso de la hoja Cronicos: son datos de salud y la hoja de Google es legible por cualquiera con el link. El filtro conserva las filas sin folio a proposito, porque el registro de Fatalidad no trae uno. La columna Edad se publica aunque el origen casi no la trae (20 de 704 filas en el archivo de agosto 2026): se muestra cuando existe y en blanco cuando no, sin inventar el dato. Antiguedad si viene completa y es la que conviene usar para analisis.'},
+    {key:'a13',label:'Dashboard 13 - Control de Ausentismo',tab:OXXO.SHEETS_CONFIG.TABS.a13,periodColumn:'',preferredSheets:['Sábana','Sabana'],output:['Registro Tipo','Fecha Captura','Folio','No Empleado','Nombre','Clasificacion','Clasificacion Calculo','Tipo','Fecha Inicio','Fecha Termino','Dias','Dias Acumulados','Mes Expedicion','Puesto','Tienda','CR','Asesor','Genero','Edad','Fecha Ingreso','Antiguedad','Documento Entregado','Mecanismo RT','Especificacion Mecanismo','Area Anatomica','Fecha Accidente','Turno Accidente','Lugar Accidente','Calificacion RT IMSS','Dictamen ST7','ST2','Acto o Condicion Insegura','Descripcion ST7','D Ene','D Feb','D Mar','D Abr','D May','D Jun','D Jul','D Ago','D Sep','D Oct','D Nov','D Dic','Plaza','Ano Reporte','Mes Numero','Mes','Head Count 2026','Head Count 2025','Casos RT 2025','DP RT 2025','Casos RTY 2025','DP RTY 2025','Casos EG 2025','DP EG 2025','IATP 2025','Tasa DP EG 2025','Costo Diario'],required:['Nombre','Clasificacion','Tienda','Asesor'],filter:r=>Boolean(String(r.Nombre||'').trim()),derive:deriveD13,enrich:'caratulaD13',notes:'Publica la Sabana de incapacidades y agrega 12 filas RESUMEN tomadas de Caratula. Los casos cuentan solo Tipo=Inicial; los dias usan la distribucion Ene-Dic; RT/RTY/Enfermedad Profesional rechazados por IMSS se reclasifican a EG. Head Count 2026 y comparativos 2025 salen de Caratula. Reporte RH, IMSS, Cronicos y Asesores no alimentan los indicadores principales.'},
     {key:'inventories',label:'Administrativo - Inventarios',tab:OXXO.SHEETS_CONFIG.TABS.inventories,periodColumn:'Periodo',preferredSheets:['Resultado de Inventario'],output:['Periodo','#','CR','Tienda','Plaza','Asesor Comercial','Fecha de Inventario Anterior','Fecha de Inventario','# Días de Inventario','Resultado de Inventario','Resultado del Mes Actual','Diferencias','Ventas sin TAE del mes','% Merma / Vta sin TAE del Mes','Tipo Inventario','Resultado Inventarios Mayo','Resultado Inventarios Junio','Resultado Inventarios Julio','Resultado de Merma  (Final c/s proyectos)','Ventas Mayo','Ventas Junio','Ventas Julio','SUMA TOTAL VTA S/TAE','% Merma / Vta sin TAE (Final c/s proyectos)','Observaciones'],required:['CR','Tienda','Plaza','Asesor Comercial','Fecha de Inventario','Resultado de Inventario','Ventas sin TAE del mes'],filter:r=>containsOaxaca(r.Plaza),derive:deriveInventories,notes:'Resultados de Inventario Administrativo. Detecta la hoja "Resultado de Inventario", genera Periodo como AAAA-MM desde el mes y ano del archivo (o desde la fecha del inventario como respaldo) y reemplaza solo el mes cargado, conservando los demas periodos.'}
   ];
 };

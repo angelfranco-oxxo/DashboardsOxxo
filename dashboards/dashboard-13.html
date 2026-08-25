@@ -124,6 +124,11 @@
 .sem-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-border);border-radius:12px;padding:7px 12px;background:var(--color-surface)}
 .sem-chip b{font-family:var(--font-display);font-size:1.05rem}
 .sem-chip span{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--color-gray)}
+.cmp-var{display:inline-flex;align-items:center;justify-content:center;min-width:62px;padding:4px 8px;border-radius:999px;font-family:var(--font-display);font-size:10px;font-weight:800}
+.cmp-var.is-up{background:#fdeaea;color:#b9272d}
+.cmp-var.is-down{background:#e8f8f0;color:#138c3e}
+.cmp-var.is-flat{background:#f1ece8;color:#74625c}
+.cmp-note{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--color-bg);color:var(--color-gray);font-size:11px;line-height:1.45}
 
 /* Mapa de calor: asesor x mes */
 .hm-wrap{display:flex;gap:24px;align-items:flex-start;flex-wrap:nowrap}
@@ -266,8 +271,8 @@
     <div class="tbl-wrap">
       <table class="tbl" id="tabla-asesor" data-rh-tools data-rh-page-size="15">
         <thead><tr>
-          <th>Asesor</th><th class="center">Folios</th><th class="center">Días</th><th class="center">Colab.</th>
-          <th class="center">Tiendas</th><th class="center">RT + RTY</th><th class="center">Días / colab.</th>
+          <th>Asesor</th><th class="center">Folios</th><th class="center">Días al corte</th><th class="center">Colab.</th>
+          <th class="center">Tiendas</th><th class="center">Casos RT + RTY</th><th class="center">Días / colab.</th>
         </tr></thead>
         <tbody><tr><td colspan="7"><div class="state-box"><div class="spinner"></div></div></td></tr></tbody>
       </table>
@@ -284,21 +289,23 @@
 
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
-      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>Seguimiento de incapacidades<span class="info-tip" tabindex="0" data-tip="Estado de cada incapacidad segun su fecha de termino comparada con el dia de hoy. Rojo: la persona sigue fuera. Amarillo: regresa dentro de los proximos 7 dias. Verde: ya concluyo."></span></div>
+      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 17 9 11 13 15 21 7"></polyline><polyline points="15 7 21 7 21 13"></polyline></svg>Indicadores y comparativo 2025 vs 2026<span class="info-tip" tabindex="0" data-tip="Replica la logica de Caratula: IATP = dias RT / horas-hombre × 16,666.67; tasa EG = dias EG / Head Count × 100. El Head Count 2026 es el capturado manualmente en Caratula."></span></div>
       <div class="detalle-head-tools">
-        <span class="card-badge" id="seg-badge">— en seguimiento</span>
+        <span class="card-badge" id="comparativo-badge">—</span>
       </div>
     </div>
-    <div class="sem-resumen" id="seg-resumen" style="margin-bottom:14px"></div>
     <div class="tbl-wrap">
-      <table class="tbl" id="tabla-seguimiento" data-rh-tools data-rh-page-size="15">
+      <table class="tbl" id="tabla-comparativo">
         <thead><tr>
-          <th>Estado</th><th>Asesor</th><th>Suc.</th><th>Nombre</th>
-          <th class="center">Término</th><th class="center">Ingreso</th><th class="center">Antig.</th><th class="center">Edad</th>
+          <th>Mes</th><th class="center">HC 2026</th><th class="center">DP RT</th>
+          <th class="center">IATP 2026</th><th class="center">IATP 2025</th><th class="center">Variación</th>
+          <th class="center">DP EG</th><th class="center">Tasa EG 2026</th><th class="center">Tasa EG 2025</th><th class="center">Variación</th>
+          <th class="center">Costo RT</th><th class="center">Costo EG</th>
         </tr></thead>
-        <tbody><tr><td colspan="8"><div class="state-box"><div class="spinner"></div></div></td></tr></tbody>
+        <tbody><tr><td colspan="12"><div class="state-box"><div class="spinner"></div></div></td></tr></tbody>
       </table>
     </div>
+    <div class="cmp-note" id="comparativo-nota">Los totales acumulados incluyen únicamente hasta el mes anterior al actual, igual que la Carátula.</div>
   </div>
 
   <div class="card" style="margin-bottom:16px">
@@ -358,16 +365,17 @@
 const TAB = OXXO.SHEETS_CONFIG.TABS.a13;
 
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const CLAS = ['EG','RT','RTY','MATERNIDAD','FATALIDAD'];
-const CLAS_COLOR = {EG:'#0066CC', RT:'#D92B2B', RTY:'#FF6B00', MATERNIDAD:'#8B4CF7', FATALIDAD:'#2D2D44'};
-const CLAS_CLASE = {EG:'e-cliente', RT:'e-ingreso', RTY:'e-equipo', MATERNIDAD:'e-nuevo', FATALIDAD:'e-fatal'};
-const CLAS_LARGO = {EG:'Enfermedad General', RT:'Riesgo de Trabajo', RTY:'RT en Trayecto', MATERNIDAD:'Maternidad', FATALIDAD:'Fatalidad'};
+const CLAS = ['EG','RT','RTY','ENF PROF','MATERNIDAD','IPP','IPT','INVALIDEZ','FATALIDAD'];
+const CLAS_COLOR = {EG:'#2D7DD2', RT:'#D92B2B', RTY:'#FF6B00','ENF PROF':'#A66C2C',MATERNIDAD:'#8B4CF7',IPP:'#006D77',IPT:'#3D5A80',INVALIDEZ:'#6A4C93',FATALIDAD:'#2D2D44'};
+const CLAS_CLASE = {EG:'e-cliente', RT:'e-ingreso', RTY:'e-equipo','ENF PROF':'e-efectivo',MATERNIDAD:'e-nuevo',IPP:'e-mep',IPT:'e-mep',INVALIDEZ:'e-mep',FATALIDAD:'e-fatal'};
+const CLAS_LARGO = {EG:'Enfermedad General', RT:'Riesgo de Trabajo', RTY:'RT en Trayecto','ENF PROF':'Enfermedad profesional',MATERNIDAD:'Maternidad',IPP:'IPP',IPT:'IPT',INVALIDEZ:'Invalidez',FATALIDAD:'Fatalidad'};
 // RT y RTY son los dos que entran al analisis de seguridad; el resto no lo hace.
 const ES_RT = (c) => c === 'RT' || c === 'RTY';
 
 const ALIASES_D13 = {
+  registro:['Registro Tipo'],
   folio:['Folio'], noEmp:['No Empleado','Número de Empleado (SOLO PROPIOS)'], nombre:['Nombre'],
-  clas:['Clasificacion','Clasificación'], tipo:['Tipo'],
+  clas:['Clasificacion','Clasificación'], clasCalc:['Clasificacion Calculo'], tipo:['Tipo'], mesExp:['Mes Expedicion','Mes de Expedición'],
   fIni:['Fecha Inicio','Fecha de Inicio'], fFin:['Fecha Termino','Fecha de Termino'],
   fCap:['Fecha Captura','Fecha de Captura'],
   dias:['Dias','Días'], acum:['Dias Acumulados','Días acumulados x persona'],
@@ -377,6 +385,9 @@ const ALIASES_D13 = {
   fAcc:['Fecha Accidente'], turno:['Turno Accidente'], lugar:['Lugar Accidente'],
   califRT:['Calificacion RT IMSS'], st7:['Dictamen ST7'], st2:['ST2'],
   acto:['Acto o Condicion Insegura'], desc:['Descripcion ST7'], plaza:['Plaza'],
+  anoReporte:['Ano Reporte'], mesNumero:['Mes Numero'], mesResumen:['Mes'], hcActual:['Head Count 2026'], hcPrevio:['Head Count 2025'],
+  casosRtPrev:['Casos RT 2025'], dpRtPrev:['DP RT 2025'], casosRtyPrev:['Casos RTY 2025'], dpRtyPrev:['DP RTY 2025'],
+  casosEgPrev:['Casos EG 2025'], dpEgPrev:['DP EG 2025'], iatpPrev:['IATP 2025'], tasaEgPrev:['Tasa DP EG 2025'], costoDiario:['Costo Diario'],
 };
 let C = {};
 function buildColsD13(sample){
@@ -391,6 +402,9 @@ function buildColsD13(sample){
 }
 
 let BASE = [];
+let PARAMS = [];
+let REPORT_YEAR = new Date().getFullYear();
+let CUTOFF_MONTH = Math.max(0,new Date().getMonth());
 let SELECTED_ASESORES = null, asesorFilterHandle = null;
 let DETALLE_ASESOR = null, DETALLE_FILAS = [];
 let POR_COLAB = {};
@@ -400,6 +414,37 @@ let CELDA_CALOR = null;   // {asesor, mes} seleccionado en el mapa de calor
 const val = (r,k) => String(r?.[k] ?? '').trim();
 const nDias = (r) => { const n = OXXO.metricsNum(r[C.dias]); return Number.isFinite(n) ? n : 0; };
 const claveColab = (r) => val(r, C.noEmp) || val(r, C.nombre).toUpperCase();
+const normD13 = value => String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+const esInicial = r => normD13(val(r,C.tipo))==='INICIAL';
+function clasificacionCalculo(r){
+  const publicada=normD13(val(r,C.clasCalc));
+  if(publicada)return publicada;
+  const clas=normD13(val(r,C.clas));
+  const imss=normD13(val(r,C.califRT));
+  if(clas==='RT'&&imss==='NO DE TRABAJO')return 'EG';
+  if(clas==='RTY'&&imss==='NO DE TRAYECTO')return 'EG';
+  if(/ENF(ERMEDAD)?\s*PROF(ESIONAL)?/.test(clas)&&imss==='NO PROFESIONAL')return 'EG';
+  if(/ENF(ERMEDAD)?\s*PROF(ESIONAL)?/.test(clas))return 'ENF PROF';
+  return clas;
+}
+function mesExpedicion(r){
+  const directo=OXXO.metricsNum(r[C.mesExp]);
+  if(directo>=1&&directo<=12)return directo;
+  const iso=fechaIso(val(r,C.fIni));
+  return iso?Number(iso.slice(5,7)):0;
+}
+function diasMes(r,monthIndex){
+  const n=OXXO.metricsNum(r[C['m'+MESES[monthIndex]]]);
+  return Number.isFinite(n)?n:0;
+}
+function diasHastaCorte(r){
+  let total=0;
+  for(let i=0;i<CUTOFF_MONTH;i++)total+=diasMes(r,i);
+  return total;
+}
+function paramMes(monthNumber){return PARAMS.find(r=>OXXO.metricsNum(r[C.mesNumero])===monthNumber)||null;}
+function money(value){return Number(value||0).toLocaleString('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0});}
+function variacion(actual,previo){return previo?((actual-previo)/previo):null;}
 // Las fechas pueden llegar en dos formatos segun como se haya cargado la hoja:
 // AAAA-MM-DD si el texto se respeto, o DD/MM/AAAA si Google Sheets las
 // convirtio a fecha real al importar (la casilla "Convertir el texto en
@@ -427,28 +472,71 @@ function filteredData(){
   const cl = document.getElementById('filtro-clas')?.value;
   const pu = document.getElementById('filtro-puesto')?.value;
   if(SELECTED_ASESORES) d = d.filter(r => SELECTED_ASESORES.includes(val(r, C.asesor)));
-  if(cl) d = d.filter(r => val(r, C.clas).toUpperCase() === cl);
+  if(cl) d = d.filter(r => clasificacionCalculo(r) === cl);
   if(pu) d = d.filter(r => val(r, C.puesto) === pu);
   return d;
 }
 
+function hayFiltrosOperativos(){
+  return Boolean(SELECTED_ASESORES || document.getElementById('filtro-clas')?.value || document.getElementById('filtro-puesto')?.value);
+}
+function casosHastaCorte(data, clasificacion=''){
+  return data.filter(r => esInicial(r) && mesExpedicion(r) >= 1 && mesExpedicion(r) <= CUTOFF_MONTH && (!clasificacion || clasificacionCalculo(r) === clasificacion));
+}
+function metricasMes(data, monthNumber){
+  const porClase={};
+  CLAS.forEach(c=>{porClase[c]={casos:0,dias:0};});
+  data.forEach(r=>{
+    const c=clasificacionCalculo(r);
+    if(!porClase[c])porClase[c]={casos:0,dias:0};
+    porClase[c].dias+=diasMes(r,monthNumber-1);
+    if(esInicial(r)&&mesExpedicion(r)===monthNumber)porClase[c].casos++;
+  });
+  return porClase;
+}
+function numero(value,digits=1){
+  return Number.isFinite(value)?value.toLocaleString('es-MX',{minimumFractionDigits:digits,maximumFractionDigits:digits}):'—';
+}
+function claseVariacion(value){
+  if(value===null||!Number.isFinite(value)||Math.abs(value)<.0005)return 'is-flat';
+  return value>0?'is-up':'is-down';
+}
+function htmlVariacion(value){
+  if(value===null||!Number.isFinite(value))return '<span class="cmp-var is-flat">N/D</span>';
+  const signo=value>0?'+':'';
+  return `<span class="cmp-var ${claseVariacion(value)}">${signo}${numero(value*100,1)}%</span>`;
+}
+
 function renderAll(){
   const data = filteredData();
-  const dias = data.reduce((s,r) => s + nDias(r), 0);
+  const dias = data.reduce((s,r) => s + diasHastaCorte(r), 0);
+  const casos = casosHastaCorte(data);
   const colabs = new Set(data.map(claveColab));
   const porColab = {};
   data.forEach(r => { const k = claveColab(r); (porColab[k] = porColab[k] || []).push(r); });
   const reincidentes = Object.values(porColab).filter(l => l.length >= 2).length;
-  const rt = data.filter(r => ES_RT(val(r, C.clas).toUpperCase()));
-  const diasRT = rt.reduce((s,r) => s + nDias(r), 0);
-  const fatal = data.filter(r => val(r, C.clas).toUpperCase() === 'FATALIDAD');
-  const mater = data.filter(r => val(r, C.clas).toUpperCase() === 'MATERNIDAD');
+  const rt = data.filter(r => ES_RT(clasificacionCalculo(r)));
+  const diasRT = data.filter(r=>clasificacionCalculo(r)==='RT').reduce((s,r) => s + diasHastaCorte(r), 0);
+  const diasEG = data.filter(r=>clasificacionCalculo(r)==='EG').reduce((s,r) => s + diasHastaCorte(r), 0);
+  const fatal = casos.filter(r => clasificacionCalculo(r) === 'FATALIDAD');
+  const mater = casos.filter(r => clasificacionCalculo(r) === 'MATERNIDAD');
   const largos = Object.entries(porColab)
-    .map(([k,l]) => ({ k, dias: l.reduce((s,r)=>s+nDias(r),0), n: l.length, nombre: val(l[0], C.nombre) }))
+    .map(([k,l]) => ({ k, dias: l.reduce((s,r)=>s+diasHastaCorte(r),0), n: l.length, nombre: val(l[0], C.nombre) }))
     .sort((a,b) => b.dias - a.dias);
   const criticos = largos.filter(p => p.dias >= 60).length;
   // Falta documentacion cuando el folio es RT/RTY y el ST7 no esta entregado.
   const sinST7 = rt.filter(r => !/^(fisica|física|digital)$/i.test(val(r, C.st7))).length;
+  const sinFiltros=!hayFiltrosOperativos();
+  const meses=Array.from({length:CUTOFF_MONTH},(_,i)=>metricasMes(data,i+1));
+  const iatpActual=sinFiltros?meses.reduce((sum,m,i)=>{
+    const hc=OXXO.metricsNum(paramMes(i+1)?.[C.hcActual]);
+    return sum+(hc?m.RT.dias/(hc*166.67)*16666.67:0);
+  },0):null;
+  const tasaEgActual=sinFiltros?meses.reduce((sum,m,i)=>{
+    const hc=OXXO.metricsNum(paramMes(i+1)?.[C.hcActual]);
+    return sum+(hc?m.EG.dias/hc*100:0);
+  },0):null;
+  const costoDiario=OXXO.metricsNum(PARAMS.find(Boolean)?.[C.costoDiario])||1134.26;
 
   const kpi = (clase,label,tip,valor,delta,dclase) => `
     <div class="kpi-card ${clase}">
@@ -458,49 +546,52 @@ function renderAll(){
     </div>`;
 
   document.getElementById('kpi-section').innerHTML =
-    kpi('azul','Días perdidos','Suma de la columna Días de todos los folios con los filtros activos.',
-        dias.toLocaleString('es-MX'), `${data.length} folios`, 'neu') +
-    kpi('','Colaboradores afectados','Personas distintas con al menos una incapacidad.',
-        colabs.size, `${reincidentes} con 2 o más folios`, reincidentes ? 'neg' : 'neu') +
-    kpi('rojo','Riesgos de trabajo','Folios clasificados RT (en la tienda) o RTY (en trayecto).',
-        rt.length, `${diasRT.toLocaleString('es-MX')} días perdidos`, 'neg') +
-    kpi(fatal.length ? 'rojo' : '','Fatalidades','Folios con clasificación Fatalidad. Cualquier valor distinto de cero exige seguimiento.',
-        fatal.length, fatal.length ? OXXO.truncate(val(fatal[0], C.tienda), 22) : 'Ninguna', fatal.length ? 'neg' : 'pos') +
-    kpi('amarillo','Casos de 60+ días','Colaboradores cuyos días acumulados en el periodo llegan a 60 o más.',
-        criticos, largos[0] ? `máximo ${largos[0].dias} días` : '—', criticos ? 'neg' : 'neu') +
-    kpi('verde','Maternidad', 'Folios de maternidad. Se separan porque son incapacidades previstas, no ausentismo a gestionar.',
-        mater.length, `${mater.reduce((s,r)=>s+nDias(r),0).toLocaleString('es-MX')} días`, 'neu');
+    kpi('azul','Casos nuevos','Cuenta únicamente registros Tipo Inicial expedidos hasta el mes de corte.',
+        casos.length.toLocaleString('es-MX'), `${colabs.size} colaboradores afectados`, 'neu') +
+    kpi('','Días perdidos','Suma de las columnas mensuales desde enero hasta el mes anterior al actual; incluye iniciales y subsecuentes.',
+        dias.toLocaleString('es-MX'), `${reincidentes} colaboradores reincidentes`, reincidentes ? 'neg' : 'neu') +
+    kpi('rojo','IATP acumulado','Suma mensual de días RT ÷ horas-hombre × 16,666.67. Solo se calcula en la vista general porque el Head Count es de plaza.',
+        iatpActual===null?'—':numero(iatpActual,2), sinFiltros?`${diasRT.toLocaleString('es-MX')} días RT`:'Quita filtros para calcular', sinFiltros?'neg':'neu') +
+    kpi('amarillo','Tasa de días EG','Suma mensual de días de Enfermedad General ÷ Head Count × 100. Incluye RT/RTY rechazados por el IMSS.',
+        tasaEgActual===null?'—':numero(tasaEgActual,2), sinFiltros?`${diasEG.toLocaleString('es-MX')} días EG`:'Quita filtros para calcular', sinFiltros?'neg':'neu') +
+    kpi('rojo','Costo RT','Días perdidos RT multiplicados por el costo diario definido en Carátula.',
+        money(diasRT*costoDiario), `${money(costoDiario)} por día`, diasRT?'neg':'neu') +
+    kpi('verde','Costo EG','Días perdidos EG multiplicados por el costo diario definido en Carátula.',
+        money(diasEG*costoDiario), `${mater.length} casos de maternidad · ${fatal.length} fatalidades`, 'neu');
 
   renderMeses(data); renderClas(data); renderRT(rt, sinST7);
   renderMapaCalor(data);
   renderAsesores(data);
-  renderSeguimiento(data);
+  renderComparativo(data);
   renderDetalle(recorteCalor(data));
 }
 
 function renderMeses(data){
-  const vals = MESES.map(m => data.reduce((s,r) => {
-    const n = OXXO.metricsNum(r[C['m'+m]]); return s + (Number.isFinite(n) ? n : 0);
-  }, 0));
+  const etiquetas=MESES.slice(0,CUTOFF_MONTH);
+  const clases=['EG','RT','RTY','MATERNIDAD'];
+  const series=clases.map(c=>({
+    label:CLAS_LARGO[c],
+    data:etiquetas.map((_,i)=>data.filter(r=>clasificacionCalculo(r)===c).reduce((s,r)=>s+diasMes(r,i),0)),
+    backgroundColor:CLAS_COLOR[c],borderRadius:4,borderSkipped:false,barPercentage:.72
+  }));
+  const vals=etiquetas.map((_,i)=>series.reduce((s,d)=>s+d.data[i],0));
   const total = vals.reduce((a,b)=>a+b,0);
-  const pico = vals.indexOf(Math.max(...vals));
-  document.getElementById('badge-meses').textContent = total ? `pico en ${MESES[pico]} · ${vals[pico]} días` : 'Sin datos';
+  const pico = vals.length?vals.indexOf(Math.max(...vals)):-1;
+  document.getElementById('badge-meses').textContent = total ? `corte ${MESES[0]}–${MESES[CUTOFF_MONTH-1]} · pico ${etiquetas[pico]} (${vals[pico]} días)` : 'Sin datos';
   if(chartMeses) chartMeses.destroy();
   chartMeses = new Chart(document.getElementById('chart-meses').getContext('2d'), {
     type:'bar',
-    data:{ labels:MESES, datasets:[{ data:vals,
-      backgroundColor: vals.map((v,i) => i===pico ? '#D92B2B' : '#FF6B00'),
-      borderRadius:6, borderSkipped:false, barPercentage:.72 }] },
+    data:{ labels:etiquetas, datasets:series },
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>` ${c.raw} días perdidos`}} },
-      scales:{ x:{border:{display:false},grid:{display:false},ticks:{color:'#5A4037',font:{family:'Barlow',size:11,weight:'800'}}},
-               y:{beginAtZero:true,border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'}}} } },
+      plugins:{ legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',font:{family:'Barlow',size:10,weight:'800'}}}, tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw} días`}} },
+      scales:{ x:{stacked:true,border:{display:false},grid:{display:false},ticks:{color:'#5A4037',font:{family:'Barlow',size:11,weight:'800'}}},
+               y:{stacked:true,beginAtZero:true,border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'}}} } },
   });
 }
 
 function renderClas(data){
   const cuenta = {};
-  data.forEach(r => { const k = val(r, C.clas).toUpperCase() || '—'; cuenta[k] = (cuenta[k]||0) + 1; });
+  casosHastaCorte(data).forEach(r => { const k = clasificacionCalculo(r) || '—'; cuenta[k] = (cuenta[k]||0) + 1; });
   const orden = CLAS.filter(c => cuenta[c]);
   document.getElementById('badge-clas').textContent = `${orden.length} tipos`;
   if(chartClas) chartClas.destroy();
@@ -512,7 +603,7 @@ function renderClas(data){
     options:{ responsive:true, maintainAspectRatio:false, cutout:'58%',
       plugins:{ legend:{position:'right',labels:{color:'#5A4037',usePointStyle:true,pointStyle:'circle',font:{family:'Barlow',size:10,weight:'800'},boxWidth:10}},
         tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,
-          callbacks:{label:c=>` ${c.raw} folios (${Math.round(c.raw/data.length*100)}%)`}} } },
+          callbacks:{label:c=>` ${c.raw} casos (${Math.round(c.raw/Math.max(1,casosHastaCorte(data).length)*100)}%)`}} } },
   });
 }
 
@@ -537,7 +628,8 @@ function barrasRT(canvasId, actual, filas, key, color){
 }
 
 function renderRT(rt, sinST7){
-  document.getElementById('badge-rt').textContent = `${rt.length} folios RT + RTY`;
+  const casos=rt.filter(esInicial).filter(r=>mesExpedicion(r)<=CUTOFF_MONTH);
+  document.getElementById('badge-rt').textContent = `${casos.length} casos RT + RTY`;
   chartMec   = barrasRT('chart-mecanismo', chartMec,   rt, C.mec,   '#D92B2B');
   chartArea  = barrasRT('chart-area',      chartArea,  rt, C.area,  '#FF6B00');
   chartLugar = barrasRT('chart-lugar',     chartLugar, rt, C.lugar, '#0066CC');
@@ -555,9 +647,9 @@ function renderAsesores(data){
     const a = val(r, C.asesor) || 'Sin Asesor Asignado';
     if(!porA[a]) porA[a] = { asesor:a, folios:0, dias:0, colabs:new Set(), tiendas:new Set(), rt:0 };
     const x = porA[a];
-    x.folios++; x.dias += nDias(r);
+    x.folios++; x.dias += diasHastaCorte(r);
     x.colabs.add(claveColab(r)); x.tiendas.add(val(r, C.tienda));
-    if(ES_RT(val(r, C.clas).toUpperCase())) x.rt++;
+    if(ES_RT(clasificacionCalculo(r))&&esInicial(r)&&mesExpedicion(r)<=CUTOFF_MONTH) x.rt++;
   });
   const filas = Object.values(porA).map(x => ({...x,
     colabsN:x.colabs.size, tiendasN:x.tiendas.size,
@@ -590,7 +682,7 @@ function renderDetalle(data){
       <td style="font-size:10px">${OXXO.escHtml(OXXO.truncate(val(r, C.puesto) || '—', 18))}</td>
       <td style="font-size:10px">${OXXO.escHtml(OXXO.truncate(val(r, C.tienda) || '—', 22))}</td>
       <td style="font-size:10px">${OXXO.escHtml(OXXO.truncate(val(r, C.asesor) || '—', 20))}</td>
-      <td>${clasHtml(val(r, C.clas))}</td>
+      <td>${clasHtml(clasificacionCalculo(r))}</td>
       <td style="font-size:10px">${OXXO.escHtml(val(r, C.tipo) || '—')}</td>
       <td class="center" style="font-size:10px">${fechaCorta(val(r, C.fIni))}</td>
       <td class="center" style="font-size:10px">${fechaCorta(val(r, C.fFin))}</td>
@@ -602,7 +694,7 @@ function renderDetalle(data){
       <th>Clasif.</th><th>Tipo</th><th class="center">Inicio</th><th class="center">Término</th><th class="center">Días</th>
     </tr></thead>
     <tbody>${cuerpo || '<tr><td colspan="10"><div class="state-box">Sin datos</div></td></tr>'}</tbody>`;
-  const dias = filas.reduce((s,r) => s + nDias(r), 0);
+  const dias = filas.reduce((s,r) => s + diasHastaCorte(r), 0);
   const etiqueta = DETALLE_ASESOR
     ? ` · ${OXXO.truncate(DETALLE_ASESOR, 22)}`
     : (CELDA_CALOR ? ` · ${OXXO.truncate(CELDA_CALOR.asesor, 18)} en ${CELDA_CALOR.mes}` : '');
@@ -611,56 +703,45 @@ function renderDetalle(data){
   document.getElementById('detalle-clear').classList.toggle('show', !!(DETALLE_ASESOR || CELDA_CALOR));
 }
 
-// ── Semaforo de seguimiento ─────────────────────────────────────────────
-// El estado se calcula contra el dia de HOY, no contra el corte del reporte:
-// lo que Recursos Humanos necesita saber es quien esta fuera ahora mismo.
-// Usando el corte, el 99.7% saldria "concluida" y la tabla no serviria.
-const MS_DIA = 86400000;
-function estadoIncapacidad(fila){
-  const iso = fechaIso(val(fila, C.fFin));
-  if(!iso) return { clave:'na', clase:'s-na', color:'#bbb', texto:'Sin fecha', orden:3 };
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const fin = new Date(iso + 'T00:00:00');
-  const dias = Math.round((fin - hoy) / MS_DIA);
-  if(dias < 0)  return { clave:'ok',    clase:'s-ok',    color:'#1DB954', texto:'Concluida', orden:2, dias };
-  if(dias <= 7) return { clave:'pronto',clase:'s-pronto',color:'#FFC107', texto: dias === 0 ? 'Regresa hoy' : `Regresa en ${dias} d`, orden:1, dias };
-  return { clave:'fuera', clase:'s-fuera', color:'#D92B2B', texto:`Fuera ${dias} d más`, orden:0, dias };
-}
-
-function renderSeguimiento(data){
-  const filas = data.map(r => ({ r, e: estadoIncapacidad(r) }))
-    .sort((a,b) => a.e.orden - b.e.orden || (a.e.dias ?? 0) - (b.e.dias ?? 0));
-  const cuenta = { fuera:0, pronto:0, ok:0, na:0 };
-  filas.forEach(f => { cuenta[f.e.clave]++; });
-  const activos = cuenta.fuera + cuenta.pronto;
-
-  document.getElementById('seg-badge').textContent = activos
-    ? `${activos} requieren seguimiento` : 'Ninguna activa';
-  document.getElementById('seg-resumen').innerHTML = [
-    ['s-fuera','#D92B2B', cuenta.fuera,  'Siguen fuera'],
-    ['s-pronto','#FFC107', cuenta.pronto,'Regresan en 7 días'],
-    ['s-ok','#1DB954',     cuenta.ok,    'Concluidas'],
-    ['s-na','#bbb',        cuenta.na,    'Sin fecha'],
-  ].filter(([,,n]) => n > 0)
-   .map(([cls,color,n,txt]) => `<div class="sem-chip"><span class="sem ${cls}"><i style="background:${color}"></i></span><div><b>${n}</b><br><span>${txt}</span></div></div>`)
-   .join('');
-
-  document.getElementById('tabla-seguimiento').querySelector('tbody').innerHTML = filas.length === 0
-    ? '<tr><td colspan="8"><div class="state-box">Sin datos</div></td></tr>'
-    : filas.map(({r, e}) => {
-        const edad = val(r, C.edad);
-        const ant = val(r, C.antig);
-        return `<tr>
-          <td><span class="sem ${e.clase}"><i style="background:${e.color}"></i>${OXXO.escHtml(e.texto)}</span></td>
-          <td style="font-size:11px">${OXXO.escHtml(OXXO.truncate(val(r, C.asesor) || '—', 22))}</td>
-          <td style="font-size:11px">${OXXO.escHtml(OXXO.truncate(val(r, C.tienda) || '—', 24))}</td>
-          <td>${OXXO.escHtml(OXXO.truncate(val(r, C.nombre) || '—', 26))}</td>
-          <td class="center" style="font-size:11px">${fechaCorta(val(r, C.fFin))}</td>
-          <td class="center" style="font-size:11px">${fechaCorta(val(r, C.ingreso))}</td>
-          <td class="center" style="font-size:11px">${ant ? Number(ant).toFixed(1) + ' a' : '—'}</td>
-          <td class="center">${OXXO.escHtml(edad || '—')}</td>
-        </tr>`;
-      }).join('');
+function renderComparativo(data){
+  const tbody=document.getElementById('tabla-comparativo').querySelector('tbody');
+  const badge=document.getElementById('comparativo-badge');
+  const nota=document.getElementById('comparativo-nota');
+  if(hayFiltrosOperativos()){
+    badge.textContent='Vista general requerida';
+    tbody.innerHTML='<tr><td colspan="12"><div class="state-box">Quita los filtros para consultar el comparativo. El Head Count de Carátula corresponde a toda la plaza y no debe aplicarse a un asesor, puesto o clasificación.</div></td></tr>';
+    nota.textContent='Los conteos y costos superiores sí respetan los filtros; IATP y tasa EG se reservan para la vista general.';
+    return;
+  }
+  if(!PARAMS.length){
+    badge.textContent='Falta volver a publicar';
+    tbody.innerHTML='<tr><td colspan="12"><div class="state-box">La hoja publicada todavía no incluye los Head Count ni el histórico 2025 de Carátula. Vuelve a cargar este Excel desde el panel administrador.</div></td></tr>';
+    nota.textContent='La actualización agrega automáticamente 12 filas de resumen sin publicar datos médicos adicionales.';
+    return;
+  }
+  const costoDiario=OXXO.metricsNum(PARAMS.find(Boolean)?.[C.costoDiario])||1134.26;
+  const filas=[];
+  const tot={dpRt:0,dpEg:0,iatp:0,iatpPrev:0,tasaEg:0,tasaEgPrev:0,costoRt:0,costoEg:0};
+  for(let mes=1;mes<=CUTOFF_MONTH;mes++){
+    const p=paramMes(mes)||{};
+    const m=metricasMes(data,mes);
+    const hc=OXXO.metricsNum(p[C.hcActual]);
+    const dpRt=m.RT?.dias||0, dpEg=m.EG?.dias||0;
+    const iatp=hc?dpRt/(hc*166.67)*16666.67:null;
+    const tasaEg=hc?dpEg/hc*100:null;
+    const iatpPrev=OXXO.metricsNum(p[C.iatpPrev]);
+    const tasaEgPrev=OXXO.metricsNum(p[C.tasaEgPrev]);
+    const varIatp=Number.isFinite(iatp)&&Number.isFinite(iatpPrev)?variacion(iatp,iatpPrev):null;
+    const varEg=Number.isFinite(tasaEg)&&Number.isFinite(tasaEgPrev)?variacion(tasaEg,tasaEgPrev):null;
+    tot.dpRt+=dpRt;tot.dpEg+=dpEg;tot.iatp+=iatp||0;tot.iatpPrev+=iatpPrev||0;tot.tasaEg+=tasaEg||0;tot.tasaEgPrev+=tasaEgPrev||0;
+    tot.costoRt+=dpRt*costoDiario;tot.costoEg+=dpEg*costoDiario;
+    filas.push(`<tr><td><b>${MESES[mes-1]}</b></td><td class="center">${hc||'—'}</td><td class="center">${dpRt.toLocaleString('es-MX')}</td><td class="center"><b>${numero(iatp,2)}</b></td><td class="center">${numero(iatpPrev,2)}</td><td class="center">${htmlVariacion(varIatp)}</td><td class="center">${dpEg.toLocaleString('es-MX')}</td><td class="center"><b>${numero(tasaEg,2)}</b></td><td class="center">${numero(tasaEgPrev,2)}</td><td class="center">${htmlVariacion(varEg)}</td><td class="center">${money(dpRt*costoDiario)}</td><td class="center">${money(dpEg*costoDiario)}</td></tr>`);
+  }
+  const varIatpTotal=variacion(tot.iatp,tot.iatpPrev), varEgTotal=variacion(tot.tasaEg,tot.tasaEgPrev);
+  filas.push(`<tr style="font-weight:800;background:var(--color-bg)"><td>Acumulado</td><td class="center">—</td><td class="center">${tot.dpRt.toLocaleString('es-MX')}</td><td class="center">${numero(tot.iatp,2)}</td><td class="center">${numero(tot.iatpPrev,2)}</td><td class="center">${htmlVariacion(varIatpTotal)}</td><td class="center">${tot.dpEg.toLocaleString('es-MX')}</td><td class="center">${numero(tot.tasaEg,2)}</td><td class="center">${numero(tot.tasaEgPrev,2)}</td><td class="center">${htmlVariacion(varEgTotal)}</td><td class="center">${money(tot.costoRt)}</td><td class="center">${money(tot.costoEg)}</td></tr>`);
+  tbody.innerHTML=filas.join('');
+  badge.textContent=`${MESES[0]}–${MESES[CUTOFF_MONTH-1]} ${REPORT_YEAR}`;
+  nota.textContent=`Head Count ${REPORT_YEAR} capturado manualmente en Carátula · histórico 2025 de la tabla inferior · costo diario ${money(costoDiario)}.`;
 }
 
 // ── Mapa de calor: asesor x mes, dias perdidos ──────────────────────────
@@ -674,13 +755,14 @@ function colorCalor(razon){
 
 function renderMapaCalor(data){
   const cont = document.getElementById('mapa-calor');
+  const mesesVisibles=MESES.slice(0,CUTOFF_MONTH);
   const asesores = [...new Set(data.map(r => val(r, C.asesor) || 'Sin Asesor Asignado'))];
   const matriz = {}, totalPorAsesor = {};
-  asesores.forEach(a => { matriz[a] = {}; MESES.forEach(m => { matriz[a][m] = 0; }); totalPorAsesor[a] = 0; });
+  asesores.forEach(a => { matriz[a] = {}; mesesVisibles.forEach(m => { matriz[a][m] = 0; }); totalPorAsesor[a] = 0; });
   data.forEach(r => {
     const a = val(r, C.asesor) || 'Sin Asesor Asignado';
-    MESES.forEach(m => {
-      const n = OXXO.metricsNum(r[C['m'+m]]);
+    mesesVisibles.forEach(m => {
+      const n = diasMes(r,MESES.indexOf(m));
       if(Number.isFinite(n)){ matriz[a][m] += n; totalPorAsesor[a] += n; }
     });
   });
@@ -691,13 +773,13 @@ function renderMapaCalor(data){
     return;
   }
   let max = 0;
-  orden.forEach(a => MESES.forEach(m => { max = Math.max(max, matriz[a][m]); }));
+  orden.forEach(a => mesesVisibles.forEach(m => { max = Math.max(max, matriz[a][m]); }));
   document.getElementById('hm-badge').textContent = CELDA_CALOR
     ? `${OXXO.truncate(CELDA_CALOR.asesor,18)} · ${CELDA_CALOR.mes}`
     : `${orden.length} asesores · máx ${max} días`;
 
-  const encabezado = MESES.map(m => `<th>${m}</th>`).join('');
-  const cuerpo = orden.map(a => MESES.map(m => {
+  const encabezado = mesesVisibles.map(m => `<th>${m}</th>`).join('');
+  const cuerpo = orden.map(a => mesesVisibles.map(m => {
       const v = matriz[a][m];
       const activa = CELDA_CALOR && CELDA_CALOR.asesor === a && CELDA_CALOR.mes === m;
       const attrs = `data-asesor="${OXXO.escHtml(a)}" data-mes="${m}" title="${OXXO.escHtml(a)} · ${m}: ${v} días"`;
@@ -781,7 +863,7 @@ function openColabModal(idx){
   const hist = (POR_COLAB[claveColab(r)] || [r]).slice()
     .sort((a,b) => fechaIso(val(b, C.fIni)).localeCompare(fechaIso(val(a, C.fIni))));
   const dias = hist.reduce((s,x) => s + nDias(x), 0);
-  const rt = hist.filter(x => ES_RT(val(x, C.clas).toUpperCase()));
+  const rt = hist.filter(x => ES_RT(clasificacionCalculo(x)));
 
   document.getElementById('cm-title').innerHTML =
     `${OXXO.escHtml(val(r, C.nombre) || 'Sin nombre')}<small class="am-head__sub">${OXXO.escHtml(val(r, C.tienda) || '—')} · ${val(r, C.noEmp) ? 'Nº ' + OXXO.escHtml(val(r, C.noEmp)) : 'sin Nº'}</small>`;
@@ -798,7 +880,7 @@ function openColabModal(idx){
 
   document.getElementById('cm-table').querySelector('tbody').innerHTML = hist.map(x => `<tr${val(x, C.folio) === val(r, C.folio) ? ' style="font-weight:700;background:var(--color-bg)"' : ''}>
       <td>${OXXO.escHtml(val(x, C.folio) || '—')}</td>
-      <td>${clasHtml(val(x, C.clas))}</td>
+      <td>${clasHtml(clasificacionCalculo(x))}</td>
       <td style="font-size:10px">${OXXO.escHtml(val(x, C.tipo) || '—')}</td>
       <td style="font-size:10px">${fechaCorta(val(x, C.fIni))}</td>
       <td style="font-size:10px">${fechaCorta(val(x, C.fFin))}</td>
@@ -854,18 +936,23 @@ async function initDashboard(){
   if(data.length === 0){ ['kpi-section','tabla-asesor','tabla-detalle'].forEach(id => OXXO.showEmpty(id)); return; }
 
   C = buildColsD13(data[0]);
+  PARAMS = data.filter(r => normD13(val(r,C.registro)) === 'RESUMEN');
+  BASE = data.filter(r => normD13(val(r,C.registro)) !== 'RESUMEN' && val(r, C.nombre));
+  const anoParam=OXXO.metricsNum(PARAMS.find(Boolean)?.[C.anoReporte]);
+  const anosInicio=BASE.map(r=>Number(fechaIso(val(r,C.fIni))?.slice(0,4))).filter(Number.isFinite);
+  REPORT_YEAR=anoParam||anosInicio.sort((a,b)=>anosInicio.filter(x=>x===b).length-anosInicio.filter(x=>x===a).length)[0]||new Date().getFullYear();
+  const hoy=new Date();
+  CUTOFF_MONTH=REPORT_YEAR<hoy.getFullYear()?12:REPORT_YEAR>hoy.getFullYear()?0:Math.max(0,hoy.getMonth());
   const catalog = await OXXO.loadAsesorCatalog();
-  data.forEach(row => OXXO.applyAsesorCatalog(row, catalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
+  BASE.forEach(row => OXXO.applyAsesorCatalog(row, catalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
   // Se conservan las filas sin folio: el registro de Fatalidad no trae uno y es
   // precisamente el que no puede desaparecer del tablero.
-  BASE = data.filter(r => val(r, C.nombre));
-
   POR_COLAB = {};
   BASE.forEach(r => { const k = claveColab(r); (POR_COLAB[k] = POR_COLAB[k] || []).push(r); });
 
   const fechas = BASE.map(r => fechaIso(val(r, C.fIni))).filter(Boolean).sort();
-  document.getElementById('corte-badge').textContent = fechas.length
-    ? `⟳ ${fechaCorta(fechas[0])} a ${fechaCorta(fechas[fechas.length-1])} · Plaza Oaxaca`
+  document.getElementById('corte-badge').textContent = CUTOFF_MONTH
+    ? `⟳ Acumulado ${MESES[0]}–${MESES[CUTOFF_MONTH-1]} ${REPORT_YEAR} · Plaza Oaxaca`
     : '⟳ Control de Ausentismo · Plaza Oaxaca';
 
   const asesores = [...new Set(BASE.map(r => val(r, C.asesor)).filter(Boolean))].sort();
@@ -873,7 +960,7 @@ async function initDashboard(){
     onChange: (sel) => { SELECTED_ASESORES = sel; DETALLE_ASESOR = null; CELDA_CALOR = null; renderAll(); },
   });
   const selC = document.getElementById('filtro-clas');
-  CLAS.filter(c => BASE.some(r => val(r, C.clas).toUpperCase() === c))
+  CLAS.filter(c => BASE.some(r => clasificacionCalculo(r) === c))
       .forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = CLAS_LARGO[c] || c; selC.appendChild(o); });
   const selP = document.getElementById('filtro-puesto');
   [...new Set(BASE.map(r => val(r, C.puesto)).filter(Boolean))].sort()
@@ -888,7 +975,7 @@ window.buildExcelSheets = async function(){
   return [
     { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
     { name: 'Ausentismo por Asesor', rows: OXXO.scrapeHtmlTable('#tabla-asesor') },
-    { name: 'Seguimiento', rows: OXXO.scrapeHtmlTable('#tabla-seguimiento') },
+    { name: 'Comparativo 2025 vs 2026', rows: OXXO.scrapeHtmlTable('#tabla-comparativo') },
     { name: 'Detalle por Folio', rows: OXXO.scrapeHtmlTable('#tabla-detalle') }
   ];
 };

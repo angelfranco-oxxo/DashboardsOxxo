@@ -94,6 +94,63 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
     };
   }
 
+  function optionalNumber(value){
+    const raw=String(value??'').trim();
+    if(!raw||/^#/.test(raw))return '';
+    const n=Number(raw.replace(/[$,%\s]/g,'').replace(/,/g,''));
+    return Number.isFinite(n)?n:'';
+  }
+
+  // Dashboard 13 necesita dos fuentes del mismo libro: la Sabana aporta una
+  // fila por incapacidad y Caratula aporta los Head Count manuales de 2026 y
+  // la tabla historica 2025. Se agregan 12 filas RESUMEN a la misma pestana de
+  // Google Sheets para conservar una sola publicacion atomica y auditable.
+  function enrichCaratulaD13(rows,dash){
+    if(!rows.length||!state.workbook)return rows;
+    const caratulaName=(state.workbook.SheetNames||[]).find(name=>norm(name)===norm('Carátula'));
+    if(!caratulaName)return rows;
+    const matrix=getSheetMatrix(caratulaName);
+    if(matrix.length<143)return rows;
+    const ano=optionalNumber(matrix[1]?.[2])||new Date().getFullYear();
+    const costoDiario=1134.26;
+    const resumen=[];
+    for(let index=0;index<12;index++){
+      const actual=matrix[4+index]||[];     // filas 5-16 de Caratula
+      const historico=matrix[131+index]||[];// filas 132-143 de Caratula
+      const mesNumero=optionalNumber(actual[0])||index+1;
+      const headCount=optionalNumber(actual[2]);
+      const headCount2025=optionalNumber(historico[2]);
+      const dpRt2025=optionalNumber(historico[16]);
+      const dpEg2025=optionalNumber(historico[18]);
+      const fila=Object.fromEntries((dash.output||[]).map(col=>[col,'']));
+      Object.assign(fila,{
+        'Registro Tipo':'RESUMEN',
+        'Plaza':'OXXO OAXACA',
+        'Ano Reporte':ano,
+        'Mes Numero':mesNumero,
+        'Mes':String(actual[1]||historico[1]||'').trim().toUpperCase(),
+        'Head Count 2026':headCount,
+        'Head Count 2025':headCount2025,
+        'Casos RT 2025':optionalNumber(historico[15]),
+        'DP RT 2025':dpRt2025,
+        'Casos RTY 2025':optionalNumber(historico[27]),
+        'DP RTY 2025':optionalNumber(historico[28]),
+        'Casos EG 2025':optionalNumber(historico[17]),
+        'DP EG 2025':dpEg2025,
+        'IATP 2025':headCount2025?dpRt2025/(headCount2025*166.67)*16666.67:'',
+        'Tasa DP EG 2025':headCount2025?dpEg2025/headCount2025*100:'',
+        'Costo Diario':costoDiario
+      });
+      resumen.push(fila);
+    }
+    return rows.concat(resumen);
+  }
+
+  function enrichRows(rows,dash){
+    if(dash.enrich==='caratulaD13')return enrichCaratulaD13(rows,dash);
+    return rows;
+  }
+
   function findHeaderRow(matrix,dash){const limit=Math.min(matrix.length,40);let best={index:0,score:-1};for(let i=0;i<limit;i++){const cells=(matrix[i]||[]).map(norm).filter(Boolean);const score=dash.required.reduce((total,col)=>total+(aliasesFor(col).some(alias=>cells.includes(alias))?1:0),0)+Math.min(cells.length,12)/100;if(score>best.score)best={index:i,score};}return best;}
   // Encabezados repetidos: algunos reportes traen el mismo nombre de columna
   // dos veces con contenidos distintos (el Reporte Enfoque del Lider trae
@@ -132,8 +189,10 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
     const matched=matchColumns(buildSourceMap(sourceHeaders),extractColumns);
     const rawRows=matrix.slice(headerInfo.index+1).map(line=>{const row={};extractColumns.forEach(col=>{row[col]=matched[col]!==undefined?(line[matched[col]]??''):'';});return row;}).filter(row=>Object.values(row).some(v=>String(v??'').trim()!==''));
     const filtered=rawRows.map(row=>dash.derive?dash.derive(row):row).filter(row=>!dash.filter||dash.filter(row)).map(row=>{const cleaned={};extractColumns.forEach(col=>{cleaned[col]=row[col]??'';});return cleaned;});
-    const finalRows=dash.aggregate?dash.aggregate(filtered):filtered;
-    return{rows:finalRows,headers:dash.output,headerRow:headerInfo.index+1,sourceRows:rawRows.length,sourceHeaders};
+    const aggregated=dash.aggregate?dash.aggregate(filtered):filtered;
+    const finalRows=enrichRows(aggregated,dash);
+    const supplemental=Math.max(0,finalRows.length-aggregated.length);
+    return{rows:finalRows,headers:dash.output,headerRow:headerInfo.index+1,sourceRows:rawRows.length+supplemental,sourceHeaders};
   }
   // Convertir una hoja de Excel a matriz (XLSX.utils.sheet_to_json) es caro en
   // hojas grandes (se han visto hojas reales de 6000+ filas / 100+ columnas),
@@ -149,7 +208,10 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
     state.sheetMatrixCache.set(name,matrix);
     return matrix;
   }
-  function evaluateSheet(name,dash){const matrix=getSheetMatrix(name);const parsed=rowsFromMatrix(matrix,dash);const missing=dash.required.filter(col=>!parsed.rows.some(row=>String(row[col]??'').trim()!==''));const preference=(dash.preferredSheets||[]).some(s=>norm(s)===norm(name))?1000:0;return{name,parsed,missing,score:preference+parsed.rows.length-missing.length*100};}
+  // Una hoja declarada como preferida debe ganar siempre. El bono anterior de
+  // 1000 podia ser superado por una hoja derivada con mas filas (Reporte RH
+  // tiene 2238 y desplazaba por error a Sabana, que es la fuente real de D13).
+  function evaluateSheet(name,dash){const matrix=getSheetMatrix(name);const parsed=rowsFromMatrix(matrix,dash);const missing=dash.required.filter(col=>!parsed.rows.some(row=>String(row[col]??'').trim()!==''));const preference=(dash.preferredSheets||[]).some(s=>norm(s)===norm(name))?1000000:0;return{name,parsed,missing,score:preference+parsed.rows.length-missing.length*100};}
   function autoSelectSheet(){if(!state.workbook)return;const dash=dashboard();const evaluations=state.workbook.SheetNames.map(name=>evaluateSheet(name,dash)).sort((a,b)=>b.score-a.score);const best=evaluations[0];if(best&&best.name&&$('sheet-select').value!==best.name){$('sheet-select').value=best.name;state.sheetName=best.name;}}
 
   function periodInfo(dash,rows){const column=dash.periodColumn||'';const values=column?[...new Set(rows.map(row=>String(row[column]??'').trim()).filter(Boolean))]:[];return{column,values,enabled:Boolean(column&&values.length)};}
