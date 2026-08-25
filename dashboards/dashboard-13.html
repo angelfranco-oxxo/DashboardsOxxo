@@ -184,17 +184,23 @@
 .hm-legend__i{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--color-dark);font-weight:600}
 .hm-legend__s{width:20px;height:20px;border-radius:6px;flex:0 0 auto}
 .hm-month-select{min-width:150px;border:1px solid var(--color-border);border-radius:999px;background:#fff;padding:7px 30px 7px 12px;color:var(--color-text);font:800 10px var(--font-body);text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
-.hm-ranking{display:grid;gap:9px;max-width:1180px;margin:4px auto 0}
-.hm-rank-row{display:grid;grid-template-columns:32px minmax(170px,250px) minmax(220px,1fr) 74px;align-items:center;gap:14px;width:100%;border:1px solid transparent;border-radius:13px;padding:7px 11px;background:#fffaf7;font:inherit;text-align:left;cursor:pointer;transition:.15s ease}
+.hm-ranking{display:grid;gap:8px;max-width:1180px;margin:4px auto 0}
+.hm-rank-row{display:grid;grid-template-columns:30px minmax(170px,250px) minmax(220px,1fr) 70px;align-items:center;gap:14px;width:100%;border:1px solid transparent;border-radius:12px;padding:6px 11px;background:#fffaf7;font:inherit;text-align:left;cursor:pointer;transition:.15s ease}
 .hm-rank-row:hover{border-color:#f4b7b2;transform:translateY(-1px);box-shadow:0 8px 20px rgba(128,63,38,.08)}
 .hm-rank-row.is-active{border-color:var(--color-red);background:#fff3f1;box-shadow:0 0 0 2px rgba(247,25,38,.08)}
-.hm-rank-pos{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:#f7ece8;color:var(--color-gray);font-family:var(--font-display);font-size:11px}
+.hm-rank-pos{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#f7ece8;color:var(--color-gray);font-family:var(--font-display);font-size:11px}
 .hm-rank-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-dark);font-size:12px;font-weight:800}
-.hm-rank-track{height:24px;border-radius:999px;background:#f5e8e1;overflow:hidden}
-.hm-rank-bar{display:block;height:100%;min-width:8px;border-radius:inherit;background:linear-gradient(90deg,#ef8e82,#c91822)}
-.hm-rank-value{text-align:right;font-family:var(--font-display);font-size:17px;color:var(--color-dark)}
+/* Barra: pista redondeada (mismo radio que .hm-cell, 8px) que recorta el
+   relleno; el relleno nace cuadrado en el origen -- lo oculta el propio
+   recorte de la pista, no hace falta redondearlo ahi -- y solo se redondea
+   en la punta libre. Color plano (no degradado) porque el largo de la
+   barra ya comunica la magnitud; pintar ademas la intensidad por valor
+   hacia las barras mas cortas las volvia casi invisibles contra la pista. */
+.hm-rank-track{height:20px;border-radius:8px;background:#f5e8e1;overflow:hidden}
+.hm-rank-bar{display:block;height:100%;min-width:8px;border-radius:0 6px 6px 0;background:var(--color-red)}
+.hm-rank-value{text-align:right;font-family:var(--font-display);font-size:16px;color:var(--color-dark)}
 .hm-rank-value small{display:block;color:var(--color-gray);font:800 8px var(--font-body);letter-spacing:.08em;text-transform:uppercase}
-@media(max-width:700px){.hm-rank-row{grid-template-columns:28px minmax(0,1fr) 58px;gap:9px}.hm-rank-track{grid-column:2/4;height:16px}.hm-rank-value{grid-column:3;grid-row:1}.hm-month-select{min-width:132px}}
+@media(max-width:700px){.hm-rank-row{grid-template-columns:26px minmax(0,1fr) 54px;gap:9px}.hm-rank-track{grid-column:2/4;height:14px}.hm-rank-value{grid-column:3;grid-row:1}.hm-month-select{min-width:132px}}
 @media(max-width:900px){.hm-wrap{flex-wrap:wrap}.hm-legend{flex-direction:row;padding-top:0}}
 .cm-rt-nota{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-red);margin-bottom:6px}
 .cm-rt-desc{margin:0;font-size:12px;line-height:1.5;color:var(--color-dark);background:var(--color-bg);border-radius:10px;padding:10px 12px}
@@ -323,7 +329,7 @@
 
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
-      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path><path d="M3 9h18"></path></svg>Días perdidos por asesor y mes<span class="info-tip" tabindex="0" data-tip="Cada celda son los días de incapacidad de ese asesor en ese mes. Entre más intenso el color, más días. Clic en una celda para filtrar el detalle de abajo; clic otra vez para quitarlo."></span></div>
+      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path><path d="M3 9h18"></path></svg>Días perdidos por asesor y mes<span class="info-tip" tabindex="0" data-tip="En &quot;Todo el periodo&quot;, cada celda son los días de incapacidad de ese asesor en ese mes: entre más intenso el color, más días. Al elegir un mes se ordena a los asesores de mayor a menor. Clic para filtrar el detalle de abajo; clic otra vez para quitarlo."></span></div>
       <div class="detalle-head-tools">
         <select class="hm-month-select" id="filtro-mes-calor" onchange="cambiarMesCalor(this.value)" aria-label="Mes del mapa de calor"></select>
         <span class="card-badge" id="hm-badge">—</span>
