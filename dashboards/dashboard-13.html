@@ -156,6 +156,17 @@
 .hm-legend__i{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--color-dark);font-weight:600}
 .hm-legend__s{width:20px;height:20px;border-radius:6px;flex:0 0 auto}
 .hm-month-select{min-width:150px;border:1px solid var(--color-border);border-radius:999px;background:#fff;padding:7px 30px 7px 12px;color:var(--color-text);font:800 10px var(--font-body);text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
+.hm-ranking{display:grid;gap:9px;max-width:1180px;margin:4px auto 0}
+.hm-rank-row{display:grid;grid-template-columns:32px minmax(170px,250px) minmax(220px,1fr) 74px;align-items:center;gap:14px;width:100%;border:1px solid transparent;border-radius:13px;padding:7px 11px;background:#fffaf7;font:inherit;text-align:left;cursor:pointer;transition:.15s ease}
+.hm-rank-row:hover{border-color:#f4b7b2;transform:translateY(-1px);box-shadow:0 8px 20px rgba(128,63,38,.08)}
+.hm-rank-row.is-active{border-color:var(--color-red);background:#fff3f1;box-shadow:0 0 0 2px rgba(247,25,38,.08)}
+.hm-rank-pos{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:#f7ece8;color:var(--color-gray);font-family:var(--font-display);font-size:11px}
+.hm-rank-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-dark);font-size:12px;font-weight:800}
+.hm-rank-track{height:24px;border-radius:999px;background:#f5e8e1;overflow:hidden}
+.hm-rank-bar{display:block;height:100%;min-width:8px;border-radius:inherit;background:linear-gradient(90deg,#ef8e82,#c91822)}
+.hm-rank-value{text-align:right;font-family:var(--font-display);font-size:17px;color:var(--color-dark)}
+.hm-rank-value small{display:block;color:var(--color-gray);font:800 8px var(--font-body);letter-spacing:.08em;text-transform:uppercase}
+@media(max-width:700px){.hm-rank-row{grid-template-columns:28px minmax(0,1fr) 58px;gap:9px}.hm-rank-track{grid-column:2/4;height:16px}.hm-rank-value{grid-column:3;grid-row:1}.hm-month-select{min-width:132px}}
 @media(max-width:900px){.hm-wrap{flex-wrap:wrap}.hm-legend{flex-direction:row;padding-top:0}}
 .cm-rt-nota{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-red);margin-bottom:6px}
 .cm-rt-desc{margin:0;font-size:12px;line-height:1.5;color:var(--color-dark);background:var(--color-bg);border-radius:10px;padding:10px 12px}
@@ -785,6 +796,31 @@ function renderMapaCalor(data){
   document.getElementById('hm-badge').textContent = CELDA_CALOR
     ? `${OXXO.truncate(CELDA_CALOR.asesor,18)} · ${CELDA_CALOR.mes}`
     : `${MES_CALOR||`${MESES[0]}–${MESES[CUTOFF_MONTH-1]}`} · ${orden.length} asesores · máx ${max} días`;
+
+  if(MES_CALOR){
+    cont.innerHTML=`<div class="hm-ranking">${orden.map((asesor,index)=>{
+      const valor=matriz[asesor][MES_CALOR];
+      const activa=CELDA_CALOR&&CELDA_CALOR.asesor===asesor&&CELDA_CALOR.mes===MES_CALOR;
+      return `<button type="button" class="hm-rank-row${activa?' is-active':''}" data-asesor="${OXXO.escHtml(asesor)}" data-mes="${MES_CALOR}" title="Ver detalle de ${OXXO.escHtml(asesor)} en ${MES_CALOR}">
+        <span class="hm-rank-pos">${String(index+1).padStart(2,'0')}</span>
+        <span class="hm-rank-name">${OXXO.escHtml(asesor)}</span>
+        <span class="hm-rank-track"><span class="hm-rank-bar" style="width:${Math.max(3,valor/max*100)}%"></span></span>
+        <strong class="hm-rank-value">${valor}<small>días</small></strong>
+      </button>`;
+    }).join('')}</div>`;
+    cont.querySelectorAll('.hm-rank-row').forEach(fila=>fila.addEventListener('click',()=>{
+      const a=fila.dataset.asesor,m=fila.dataset.mes;
+      const misma=CELDA_CALOR&&CELDA_CALOR.asesor===a&&CELDA_CALOR.mes===m;
+      CELDA_CALOR=misma?null:{asesor:a,mes:m};
+      DETALLE_ASESOR=null;
+      renderAll();
+      if(!misma){
+        const card=document.getElementById('tabla-detalle').closest('.card');
+        if(card)card.scrollIntoView({behavior:'smooth',block:'start'});
+      }
+    }));
+    return;
+  }
 
   const encabezado = mesesVisibles.map(m => `<th>${m}</th>`).join('');
   const cuerpo = orden.map(a => mesesVisibles.map(m => {
