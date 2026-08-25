@@ -79,13 +79,13 @@ window.OXXO_CONFIG = {
   // version visible en el panel y cadencias completas para todas las fuentes.
   // Se actualizo la implementacion existente; la URL /exec no cambio.
   // 2026-08-25: se agrego 'Dashboard_14_Comercial' a ALLOWED_SHEETS (nuevo
-  // Dashboard 14, Avance Comercial) en apps-script/admin-upload.gs. PENDIENTE:
-  // ese cambio vive solo en este repo hasta que alguien con acceso al proyecto
-  // de Apps Script copie el .gs actualizado y vuelva a desplegar la Web App
-  // (Implementar > Gestionar implementaciones > editar la implementacion
-  // existente) -- si no se hace, el panel admin respondera "sheet no
-  // permitido: Dashboard_14_Comercial" al intentar publicar esa pestana.
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbzTVlxLyHaKAphlRRwH1kI6aDga15rfKumCkquAUuvY1_X7ifx-XPrNT87IZN54_Gtk/exec",
+  // Dashboard 14, Avance Comercial) en apps-script/admin-upload.gs.
+  // 2026-08-25 (b): implementacion NUEVA (se uso "Nueva implementacion" en
+  // vez de "Nueva version" sobre la existente, asi que la URL /exec cambio;
+  // la anterior sigue viva pero congelada sin Dashboard_14_Comercial).
+  // Verificado antes de fijarla: doGet responde con las 21 hojas permitidas
+  // incluyendo Dashboard_14_Comercial.
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxLR3dIFgqFoN2rKOg5tTReOu90iKVeGl9b0sghToomWfOkoikU9PqVRiD-s1u1kk1C/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {
