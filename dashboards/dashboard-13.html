@@ -184,23 +184,10 @@
 .hm-legend__i{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--color-dark);font-weight:600}
 .hm-legend__s{width:20px;height:20px;border-radius:6px;flex:0 0 auto}
 .hm-month-select{min-width:150px;border:1px solid var(--color-border);border-radius:999px;background:#fff;padding:7px 30px 7px 12px;color:var(--color-text);font:800 10px var(--font-body);text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
-.hm-ranking{display:grid;gap:8px;max-width:1180px;margin:4px auto 0}
-.hm-rank-row{display:grid;grid-template-columns:30px minmax(170px,250px) minmax(220px,1fr) 70px;align-items:center;gap:14px;width:100%;border:1px solid transparent;border-radius:12px;padding:6px 11px;background:#fffaf7;font:inherit;text-align:left;cursor:pointer;transition:.15s ease}
-.hm-rank-row:hover{border-color:#f4b7b2;transform:translateY(-1px);box-shadow:0 8px 20px rgba(128,63,38,.08)}
-.hm-rank-row.is-active{border-color:var(--color-red);background:#fff3f1;box-shadow:0 0 0 2px rgba(247,25,38,.08)}
-.hm-rank-pos{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#f7ece8;color:var(--color-gray);font-family:var(--font-display);font-size:11px}
-.hm-rank-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-dark);font-size:12px;font-weight:800}
-/* Barra: pista redondeada (mismo radio que .hm-cell, 8px) que recorta el
-   relleno; el relleno nace cuadrado en el origen -- lo oculta el propio
-   recorte de la pista, no hace falta redondearlo ahi -- y solo se redondea
-   en la punta libre. Color plano (no degradado) porque el largo de la
-   barra ya comunica la magnitud; pintar ademas la intensidad por valor
-   hacia las barras mas cortas las volvia casi invisibles contra la pista. */
-.hm-rank-track{height:20px;border-radius:8px;background:#f5e8e1;overflow:hidden}
-.hm-rank-bar{display:block;height:100%;min-width:8px;border-radius:0 6px 6px 0;background:var(--color-red)}
-.hm-rank-value{text-align:right;font-family:var(--font-display);font-size:16px;color:var(--color-dark)}
-.hm-rank-value small{display:block;color:var(--color-gray);font:800 8px var(--font-body);letter-spacing:.08em;text-transform:uppercase}
-@media(max-width:700px){.hm-rank-row{grid-template-columns:26px minmax(0,1fr) 54px;gap:9px}.hm-rank-track{grid-column:2/4;height:14px}.hm-rank-value{grid-column:3;grid-row:1}.hm-month-select{min-width:132px}}
+.hm-rank-caption{display:flex;justify-content:center;gap:22px;margin-top:14px;flex-wrap:wrap}
+.hm-rank-caption__i{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--color-dark);font-weight:600}
+.hm-rank-caption__s{width:14px;height:14px;border-radius:4px;flex:0 0 auto}
+@media(max-width:700px){.hm-month-select{min-width:132px}}
 @media(max-width:900px){.hm-wrap{flex-wrap:wrap}.hm-legend{flex-direction:row;padding-top:0}}
 .cm-rt-nota{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-red);margin-bottom:6px}
 .cm-rt-desc{margin:0;font-size:12px;line-height:1.5;color:var(--color-dark);background:var(--color-bg);border-radius:10px;padding:10px 12px}
@@ -476,7 +463,7 @@ let SELECTED_ASESORES = null, asesorFilterHandle = null;
 let DETALLE_ASESOR = null, DETALLE_FILAS = [];
 let SEGUIMIENTO_FILAS = [];
 let POR_COLAB = {};
-let chartMeses=null, chartClas=null, chartMec=null, chartArea=null, chartLugar=null, chartTurno=null;
+let chartMeses=null, chartClas=null, chartMec=null, chartArea=null, chartLugar=null, chartTurno=null, chartRankingMes=null;
 let CELDA_CALOR = null;   // {asesor, mes} seleccionado en el mapa de calor
 let MES_CALOR = '';
 
@@ -912,6 +899,14 @@ function colorCalor(razon){
   return `rgb(${Math.round(a[0]+(b[0]-a[0])*t)},${Math.round(a[1]+(b[1]-a[1])*t)},${Math.round(a[2]+(b[2]-a[2])*t)})`;
 }
 
+// Nombre + inicial del ultimo apellido (ej. "Ernesto Cruz Marquez" -> "Ernesto M.")
+// para que la etiqueta quepa bajo una barra angosta; el nombre completo va en el tooltip.
+function nombreCorto(nombre){
+  const partes = (nombre||'').trim().split(/\s+/);
+  if(partes.length < 2) return nombre;
+  return `${partes[0]} ${partes[partes.length-1][0]}.`;
+}
+
 function renderMapaCalor(data){
   const cont = document.getElementById('mapa-calor');
   const mesesCorte=MESES.slice(0,CUTOFF_MONTH);
@@ -928,6 +923,7 @@ function renderMapaCalor(data){
   });
   const orden = asesores.filter(a => totalPorAsesor[a] > 0).sort((x,y) => totalPorAsesor[y] - totalPorAsesor[x]);
   if(!orden.length){
+    if(chartRankingMes){ chartRankingMes.destroy(); chartRankingMes = null; }
     cont.innerHTML = '<div class="state-box">Sin días distribuidos por mes con los filtros activos.</div>';
     document.getElementById('hm-badge').textContent = '—';
     return;
@@ -939,29 +935,67 @@ function renderMapaCalor(data){
     : `${MES_CALOR||`${MESES[0]}–${MESES[CUTOFF_MONTH-1]}`} · ${orden.length} asesores · máx ${max} días`;
 
   if(MES_CALOR){
-    cont.innerHTML=`<div class="hm-ranking">${orden.map((asesor,index)=>{
-      const valor=matriz[asesor][MES_CALOR];
-      const activa=CELDA_CALOR&&CELDA_CALOR.asesor===asesor&&CELDA_CALOR.mes===MES_CALOR;
-      return `<button type="button" class="hm-rank-row${activa?' is-active':''}" data-asesor="${OXXO.escHtml(asesor)}" data-mes="${MES_CALOR}" title="Ver detalle de ${OXXO.escHtml(asesor)} en ${MES_CALOR}">
-        <span class="hm-rank-pos">${String(index+1).padStart(2,'0')}</span>
-        <span class="hm-rank-name">${OXXO.escHtml(asesor)}</span>
-        <span class="hm-rank-track"><span class="hm-rank-bar" style="width:${Math.max(3,valor/max*100)}%"></span></span>
-        <strong class="hm-rank-value">${valor}<small>días</small></strong>
-      </button>`;
-    }).join('')}</div>`;
-    cont.querySelectorAll('.hm-rank-row').forEach(fila=>fila.addEventListener('click',()=>{
-      const a=fila.dataset.asesor,m=fila.dataset.mes;
-      const misma=CELDA_CALOR&&CELDA_CALOR.asesor===a&&CELDA_CALOR.mes===m;
-      CELDA_CALOR=misma?null:{asesor:a,mes:m};
-      DETALLE_ASESOR=null;
-      renderAll();
-      if(!misma){
-        const card=document.getElementById('tabla-detalle').closest('.card');
-        if(card)card.scrollIntoView({behavior:'smooth',block:'start'});
-      }
-    }));
+    // Orden ASCENDENTE para que la barra mas alta (el caso mas critico) quede
+    // a la derecha, como pidio el usuario. El "top 3" que se acentua en rojo
+    // se calcula sobre el orden real (descendente) para que sean siempre los
+    // 3 valores mas altos, sin importar como se dibujen despues.
+    const top3 = new Set(orden.slice(0,3));
+    const ordenAsc = [...orden].sort((x,y) => matriz[x][MES_CALOR] - matriz[y][MES_CALOR]);
+    cont.innerHTML = `
+      <div class="chart-wrap chart-lg"><canvas id="chart-ranking-mes"></canvas></div>
+      <div class="hm-rank-caption">
+        <span class="hm-rank-caption__i"><span class="hm-rank-caption__s" style="background:#F71926"></span>Top 3 del mes</span>
+        <span class="hm-rank-caption__i"><span class="hm-rank-caption__s" style="background:${colorCalor(.3)}"></span>Resto</span>
+      </div>`;
+    if(chartRankingMes) chartRankingMes.destroy();
+    chartRankingMes = new Chart(document.getElementById('chart-ranking-mes').getContext('2d'), {
+      type:'bar',
+      data:{ labels: ordenAsc.map(nombreCorto),
+        datasets:[{
+          data: ordenAsc.map(a => matriz[a][MES_CALOR]),
+          backgroundColor: ordenAsc.map(a => top3.has(a) ? '#F71926' : colorCalor(.3)),
+          borderColor: ordenAsc.map(a => (CELDA_CALOR && CELDA_CALOR.asesor===a && CELDA_CALOR.mes===MES_CALOR) ? '#251313' : 'transparent'),
+          borderWidth: ordenAsc.map(a => (CELDA_CALOR && CELDA_CALOR.asesor===a && CELDA_CALOR.mes===MES_CALOR) ? 3 : 0),
+          borderRadius:4, borderSkipped:false, barPercentage:.6,
+        }] },
+      options:{ responsive:true, maintainAspectRatio:false,
+        onClick:(evt, elements) => {
+          const el = elements[0];
+          if(!el) return;
+          const asesor = ordenAsc[el.index];
+          const misma = CELDA_CALOR && CELDA_CALOR.asesor===asesor && CELDA_CALOR.mes===MES_CALOR;
+          CELDA_CALOR = misma ? null : { asesor, mes:MES_CALOR };
+          DETALLE_ASESOR = null;
+          // requestAnimationFrame: renderAll() destruye y reconstruye este
+          // mismo chart; si eso ocurre de forma sincrona todavia DENTRO del
+          // despacho del clic nativo de Chart.js, su manejador interno puede
+          // seguir ejecutandose sobre la instancia recien destruida (mismo
+          // "Cannot read properties of undefined (reading 'handleEvent')"
+          // reproducido y corregido para toggleClasFiltro).
+          requestAnimationFrame(() => {
+            renderAll();
+            if(!misma){
+              const card = document.getElementById('tabla-detalle').closest('.card');
+              if(card) card.scrollIntoView({behavior:'smooth', block:'start'});
+            }
+          });
+        },
+        onHover:(evt, elements) => { if(evt.native?.target) evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
+        plugins:{
+          legend:{display:false},
+          tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,
+            callbacks:{ title:(items) => ordenAsc[items[0].dataIndex], label:(c) => ` ${c.raw} días` } } },
+        scales:{
+          x:{border:{display:false},grid:{display:false},ticks:{color:'#5A4037',font:{family:'Barlow',size:10,weight:'800'},autoSkip:false,maxRotation:0}},
+          y:{beginAtZero:true,border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'},precision:0}} } },
+    });
     return;
   }
+
+  // Se vuelve a la vista de rejilla "Todo el periodo": si el chart del
+  // ranking de un solo mes seguia vivo, destruirlo para no dejarlo huerfano
+  // (su <canvas> ya se va a reemplazar via innerHTML mas abajo).
+  if(chartRankingMes){ chartRankingMes.destroy(); chartRankingMes = null; }
 
   const encabezado = mesesVisibles.map(m => `<th>${m}</th>`).join('');
   const cuerpo = orden.map(a => mesesVisibles.map(m => {
