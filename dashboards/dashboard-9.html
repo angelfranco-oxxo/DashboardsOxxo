@@ -23,11 +23,11 @@
 .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-border)}
 .card-title{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--color-dark)}
 .card-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--color-bg);color:var(--color-gray)}
-.section-intro{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:24px 2px 12px}
+.section-intro{display:flex;align-items:center;gap:16px;margin:24px 2px 12px}
+.section-intro::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,rgba(101,82,154,.24),rgba(101,82,154,0))}
 .section-intro__eyebrow{font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#725b9f;margin-bottom:4px}
 .section-intro h2{font-family:var(--font-display);font-size:clamp(20px,2vw,28px);line-height:1;margin:0;color:var(--color-dark)}
 .section-intro p{font-size:12px;color:#7d6d70;margin:6px 0 0;max-width:680px}
-.section-intro__note{font-size:11px;font-weight:800;color:#725b9f;background:#f2eef9;border:1px solid rgba(101,82,154,.15);border-radius:999px;padding:8px 12px;white-space:nowrap}
 
 /* Active filter banner */
 .filter-banner{
@@ -103,7 +103,6 @@
   .donut-legend{width:100%;grid-template-columns:1fr}
   .bar-chart-area,.bar-chart-area--stores{height:300px}
   .section-intro{align-items:flex-start;margin-top:20px}
-  .section-intro__note{display:none}
   .card{padding:16px;border-radius:17px}
 }
 /* dashboard-skin.css trae una regla para pantallas anchas (min-width:1180px)
@@ -289,7 +288,6 @@
 
   <div class="section-intro">
     <div><div class="section-intro__eyebrow">Resumen del periodo</div><h2>Balance ejecutivo</h2><p>Los importes principales y el alcance operativo de los filtros seleccionados.</p></div>
-    <div class="section-intro__note">Selecciona Faltante o Sobrante para filtrar</div>
   </div>
 
   <!-- KPIs -->
@@ -306,7 +304,6 @@
 
   <div class="section-intro">
     <div><div class="section-intro__eyebrow">Prioridad operativa</div><h2>Dónde actuar primero</h2><p>Tiendas con mayor faltante y proporción entre faltantes y sobrantes.</p></div>
-    <div class="section-intro__note">Top 10 del periodo seleccionado</div>
   </div>
 
   <!-- Row 1: Stores + Donut -->
