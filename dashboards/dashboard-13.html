@@ -106,6 +106,22 @@
 </style>
 <link rel="stylesheet" href="../css/dashboard-skin.css"/>
 <style id="d13-propios">
+/* KPIs ejecutivos: tarjetas compactas con identidad por indicador */
+.d13-kpis{gap:14px}
+.d13-kpi{--kpi-accent:#236f9c;--kpi-soft:#eef7fc;position:relative;display:flex;min-height:158px;flex-direction:column;overflow:hidden;border:1px solid color-mix(in srgb,var(--kpi-accent) 20%,#fff)!important;border-top:1px solid color-mix(in srgb,var(--kpi-accent) 20%,#fff)!important;border-radius:22px!important;background:linear-gradient(145deg,#fff 10%,var(--kpi-soft) 145%)!important;padding:17px 19px 15px!important;box-shadow:0 12px 28px rgba(73,38,31,.08)!important;cursor:default!important}
+.d13-kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:linear-gradient(180deg,var(--kpi-accent),color-mix(in srgb,var(--kpi-accent) 45%,#fff));opacity:.95}
+.d13-kpi::after{display:none!important}
+.d13-kpi:hover{transform:translateY(-2px)!important;box-shadow:0 17px 34px rgba(73,38,31,.12)!important}
+.d13-kpi.rojo{--kpi-accent:#d91f2d;--kpi-soft:#fff0f1}.d13-kpi.naranja{--kpi-accent:#d76a1f;--kpi-soft:#fff3ea}.d13-kpi.amarillo{--kpi-accent:#d69b00;--kpi-soft:#fff8e5}.d13-kpi.verde{--kpi-accent:#159653;--kpi-soft:#ecfaf2}.d13-kpi.azul{--kpi-accent:#176f9e;--kpi-soft:#edf7fc}
+.d13-kpi__top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.d13-kpi__icon{display:grid;place-items:center;width:38px;height:38px;border-radius:13px;background:color-mix(in srgb,var(--kpi-accent) 12%,#fff);color:var(--kpi-accent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--kpi-accent) 13%,#fff)}
+.d13-kpi__icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d13-kpi__period{border-radius:999px;background:rgba(255,255,255,.76);padding:5px 9px;color:var(--kpi-accent);font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.d13-kpi .kpi-card__label{margin:0 0 4px!important;color:#7f6a64!important;font-size:10px!important;letter-spacing:.11em!important}
+.d13-kpi .kpi-card__value{margin:0!important;color:#251313!important;font-size:2.35rem!important;line-height:1!important;letter-spacing:-.025em}
+.d13-kpi .kpi-card__delta{display:flex;align-items:center;gap:7px;margin-top:auto!important;border-top:1px solid color-mix(in srgb,var(--kpi-accent) 14%,transparent);padding-top:11px!important;color:#725b54!important;font-size:10.5px!important;font-weight:800!important}
+.d13-kpi .kpi-card__delta::before{content:"";width:7px;height:7px;flex:0 0 auto;border-radius:50%;background:var(--kpi-accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--kpi-accent) 10%,transparent)}
+@media(max-width:600px){.d13-kpi{min-height:145px}.d13-kpi .kpi-card__value{font-size:2.05rem!important}}
 /* Rejilla del bloque de riesgos de trabajo: 4 graficas pequenas juntas */
 .rt-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px 22px}
 .rt-title{font-family:var(--font-display);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--color-gray);margin-bottom:8px}
@@ -242,7 +258,7 @@
     </div>
   </div>
 
-  <div class="kpis" id="kpi-section">
+  <div class="kpis d13-kpis" id="kpi-section">
     <div class="kpi-card"><div class="state-box"><div class="spinner"></div></div></div>
   </div>
 
@@ -556,25 +572,35 @@ function renderAll(){
   },0):null;
   const costoDiario=OXXO.metricsNum(PARAMS.find(Boolean)?.[C.costoDiario])||1134.26;
 
-  const kpi = (clase,label,tip,valor,delta,dclase) => `
-    <div class="kpi-card ${clase}">
+  const iconosKpi={
+    casos:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3 20v-2a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v2"></path><path d="M16 5a3 3 0 0 1 0 6M18 14a4 4 0 0 1 3 4v2"></path></svg>',
+    dias:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M8 3v4M16 3v4M3 10h18"></path><path d="M8 14h3M8 17h6"></path></svg>',
+    iatp:'<svg viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6"></path></svg>',
+    eg:'<svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"></path></svg>',
+    costoRt:'<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="3"></rect><path d="M16 10h5M7 6V4h10v2M7 15h4"></path></svg>',
+    costoEg:'<svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="6"></circle><path d="M15 7a6 6 0 1 1 0 10M9 9v6M7 11h4M7 13h4"></path></svg>'
+  };
+  const periodoKpi=CUTOFF_MONTH?`${MESES[0]}–${MESES[CUTOFF_MONTH-1]} ${REPORT_YEAR}`:`${REPORT_YEAR}`;
+  const kpi = (clase,icono,label,tip,valor,delta,dclase) => `
+    <div class="kpi-card d13-kpi ${clase}">
+      <div class="d13-kpi__top"><span class="d13-kpi__icon">${iconosKpi[icono]||iconosKpi.dias}</span><span class="d13-kpi__period">${periodoKpi}</span></div>
       <div class="kpi-card__label">${label}<span class="info-tip" tabindex="0" data-tip="${OXXO.escHtml(tip)}"></span></div>
       <div class="kpi-card__value">${valor}</div>
       <div class="kpi-card__delta ${dclase}">${delta}</div>
     </div>`;
 
   document.getElementById('kpi-section').innerHTML =
-    kpi('azul','Casos nuevos','Cuenta únicamente registros Tipo Inicial expedidos hasta el mes de corte.',
+    kpi('azul','casos','Casos nuevos','Cuenta únicamente registros Tipo Inicial expedidos hasta el mes de corte.',
         casos.length.toLocaleString('es-MX'), `${colabs.size} colaboradores afectados`, 'neu') +
-    kpi('','Días perdidos','Suma de las columnas mensuales desde enero hasta el mes anterior al actual; incluye iniciales y subsecuentes.',
+    kpi('naranja','dias','Días perdidos','Suma de las columnas mensuales desde enero hasta el mes anterior al actual; incluye iniciales y subsecuentes.',
         dias.toLocaleString('es-MX'), `${reincidentes} colaboradores reincidentes`, reincidentes ? 'neg' : 'neu') +
-    kpi('rojo','IATP acumulado','Suma mensual de días RT ÷ horas-hombre × 16,666.67. Solo se calcula en la vista general porque el Head Count es de plaza.',
+    kpi('rojo','iatp','IATP acumulado','Suma mensual de días RT ÷ horas-hombre × 16,666.67. Solo se calcula en la vista general porque el Head Count es de plaza.',
         iatpActual===null?'—':numero(iatpActual,2), sinFiltros?`${diasRT.toLocaleString('es-MX')} días RT`:'Quita filtros para calcular', sinFiltros?'neg':'neu') +
-    kpi('amarillo','Tasa de días EG','Suma mensual de días de Enfermedad General ÷ Head Count × 100. Incluye RT/RTY rechazados por el IMSS.',
+    kpi('amarillo','eg','Tasa de días EG','Suma mensual de días de Enfermedad General ÷ Head Count × 100. Incluye RT/RTY rechazados por el IMSS.',
         tasaEgActual===null?'—':numero(tasaEgActual,2), sinFiltros?`${diasEG.toLocaleString('es-MX')} días EG`:'Quita filtros para calcular', sinFiltros?'neg':'neu') +
-    kpi('rojo','Costo RT','Días perdidos RT multiplicados por el costo diario definido en Carátula.',
+    kpi('rojo','costoRt','Costo RT','Días perdidos RT multiplicados por el costo diario definido en Carátula.',
         money(diasRT*costoDiario), `${money(costoDiario)} por día`, diasRT?'neg':'neu') +
-    kpi('verde','Costo EG','Días perdidos EG multiplicados por el costo diario definido en Carátula.',
+    kpi('verde','costoEg','Costo EG','Días perdidos EG multiplicados por el costo diario definido en Carátula.',
         money(diasEG*costoDiario), `${mater.length} casos de maternidad · ${fatal.length} fatalidades`, 'neu');
 
   renderMeses(data); renderClas(data); renderRT(rt, sinST7);
