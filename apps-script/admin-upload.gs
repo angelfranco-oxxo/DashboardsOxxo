@@ -35,6 +35,7 @@ const ALLOWED_SHEETS = [
   'Dashboard_11_Semanal',
   'Dashboard_12_Mensual',
   'Dashboard_13_Ausentismo',
+  'Dashboard_14_Comercial',
   'Inventarios',
   'Catalogo_Asesores',
   'Reasignaciones'

@@ -78,6 +78,13 @@ window.OXXO_CONFIG = {
   // 2026-08-24 (v36): verificacion de filas/columnas tras cada publicacion,
   // version visible en el panel y cadencias completas para todas las fuentes.
   // Se actualizo la implementacion existente; la URL /exec no cambio.
+  // 2026-08-25: se agrego 'Dashboard_14_Comercial' a ALLOWED_SHEETS (nuevo
+  // Dashboard 14, Avance Comercial) en apps-script/admin-upload.gs. PENDIENTE:
+  // ese cambio vive solo en este repo hasta que alguien con acceso al proyecto
+  // de Apps Script copie el .gs actualizado y vuelva a desplegar la Web App
+  // (Implementar > Gestionar implementaciones > editar la implementacion
+  // existente) -- si no se hace, el panel admin respondera "sheet no
+  // permitido: Dashboard_14_Comercial" al intentar publicar esa pestana.
   ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbzTVlxLyHaKAphlRRwH1kI6aDga15rfKumCkquAUuvY1_X7ifx-XPrNT87IZN54_Gtk/exec",
 
   // Nombres exactos de pestanas en Google Sheets.
@@ -99,6 +106,7 @@ window.OXXO_CONFIG = {
     d11: "Dashboard_11_Semanal",
     m12: "Dashboard_12_Mensual",
     a13: "Dashboard_13_Ausentismo",
+    c14: "Dashboard_14_Comercial",
     promos: "Promociones",
     inventories: "Inventarios"
   }

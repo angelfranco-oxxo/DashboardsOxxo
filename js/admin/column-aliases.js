@@ -61,5 +61,9 @@ window.OXXO_ADMIN_COLUMN_ALIASES = {
     'Edad':['edad'],
     'Mes Expedicion':['mes de expedicion'],
     'D Ene':['ene'],'D Feb':['feb'],'D Mar':['mar'],'D Abr':['abr'],'D May':['may'],'D Jun':['jun'],
-    'D Jul':['jul'],'D Ago':['ago'],'D Sep':['sep'],'D Oct':['oct'],'D Nov':['nov'],'D Dic':['dic']
+    'D Jul':['jul'],'D Ago':['ago'],'D Sep':['sep'],'D Oct':['oct'],'D Nov':['nov'],'D Dic':['dic'],
+    // Dashboard 14 - Avance Comercial
+    'Spin':['spin','spin by oxxo'],'Premia':['premia','spin premia'],
+    'Cruzada Andatti':['cruzada andatti','cruzada'],'Venta Sugerida':['venta sugerida'],
+    'Banner':['banner'],'Mep':['mep']
   };
