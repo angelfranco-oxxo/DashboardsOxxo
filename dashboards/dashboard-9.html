@@ -14,15 +14,20 @@
   <link rel="stylesheet" href="../css/mascota-chat.css?v=20260818a" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-.page{max-width:1500px;margin:0 auto;padding:18px 20px 36px}
+.page{max-width:1540px;margin:0 auto;padding:18px 24px 40px}
 .hero-download-link{ text-decoration:none !important; cursor:pointer; }
 
 /* KPI grid — igual que D1/D4 */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-.card{background:var(--color-surface);border-radius:14px;padding:20px;box-shadow:var(--shadow-card)}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:22px}
+.card{background:rgba(255,255,255,.9);border:1px solid rgba(101,82,154,.12);border-radius:20px;padding:20px;box-shadow:0 18px 46px rgba(53,31,36,.08)}
 .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-border)}
 .card-title{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--color-dark)}
 .card-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--color-bg);color:var(--color-gray)}
+.section-intro{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:24px 2px 12px}
+.section-intro__eyebrow{font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#725b9f;margin-bottom:4px}
+.section-intro h2{font-family:var(--font-display);font-size:clamp(20px,2vw,28px);line-height:1;margin:0;color:var(--color-dark)}
+.section-intro p{font-size:12px;color:#7d6d70;margin:6px 0 0;max-width:680px}
+.section-intro__note{font-size:11px;font-weight:800;color:#725b9f;background:#f2eef9;border:1px solid rgba(101,82,154,.15);border-radius:999px;padding:8px 12px;white-space:nowrap}
 
 /* Active filter banner */
 .filter-banner{
@@ -33,29 +38,32 @@
 .filter-banner.visible{display:flex}
 .filter-banner__clear{margin-left:auto;cursor:pointer;background:#FFD200;color:#1a1a1a;border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:800}
 
-/* Row 1: Ranking + Donut */
-.fs-row1{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;align-items:stretch}
+/* Priority view: stores + balance */
+.fs-row1{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(330px,.65fr);gap:14px;margin-bottom:14px;align-items:stretch}
 .fs-row1 > .card{display:flex;flex-direction:column}
 
 /* Row 2 */
-.fs-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.fs-row2{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px}
 .fs-row2--single{grid-template-columns:1fr}
-.bar-chart-area{position:relative;height:220px}
+.bar-chart-area{position:relative;height:300px}
+.bar-chart-area--stores{height:330px}
 
 /* Donut */
-.donut-body{display:flex;align-items:center;padding:16px 20px;gap:20px;flex:1}
+.donut-body{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 16px 18px;gap:16px;flex:1}
 .donut-chart-wrap{width:200px;height:200px;flex-shrink:0;position:relative}
 .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
 .donut-center__val{font-family:var(--font-display);font-size:22px;font-weight:900;color:var(--color-dark);line-height:1}
 .donut-center__lbl{font-size:10px;color:#888;font-weight:700;margin-top:2px}
-.donut-legend{flex:1;display:flex;flex-direction:column;gap:10px}
+.donut-legend{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.donut-leg-item{border:1px solid rgba(101,82,154,.12);border-radius:14px;padding:11px 12px;background:linear-gradient(145deg,#fff,#faf8fd)}
 .donut-leg-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
 .donut-leg-label{font-size:12px;color:#555;font-weight:600}
 .donut-leg-val{font-family:var(--font-display);font-size:18px;font-weight:900;color:var(--color-dark);margin-top:1px}
 .donut-leg-pct{font-size:11px;color:#888;font-weight:700;margin-left:5px}
 
 /* Detail table */
-.fs-detail{margin-bottom:12px}
+.fs-detail{margin-bottom:14px;padding:0;overflow:hidden}
+.fs-detail .card-head{padding:20px 20px 14px;margin:0}
 .fs-table-wrap{overflow-x:auto;max-height:480px;overflow-y:auto}
 .fs-table{width:100%;border-collapse:collapse;font-size:12px}
 .fs-table thead th{
@@ -64,13 +72,14 @@
   border-right:1px solid rgba(255,255,255,.1);white-space:nowrap;position:sticky;top:0;z-index:2;
 }
 .fs-table thead th:first-child{text-align:left}
-.fs-table tbody td{padding:7px 10px;border:1px solid var(--color-border);color:var(--color-dark);vertical-align:middle}
-.fs-table tbody td:first-child{font-weight:700;background:var(--color-bg);white-space:nowrap}
+.fs-table tbody td{padding:10px 12px;border:0;border-bottom:1px solid rgba(101,82,154,.1);color:var(--color-dark);vertical-align:middle;background:rgba(255,255,255,.82)}
+.fs-table tbody tr:nth-child(even) td{background:rgba(247,244,251,.7)}
+.fs-table tbody td:first-child{font-weight:700;white-space:nowrap}
 .fs-table tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
 .fs-table tbody td.money{text-align:right;font-variant-numeric:tabular-nums;color:#7B1FA2;font-weight:700}
 .fs-table tbody td.money.faltante{color:#D92B2B}
 .fs-table tbody td.money.sobrante{color:#1DB954}
-.fs-table tbody tr:hover td{background:var(--color-bg)}
+.fs-table tbody tr:hover td{background:#f2eef9}
 .fs-table tfoot td{
   background:#2D2D44;color:#FFD200;font-weight:900;font-family:var(--font-display);
   font-size:12px;padding:8px 10px;border:1px solid #3a3a5c;
@@ -83,13 +92,19 @@
 .spinner{width:32px;height:32px;border:3px solid var(--color-border);border-top-color:var(--color-yellow);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.fs-row1,.fs-row2{grid-template-columns:1fr}}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.fs-row1,.fs-row2{grid-template-columns:1fr}.donut-body{flex-direction:row}.donut-legend{max-width:420px}}
 @media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}.fs-row1,.fs-row2{grid-template-columns:1fr}}
 @media(max-width:600px){
+  .page{padding:12px 10px 28px}
   .kpis{grid-template-columns:1fr 1fr !important}
   .fs-row1,.fs-row2{grid-template-columns:1fr !important}
-  .fs-row1 .donut-chart-wrap{height:180px;width:180px}
-  .bar-chart-area{height:180px}
+  .fs-row1 .donut-chart-wrap{height:170px;width:170px}
+  .donut-body{flex-direction:column;padding-inline:4px}
+  .donut-legend{width:100%;grid-template-columns:1fr}
+  .bar-chart-area,.bar-chart-area--stores{height:300px}
+  .section-intro{align-items:flex-start;margin-top:20px}
+  .section-intro__note{display:none}
+  .card{padding:16px;border-radius:17px}
 }
 /* dashboard-skin.css trae una regla para pantallas anchas (min-width:1180px)
    pensada solo para D4 ("D4 Tiempo Extra: keep row 1 compact") que fuerza
@@ -103,15 +118,19 @@
    2 huecos vacios a la derecha; 6 entre 3 llena las 2 filas completas. */
 @media(min-width:1180px){
   body:has(#kpi-faltante):has(#kpi-sobrante):has(#kpi-neto) .kpis.kpi-grid{
-    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    grid-template-columns:repeat(6,minmax(0,1fr)) !important;
   }
 }
 </style>
 <link rel="stylesheet" href="../css/dashboard-skin.css"/>
 <style id="d9-extras">
 .hero h1{font-family:var(--font-display) !important;font-weight:800 !important}
-.hero{flex-direction:column !important;align-items:stretch !important;gap:18px}
+.hero{flex-direction:column !important;align-items:stretch !important;gap:18px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;width:360px;height:360px;border:70px solid rgba(255,255,255,.08);border-radius:50%;right:-135px;top:-190px;pointer-events:none}
 .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.hero-copy{position:relative;z-index:1;max-width:760px}
+.hero-eyebrow{font-size:10px;font-weight:900;letter-spacing:.17em;text-transform:uppercase;color:rgba(255,255,255,.78);margin-bottom:8px}
+.hero-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;position:relative;z-index:1}
 .vac-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px 16px;align-items:end}
 .vac-fbox{display:flex;flex-direction:column;gap:6px;min-width:0}
 .vac-fbox > label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.85)}
@@ -135,8 +154,18 @@
   color:var(--exec-ink,#181112) !important;
   -webkit-text-fill-color:var(--exec-ink,#181112) !important;
 }
+.vac-fbox--actions{display:grid;grid-template-columns:1fr 1.1fr;gap:8px}
+.vac-fbox--actions > label{grid-column:1/-1}
 
 .kpi-card__sub{margin-top:6px;font-size:11px;font-weight:500;color:var(--color-gray)}
+.kpi-card{min-width:0;position:relative;overflow:hidden;padding:18px !important;border:1px solid rgba(101,82,154,.12) !important;border-top-width:3px !important;border-radius:18px !important;background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(249,247,252,.92)) !important}
+.kpi-card::after{content:"";position:absolute;width:86px;height:86px;border-radius:50%;right:-42px;bottom:-44px;background:var(--kpi-glow,rgba(101,82,154,.08));pointer-events:none}
+.kpi-card__label{min-height:28px;line-height:1.25}
+.kpi-card__value{font-size:clamp(23px,2.1vw,36px) !important;letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-card--faltante{--kpi-glow:rgba(217,43,43,.12)}
+.kpi-card--sobrante{--kpi-glow:rgba(29,185,84,.12)}
+.kpi-card--neto{--kpi-glow:rgba(101,82,154,.13)}
+.kpi-card--support .kpi-card__value{font-size:clamp(22px,1.8vw,31px) !important}
 
 /* KPI cards clickables */
 .kpi-card{cursor:pointer;transition:all .18s;user-select:none}
@@ -177,6 +206,18 @@
 .fs-modal-row small{display:block;color:#8A6A62;font-weight:700;margin-top:2px}
 .fs-modal-pill{font-weight:900;color:#7B1FA2;background:#F3E5F9;border:1px solid rgba(123,31,162,.14);border-radius:999px;padding:5px 10px;white-space:nowrap}
 @media(max-width:760px){.fs-modal-kpis{grid-template-columns:repeat(2,1fr)}.fs-modal-grid{grid-template-columns:1fr}.table-sort-select{width:100%}}
+@media(max-width:600px){
+  .hero-actions{justify-content:flex-start}
+  .vac-filters{grid-template-columns:1fr 1fr;gap:10px}
+  .vac-fbox--actions{grid-column:1/-1}
+  .hero .filtro-select,.hero .filtro-btn{padding:9px 12px !important;font-size:11px}
+  .kpi-card{padding:14px !important}
+  .kpi-card__label{font-size:9px !important;min-height:24px}
+  .kpi-card__sub{font-size:10px}
+  .kpi-filter-hint{display:none}
+  .fs-detail .card-head{align-items:flex-start;flex-direction:column}
+  .detail-toolbar{width:100%}
+}
 
 </style>
 <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
@@ -202,12 +243,15 @@
   <!-- Hero con filtros -->
   <div class="hero hero--purple">
     <div class="hero-top">
-      <div>
+      <div class="hero-copy">
+        <div class="hero-eyebrow">Control administrativo · Balance de caja</div>
         <h1>Faltantes y Sobrantes</h1>
-        <p>Faltantes y sobrantes de caja por asesor, tienda y semana · Plaza Oaxaca</p>
+        <p>Identifica desviaciones, prioriza tiendas y consulta el balance por asesor y semana.</p>
       </div>
-      <span class="hero-badge" id="semana-badge">⟳ Semanal · Plaza Oaxaca</span>
-      <a href="dashboard-9-analisis.html" class="hero-badge" style="text-decoration:none;cursor:pointer"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Balance de Caja</a>
+      <div class="hero-actions">
+        <span class="hero-badge" id="semana-badge">⟳ Semanal · Plaza Oaxaca</span>
+        <a href="dashboard-9-analisis.html" class="hero-badge" style="text-decoration:none;cursor:pointer"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Análisis histórico</a>
+      </div>
       <span id="hero-download" style="display:none"></span>
     </div>
     <div class="vac-filters">
@@ -235,12 +279,17 @@
           <option value="">Todas las tiendas</option>
         </select>
       </div>
-      <div class="vac-fbox">
+      <div class="vac-fbox vac-fbox--actions">
         <label>Filtros</label>
         <button class="filtro-btn" onclick="limpiarFiltros()">✕ Limpiar</button>
         <button class="filtro-btn" type="button" onclick="OXXO.handleDownloadButton(this, () => OXXO.downloadSheetTab(TAB, 'dashboard-9-faltantes-sobrantes.csv'))">Descargar base</button>
       </div>
     </div>
+  </div>
+
+  <div class="section-intro">
+    <div><div class="section-intro__eyebrow">Resumen del periodo</div><h2>Balance ejecutivo</h2><p>Los importes principales y el alcance operativo de los filtros seleccionados.</p></div>
+    <div class="section-intro__note">Selecciona Faltante o Sobrante para filtrar</div>
   </div>
 
   <!-- KPIs -->
@@ -255,14 +304,19 @@
     <button class="filter-banner__clear" id="clear-filter">✕ Quitar</button>
   </div>
 
-  <!-- Row 1: Ranking + Donut -->
+  <div class="section-intro">
+    <div><div class="section-intro__eyebrow">Prioridad operativa</div><h2>Dónde actuar primero</h2><p>Tiendas con mayor faltante y proporción entre faltantes y sobrantes.</p></div>
+    <div class="section-intro__note">Top 10 del periodo seleccionado</div>
+  </div>
+
+  <!-- Row 1: Stores + Donut -->
   <div class="fs-row1">
     <div class="card">
       <div class="card-head">
-        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>Ranking de Asesores por Faltante<span class="info-tip" tabindex="0" data-tip="Suma de Importe (filas Faltante) agrupada por Asesor, ordenado de mayor a menor."></span></div>
-        <span class="card-badge" id="ranking-badge">Top 10</span>
+        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>Tiendas con mayor faltante<span class="info-tip" tabindex="0" data-tip="Las 10 tiendas con mayor suma de Importe en filas Faltante, de mayor a menor."></span></div>
+        <span class="card-badge">Top 10</span>
       </div>
-      <div class="bar-chart-area" id="ranking-container"><canvas id="chart-ranking"></canvas></div>
+      <div class="bar-chart-area bar-chart-area--stores"><canvas id="chart-tiendas"></canvas></div>
     </div>
     <div class="card">
       <div class="card-head">
@@ -278,13 +332,18 @@
     </div>
   </div>
 
-  <!-- Row 2: Bar chart -->
+  <div class="section-intro">
+    <div><div class="section-intro__eyebrow">Seguimiento</div><h2>Desempeño por asesor</h2><p>Compara el faltante acumulado y abre el detalle individual desde la tabla.</p></div>
+  </div>
+
+  <!-- Row 2: Advisor ranking -->
   <div class="fs-row2 fs-row2--single">
     <div class="card">
       <div class="card-head">
-        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>Top 10 Tiendas — Faltante $<span class="info-tip" tabindex="0" data-tip="Las 10 tiendas con mayor suma de Importe en filas Faltante, de mayor a menor."></span></div>
+        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>Ranking de asesores por faltante<span class="info-tip" tabindex="0" data-tip="Suma de Importe (filas Faltante) agrupada por Asesor, ordenado de mayor a menor."></span></div>
+        <span class="card-badge" id="ranking-badge">Top 10</span>
       </div>
-      <div class="bar-chart-area"><canvas id="chart-tiendas"></canvas></div>
+      <div class="bar-chart-area" id="ranking-container"><canvas id="chart-ranking"></canvas></div>
     </div>
   </div>
 
@@ -331,7 +390,7 @@
 </div>
 
   <script src="../js/config.js?v=20260818d"></script>
-  <script src="../js/core.js?v=20260824a"></script>
+  <script src="../js/core.js?v=20260825b"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.s9;
@@ -447,53 +506,53 @@ function renderAll() {
 
   // ── KPIs ──
   document.getElementById('kpi-section').innerHTML = `
-    <div class="kpi-card" id="kpi-faltante" role="button" tabindex="0" onclick="setFilter('Faltante')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('Faltante')}" title="Filtrar: Faltante" style="border-top:3px solid #D92B2B">
+    <div class="kpi-card kpi-card--faltante" id="kpi-faltante" role="button" tabindex="0" onclick="setFilter('Faltante')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('Faltante')}" title="Filtrar: Faltante" style="border-top:3px solid #D92B2B">
       <div class="kpi-card__label">Total Faltante $<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de Importe en filas donde Tipo=Faltante (Importe positivo). Clic filtra el dashboard a este tipo."></span></div>
       <div class="kpi-card__value">${fmt$(totalFaltante)}</div>
       <div class="kpi-card__sub">${pct(totalFaltante,totalBaseFalt)} del total del periodo</div>
       <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
-    <div class="kpi-card" id="kpi-sobrante" role="button" tabindex="0" onclick="setFilter('Sobrante')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('Sobrante')}" title="Filtrar: Sobrante" style="border-top:3px solid #1DB954">
+    <div class="kpi-card kpi-card--sobrante" id="kpi-sobrante" role="button" tabindex="0" onclick="setFilter('Sobrante')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('Sobrante')}" title="Filtrar: Sobrante" style="border-top:3px solid #1DB954">
       <div class="kpi-card__label">Total Sobrante $<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Suma de |Importe| en filas donde Tipo=Sobrante (Importe negativo). Clic filtra el dashboard a este tipo."></span></div>
       <div class="kpi-card__value">${fmt$(totalSobrante)}</div>
       <div class="kpi-card__sub">${totalAsesores} asesores con movimientos</div>
       <div class="kpi-filter-hint">▶ Click para filtrar</div>
     </div>
-    <div class="kpi-card" id="kpi-neto" role="button" tabindex="0" onclick="setFilter(null)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter(null)}" title="Ver todo" style="border-top:3px solid #7B1FA2">
+    <div class="kpi-card kpi-card--neto" id="kpi-neto" role="button" tabindex="0" onclick="setFilter(null)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter(null)}" title="Ver todo" style="border-top:3px solid #7B1FA2">
       <div class="kpi-card__label">Neto $<span class="info-tip" tabindex="0" onclick="event.stopPropagation()" data-tip="Total Faltante menos Total Sobrante. Positivo = la plaza debe dinero en neto; negativo = hay credito a favor."></span></div>
       <div class="kpi-card__value">${fmt$(totalNeto)}</div>
       <div class="kpi-card__sub">${semana === 'Todas' ? 'Todas las semanas' : semanaLabel(semana)}</div>
       <div class="kpi-filter-hint">▶ Ver todo</div>
     </div>
-    <div class="kpi-card" style="border-top:3px solid #FFD200">
+    <div class="kpi-card kpi-card--support" style="border-top:3px solid #FFD200">
       <div class="kpi-card__label">Movimientos<span class="info-tip" tabindex="0" data-tip="Numero de filas (movimientos de caja) con los filtros activos."></span></div>
       <div class="kpi-card__value">${OXXO.formatNum(totalMovs)}</div>
       <div class="kpi-card__sub">registros</div>
     </div>
-    <div class="kpi-card" style="border-top:3px solid #FF6B00">
+    <div class="kpi-card kpi-card--support" style="border-top:3px solid #FF6B00">
       <div class="kpi-card__label">Tiendas con movimientos<span class="info-tip" tabindex="0" data-tip="Tiendas distintas con al menos un movimiento de faltante o sobrante en el periodo filtrado."></span></div>
       <div class="kpi-card__value">${totalTiendas}</div>
       <div class="kpi-card__sub">tiendas</div>
     </div>
-    <div class="kpi-card" style="border-top:3px solid #9E9E9E">
+    <div class="kpi-card kpi-card--support" style="border-top:3px solid #9E9E9E">
       <div class="kpi-card__label">Asesores con movimientos<span class="info-tip" tabindex="0" data-tip="Asesores distintos con al menos un movimiento de faltante o sobrante en el periodo filtrado."></span></div>
       <div class="kpi-card__value">${totalAsesores}</div>
       <div class="kpi-card__sub">asesores</div>
     </div>`;
   updateKpiActive();
 
-  // ── Ranking ── barras verticales descendentes, morado, sobre ejes
+  // ── Ranking ── barras horizontales para conservar nombres legibles
   const top10r = byAsesor.slice(0,10);
   if(chartRanking) chartRanking.destroy();
   chartRanking = new Chart(document.getElementById('chart-ranking').getContext('2d'),{
     type:'bar',
-    data:{labels:top10r.map(r=>OXXO.truncate(r.asesor,12)),
-      datasets:[{data:top10r.map(r=>r.faltante),backgroundColor:top10r.map((r,i)=>i<3?'#7B1FA2':'#C77FDB'),borderRadius:999,borderSkipped:false,barPercentage:.6,categoryPercentage:.82}]},
-    options:{responsive:true,maintainAspectRatio:false,
+    data:{labels:top10r.map(r=>OXXO.truncate(r.asesor,28)),
+      datasets:[{data:top10r.map(r=>r.faltante),backgroundColor:top10r.map((r,i)=>i<3?'#7256A8':'#B9A6D8'),borderRadius:999,borderSkipped:false,barPercentage:.62,categoryPercentage:.84}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>fmt$(c.raw)}}},
       scales:{
-        x:{border:{display:true,color:'#2A1917',width:2},grid:{display:false},ticks:{font:{family:'Barlow',size:9,weight:'800'},color:'#5A4037',maxRotation:0,autoSkip:true}},
-        y:{border:{display:true,color:'#2A1917',width:2},grid:{display:false},ticks:{display:false},beginAtZero:true}
+        x:{border:{display:false},grid:{color:'rgba(101,82,154,.08)',drawTicks:false},ticks:{font:{family:'Barlow',size:10,weight:'700'},color:'#75646e',callback:v=>'$'+OXXO.formatNum(Math.round(v))},beginAtZero:true},
+        y:{border:{display:false},grid:{display:false},ticks:{font:{family:'Barlow',size:11,weight:'800'},color:'#34272a'}}
       }}
   });
   document.getElementById('ranking-badge').textContent = `${byAsesor.length} asesores`;
@@ -526,11 +585,14 @@ function renderAll() {
   if(chartTiendas) chartTiendas.destroy();
   chartTiendas = new Chart(document.getElementById('chart-tiendas').getContext('2d'),{
     type:'bar',
-    data:{labels:top10t.map(([k])=>OXXO.truncate(k,14)),
-      datasets:[{data:top10t.map(([,v])=>v),backgroundColor:'#F07B22',borderColor:'rgba(255,255,255,.68)',borderWidth:1,borderRadius:999,borderSkipped:false,barPercentage:.72,categoryPercentage:.72}]},
-    options:{responsive:true,maintainAspectRatio:false,
+    data:{labels:top10t.map(([k])=>OXXO.truncate(k,28)),
+      datasets:[{data:top10t.map(([,v])=>v),backgroundColor:top10t.map((_,i)=>i<3?'#D92B2B':'#E89A90'),borderWidth:0,borderRadius:999,borderSkipped:false,barPercentage:.62,categoryPercentage:.84}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,callbacks:{label:c=>fmt$(c.raw)}}},
-      scales:{x:{border:{display:false},grid:{display:false},ticks:{font:{family:'Barlow',size:10,weight:'800'},color:'#5A4037'}},y:{border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'},callback:v=>'$'+OXXO.formatNum(Math.round(v))}}}}
+      scales:{
+        x:{border:{display:false},grid:{color:'rgba(217,43,43,.07)',drawTicks:false},ticks:{color:'#75646e',font:{family:'Barlow',size:10,weight:'700'},callback:v=>'$'+OXXO.formatNum(Math.round(v))},beginAtZero:true},
+        y:{border:{display:false},grid:{display:false},ticks:{color:'#34272a',font:{family:'Barlow',size:11,weight:'800'}}}
+      }}
   });
 
   // ── Tabla agrupada ──
