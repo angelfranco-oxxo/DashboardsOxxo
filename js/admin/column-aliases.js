@@ -50,7 +50,7 @@ window.OXXO_ADMIN_COLUMN_ALIASES = {
     'Nombre':['nombre'],'Clasificacion':['clasificacion'],'Tipo':['tipo'],
     'Fecha Captura':['fecha de captura'],'Fecha Inicio':['fecha de inicio'],'Fecha Termino':['fecha de termino'],
     'Dias':['dias'],'Dias Acumulados':['dias acumulados x persona'],
-    'Genero':['genero de nac','genero'],'Fecha Ingreso':['fecha de ingreso'],'Antiguedad':['antiguedad'],
+    'Genero':['genero de nac','genero'],'Fecha Nacimiento':['fecha de nac','fecha de nacimiento','fecha nacimiento'],'Fecha Ingreso':['fecha de ingreso'],'Antiguedad':['antiguedad'],
     'Documento Entregado':['documento entregado'],
     'Mecanismo RT':['mecanismo de rt'],'Especificacion Mecanismo':['especificacion mecanismo'],
     'Area Anatomica':['area anatomica'],'Fecha Accidente':['fecha del accidente'],

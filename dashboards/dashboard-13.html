@@ -136,10 +136,22 @@
 .sem.s-pronto{background:#fff4d6;color:#B8860B}
 .sem.s-ok{background:#e8f8f0;color:#138c3e}
 .sem.s-na{background:#f0f0f0;color:#999}
+.sem.s-fuera i{background:#d63a43}.sem.s-pronto i{background:#e09620}.sem.s-ok i{background:#22a366}.sem.s-na i{background:#aaa}
 .sem-resumen{display:flex;gap:10px;flex-wrap:wrap}
 .sem-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-border);border-radius:12px;padding:7px 12px;background:var(--color-surface)}
 .sem-chip b{font-family:var(--font-display);font-size:1.05rem}
 .sem-chip span{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--color-gray)}
+.sem-chip.is-pronto{border-color:#f0d8a7;background:#fffaf0}.sem-chip.is-pronto b{color:#b67808}
+.sem-chip.is-ok{border-color:#bfe6d0;background:#f1fbf5}.sem-chip.is-ok b{color:#16864c}
+.sem-chip.is-fuera{border-color:#efc5c7;background:#fff5f5}.sem-chip.is-fuera b{color:#bd3037}
+.sem-chip.is-na{border-color:#ddd;background:#f7f7f7}.sem-chip.is-na b{color:#777}
+.seg-persona{display:flex;flex-direction:column;gap:2px;min-width:190px}
+.seg-persona b{max-width:270px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg-persona small,.seg-suc small{color:var(--color-gray);font-size:9px;font-weight:700}
+.seg-suc{display:flex;flex-direction:column;gap:2px;min-width:150px}
+#tabla-seguimiento tbody tr{cursor:pointer}
+#tabla-seguimiento tbody tr:hover{box-shadow:inset 4px 0 0 var(--color-red)}
+@media(max-width:700px){.sem-resumen{width:100%}.sem-chip{flex:1;justify-content:center;min-width:105px}}
 .cmp-var{display:inline-flex;align-items:center;justify-content:center;min-width:62px;padding:4px 8px;border-radius:999px;font-family:var(--font-display);font-size:10px;font-weight:800}
 .cmp-var.is-up{background:#fdeaea;color:#b9272d}
 .cmp-var.is-down{background:#e8f8f0;color:#138c3e}
@@ -343,6 +355,22 @@
 
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
+      <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="17" rx="3"></rect><path d="m9 15 2 2 4-4"></path></svg>Seguimiento de incapacidades<span class="info-tip" tabindex="0" data-tip="Una fila por colaborador, tomando su incapacidad con la fecha de término más reciente. Semáforo: rojo si ya terminó, amarillo si vence en 7 días o menos y verde si tiene más de 7 días vigentes."></span></div>
+      <div class="sem-resumen" id="seguimiento-resumen"></div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl" id="tabla-seguimiento" data-rh-tools data-rh-page-size="15">
+        <thead><tr>
+          <th>Asesor</th><th>SUC</th><th>Nombre del empleado</th><th class="center">Término de incapacidad</th>
+          <th class="center">Fecha de ingreso</th><th class="center">Edad</th><th class="center">Semáforo</th>
+        </tr></thead>
+        <tbody><tr><td colspan="7"><div class="state-box"><div class="spinner"></div></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
       <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Detalle por Folio<span class="info-tip" tabindex="0" data-tip="Un renglón por incapacidad. Clic en una fila para ver la ficha del colaborador con todas sus incapacidades."></span></div>
       <div class="detalle-head-tools">
         <span class="card-badge" id="row-count">— folios</span>
@@ -440,6 +468,7 @@ let REPORT_YEAR = new Date().getFullYear();
 let CUTOFF_MONTH = Math.max(0,new Date().getMonth());
 let SELECTED_ASESORES = null, asesorFilterHandle = null;
 let DETALLE_ASESOR = null, DETALLE_FILAS = [];
+let SEGUIMIENTO_FILAS = [];
 let POR_COLAB = {};
 let chartMeses=null, chartClas=null, chartMec=null, chartArea=null, chartLugar=null, chartTurno=null;
 let CELDA_CALOR = null;   // {asesor, mes} seleccionado en el mapa de calor
@@ -495,6 +524,20 @@ function fechaIso(valor){
 function fechaCorta(valor){
   const iso = fechaIso(valor);
   return iso ? `${iso.slice(8,10)}/${iso.slice(5,7)}/${iso.slice(2,4)}` : '—';
+}
+function semaforoTermino(valor){
+  const iso=fechaIso(valor);
+  if(!iso)return {clase:'s-na',label:'Sin fecha',grupo:'na',dias:null};
+  const [y,m,d]=iso.split('-').map(Number);
+  const fin=new Date(y,m-1,d), hoy=new Date();
+  hoy.setHours(0,0,0,0);
+  const dias=Math.round((fin-hoy)/86400000);
+  if(dias<0)return {clase:'s-fuera',label:`Terminó hace ${Math.abs(dias)} d`,grupo:'fuera',dias};
+  if(dias<=7)return {clase:'s-pronto',label:dias===0?'Termina hoy':`Termina en ${dias} d`,grupo:'pronto',dias};
+  return {clase:'s-ok',label:`Vigente · ${dias} d`,grupo:'ok',dias};
+}
+function semaforoHtml(info){
+  return `<span class="sem ${info.clase}"><i></i>${OXXO.escHtml(info.label)}</span>`;
 }
 function clasHtml(c){
   const k = String(c||'').toUpperCase();
@@ -607,6 +650,7 @@ function renderAll(){
   renderMapaCalor(data);
   renderAsesores(data);
   renderComparativo(data);
+  renderSeguimiento(data);
   renderDetalle(recorteCalor(data));
 }
 
@@ -745,6 +789,42 @@ function renderDetalle(data){
   document.getElementById('row-count').textContent =
     `${filas.length} folios · ${dias.toLocaleString('es-MX')} días${etiqueta}`;
   document.getElementById('detalle-clear').classList.toggle('show', !!(DETALLE_ASESOR || CELDA_CALOR));
+}
+
+function renderSeguimiento(data){
+  const porPersona=new Map();
+  data.forEach(r=>{
+    const key=claveColab(r);
+    const actual=porPersona.get(key);
+    const fin=fechaIso(val(r,C.fFin)), inicio=fechaIso(val(r,C.fIni));
+    const orden=`${fin}|${inicio}`;
+    if(!actual||orden>actual.orden)porPersona.set(key,{r,orden});
+  });
+  const prioridad={pronto:0,ok:1,fuera:2,na:3};
+  SEGUIMIENTO_FILAS=[...porPersona.values()].map(x=>x.r).sort((a,b)=>{
+    const sa=semaforoTermino(val(a,C.fFin)),sb=semaforoTermino(val(b,C.fFin));
+    return (prioridad[sa.grupo]-prioridad[sb.grupo]) || fechaIso(val(b,C.fFin)).localeCompare(fechaIso(val(a,C.fFin))) || val(a,C.nombre).localeCompare(val(b,C.nombre),'es-MX');
+  });
+  const conteo={fuera:0,pronto:0,ok:0,na:0};
+  const cuerpo=SEGUIMIENTO_FILAS.map((r,i)=>{
+    const sem=semaforoTermino(val(r,C.fFin));conteo[sem.grupo]++;
+    const edad=OXXO.metricsNum(r[C.edad]);
+    return `<tr onclick="openSeguimientoModal(${i})" title="Ver ficha del colaborador">
+      <td>${OXXO.escHtml(OXXO.truncate(val(r,C.asesor)||'—',24))}</td>
+      <td><span class="seg-suc"><b>${OXXO.escHtml(OXXO.truncate(val(r,C.tienda)||'—',24))}</b>${val(r,C.cr)?`<small>CR ${OXXO.escHtml(val(r,C.cr))}</small>`:''}</span></td>
+      <td><span class="seg-persona"><b>${OXXO.escHtml(val(r,C.nombre)||'—')}</b>${val(r,C.noEmp)?`<small>N.º ${OXXO.escHtml(val(r,C.noEmp))}</small>`:''}</span></td>
+      <td class="center"><b>${fechaCorta(val(r,C.fFin))}</b></td>
+      <td class="center">${fechaCorta(val(r,C.ingreso))}</td>
+      <td class="center">${edad>0?Math.round(edad):'—'}</td>
+      <td class="center">${semaforoHtml(sem)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tabla-seguimiento').querySelector('tbody').innerHTML=cuerpo||'<tr><td colspan="7"><div class="state-box">Sin datos</div></td></tr>';
+  document.getElementById('seguimiento-resumen').innerHTML=`
+    <span class="sem-chip is-pronto"><b>${conteo.pronto}</b><span>Por vencer</span></span>
+    <span class="sem-chip is-ok"><b>${conteo.ok}</b><span>Vigentes</span></span>
+    <span class="sem-chip is-fuera"><b>${conteo.fuera}</b><span>Terminadas</span></span>
+    ${conteo.na?`<span class="sem-chip is-na"><b>${conteo.na}</b><span>Sin fecha</span></span>`:''}`;
 }
 
 function renderComparativo(data){
@@ -935,8 +1015,9 @@ function syncAsesorSelection(){
 
 // Ficha del colaborador: TODAS sus incapacidades del periodo, no solo la fila
 // que se clico. Es lo que permite ver reincidencia de un vistazo.
-function openColabModal(idx){
-  const r = DETALLE_FILAS[idx];
+function openColabModal(idx){ openColabRecord(DETALLE_FILAS[idx]); }
+function openSeguimientoModal(idx){ openColabRecord(SEGUIMIENTO_FILAS[idx]); }
+function openColabRecord(r){
   if(!r) return;
   const hist = (POR_COLAB[claveColab(r)] || [r]).slice()
     .sort((a,b) => fechaIso(val(b, C.fIni)).localeCompare(fechaIso(val(a, C.fIni))));
@@ -1010,8 +1091,8 @@ function limpiarFiltros(){
 async function initDashboard(){
   OXXO.renderDownloadButton('hero-download','a13');
   let data = await OXXO.fetchSheetData(TAB);
-  if(data === null){ ['kpi-section','tabla-asesor','tabla-detalle'].forEach(id => OXXO.showError(id,'No se pudo conectar.')); return; }
-  if(data.length === 0){ ['kpi-section','tabla-asesor','tabla-detalle'].forEach(id => OXXO.showEmpty(id)); return; }
+  if(data === null){ ['kpi-section','tabla-asesor','tabla-seguimiento','tabla-detalle'].forEach(id => OXXO.showError(id,'No se pudo conectar.')); return; }
+  if(data.length === 0){ ['kpi-section','tabla-asesor','tabla-seguimiento','tabla-detalle'].forEach(id => OXXO.showEmpty(id)); return; }
 
   C = buildColsD13(data[0]);
   PARAMS = data.filter(r => normD13(val(r,C.registro)) === 'RESUMEN');
@@ -1060,6 +1141,7 @@ window.buildExcelSheets = async function(){
     { name: 'KPIs', rows: OXXO.scrapeKpiCards('kpi-section') },
     { name: 'Ausentismo por Asesor', rows: OXXO.scrapeHtmlTable('#tabla-asesor') },
     { name: 'Comparativo 2025 vs 2026', rows: OXXO.scrapeHtmlTable('#tabla-comparativo') },
+    { name: 'Seguimiento', rows: OXXO.scrapeHtmlTable('#tabla-seguimiento') },
     { name: 'Detalle por Folio', rows: OXXO.scrapeHtmlTable('#tabla-detalle') }
   ];
 };

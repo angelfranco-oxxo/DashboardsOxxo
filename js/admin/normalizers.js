@@ -185,7 +185,7 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
     if(!matrix.length)return{rows:[],headers:[],headerRow:0,sourceRows:0,sourceHeaders:[]};
     const headerInfo=findHeaderRow(matrix,dash);
     const sourceHeaders=(matrix[headerInfo.index]||[]).map((value,index)=>String(value||`Columna ${index+1}`).trim());
-    const extractColumns=dash.sourceColumns||dash.output;
+    const extractColumns=dash.sourceColumns||[...dash.output,...(dash.supplementalSourceColumns||[])];
     const matched=matchColumns(buildSourceMap(sourceHeaders),extractColumns);
     const rawRows=matrix.slice(headerInfo.index+1).map(line=>{const row={};extractColumns.forEach(col=>{row[col]=matched[col]!==undefined?(line[matched[col]]??''):'';});return row;}).filter(row=>Object.values(row).some(v=>String(v??'').trim()!==''));
     const filtered=rawRows.map(row=>dash.derive?dash.derive(row):row).filter(row=>!dash.filter||dash.filter(row)).map(row=>{const cleaned={};extractColumns.forEach(col=>{cleaned[col]=row[col]??'';});return cleaned;});
