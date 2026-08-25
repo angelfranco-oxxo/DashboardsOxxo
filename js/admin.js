@@ -133,11 +133,15 @@
   const HIDDEN_FROM_MENU=['d2otras','d2denom','d3plazas'];
   const ADMIN_AREAS={
     rh:{title:'Recursos Humanos',description:'Bases de talento, estructura y operación de tienda.',color:'#f71926',soft:'#fff0ef'},
-    comercial:{title:'Comercial',description:'Administración de campañas y materiales de PromosD100.',color:'#12608f',soft:'#eaf5fb'},
+    comercial:{title:'Comercial',description:'PromosD100 (edición directa en Sheets) y avance de indicadores comerciales.',color:'#12608f',soft:'#eaf5fb'},
     administrativo:{title:'Administrativo',description:'Resultados de Inventario y Faltantes y Sobrantes.',color:'#65529a',soft:'#f1eef9'}
   };
   let currentAdminArea='rh';
-  function dashboardArea(key){return ['s9','inventories'].includes(key)?'administrativo':'rh';}
+  function dashboardArea(key){
+    if(['s9','inventories'].includes(key))return 'administrativo';
+    if(key==='c14')return 'comercial';
+    return 'rh';
+  }
   function areaDashboards(area=currentAdminArea){return dashboards.filter(d=>!HIDDEN_FROM_MENU.includes(d.key)&&dashboardArea(d.key)===area);}
   function fillDashboardSelect(area=currentAdminArea){
     const select=$('dashboard-select'),available=areaDashboards(area);
@@ -162,16 +166,23 @@
     context.style.setProperty('--area-soft',config.soft);
     $('admin-area-title').textContent=config.title;
     $('admin-area-description').textContent=config.description;
-    $('admin-area-count').textContent=isCommercial?'Google Sheets':`${available.length} ${available.length===1?'base':'bases'}`;
-    $('admin-upload-tab-label').textContent=isCommercial?'PromosD100':'Cargar y Publicar Bases';
+    $('admin-area-count').textContent=`${available.length} ${available.length===1?'base':'bases'}`;
+    $('admin-upload-tab-label').textContent='Cargar y Publicar Bases';
     $('tabpanel-upload').dataset.adminArea=area;
     document.querySelectorAll('.admin-tab').forEach(tab=>tab.classList.toggle('hidden',area!=='rh'&&!['upload','calidad','bitacora'].includes(tab.dataset.tab)));
     if(area!=='rh')selectUploadTab();
+    // Comercial tiene dos cosas distintas: PromosD100 (se edita directo en
+    // Sheets, panel informativo fijo) y bases que SI se suben por Excel (ej.
+    // Dashboard 14 - Avance Comercial). El panel de Promos se muestra siempre
+    // que el area sea comercial; el flujo normal de carga se muestra o no
+    // segun si esa area tiene alguna base disponible (antes se ocultaba
+    // siempre que isCommercial, lo que dejaba Dashboard 14 inalcanzable
+    // desde la pestana Comercial).
+    const hasUpload=available.length>0;
     $('admin-commercial-panel').classList.toggle('hidden',!isCommercial);
-    $('admin-upload-workspace').classList.toggle('hidden',isCommercial);
-    $('admin-preview-section').classList.toggle('hidden',isCommercial);
-    ['manual-entry-section','manual-entry-d3-section','manual-entry-d2plan-section'].forEach(id=>{if(isCommercial)$(id)?.classList.add('hidden');});
-    if(isCommercial)return;
+    $('admin-upload-workspace').classList.toggle('hidden',!hasUpload);
+    $('admin-preview-section').classList.toggle('hidden',!hasUpload);
+    if(!hasUpload)return;
     fillDashboardSelect(area);
     autoSelectSheet();
     loadCurrentSheet();
