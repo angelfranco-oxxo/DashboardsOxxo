@@ -283,14 +283,14 @@
   <div class="row2-wide">
     <div class="card">
       <div class="card-head">
-        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Días perdidos por mes<span class="info-tip" tabindex="0" data-tip="Días de incapacidad repartidos en el mes en que caen, no en el mes de captura: una incapacidad que cruza de un mes a otro suma en los dos. Viene de las columnas mensuales del reporte."></span></div>
+        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Días perdidos por mes<span class="info-tip" tabindex="0" data-tip="Días de incapacidad repartidos en el mes en que caen, no en el mes de captura: una incapacidad que cruza de un mes a otro suma en los dos. Viene de las columnas mensuales del reporte. Clic en una clasificación (barra o leyenda) para filtrar todo el dashboard por ese tipo; clic otra vez para quitarlo."></span></div>
         <span class="card-badge" id="badge-meses">—</span>
       </div>
       <div class="chart-wrap chart-lg"><canvas id="chart-meses"></canvas></div>
     </div>
     <div class="card">
       <div class="card-head">
-        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>Por clasificación<span class="info-tip" tabindex="0" data-tip="EG = Enfermedad General · RT = Riesgo de Trabajo · RTY = Riesgo de Trabajo en Trayecto · más Maternidad y Fatalidad."></span></div>
+        <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>Por clasificación<span class="info-tip" tabindex="0" data-tip="EG = Enfermedad General · RT = Riesgo de Trabajo · RTY = Riesgo de Trabajo en Trayecto · más Maternidad y Fatalidad. Clic en una rebanada o en la leyenda para filtrar todo el dashboard por ese tipo; clic otra vez para quitarlo."></span></div>
         <span class="card-badge" id="badge-clas">—</span>
       </div>
       <div class="chart-wrap chart-lg"><canvas id="chart-clas"></canvas></div>
@@ -663,42 +663,71 @@ function renderAll(){
 function renderMeses(data){
   const etiquetas=MESES.slice(0,CUTOFF_MONTH);
   const clases=['EG','RT','RTY','MATERNIDAD'];
+  const filtroActivo = document.getElementById('filtro-clas')?.value || '';
   const series=clases.map(c=>({
     label:CLAS_LARGO[c],
+    codigo:c,
     data:etiquetas.map((_,i)=>data.filter(r=>clasificacionCalculo(r)===c).reduce((s,r)=>s+diasMes(r,i),0)),
     backgroundColor:CLAS_COLOR[c],borderRadius:4,borderSkipped:false,barPercentage:.72
   }));
   const vals=etiquetas.map((_,i)=>series.reduce((s,d)=>s+d.data[i],0));
   const total = vals.reduce((a,b)=>a+b,0);
   const pico = vals.length?vals.indexOf(Math.max(...vals)):-1;
-  document.getElementById('badge-meses').textContent = total ? `corte ${MESES[0]}–${MESES[CUTOFF_MONTH-1]} · pico ${etiquetas[pico]} (${vals[pico]} días)` : 'Sin datos';
+  document.getElementById('badge-meses').textContent = total
+    ? `corte ${MESES[0]}–${MESES[CUTOFF_MONTH-1]} · pico ${etiquetas[pico]} (${vals[pico]} días)${filtroActivo?` · ${CLAS_LARGO[filtroActivo]||filtroActivo}`:''}`
+    : 'Sin datos';
   if(chartMeses) chartMeses.destroy();
   chartMeses = new Chart(document.getElementById('chart-meses').getContext('2d'), {
     type:'bar',
     data:{ labels:etiquetas, datasets:series },
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',font:{family:'Barlow',size:10,weight:'800'}}}, tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw} días`}} },
+      // 'point'+intersect:true es necesario para que el clic resuelva el
+      // SEGMENTO exacto bajo el cursor. El modo por defecto de una barra
+      // ('index') regresa el dataset mas cercano en X sin importar en que
+      // altura (Y) del stack se dio el clic -- en una barra apilada eso
+      // hace que un clic en "Maternidad" (arriba) se atribuya a "EG" (abajo).
+      interaction:{ mode:'point', intersect:true },
+      onClick:(evt, elements, chart) => {
+        const el = elements[0];
+        if(!el) return;
+        toggleClasFiltro(chart.data.datasets[el.datasetIndex]?.codigo);
+      },
+      onHover:(evt, elements) => { if(evt.native?.target) evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
+      plugins:{
+        legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',font:{family:'Barlow',size:10,weight:'800'}}},
+        tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw} días`}} },
       scales:{ x:{stacked:true,border:{display:false},grid:{display:false},ticks:{color:'#5A4037',font:{family:'Barlow',size:11,weight:'800'}}},
                y:{stacked:true,beginAtZero:true,border:{display:false},grid:{color:'rgba(128,63,38,.08)',drawTicks:false},ticks:{color:'#6A5148',font:{family:'Barlow',weight:'800'}}} } },
   });
+  wireLegendClickOnce(chartMeses.canvas, () => chartMeses);
 }
 
 function renderClas(data){
   const cuenta = {};
   casosHastaCorte(data).forEach(r => { const k = clasificacionCalculo(r) || '—'; cuenta[k] = (cuenta[k]||0) + 1; });
   const orden = CLAS.filter(c => cuenta[c]);
-  document.getElementById('badge-clas').textContent = `${orden.length} tipos`;
+  const filtroActivo = document.getElementById('filtro-clas')?.value || '';
+  document.getElementById('badge-clas').textContent = filtroActivo ? (CLAS_LARGO[filtroActivo]||filtroActivo) : `${orden.length} tipos`;
   if(chartClas) chartClas.destroy();
   chartClas = new Chart(document.getElementById('chart-clas').getContext('2d'), {
     type:'doughnut',
     data:{ labels: orden.map(c => CLAS_LARGO[c] || c),
       datasets:[{ data: orden.map(c => cuenta[c]), backgroundColor: orden.map(c => CLAS_COLOR[c]),
+        codigos: orden,
         borderWidth:4, borderColor:'#FFF8EE', borderRadius:8, spacing:3, hoverOffset:6 }] },
     options:{ responsive:true, maintainAspectRatio:false, cutout:'58%',
-      plugins:{ legend:{position:'right',labels:{color:'#5A4037',usePointStyle:true,pointStyle:'circle',font:{family:'Barlow',size:10,weight:'800'},boxWidth:10}},
+      onClick:(evt, elements) => {
+        const el = elements[0];
+        if(!el) return;
+        toggleClasFiltro(orden[el.index]);
+      },
+      onHover:(evt, elements) => { if(evt.native?.target) evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
+      plugins:{
+        legend:{position:'right',labels:{color:'#5A4037',usePointStyle:true,pointStyle:'circle',font:{family:'Barlow',size:10,weight:'800'},boxWidth:10}},
         tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',padding:12,cornerRadius:14,displayColors:false,
           callbacks:{label:c=>` ${c.raw} casos (${Math.round(c.raw/Math.max(1,casosHastaCorte(data).length)*100)}%)`}} } },
   });
+  wireLegendClickOnce(chartClas.canvas, () => chartClas);
 }
 
 function barrasRT(canvasId, actual, filas, key, color){
@@ -1087,6 +1116,56 @@ function closeColabModal(){ document.getElementById('colab-modal').classList.rem
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeColabModal(); });
 
 function applyFilters(){ DETALLE_ASESOR = null; CELDA_CALOR = null; renderAll(); }
+
+// Clic en una barra/rebanada de clasificacion (o en su leyenda) en cualquiera
+// de las dos graficas de arriba: reutiliza el mismo select de filtro que ya
+// filtra todo el dashboard, asi que el resto de la logica (KPIs, mapa de
+// calor, tablas) no necesita saber que el clic vino de un chart. Clic sobre
+// la clasificacion ya activa la quita (mismo patron de alternar que ya usan
+// las filas de asesor, las celdas del mapa de calor y el ranking).
+function toggleClasFiltro(codigo){
+  const sel = document.getElementById('filtro-clas');
+  if(!sel || !codigo) return;
+  sel.value = (sel.value === codigo) ? '' : codigo;
+  // requestAnimationFrame en vez de llamar applyFilters() de inmediato: esta
+  // funcion se dispara DESDE un manejador de clic nativo del propio canvas de
+  // Chart.js, y applyFilters()->renderAll() destruye y reconstruye el chart.
+  // Si eso ocurre de forma sincrona todavia DENTRO del mismo despacho del
+  // evento 'click', el manejador interno de Chart.js para ese mismo clic
+  // puede seguir ejecutandose sobre la instancia que se acaba de destruir,
+  // lanzando "Cannot read properties of undefined (reading 'handleEvent')"
+  // (reproducido en pruebas de estrés; confirmado que desaparece con este
+  // defer). No afecta lo que el usuario ve: el filtro queda correcto en el
+  // mismo frame visual, solo se corre la reconstruccion un tick despues.
+  requestAnimationFrame(applyFilters);
+}
+
+// El clic en la LEYENDA (no en las barras/rebanadas del cuerpo del chart) se
+// resuelve a mano en vez de con plugins.legend.onClick de Chart.js: probado a
+// fondo -- Chart.js SI recibe el clic nativo en el canvas (confirmado con un
+// listener propio) y la leyenda SI reporta el hitbox correcto para ese mismo
+// punto (invocar legend.handleEvent a mano con esas coordenadas funciona),
+// pero en esta pagina, con esta version de Chart.js, su propio enrutamiento
+// interno de clic->leyenda no siempre dispara el onClick configurado. El
+// hit-test manual contra legendHitBoxes SI es fiable, asi que se usa eso.
+// Cada dataset lleva su "codigo" (barra: uno por dataset) o "codigos" (dona:
+// un arreglo, un valor por rebanada) para no depender de closures externos.
+function wireLegendClickOnce(canvas, getChart){
+  if(canvas.dataset.legendClickWired) return;
+  canvas.dataset.legendClickWired = '1';
+  canvas.addEventListener('click', (evt) => {
+    const chart = getChart();
+    if(!chart || !chart.legend) return;
+    const rect = chart.canvas.getBoundingClientRect();
+    const x = evt.clientX - rect.left, y = evt.clientY - rect.top;
+    const idx = (chart.legend.legendHitBoxes || []).findIndex(b => x >= b.left && x <= b.left + b.width && y >= b.top && y <= b.top + b.height);
+    if(idx < 0) return;
+    const item = chart.legend.legendItems[idx];
+    const ds = chart.data.datasets[item.datasetIndex ?? 0];
+    const codigo = ds?.codigos ? ds.codigos[item.index] : ds?.codigo;
+    if(codigo) toggleClasFiltro(codigo);
+  });
+}
 
 function limpiarFiltros(){
   DETALLE_ASESOR = null; CELDA_CALOR = null;
