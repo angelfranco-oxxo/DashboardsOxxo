@@ -83,9 +83,75 @@
 .search-box{display:flex;align-items:center;gap:8px;border:1px solid var(--color-border);border-radius:999px;padding:8px 14px;background:#fff;min-width:220px}
 .search-box input{border:none;outline:none;font:600 12px var(--font-body);color:var(--color-dark);width:100%;background:transparent}
 .search-box svg{width:15px;height:15px;stroke:var(--color-gray);flex:0 0 auto}
+
+/* Renovacion visual: Avance Comercial */
+body.commercial-dashboard{background:linear-gradient(180deg,#edf7fc 0,#f8fbfd 360px,#f7f2ef 100%)}
+.page{max-width:1580px;padding:20px 22px 42px}
+.c14-hero{position:relative;isolation:isolate;overflow:hidden;margin-bottom:22px;padding:34px 36px 28px!important;border:1px solid rgba(255,255,255,.3);border-radius:28px!important;background:linear-gradient(128deg,#073f65 0%,#116f9e 54%,#159fc0 100%)!important;box-shadow:0 24px 54px rgba(7,63,101,.22)!important}
+.c14-hero::before{content:"";position:absolute;z-index:-1;width:340px;height:340px;right:-70px;top:-190px;border:58px solid rgba(255,255,255,.08);border-radius:50%}
+.c14-hero::after{content:"";position:absolute;z-index:-1;right:22%;bottom:-115px;width:230px;height:230px;border-radius:52px;background:rgba(255,255,255,.06);transform:rotate(26deg)}
+.c14-eyebrow{display:block;margin-bottom:8px;color:#ccefff;font-size:10px;font-weight:900;letter-spacing:.17em;text-transform:uppercase}
+.c14-hero h1{font-size:clamp(2.2rem,4vw,3.45rem)!important;letter-spacing:-.025em!important}
+.c14-hero p{max-width:760px;font-size:13.5px!important;line-height:1.55}
+.c14-hero .hero-badge{display:inline-flex!important;align-items:center;gap:8px;padding:9px 15px!important;background:rgba(255,255,255,.13)!important;backdrop-filter:blur(10px)}
+.c14-hero .hero-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:#8de4a8;box-shadow:0 0 0 5px rgba(141,228,168,.14)}
+.c14-hero .vac-filters{position:relative;z-index:2;gap:12px!important;padding:15px!important;border:1px solid rgba(255,255,255,.36)!important;border-radius:20px!important;background:rgba(255,255,255,.93)!important;box-shadow:0 18px 38px rgba(4,46,72,.14)!important;backdrop-filter:blur(14px)}
+.c14-hero .search-box{min-height:46px;border-color:#d8e5eb;box-shadow:0 5px 14px rgba(23,68,91,.04)}
+.c14-hero .search-box:focus-within{border-color:#168db5;box-shadow:0 0 0 4px rgba(22,141,181,.11)}
+.section-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:8px 3px 13px}
+.section-intro__eyebrow{display:block;margin-bottom:4px;color:#13769e;font-size:9px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}
+.section-intro h2{margin:0;font-family:var(--font-display);font-size:1.35rem;color:#201718}
+.section-intro p{max-width:620px;margin:0;color:#786d6b;font-size:11.5px;text-align:right}
+.kpis{gap:13px;margin-bottom:22px}
+.c14-kpi{min-height:168px;border-color:color-mix(in srgb,var(--kpi-accent) 24%,#e5edf0);border-radius:22px;padding:18px 18px 15px;background:linear-gradient(145deg,#fff 5%,var(--kpi-soft) 150%);box-shadow:0 12px 28px rgba(23,54,72,.075)}
+.c14-kpi::before{inset:0 0 auto;width:auto;height:4px}
+.c14-kpi__label{font-size:10.5px;color:#6f6462}
+.c14-kpi__value{margin-top:2px;font-size:2.1rem;letter-spacing:-.02em}
+.c14-kpi__meta{font-size:10.5px}
+.c14-kpi__progress{height:6px;margin:12px 0 7px;overflow:hidden;border-radius:999px;background:rgba(34,42,50,.08)}
+.c14-kpi__progress span{display:block;height:100%;border-radius:inherit;background:var(--kpi-accent);box-shadow:0 0 12px color-mix(in srgb,var(--kpi-accent) 28%,transparent);transition:width .45s ease}
+.c14-kpi__attainment{font-size:9.5px;font-weight:800;color:#756967}
+.c14-kpi__foot{padding-top:9px;font-size:10px}
+.card{border:1px solid rgba(29,75,99,.1);border-radius:22px;padding:20px;background:rgba(255,255,255,.9);box-shadow:0 16px 36px rgba(42,50,58,.075)}
+.card-head{margin-bottom:16px;padding-bottom:14px}
+.card-title-wrap{display:flex;flex-direction:column;gap:2px}
+.card-kicker{color:#13769e;font-size:8px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
+.card-title{font-size:1.08rem}
+.card-badge{padding:6px 11px;border:1px solid #d9e7ed;background:#f3f9fc;color:#23677f}
+.row2-wide{grid-template-columns:minmax(0,1.55fr) minmax(310px,.45fr);gap:16px;margin-bottom:18px}
+.am-wrap{padding:2px;border-radius:14px;background:#f7fafb}
+.am-table{border-spacing:5px;min-width:720px}
+.am-table thead th{padding:7px 6px 9px;color:#6e777b}
+.am-table tbody th{position:sticky;left:0;z-index:1;min-width:190px;padding:0 12px!important;border:1px solid #e3ecef!important;border-radius:9px;background:#fff!important;color:#33434b!important;text-align:left!important;box-shadow:4px 0 12px rgba(38,63,75,.045)}
+.am-cell{height:46px;border:1px solid rgba(255,255,255,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+.am-legend{justify-content:flex-start;padding-left:4px}
+.pr-list{gap:7px}
+.pr-row{grid-template-columns:30px minmax(0,1fr) 54px;padding:10px 11px;border-color:#f3e4e0;border-radius:13px;background:linear-gradient(100deg,#fff8f6,#fff)}
+.pr-pos{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#fae9e5;color:#b63a3f;font-size:11px;font-weight:900}
+.pr-name b{font-size:11.5px}.pr-name small{font-size:9.5px}
+.pr-val{font-size:15px}
+.pr-progress{grid-column:2/4;height:4px;overflow:hidden;border-radius:999px;background:#f0e5e2}
+.pr-progress span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#df3440,#f09755)}
+.detail-card{padding-bottom:14px}
+.tbl-wrap{max-height:none;border:1px solid #e5ecef;border-radius:15px;scrollbar-color:#157da5 rgba(0,0,0,.05)}
+.tbl::-webkit-scrollbar-thumb{background:#157da5}
+.tbl thead th{background:linear-gradient(180deg,#123d56,#0d3045)}
+.tbl tbody tr:nth-child(even){background:#f8fbfc}
+.tbl tbody tr:hover{background:#eaf6fb}
+.tbl tbody td{padding:10px}
+.table-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 2px 0;color:#776c69;font-size:11px}
+.table-pager{display:flex;align-items:center;gap:8px}
+.table-page-btn{min-width:82px;padding:8px 12px;border:1px solid #d5e4ea;border-radius:10px;background:#fff;color:#195f7d;font:800 10px var(--font-body);cursor:pointer;transition:.18s}
+.table-page-btn:hover:not(:disabled){border-color:#258daf;background:#eef8fc}
+.table-page-btn:disabled{cursor:not-allowed;opacity:.42}
+.table-page-current{min-width:84px;text-align:center;font-weight:800;color:#33434b}
+@media(max-width:1100px){.row2-wide{grid-template-columns:1fr}.section-intro{align-items:flex-start;flex-direction:column;gap:3px}.section-intro p{text-align:left}}
+@media(max-width:700px){.page{padding:14px 13px 34px}.c14-hero{padding:27px 20px 22px!important;border-radius:22px!important}.c14-hero h1{font-size:2.25rem!important}.c14-hero .hero-badge{white-space:normal}.c14-hero .vac-filters{padding:12px!important}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.c14-kpi{min-height:154px;padding:15px 14px 13px}.c14-kpi__value{font-size:1.7rem}.card{padding:15px;border-radius:18px}.card-head{align-items:flex-start;gap:8px}.am-wrap,.tbl-wrap{margin-right:-15px}.table-footer{align-items:flex-start;flex-direction:column}.table-pager{width:100%;justify-content:space-between}}
+@media(max-width:420px){.kpis{grid-template-columns:1fr}.section-intro h2{font-size:1.2rem}.c14-kpi{min-height:145px}.table-page-btn{min-width:70px;padding:8px}}
+@media(prefers-reduced-motion:reduce){.c14-kpi,.c14-kpi__progress span,.table-page-btn{transition:none!important}}
 </style>
 </head>
-<body class="hr-dashboard">
+<body class="commercial-dashboard">
 <nav class="topbar">
   <div class="topbar__brand">
     <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
@@ -102,9 +168,10 @@
 
 <div class="page">
 
-  <div class="hero" style="--hero-a:#0D9488;--hero-b:#0B5A52;flex-direction:column;align-items:stretch;gap:18px">
+  <div class="hero c14-hero" style="--hero-a:#0B6F9D;--hero-b:#073F65;flex-direction:column;align-items:stretch;gap:18px">
     <div class="hero-top" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
       <div>
+        <span class="c14-eyebrow">Desempeño comercial · Corte quincenal</span>
         <h1>Avance Comercial</h1>
         <p>SPIN, Premia, Cruzada Andatti, Venta Sugerida, Banner y MEP vs meta · Plaza Oaxaca</p>
       </div>
@@ -127,12 +194,17 @@
 
   <div id="contenido" style="display:none">
 
+    <div class="section-intro">
+      <div><span class="section-intro__eyebrow">Lectura ejecutiva</span><h2>Indicadores frente a meta</h2></div>
+      <p>Promedio de las tiendas visibles y porcentaje de unidades que alcanzan el objetivo.</p>
+    </div>
+
     <div class="kpis" id="kpis"></div>
 
     <div class="row2-wide">
       <div class="card">
         <div class="card-head">
-          <span class="card-title">Avance por asesor e indicador</span>
+          <span class="card-title-wrap"><span class="card-kicker">Comparativo</span><span class="card-title">Avance por asesor e indicador</span></span>
           <span class="card-badge" id="am-badge">—</span>
         </div>
         <div class="am-wrap"><table class="am-table" id="am-table"></table></div>
@@ -144,16 +216,16 @@
       </div>
       <div class="card">
         <div class="card-head">
-          <span class="card-title">Tiendas con menor avance</span>
+          <span class="card-title-wrap"><span class="card-kicker">Prioridad operativa</span><span class="card-title">Tiendas con menor avance</span></span>
           <span class="card-badge" id="pr-badge">—</span>
         </div>
         <div class="pr-list" id="pr-list"></div>
       </div>
     </div>
 
-    <div class="card">
+    <div class="card detail-card">
       <div class="card-head">
-        <span class="card-title">Detalle por tienda</span>
+        <span class="card-title-wrap"><span class="card-kicker">Base consultable</span><span class="card-title">Detalle por tienda</span></span>
         <span class="card-badge" id="tabla-badge">—</span>
       </div>
       <div class="tbl-wrap">
@@ -164,6 +236,14 @@
           </tr></thead>
           <tbody></tbody>
         </table>
+      </div>
+      <div class="table-footer">
+        <span id="table-summary">—</span>
+        <div class="table-pager">
+          <button class="table-page-btn" id="table-prev" type="button" onclick="setTablePage(-1)">← Anterior</button>
+          <span class="table-page-current" id="table-page">Página 1</span>
+          <button class="table-page-btn" id="table-next" type="button" onclick="setTablePage(1)">Siguiente →</button>
+        </div>
       </div>
     </div>
 
@@ -196,6 +276,8 @@ const INDICADORES = [
 let BASE = [];
 let SELECTED_ASESORES = null;
 let asesorFilterHandle = null;
+let TABLE_PAGE = 1;
+const TABLE_PAGE_SIZE = 25;
 
 const esc = (v) => OXXO.escHtml(String(v ?? ''));
 
@@ -276,6 +358,8 @@ function renderKPIs(data){
     const cumplPct = cumplimientoPct(data, ind);
     const auditadas = data.filter(r => Number.isFinite(r[ind.key])).length;
     const status = avg == null ? 'na' : (avg >= ind.meta ? 'ok' : 'bad');
+    const attainment = avg == null ? 0 : Math.max(0, avg / ind.meta * 100);
+    const barWidth = Math.min(100, attainment);
     const footTxt = avg == null ? 'Sin datos con los filtros activos'
       : `${(cumplPct*100).toFixed(0)}% de tiendas cumple`;
     const nota = ind.naNota ? `<div class="c14-kpi__meta">${esc(ind.naNota)} (${auditadas}/${data.length})</div>` : '';
@@ -284,6 +368,8 @@ function renderKPIs(data){
       <div class="c14-kpi__value">${fmtValor(ind, avg)}</div>
       <div class="c14-kpi__meta">Meta: ${fmtValor(ind, ind.meta)}</div>
       ${nota}
+      <div class="c14-kpi__progress"><span style="width:${barWidth.toFixed(1)}%"></span></div>
+      <div class="c14-kpi__attainment">${avg == null ? 'Sin avance calculable' : `${attainment.toFixed(0)}% de la meta`}</div>
       <div class="c14-kpi__foot is-${status}"><i></i>${esc(footTxt)}</div>
     </div>`;
   }).join('');
@@ -335,17 +421,26 @@ function renderPrioridad(data){
       <span class="pr-pos">${i+1}</span>
       <div class="pr-name"><b>${esc(r.tienda)}</b><small>${esc(r.asesor)}</small></div>
       <strong class="pr-val">${Math.round(r.composite*100)}%</strong>
+      <div class="pr-progress"><span style="width:${Math.round(r.composite*100)}%"></span></div>
     </div>`).join('');
 }
 
 function renderTabla(data){
   document.getElementById('tabla-badge').textContent = `${data.length.toLocaleString('es-MX')} tiendas`;
   const body = document.getElementById('tabla-detalle').querySelector('tbody');
+  const totalPages = Math.max(1, Math.ceil(data.length / TABLE_PAGE_SIZE));
+  TABLE_PAGE = Math.min(TABLE_PAGE, totalPages);
+  const start = (TABLE_PAGE - 1) * TABLE_PAGE_SIZE;
+  const pageRows = data.slice(start, start + TABLE_PAGE_SIZE);
   if(!data.length){
     body.innerHTML = '<tr><td colspan="9"><div class="state-box">Sin tiendas con los filtros activos.</div></td></tr>';
+    document.getElementById('table-summary').textContent = 'Sin resultados';
+    document.getElementById('table-page').textContent = 'Página 1 de 1';
+    document.getElementById('table-prev').disabled = true;
+    document.getElementById('table-next').disabled = true;
     return;
   }
-  body.innerHTML = data.map(r => {
+  body.innerHTML = pageRows.map(r => {
     const cells = INDICADORES.map(ind => {
       const v = r[ind.key];
       if(!Number.isFinite(v)) return `<td class="center"><span class="dot"><i class="na"></i>Sin dato</span></td>`;
@@ -354,9 +449,22 @@ function renderTabla(data){
     }).join('');
     return `<tr><td>${esc(OXXO.truncate(r.tienda,26))}</td><td class="center">${esc(r.cr)}</td><td>${esc(OXXO.truncate(r.asesor,24))}</td>${cells}</tr>`;
   }).join('');
+  const end = Math.min(start + TABLE_PAGE_SIZE, data.length);
+  document.getElementById('table-summary').textContent = `Mostrando ${start + 1}–${end} de ${data.length.toLocaleString('es-MX')} tiendas`;
+  document.getElementById('table-page').textContent = `Página ${TABLE_PAGE} de ${totalPages}`;
+  document.getElementById('table-prev').disabled = TABLE_PAGE <= 1;
+  document.getElementById('table-next').disabled = TABLE_PAGE >= totalPages;
 }
 
-function applyFilters(){ renderAll(); }
+function applyFilters(){ TABLE_PAGE = 1; renderAll(); }
+
+function setTablePage(delta){
+  const data = filteredData();
+  const totalPages = Math.max(1, Math.ceil(data.length / TABLE_PAGE_SIZE));
+  TABLE_PAGE = Math.max(1, Math.min(totalPages, TABLE_PAGE + delta));
+  renderTabla(data);
+  document.querySelector('.detail-card')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
 
 function renderAll(){
   const data = filteredData();
@@ -394,7 +502,7 @@ async function initDashboard(){
 
   const asesores = [...new Set(BASE.map(r => r.asesor))].sort((a,b)=>a.localeCompare(b,'es'));
   asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
-    onChange: (sel) => { SELECTED_ASESORES = sel; renderAll(); },
+    onChange: (sel) => { SELECTED_ASESORES = sel; TABLE_PAGE = 1; renderAll(); },
   });
 
   estado.style.display = 'none';
