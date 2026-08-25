@@ -42,7 +42,7 @@
 
 #tabla-asesor tbody tr.is-selected{background:rgba(247,25,38,.14);box-shadow:inset 5px 0 0 var(--color-red),inset 0 0 0 2px rgba(247,25,38,.38)}
 #tabla-asesor tbody tr.is-selected td{font-weight:800}
-.detalle-head-tools{display:flex;align-items:center;flex-wrap:wrap;gap:0}
+.detalle-head-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 .lid-clear{display:none;align-items:center;gap:6px;margin-left:8px;padding:3px 10px;border:1px solid var(--color-red);border-radius:20px;background:var(--color-surface);color:var(--color-red);font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:.02em;cursor:pointer}
 .lid-clear.show{display:inline-flex}
 .lid-clear:hover{background:var(--color-red);color:#fff}
@@ -133,6 +133,8 @@
 /* Mapa de calor: asesor x mes */
 .hm-wrap{display:flex;gap:24px;align-items:flex-start;flex-wrap:nowrap}
 .hm-scroll{flex:1 1 auto;min-width:0;overflow-x:auto}
+.hm-wrap.is-single{justify-content:center}
+.hm-wrap.is-single .hm-scroll{flex:0 1 680px}
 .hm-table{border-collapse:separate;border-spacing:5px;font-size:12px;width:100%}
 #mapa-calor .hm-table th,#mapa-calor .hm-table td{
   text-align:center;padding:0;border:none!important;box-shadow:none!important;position:static!important}
@@ -153,6 +155,7 @@
 .hm-legend__t{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-gray)}
 .hm-legend__i{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--color-dark);font-weight:600}
 .hm-legend__s{width:20px;height:20px;border-radius:6px;flex:0 0 auto}
+.hm-month-select{min-width:150px;border:1px solid var(--color-border);border-radius:999px;background:#fff;padding:7px 30px 7px 12px;color:var(--color-text);font:800 10px var(--font-body);text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
 @media(max-width:900px){.hm-wrap{flex-wrap:wrap}.hm-legend{flex-direction:row;padding-top:0}}
 .cm-rt-nota{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--color-red);margin-bottom:6px}
 .cm-rt-desc{margin:0;font-size:12px;line-height:1.5;color:var(--color-dark);background:var(--color-bg);border-radius:10px;padding:10px 12px}
@@ -282,7 +285,10 @@
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
       <div class="card-title"><svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path><path d="M3 9h18"></path></svg>Días perdidos por asesor y mes<span class="info-tip" tabindex="0" data-tip="Cada celda son los días de incapacidad de ese asesor en ese mes. Entre más intenso el color, más días. Clic en una celda para filtrar el detalle de abajo; clic otra vez para quitarlo."></span></div>
-      <span class="card-badge" id="hm-badge">—</span>
+      <div class="detalle-head-tools">
+        <select class="hm-month-select" id="filtro-mes-calor" onchange="cambiarMesCalor(this.value)" aria-label="Mes del mapa de calor"></select>
+        <span class="card-badge" id="hm-badge">—</span>
+      </div>
     </div>
     <div id="mapa-calor"></div>
   </div>
@@ -410,6 +416,7 @@ let DETALLE_ASESOR = null, DETALLE_FILAS = [];
 let POR_COLAB = {};
 let chartMeses=null, chartClas=null, chartMec=null, chartArea=null, chartLugar=null, chartTurno=null;
 let CELDA_CALOR = null;   // {asesor, mes} seleccionado en el mapa de calor
+let MES_CALOR = '';
 
 const val = (r,k) => String(r?.[k] ?? '').trim();
 const nDias = (r) => { const n = OXXO.metricsNum(r[C.dias]); return Number.isFinite(n) ? n : 0; };
@@ -755,7 +762,8 @@ function colorCalor(razon){
 
 function renderMapaCalor(data){
   const cont = document.getElementById('mapa-calor');
-  const mesesVisibles=MESES.slice(0,CUTOFF_MONTH);
+  const mesesCorte=MESES.slice(0,CUTOFF_MONTH);
+  const mesesVisibles=MES_CALOR&&mesesCorte.includes(MES_CALOR)?[MES_CALOR]:mesesCorte;
   const asesores = [...new Set(data.map(r => val(r, C.asesor) || 'Sin Asesor Asignado'))];
   const matriz = {}, totalPorAsesor = {};
   asesores.forEach(a => { matriz[a] = {}; mesesVisibles.forEach(m => { matriz[a][m] = 0; }); totalPorAsesor[a] = 0; });
@@ -776,7 +784,7 @@ function renderMapaCalor(data){
   orden.forEach(a => mesesVisibles.forEach(m => { max = Math.max(max, matriz[a][m]); }));
   document.getElementById('hm-badge').textContent = CELDA_CALOR
     ? `${OXXO.truncate(CELDA_CALOR.asesor,18)} · ${CELDA_CALOR.mes}`
-    : `${orden.length} asesores · máx ${max} días`;
+    : `${MES_CALOR||`${MESES[0]}–${MESES[CUTOFF_MONTH-1]}`} · ${orden.length} asesores · máx ${max} días`;
 
   const encabezado = mesesVisibles.map(m => `<th>${m}</th>`).join('');
   const cuerpo = orden.map(a => mesesVisibles.map(m => {
@@ -789,7 +797,7 @@ function renderMapaCalor(data){
   ).map((celdas,i) => `<tr><th title="${OXXO.escHtml(orden[i])}">${OXXO.escHtml(OXXO.truncate(orden[i],24))}</th>${celdas}</tr>`).join('');
 
   cont.innerHTML = `
-    <div class="hm-wrap">
+    <div class="hm-wrap${MES_CALOR?' is-single':''}">
       <div class="hm-scroll">
         <table class="hm-table">
           <thead><tr><th class="hm-esquina"></th>${encabezado}</tr></thead>
@@ -817,6 +825,14 @@ function renderMapaCalor(data){
       }
     });
   });
+}
+
+function cambiarMesCalor(mes){
+  MES_CALOR=MESES.includes(mes)?mes:'';
+  CELDA_CALOR=null;
+  DETALLE_ASESOR=null;
+  renderMapaCalor(filteredData());
+  renderDetalle(filteredData());
 }
 
 // Recorte extra que aplica SOLO a la tabla de detalle: la celda elegida en el
@@ -965,6 +981,12 @@ async function initDashboard(){
   const selP = document.getElementById('filtro-puesto');
   [...new Set(BASE.map(r => val(r, C.puesto)).filter(Boolean))].sort()
       .forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; selP.appendChild(o); });
+
+  const selMesCalor=document.getElementById('filtro-mes-calor');
+  const mesesCorte=MESES.slice(0,CUTOFF_MONTH);
+  selMesCalor.innerHTML='<option value="">Todo el periodo</option>'+mesesCorte.map(m=>`<option value="${m}">${m}</option>`).join('');
+  MES_CALOR=mesesCorte[mesesCorte.length-1]||'';
+  selMesCalor.value=MES_CALOR;
 
   renderAll();
   OXXO.updateFooterTime('load-time');
