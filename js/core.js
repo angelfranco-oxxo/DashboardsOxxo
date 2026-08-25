@@ -1699,7 +1699,24 @@ function metricsVal(row, key, fallback = '') {
 // tratando la coma como separador de miles porque trae 3+ digitos despues.
 function metricsNum(v) {
   const raw = String(v ?? '').replace(/[$%]/g, '').trim();
-  const asDecimal = /^-?\d+,\d{1,2}$/.test(raw) ? raw.replace(',', '.') : raw.replace(/,/g, '');
+  const comma = raw.lastIndexOf(',');
+  const dot = raw.lastIndexOf('.');
+  let asDecimal = raw;
+  if (comma >= 0 && dot >= 0) {
+    // Cuando aparecen ambos separadores, el ultimo es el decimal:
+    // 1.234,56 (es-MX) y 1,234.56 (en-US) representan el mismo valor.
+    asDecimal = comma > dot
+      ? raw.replace(/\./g, '').replace(',', '.')
+      : raw.replace(/,/g, '');
+  } else if (comma >= 0) {
+    const parts = raw.split(',');
+    const decimals = parts[parts.length - 1].length;
+    // Google gviz devuelve indicadores calculados con muchos decimales
+    // usando coma: "2,234592627". Una sola coma con 1-2 O 4+ digitos
+    // decimales es decimal; exactamente 3 se conserva como miles (12,345).
+    const commaIsDecimal = parts.length === 2 && (decimals <= 2 || decimals >= 4);
+    asDecimal = commaIsDecimal ? raw.replace(',', '.') : raw.replace(/,/g, '');
+  }
   const n = Number(asDecimal);
   return Number.isFinite(n) ? n : 0;
 }
