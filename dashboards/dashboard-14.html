@@ -215,6 +215,15 @@ function numOrNull(raw){
   return Number.isFinite(n) ? n : null;
 }
 
+// Google Sheets puede entregar los porcentajes como fraccion (0.3894) o como
+// valor porcentual (38.94), segun el formato de la celda y la via de carga.
+// Internamente usamos siempre fracciones para compararlas con las metas.
+function indicadorOrNull(ind, raw){
+  const n = numOrNull(raw);
+  if(n == null || ind.tipo !== 'pct') return n;
+  return Math.abs(n) > 1 ? n / 100 : n;
+}
+
 function fmtValor(ind, value){
   if(value == null || !Number.isFinite(value)) return '—';
   if(ind.tipo === 'pct') return `${(value*100).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1})}%`;
@@ -372,12 +381,12 @@ async function initDashboard(){
       tienda: String(r[C.tienda] ?? '').trim(),
       cr: String(r[C.cr] ?? '').trim(),
       asesor: String(r[C.asesor] ?? '').trim() || 'Sin Asesor Asignado',
-      spin: numOrNull(r[C.spin]),
-      premia: numOrNull(r[C.premia]),
-      cruzada: numOrNull(r[C.cruzada]),
-      ventaSug: numOrNull(r[C.ventaSug]),
-      banner: numOrNull(r[C.banner]),
-      mep: numOrNull(r[C.mep]),
+      spin: indicadorOrNull(INDICADORES[0], r[C.spin]),
+      premia: indicadorOrNull(INDICADORES[1], r[C.premia]),
+      cruzada: indicadorOrNull(INDICADORES[2], r[C.cruzada]),
+      ventaSug: indicadorOrNull(INDICADORES[3], r[C.ventaSug]),
+      banner: indicadorOrNull(INDICADORES[4], r[C.banner]),
+      mep: indicadorOrNull(INDICADORES[5], r[C.mep]),
     }))
     .filter(r => r.tienda);
 
