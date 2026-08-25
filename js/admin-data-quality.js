@@ -33,6 +33,7 @@
     { area: 'Administrativo', name: 'Faltantes y Sobrantes', tab: tabs().s9, cadence: 'weekly', required: [['cr'], ['fecha'], ['importe']], dates: ['Fecha'] },
     { area: 'Administrativo', name: 'Inventarios', tab: tabs().inventories, cadence: 'monthly', required: [['cr'], ['tienda'], ['fecha de inventario']], dates: ['Fecha de Inventario', 'Periodo'] },
     { area: 'Comercial', name: 'PromosD100', tab: tabs().promos, cadence: 'snapshot', required: [['titulo', 'promocion'], ['imagen', 'imagen url', 'url']], dates: ['Fecha fin', 'Fin', 'Vigencia hasta'] },
+    { area: 'Comercial', name: 'Avance Comercial', tab: tabs().c14, cadence: 'snapshot', required: [['tienda'], ['asesor'], ['spin']] },
   ].filter((source) => source.tab);
 
   function headerMap(row) {

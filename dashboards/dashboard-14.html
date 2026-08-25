@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <script>(function(){try{if(localStorage.getItem('oxxo_site_unlocked')!=='1')document.documentElement.classList.add('oxxo-locked');}catch(e){}})();</script>
+  <style>html.oxxo-locked{background:#2D0B0C}html.oxxo-locked body>*{visibility:hidden!important}#oxxo-lock-overlay{visibility:visible!important}</style>
+  <script defer src="../js/site-lock.js?v=20260825a"></script>
+  <meta charset="UTF-8"/>
+  <meta name="robots" content="noindex, nofollow"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Avance Comercial · Dashboards Ats</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <link rel="icon" type="image/png" href="../assets/favicon.png"/>
+  <link rel="apple-touch-icon" href="../assets/favicon.png"/>
+  <link rel="stylesheet" href="../css/global.css?v=20260820f"/>
+  <link rel="stylesheet" href="../css/mascota-chat.css?v=20260818a" />
+  <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final"/>
+  <link rel="stylesheet" href="../css/floating-filter-layout.css?v=2" />
+<style>
+.page{max-width:1500px;margin:0 auto;padding:18px 20px 36px}
+.hero-download-link{text-decoration:none !important;cursor:pointer}
+
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+.card{background:var(--color-surface);border-radius:14px;padding:20px;box-shadow:var(--shadow-card)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-border)}
+.card-title{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--color-dark)}
+.card-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--color-bg);color:var(--color-gray)}
+.row2-wide{display:grid;grid-template-columns:1.4fr .6fr;gap:14px;margin-bottom:16px}
+
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px 20px;color:var(--color-gray);text-align:center}
+.spinner{width:32px;height:32px;border:3px solid var(--color-border);border-top-color:var(--color-yellow);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* KPI por indicador */
+.c14-kpi{--kpi-accent:#0D9488;--kpi-soft:#e9f7f5;position:relative;display:flex;min-height:150px;flex-direction:column;overflow:hidden;border:1px solid color-mix(in srgb,var(--kpi-accent) 20%,#fff);border-radius:20px;background:linear-gradient(145deg,#fff 10%,var(--kpi-soft) 145%);padding:16px 17px 14px;box-shadow:0 12px 28px rgba(31,41,55,.06);transition:transform .2s,box-shadow .2s}
+.c14-kpi:hover{transform:translateY(-2px);box-shadow:0 17px 34px rgba(31,41,55,.1)}
+.c14-kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:linear-gradient(180deg,var(--kpi-accent),color-mix(in srgb,var(--kpi-accent) 45%,#fff))}
+.c14-kpi__label{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin-bottom:6px}
+.c14-kpi__value{font-family:var(--font-display);font-size:1.9rem;font-weight:800;color:#111827;line-height:1}
+.c14-kpi__meta{font-size:10.5px;color:#6b7280;margin-top:2px}
+.c14-kpi__foot{display:flex;align-items:center;gap:7px;margin-top:auto;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--kpi-accent) 14%,transparent);font-size:10.5px;font-weight:800}
+.c14-kpi__foot.is-ok{color:#0f7a37}.c14-kpi__foot.is-bad{color:#C0393B}.c14-kpi__foot.is-na{color:#8a8a8a}
+.c14-kpi__foot i{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.c14-kpi__foot.is-ok i{background:#1DB954}.c14-kpi__foot.is-bad i{background:#D92B2B}.c14-kpi__foot.is-na i{background:#c7c7c7}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.row2-wide{grid-template-columns:1fr}}
+@media(max-width:600px){.kpis{grid-template-columns:repeat(2,1fr)}}
+
+/* Mapa de avance: asesor x indicador */
+.am-wrap{overflow-x:auto}
+.am-table{border-collapse:separate;border-spacing:5px;font-size:12px;width:100%;min-width:640px}
+.am-table thead th{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--color-gray);padding:0 4px 8px;text-align:center}
+.am-table thead th:first-child{text-align:left}
+.am-table tbody th{font-size:11px;font-weight:700;color:var(--color-dark);text-align:right;padding-right:10px;white-space:nowrap}
+.am-cell{height:44px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:12px;color:#1f2937;line-height:1.15}
+.am-cell.is-empty{background:var(--color-bg);color:#c9bfbe;font-weight:600}
+.am-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;justify-content:center}
+.am-legend__i{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-dark);font-weight:600}
+.am-legend__s{width:14px;height:14px;border-radius:4px;flex:0 0 auto}
+
+/* Prioridad: tiendas con menor avance */
+.pr-list{display:flex;flex-direction:column;gap:8px}
+.pr-row{display:grid;grid-template-columns:24px minmax(0,1fr) 70px;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:#fff8f6;border:1px solid transparent}
+.pr-row:hover{border-color:#f4b7b2}
+.pr-pos{font-family:var(--font-display);font-size:11px;color:var(--color-gray);text-align:center}
+.pr-name{min-width:0}
+.pr-name b{display:block;font-size:12px;color:var(--color-dark);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pr-name small{color:var(--color-gray);font-size:10px}
+.pr-val{font-family:var(--font-display);font-size:14px;text-align:right;color:#C0393B}
+
+/* Tabla de detalle */
+.tbl-wrap{overflow-x:auto;max-height:520px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#0D9488 rgba(0,0,0,.06)}
+.tbl-wrap::-webkit-scrollbar{width:5px;height:5px}
+.tbl-wrap::-webkit-scrollbar-thumb{background:#0D9488;border-radius:3px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl thead th{position:sticky;top:0;z-index:2;background:#2D2D44;color:#fff;padding:9px 10px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;border-right:1px solid rgba(255,255,255,.1)}
+.tbl thead th:first-child,.tbl thead th:nth-child(2),.tbl thead th:nth-child(3){text-align:left}
+.tbl thead th:last-child{border-right:none}
+.tbl tbody tr{border-bottom:1px solid var(--color-border)}
+.tbl tbody tr:hover{background:var(--color-bg)}
+.tbl tbody td{padding:8px 10px;color:var(--color-dark);vertical-align:middle}
+.tbl td.center{text-align:center;white-space:nowrap}
+.tbl .dot{display:inline-flex;align-items:center;gap:6px}
+.tbl .dot i{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.tbl .dot i.ok{background:#1DB954}.tbl .dot i.bad{background:#D92B2B}.tbl .dot i.na{background:#c7c7c7}
+.search-box{display:flex;align-items:center;gap:8px;border:1px solid var(--color-border);border-radius:999px;padding:8px 14px;background:#fff;min-width:220px}
+.search-box input{border:none;outline:none;font:600 12px var(--font-body);color:var(--color-dark);width:100%;background:transparent}
+.search-box svg{width:15px;height:15px;stroke:var(--color-gray);flex:0 0 auto}
+</style>
+</head>
+<body class="hr-dashboard">
+<nav class="topbar">
+  <div class="topbar__brand">
+    <div class="topbar__logo"><img src="../assets/oxxo-logo-original.png" alt="OXXO"></div>
+    <div>
+      <div class="topbar__title">Dashboards Ats</div>
+      <div class="topbar__subtitle">Plaza Oaxaca-ByPamsb</div>
+    </div>
+  </div>
+  <div class="topbar__meta">
+    <a href="../index.html" class="topbar__back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Inicio</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="hero" style="--hero-a:#0D9488;--hero-b:#0B5A52;flex-direction:column;align-items:stretch;gap:18px">
+    <div class="hero-top" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <h1>Avance Comercial</h1>
+        <p>SPIN, Premia, Cruzada Andatti, Venta Sugerida, Banner y MEP vs meta · Plaza Oaxaca</p>
+      </div>
+      <span class="hero-badge" id="hero-badge">⟳ Avance Comercial · Plaza Oaxaca</span>
+      <span id="hero-download" style="display:none"></span>
+    </div>
+    <div class="vac-filters">
+      <div class="vac-fbox"><label>Asesor</label><div id="filtro-asesor"></div></div>
+      <div class="vac-fbox">
+        <label>Tienda</label>
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="search" id="filtro-tienda" placeholder="Buscar tienda..." oninput="applyFilters()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="estado-carga" class="state-box"><div class="spinner"></div><span>Cargando indicadores…</span></div>
+
+  <div id="contenido" style="display:none">
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="row2-wide">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Avance por asesor e indicador</span>
+          <span class="card-badge" id="am-badge">—</span>
+        </div>
+        <div class="am-wrap"><table class="am-table" id="am-table"></table></div>
+        <div class="am-legend">
+          <div class="am-legend__i"><span class="am-legend__s" style="background:#c0181f"></span>Muy por debajo</div>
+          <div class="am-legend__i"><span class="am-legend__s" style="background:#e6a819"></span>Cerca de la meta</div>
+          <div class="am-legend__i"><span class="am-legend__s" style="background:#0f9653"></span>Cumple o supera</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Tiendas con menor avance</span>
+          <span class="card-badge" id="pr-badge">—</span>
+        </div>
+        <div class="pr-list" id="pr-list"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Detalle por tienda</span>
+        <span class="card-badge" id="tabla-badge">—</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl" id="tabla-detalle">
+          <thead><tr>
+            <th>Tienda</th><th>CR</th><th>Asesor</th>
+            <th>SPIN</th><th>Premia</th><th>Cruzada Andatti</th><th>Venta Sugerida</th><th>Banner</th><th>MEP</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/core.js"></script>
+<script>
+const TAB = OXXO.SHEETS_CONFIG.TABS.c14;
+const ALIASES_C14 = {
+  tienda:['tienda'], cr:['cr'], asesor:['asesor','at'],
+  spin:['spin','spin by oxxo'], premia:['premia','spin premia'],
+  cruzada:['cruzada andatti','cruzada'], ventaSug:['venta sugerida'],
+  banner:['banner'], mep:['mep']
+};
+
+// Metas fijas del corte de agosto 2026 (hoja "bd" del Excel de origen, fila
+// META). No se publican por fila porque son constantes de negocio, no datos
+// por tienda: si cambian, se actualizan aqui.
+const INDICADORES = [
+  {key:'spin',    label:'SPIN',            tipo:'num', meta:10.9,  color:'#0D9488'},
+  {key:'premia',  label:'Premia',          tipo:'pct', meta:0.406, color:'#F2A52B'},
+  {key:'cruzada', label:'Cruzada Andatti', tipo:'num', meta:42,    color:'#8B4CF7'},
+  {key:'ventaSug',label:'Venta Sugerida',  tipo:'pct', meta:0.85,  color:'#12608F'},
+  {key:'banner',  label:'Banner',          tipo:'pct', meta:0.85,  color:'#0E9F6E'},
+  {key:'mep',     label:'MEP',             tipo:'pct', meta:0.95,  color:'#F71926', naNota:'Solo tiendas auditadas este corte'},
+];
+
+let BASE = [];
+let SELECTED_ASESORES = null;
+let asesorFilterHandle = null;
+
+const esc = (v) => OXXO.escHtml(String(v ?? ''));
+
+function buildColsC14(sample){
+  const cols = {};
+  Object.entries(ALIASES_C14).forEach(([k,a]) => { cols[k] = OXXO.metricsFindKey(sample, a); });
+  return cols;
+}
+
+// 'na' (o vacio) significa "sin dato este corte" -- NO es 0. Se distingue del
+// 0 real leyendo el texto crudo antes de convertir a numero, para que MEP (la
+// mayoria de tiendas sin auditar) no se cuente como incumplimiento.
+function numOrNull(raw){
+  const text = String(raw ?? '').trim().toLowerCase();
+  if(!text || text === 'na' || text === 'n/a' || text === '-') return null;
+  const n = OXXO.metricsNum(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function fmtValor(ind, value){
+  if(value == null || !Number.isFinite(value)) return '—';
+  if(ind.tipo === 'pct') return `${(value*100).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1})}%`;
+  return value.toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
+}
+
+function promedio(rows, key){
+  const vals = rows.map(r => r[key]).filter(v => Number.isFinite(v));
+  if(!vals.length) return null;
+  return vals.reduce((a,b) => a+b, 0) / vals.length;
+}
+
+function cumplimientoPct(rows, ind){
+  const vals = rows.map(r => r[ind.key]).filter(v => Number.isFinite(v));
+  if(!vals.length) return null;
+  return vals.filter(v => v >= ind.meta).length / vals.length;
+}
+
+// Rampa semaforo (rojo->amarillo->verde) sobre la razon valor/meta. A
+// diferencia del mapa de calor del Dashboard 13 (donde MAS es peor), aqui MAS
+// es mejor: verde = cumple o supera la meta.
+function colorAvance(ratio){
+  if(ratio == null) return '#f0efee';
+  const r = Math.max(0, Math.min(1.3, ratio));
+  const stops = [[0,[192,24,31]],[0.85,[230,168,25]],[1,[15,150,83]],[1.3,[15,150,83]]];
+  for(let i=0;i<stops.length-1;i++){
+    const [t0,c0] = stops[i], [t1,c1] = stops[i+1];
+    if(r>=t0 && r<=t1){
+      const t = t1===t0 ? 0 : (r-t0)/(t1-t0);
+      return `rgb(${Math.round(c0[0]+(c1[0]-c0[0])*t)},${Math.round(c0[1]+(c1[1]-c0[1])*t)},${Math.round(c0[2]+(c1[2]-c0[2])*t)})`;
+    }
+  }
+  return '#0f9653';
+}
+
+function filteredData(){
+  const asesorSet = SELECTED_ASESORES ? new Set(SELECTED_ASESORES) : null;
+  const q = (document.getElementById('filtro-tienda')?.value || '').trim().toLowerCase();
+  return BASE.filter(r => {
+    if(asesorSet && !asesorSet.has(r.asesor)) return false;
+    if(q && !r.tienda.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function renderKPIs(data){
+  const cont = document.getElementById('kpis');
+  cont.innerHTML = INDICADORES.map(ind => {
+    const avg = promedio(data, ind.key);
+    const cumplPct = cumplimientoPct(data, ind);
+    const auditadas = data.filter(r => Number.isFinite(r[ind.key])).length;
+    const status = avg == null ? 'na' : (avg >= ind.meta ? 'ok' : 'bad');
+    const footTxt = avg == null ? 'Sin datos con los filtros activos'
+      : `${(cumplPct*100).toFixed(0)}% de tiendas cumple`;
+    const nota = ind.naNota ? `<div class="c14-kpi__meta">${esc(ind.naNota)} (${auditadas}/${data.length})</div>` : '';
+    return `<div class="c14-kpi" style="--kpi-accent:${ind.color};--kpi-soft:color-mix(in srgb,${ind.color} 10%,#fff)">
+      <div class="c14-kpi__label">${esc(ind.label)}</div>
+      <div class="c14-kpi__value">${fmtValor(ind, avg)}</div>
+      <div class="c14-kpi__meta">Meta: ${fmtValor(ind, ind.meta)}</div>
+      ${nota}
+      <div class="c14-kpi__foot is-${status}"><i></i>${esc(footTxt)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderMapaAvance(data){
+  const asesores = [...new Set(data.map(r => r.asesor))].sort((a,b) => a.localeCompare(b,'es'));
+  const badge = document.getElementById('am-badge');
+  if(!asesores.length){
+    document.getElementById('am-table').innerHTML = '';
+    badge.textContent = '—';
+    return;
+  }
+  badge.textContent = `${asesores.length} ${asesores.length===1?'asesor':'asesores'}`;
+  const head = `<thead><tr><th>Asesor</th>${INDICADORES.map(i=>`<th>${esc(i.label)}</th>`).join('')}</tr></thead>`;
+  const body = asesores.map(a => {
+    const rows = data.filter(r => r.asesor === a);
+    const cells = INDICADORES.map(ind => {
+      const avg = promedio(rows, ind.key);
+      const ratio = avg == null ? null : avg/ind.meta;
+      const bg = colorAvance(ratio);
+      const cls = avg == null ? ' is-empty' : '';
+      return `<td><div class="am-cell${cls}" style="background:${bg}" title="${esc(a)} · ${esc(ind.label)}: ${fmtValor(ind,avg)} (meta ${fmtValor(ind,ind.meta)})">${fmtValor(ind, avg)}</div></td>`;
+    }).join('');
+    return `<tr><th title="${esc(a)}">${esc(OXXO.truncate(a,22))}</th>${cells}</tr>`;
+  }).join('');
+  document.getElementById('am-table').innerHTML = head + `<tbody>${body}</tbody>`;
+}
+
+function renderPrioridad(data){
+  // Razon compuesta: promedio de (valor/meta) sobre los indicadores con dato
+  // en esa tienda, tope 1 (superar la meta no compensa quedar mal en otro
+  // indicador). Las 8 tiendas con la razon mas baja son las que necesitan
+  // atencion primero.
+  const conRazon = data.map(r => {
+    const ratios = INDICADORES.map(ind => Number.isFinite(r[ind.key]) ? Math.min(1, r[ind.key]/ind.meta) : null).filter(v => v!=null);
+    if(!ratios.length) return null;
+    const composite = ratios.reduce((a,b)=>a+b,0)/ratios.length;
+    return {...r, composite};
+  }).filter(Boolean).sort((a,b) => a.composite - b.composite).slice(0,8);
+
+  document.getElementById('pr-badge').textContent = data.length ? `${data.length} tiendas` : '—';
+  const list = document.getElementById('pr-list');
+  if(!conRazon.length){
+    list.innerHTML = '<div class="state-box">Sin datos con los filtros activos.</div>';
+    return;
+  }
+  list.innerHTML = conRazon.map((r,i) => `<div class="pr-row">
+      <span class="pr-pos">${i+1}</span>
+      <div class="pr-name"><b>${esc(r.tienda)}</b><small>${esc(r.asesor)}</small></div>
+      <strong class="pr-val">${Math.round(r.composite*100)}%</strong>
+    </div>`).join('');
+}
+
+function renderTabla(data){
+  document.getElementById('tabla-badge').textContent = `${data.length.toLocaleString('es-MX')} tiendas`;
+  const body = document.getElementById('tabla-detalle').querySelector('tbody');
+  if(!data.length){
+    body.innerHTML = '<tr><td colspan="9"><div class="state-box">Sin tiendas con los filtros activos.</div></td></tr>';
+    return;
+  }
+  body.innerHTML = data.map(r => {
+    const cells = INDICADORES.map(ind => {
+      const v = r[ind.key];
+      if(!Number.isFinite(v)) return `<td class="center"><span class="dot"><i class="na"></i>Sin dato</span></td>`;
+      const cls = v >= ind.meta ? 'ok' : 'bad';
+      return `<td class="center"><span class="dot"><i class="${cls}"></i>${fmtValor(ind,v)}</span></td>`;
+    }).join('');
+    return `<tr><td>${esc(OXXO.truncate(r.tienda,26))}</td><td class="center">${esc(r.cr)}</td><td>${esc(OXXO.truncate(r.asesor,24))}</td>${cells}</tr>`;
+  }).join('');
+}
+
+function applyFilters(){ renderAll(); }
+
+function renderAll(){
+  const data = filteredData();
+  renderKPIs(data);
+  renderMapaAvance(data);
+  renderPrioridad(data);
+  renderTabla(data);
+  document.getElementById('hero-badge').textContent = `⟳ ${BASE.length} tiendas · corte quincenal`;
+}
+
+async function initDashboard(){
+  OXXO.renderDownloadButton('hero-download','c14');
+  const data = await OXXO.fetchSheetData(TAB);
+  const estado = document.getElementById('estado-carga');
+  const contenido = document.getElementById('contenido');
+  if(data === null){ estado.innerHTML = '<span>No se pudo conectar con la fuente de datos.</span>'; return; }
+  if(!data.length){ estado.innerHTML = '<span>Aun no hay datos publicados para este dashboard.</span>'; return; }
+
+  const C = buildColsC14(data[0]);
+  BASE = data
+    .map(r => ({
+      tienda: String(r[C.tienda] ?? '').trim(),
+      cr: String(r[C.cr] ?? '').trim(),
+      asesor: String(r[C.asesor] ?? '').trim() || 'Sin Asesor Asignado',
+      spin: numOrNull(r[C.spin]),
+      premia: numOrNull(r[C.premia]),
+      cruzada: numOrNull(r[C.cruzada]),
+      ventaSug: numOrNull(r[C.ventaSug]),
+      banner: numOrNull(r[C.banner]),
+      mep: numOrNull(r[C.mep]),
+    }))
+    .filter(r => r.tienda);
+
+  if(!BASE.length){ estado.innerHTML = '<span>Aun no hay datos publicados para este dashboard.</span>'; return; }
+
+  const asesores = [...new Set(BASE.map(r => r.asesor))].sort((a,b)=>a.localeCompare(b,'es'));
+  asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
+    onChange: (sel) => { SELECTED_ASESORES = sel; renderAll(); },
+  });
+
+  estado.style.display = 'none';
+  contenido.style.display = '';
+  renderAll();
+}
+
+document.addEventListener('DOMContentLoaded', initDashboard);
+</script>
+</body>
+</html>
