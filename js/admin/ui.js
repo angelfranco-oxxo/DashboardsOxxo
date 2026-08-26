@@ -11,6 +11,25 @@ window.OXXO_ADMIN_UI = function createAdminUI(deps){
 
   function renderPreview(rows,headers){$('preview-meta').textContent=`${rows.length} filas en vista previa`;if(!rows.length||!headers.length){$('preview-table').innerHTML='<tbody><tr><td style="padding:28px;text-align:center;color:#7a4a42">Aun no hay datos para mostrar.</td></tr></tbody>';return;}const selectedHeaders=headers.slice(0,16);$('preview-table').innerHTML=`<thead><tr>${selectedHeaders.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${selectedHeaders.map(h=>`<td title="${escapeHtml(row[h])}">${escapeHtml(row[h])}</td>`).join('')}</tr>`).join('')}</tbody>`;}
 
+  function renderPublishImpact({area='—',target='—',rows=0,columns=0,mode='—'}={}){
+    if($('impact-area'))$('impact-area').textContent=area;
+    if($('impact-target'))$('impact-target').textContent=target;
+    if($('impact-rows'))$('impact-rows').textContent=`${Number(rows||0).toLocaleString('es-MX')} · ${Number(columns||0)} col.`;
+    if($('impact-mode'))$('impact-mode').textContent=mode;
+  }
+
+  function renderPublicationResult({type='ok',title='Resultado de publicación',area='—',text='',facts=[]}={}){
+    const root=$('publication-result');
+    if(!root)return;
+    root.classList.remove('hidden','bad','warn');
+    if(type==='bad'||type==='warn')root.classList.add(type);
+    $('publication-result-title').textContent=title;
+    $('publication-result-area').textContent=area;
+    $('publication-result-text').textContent=text;
+    $('publication-result-facts').innerHTML=(facts||[]).filter(Boolean).map(fact=>`<span>${escapeHtml(fact)}</span>`).join('');
+    root.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
   // "Bajas otras plazas" (manual-entry-section) y "Aprovechamiento otras
   // plazas" (manual-entry-d3-section) ya no tienen su propia opcion en el
   // menu: se calculan solas al publicar "d2" (Bajas diarias) y "d3"
@@ -34,6 +53,8 @@ window.OXXO_ADMIN_UI = function createAdminUI(deps){
   return {
     setStatus,
     renderPreview,
+    renderPublishImpact,
+    renderPublicationResult,
     toggleManualSection,
     addPlanRow
   };

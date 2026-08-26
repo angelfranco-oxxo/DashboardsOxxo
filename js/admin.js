@@ -8,7 +8,7 @@
 
   const columnAliases=window.OXXO_ADMIN_COLUMN_ALIASES||{};
 
-  const state={workbook:null,sheetName:'',fileName:'',rows:[],validation:null,headerRow:0,sourceRows:0,sourceHeaders:[],sheetMatrixCache:new Map()};
+  const state={workbook:null,sheetName:'',fileName:'',rows:[],validation:null,headerRow:0,sourceRows:0,sourceHeaders:[],sheetMatrixCache:new Map(),runtimeVersion:0};
   let manualRows=[];
   const $=id=>document.getElementById(id);
 
@@ -23,7 +23,7 @@
   }
   function dashboard(){return dashboards.find(d=>d.key===$('dashboard-select').value)||dashboards[0];}
   function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
-  const {setStatus,renderPreview,toggleManualSection,addPlanRow} = window.OXXO_ADMIN_UI({$,escapeHtml,dashboard});
+  const {setStatus,renderPreview,renderPublishImpact,renderPublicationResult,toggleManualSection,addPlanRow} = window.OXXO_ADMIN_UI({$,escapeHtml,dashboard});
   // Valida la contrasena contra el Apps Script (action:'auth') en vez de solo
   // comprobar que no venga vacia. Antes cualquier texto abria el panel: los
   // datos nunca estuvieron expuestos (cada escritura revalida la contrasena en
@@ -121,6 +121,13 @@
     state.validation={ok:rows.length>0&&missing.length===0,missing,headers,rows:nonEmpty};
     $('download-csv-btn').disabled=!rows.length;$('publish-btn').disabled=!state.validation.ok;
     $('admin-guidance').textContent=state.validation.ok?`Listo para publicar en ${dash.tab}. Encabezados detectados en fila ${state.headerRow}; se enviaran ${dash.output.length} columnas normalizadas.`:'Revisa la hoja seleccionada o el dashboard destino: faltan columnas criticas o no hay filas Oaxaca.';
+    renderPublishImpact({
+      area:ADMIN_AREAS[currentAdminArea]?.title||currentAdminArea,
+      target:dash.tab,
+      rows:nonEmpty.length,
+      columns:dash.output.length,
+      mode:period.enabled?`Solo ${period.values.join(', ')}`:'Reemplazo completo'
+    });
     renderPreview(nonEmpty.slice(0,80),dash.output);
   }
   // d2otras (Bajas otras plazas) y d2denom (Movimientos ABC) ya no aparecen
@@ -206,7 +213,7 @@
     publishManual,
     publishManualD3,
     publishManualD2Plan
-  } = window.OXXO_ADMIN_PUBLISHERS({$,state,OXXO,DEFAULT_UPLOAD_URL,dashboard,getDashboards:()=>dashboards,periodInfo,isoDate,getAdminPassword:()=>adminPassword,rowsFromMatrix,getSheetMatrix});
+  } = window.OXXO_ADMIN_PUBLISHERS({$,state,OXXO,DEFAULT_UPLOAD_URL,dashboard,getDashboards:()=>dashboards,periodInfo,isoDate,getAdminPassword:()=>adminPassword,getAdminArea:()=>ADMIN_AREAS[currentAdminArea]?.title||currentAdminArea,getRuntimeVersion:()=>state.runtimeVersion,renderPublicationResult,rowsFromMatrix,getSheetMatrix});
   async function refreshRuntimeVersion(){
     const el=$('admin-runtime-version'),url=publishUrl();
     if(!el)return;
@@ -222,10 +229,12 @@
       const result=await response.json();
       if(result.ok===false)throw new Error(result.error||'Servicio no disponible');
       const version=result.version?`v${result.version}`:'sin versión';
+      state.runtimeVersion=Number(result.version||0);
       const sources=Array.isArray(result.sheets)?` · ${result.sheets.length} fuentes`:'';
       el.textContent=`Apps Script ${version}${sources}`;
       el.classList.add(result.version?'ok':'bad');
     }catch(error){
+      state.runtimeVersion=0;
       el.textContent='Apps Script · no verificable';
       el.classList.add('bad');
       console.warn('[OXXO] No se pudo comprobar la versión productiva de Apps Script.',error);

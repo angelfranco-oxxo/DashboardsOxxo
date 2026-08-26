@@ -12,11 +12,13 @@
  * Despues de eso, admin.html publica directo sin pedir URL.
  */
 const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
-const APP_VERSION = '36';
+const APP_VERSION = '37';
 const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const AUDIT_SHEET = '_Admin_Bitacora';
 const BACKUP_PREFIX = '_BK_';
 const BACKUP_LIMIT = 5;
+const MAX_UPLOAD_ROWS = 100000;
+const MAX_UPLOAD_COLUMNS = 250;
 const ALLOWED_SHEETS = [
   'Dashboard_1_Diario',
   'Dashboard_2_Diario',
@@ -141,6 +143,10 @@ function doPost(e) {
       return jsonResponse(getAdminOverview(Number(payload.limit || 100)));
     }
 
+    if (String(payload.action || '') === 'preflight') {
+      return jsonResponse(preflightPublication(payload));
+    }
+
     if (String(payload.action || '') === 'getBackupPreview') {
       return jsonResponse(getBackupPreview(payload));
     }
@@ -174,10 +180,9 @@ function doPost(e) {
     const updateMode = String(payload.updateMode || 'replaceAll').trim();
     const periodColumn = String(payload.periodColumn || '').trim();
     const periodValues = Array.isArray(payload.periodValues) ? payload.periodValues.map(normalizeCell).filter(Boolean) : [];
+    const requiredHeaders = Array.isArray(payload.requiredHeaders) ? payload.requiredHeaders.map(String).filter(Boolean) : [];
 
-    if (!targetSheet) throw new Error('targetSheet requerido');
-    if (ALLOWED_SHEETS.indexOf(targetSheet) === -1) throw new Error('targetSheet no permitido: ' + targetSheet);
-    if (!rows.length) throw new Error('rows requerido');
+    validatePublicationRequest(targetSheet, rows, updateMode, periodColumn, periodValues, requiredHeaders);
 
     const lock = LockService.getScriptLock();
     lock.waitLock(30000);
@@ -189,13 +194,12 @@ function doPost(e) {
       if (!sheet) sheet = ss.insertSheet(targetSheet);
 
       const newHeaders = collectHeaders(rows);
-      if (!newHeaders.length) throw new Error('Sin columnas para publicar');
 
       let backupName = '';
       let result;
       try {
         backupName = backupCurrentSheet(ss, sheet, targetSheet, String(payload.sourceFile || payload.source || 'Publicación desde Panel Admin'));
-        result = updateMode === 'replacePeriod' && periodColumn
+        result = updateMode === 'replacePeriod'
           ? replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues)
           : replaceAll(sheet, rows, newHeaders);
 
@@ -229,6 +233,97 @@ function doPost(e) {
   } catch (error) {
     return jsonResponse({ ok: false, error: String(error.message || error) });
   }
+}
+
+function validatePublicationRequest(targetSheet, rows, updateMode, periodColumn, periodValues, requiredHeaders) {
+  if (!targetSheet) throw new Error('targetSheet requerido');
+  if (ALLOWED_SHEETS.indexOf(targetSheet) === -1) throw new Error('targetSheet no permitido: ' + targetSheet);
+  if (updateMode !== 'replaceAll' && updateMode !== 'replacePeriod') throw new Error('Modo de publicación no permitido: ' + updateMode);
+  if (!Array.isArray(rows) || !rows.length) throw new Error('El archivo no contiene filas para publicar');
+  if (rows.length > MAX_UPLOAD_ROWS) throw new Error('El archivo supera el máximo de ' + MAX_UPLOAD_ROWS + ' filas');
+
+  const headers = collectHeaders(rows);
+  if (!headers.length) throw new Error('Sin columnas para publicar');
+  if (headers.length > MAX_UPLOAD_COLUMNS) throw new Error('El archivo supera el máximo de ' + MAX_UPLOAD_COLUMNS + ' columnas');
+  if (headers.some(function(header) { return !String(header || '').trim(); })) throw new Error('Hay encabezados vacíos');
+
+  const normalizedHeaders = headers.map(normalizeHeader);
+  const missing = (requiredHeaders || []).filter(function(header) {
+    return normalizedHeaders.indexOf(normalizeHeader(header)) === -1;
+  });
+  if (missing.length) throw new Error('Faltan encabezados obligatorios: ' + missing.join(', '));
+
+  const emptyRequired = (requiredHeaders || []).filter(function(header) {
+    const actual = headers.find(function(candidate) { return normalizeHeader(candidate) === normalizeHeader(header); });
+    return actual && !rows.some(function(row) { return normalizeCell(row[actual]) !== ''; });
+  });
+  if (emptyRequired.length) throw new Error('Las columnas obligatorias vienen vacías: ' + emptyRequired.join(', '));
+
+  const blankRows = rows.filter(function(row) {
+    return !row || !Object.keys(row).some(function(header) { return normalizeCell(row[header]) !== ''; });
+  }).length;
+  if (blankRows) throw new Error('Se detectaron ' + blankRows + ' filas completamente vacías');
+
+  if (updateMode === 'replacePeriod') {
+    if (!periodColumn) throw new Error('replacePeriod requiere periodColumn; se bloqueó el reemplazo total por seguridad');
+    if (!periodValues || !periodValues.length) throw new Error('replacePeriod requiere periodValues; se bloqueó el reemplazo total por seguridad');
+    if (normalizedHeaders.indexOf(normalizeHeader(periodColumn)) === -1) throw new Error('La columna de periodo no existe en los datos: ' + periodColumn);
+  }
+  return { headers: headers };
+}
+
+function sheetPublicationLayout(sheet) {
+  if (!sheet || sheet.getLastRow() < 1 || sheet.getLastColumn() < 1) return { headers: [], rows: [] };
+  const values = sheet.getDataRange().getDisplayValues();
+  const hasBuffer = values.length && values[0].length && values[0].every(function(value) { return normalizeCell(value) === BUFFER_ROW_VALUE; });
+  const headerIndex = hasBuffer ? 1 : 0;
+  const headers = values[headerIndex] ? values[headerIndex].map(String) : [];
+  const rows = values.slice(headerIndex + 1).filter(function(row) {
+    return row.some(function(value) { return normalizeCell(value) !== ''; });
+  });
+  return { headers: headers, rows: rows };
+}
+
+function preflightPublication(payload) {
+  const targetSheet = String(payload.targetSheet || '').trim();
+  const rows = Array.isArray(payload.rows) ? payload.rows : [];
+  const updateMode = String(payload.updateMode || 'replaceAll').trim();
+  const periodColumn = String(payload.periodColumn || '').trim();
+  const periodValues = Array.isArray(payload.periodValues) ? payload.periodValues.map(normalizeCell).filter(Boolean) : [];
+  const requiredHeaders = Array.isArray(payload.requiredHeaders) ? payload.requiredHeaders.map(String).filter(Boolean) : [];
+  const validated = validatePublicationRequest(targetSheet, rows, updateMode, periodColumn, periodValues, requiredHeaders);
+  const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(targetSheet);
+  const layout = sheetPublicationLayout(sheet);
+  const currentRows = layout.rows.length;
+  let replacedRows = currentRows;
+  let projectedRows = rows.length;
+
+  if (updateMode === 'replacePeriod') {
+    const periodIndex = findHeaderIndex(layout.headers, periodColumn);
+    if (currentRows && periodIndex < 0) throw new Error('La hoja actual no contiene la columna de periodo ' + periodColumn + '; no se modificó nada');
+    const periodSet = {};
+    periodValues.forEach(function(value) { periodSet[normalizePeriodValue(value, periodColumn)] = true; });
+    replacedRows = periodIndex < 0 ? 0 : layout.rows.filter(function(row) {
+      return Boolean(periodSet[normalizePeriodValue(row[periodIndex], periodColumn)]);
+    }).length;
+    projectedRows = currentRows - replacedRows + rows.length;
+  }
+
+  return {
+    ok: true,
+    version: APP_VERSION,
+    targetSheet: targetSheet,
+    mode: updateMode,
+    currentRows: currentRows,
+    incomingRows: rows.length,
+    replacedRows: replacedRows,
+    projectedRows: projectedRows,
+    columns: validated.headers.length,
+    willCreateBackup: Boolean(sheet && sheet.getLastRow() > 0),
+    periodColumn: periodColumn,
+    periodValues: periodValues
+  };
 }
 
 function backupCurrentSheet(ss, sourceSheet, targetSheet, sourceLabel) {
