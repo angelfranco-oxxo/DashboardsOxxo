@@ -49,7 +49,7 @@
 .am-table thead th{font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--color-gray);padding:0 4px 8px;text-align:center}
 .am-table thead th:first-child{text-align:left}
 .am-table tbody th{font-size:11px;font-weight:700;color:var(--color-dark);text-align:right;padding-right:10px;white-space:nowrap}
-.am-cell{height:44px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:12px;color:#1f2937;line-height:1.15}
+.am-cell{height:44px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:12px;color:#1f2937;line-height:1.15;transition:background-color .35s ease}
 .am-cell.is-empty{background:var(--color-bg);color:#c9bfbe;font-weight:600}
 .am-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;justify-content:center}
 .am-legend__i{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-dark);font-weight:600}
@@ -147,7 +147,7 @@ body.commercial-dashboard{background:linear-gradient(180deg,#edf7fc 0,#f8fbfd 36
 @media(max-width:1100px){.row2-wide{grid-template-columns:1fr}.section-intro{align-items:flex-start;flex-direction:column;gap:3px}.section-intro p{text-align:left}}
 @media(max-width:700px){.page{padding:14px 13px 34px}.c14-hero{padding:27px 20px 22px!important;border-radius:22px!important}.c14-hero h1{font-size:2.25rem!important}.c14-hero .hero-badge{white-space:normal}.c14-hero .vac-filters{padding:12px!important}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.c14-kpi{min-height:154px;padding:15px 14px 13px}.c14-kpi__value{font-size:1.7rem}.card{padding:15px;border-radius:18px}.card-head{align-items:flex-start;gap:8px}.am-wrap,.tbl-wrap{margin-right:-15px}.table-footer{align-items:flex-start;flex-direction:column}.table-pager{width:100%;justify-content:space-between}}
 @media(max-width:420px){.kpis{grid-template-columns:1fr}.section-intro h2{font-size:1.2rem}.c14-kpi{min-height:145px}.table-page-btn{min-width:70px;padding:8px}}
-@media(prefers-reduced-motion:reduce){.c14-kpi,.c14-kpi__progress span,.table-page-btn{transition:none!important}}
+@media(prefers-reduced-motion:reduce){.c14-kpi,.c14-kpi__progress span,.table-page-btn,.am-cell{transition:none!important}}
 </style>
 </head>
 <body class="commercial-dashboard">
@@ -401,28 +401,57 @@ function renderKPIs(data){
   });
 }
 
+// Igual que renderKPIs: si el conjunto de asesores no cambio (mismo set y
+// orden), se reutilizan las filas/celdas existentes y solo se actualiza
+// background/texto -- asi "transition:background-color" en .am-cell si
+// anima entre el color viejo y el nuevo al filtrar, en vez de saltar. Si el
+// conjunto de asesores SI cambia (ej. el filtro de asesor deja fuera a
+// alguno), se reconstruye la tabla completa porque ya no hay filas que
+// reutilizar de forma sensata.
+let AM_ASESORES_KEY = '';
+
+function buildAmShell(asesores){
+  const head = `<thead><tr><th>Asesor</th>${INDICADORES.map(i=>`<th>${esc(i.label)}</th>`).join('')}</tr></thead>`;
+  const body = asesores.map(a => {
+    const cells = INDICADORES.map(ind => `<td><div class="am-cell" data-ind="${ind.key}"></div></td>`).join('');
+    return `<tr><th title="${esc(a)}">${esc(OXXO.truncate(a,22))}</th>${cells}</tr>`;
+  }).join('');
+  document.getElementById('am-table').innerHTML = head + `<tbody>${body}</tbody>`;
+}
+
 function renderMapaAvance(data){
   const asesores = [...new Set(data.map(r => r.asesor))].sort((a,b) => a.localeCompare(b,'es'));
   const badge = document.getElementById('am-badge');
   if(!asesores.length){
     document.getElementById('am-table').innerHTML = '';
+    AM_ASESORES_KEY = '';
     badge.textContent = '—';
     return;
   }
   badge.textContent = `${asesores.length} ${asesores.length===1?'asesor':'asesores'}`;
-  const head = `<thead><tr><th>Asesor</th>${INDICADORES.map(i=>`<th>${esc(i.label)}</th>`).join('')}</tr></thead>`;
-  const body = asesores.map(a => {
+
+  const key = asesores.join('|');
+  if(key !== AM_ASESORES_KEY){
+    buildAmShell(asesores);
+    AM_ASESORES_KEY = key;
+  }
+
+  const rowEls = document.querySelectorAll('#am-table tbody tr');
+  asesores.forEach((a, i) => {
+    const rowEl = rowEls[i];
+    if(!rowEl) return;
     const rows = data.filter(r => r.asesor === a);
-    const cells = INDICADORES.map(ind => {
+    INDICADORES.forEach(ind => {
+      const cell = rowEl.querySelector(`.am-cell[data-ind="${ind.key}"]`);
+      if(!cell) return;
       const avg = promedio(rows, ind.key);
       const ratio = avg == null ? null : avg/ind.meta;
-      const bg = colorAvance(ratio);
-      const cls = avg == null ? ' is-empty' : '';
-      return `<td><div class="am-cell${cls}" style="background:${bg}" title="${esc(a)} · ${esc(ind.label)}: ${fmtValor(ind,avg)} (meta ${fmtValor(ind,ind.meta)})">${fmtValor(ind, avg)}</div></td>`;
-    }).join('');
-    return `<tr><th title="${esc(a)}">${esc(OXXO.truncate(a,22))}</th>${cells}</tr>`;
-  }).join('');
-  document.getElementById('am-table').innerHTML = head + `<tbody>${body}</tbody>`;
+      cell.style.background = colorAvance(ratio);
+      cell.textContent = fmtValor(ind, avg);
+      cell.title = `${a} · ${ind.label}: ${fmtValor(ind,avg)} (meta ${fmtValor(ind,ind.meta)})`;
+      cell.classList.toggle('is-empty', avg == null);
+    });
+  });
 }
 
 function renderPrioridad(data){
