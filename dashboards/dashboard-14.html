@@ -350,9 +350,32 @@ function filteredData(){
   });
 }
 
+// Construye las 6 tarjetas UNA sola vez y despues solo actualiza sus valores
+// (texto y el ancho de la barra) en cada filtro. Antes esta funcion hacia
+// innerHTML completo en cada llamada: eso destruye y vuelve a crear el
+// <span> de la barra en cada filtro, asi que el "transition:width" del CSS
+// nunca tenia un valor previo del cual animar -- la barra saltaba directo al
+// ancho final en vez de deslizarse. Manteniendo el mismo nodo entre renders,
+// la transicion si corre.
+function buildKPIShell(){
+  const cont = document.getElementById('kpis');
+  cont.innerHTML = INDICADORES.map(ind => `<div class="c14-kpi" data-ind="${ind.key}" style="--kpi-accent:${ind.color};--kpi-soft:color-mix(in srgb,${ind.color} 10%,#fff)">
+      <div class="c14-kpi__label">${esc(ind.label)}</div>
+      <div class="c14-kpi__value"></div>
+      <div class="c14-kpi__meta">Meta: ${fmtValor(ind, ind.meta)}</div>
+      <div class="c14-kpi__meta c14-kpi__nota" style="display:none"></div>
+      <div class="c14-kpi__progress"><span style="width:0%"></span></div>
+      <div class="c14-kpi__attainment"></div>
+      <div class="c14-kpi__foot"><i></i><span class="c14-kpi__foot-text"></span></div>
+    </div>`).join('');
+}
+
 function renderKPIs(data){
   const cont = document.getElementById('kpis');
-  cont.innerHTML = INDICADORES.map(ind => {
+  if(!cont.children.length) buildKPIShell();
+  INDICADORES.forEach(ind => {
+    const card = cont.querySelector(`[data-ind="${ind.key}"]`);
+    if(!card) return;
     const avg = promedio(data, ind.key);
     const cumplPct = cumplimientoPct(data, ind);
     const auditadas = data.filter(r => Number.isFinite(r[ind.key])).length;
@@ -361,17 +384,21 @@ function renderKPIs(data){
     const barWidth = Math.min(100, attainment);
     const footTxt = avg == null ? 'Sin datos con los filtros activos'
       : `${(cumplPct*100).toFixed(0)}% de tiendas cumple`;
-    const nota = ind.naNota ? `<div class="c14-kpi__meta">${esc(ind.naNota)} (${auditadas}/${data.length})</div>` : '';
-    return `<div class="c14-kpi" style="--kpi-accent:${ind.color};--kpi-soft:color-mix(in srgb,${ind.color} 10%,#fff)">
-      <div class="c14-kpi__label">${esc(ind.label)}</div>
-      <div class="c14-kpi__value">${fmtValor(ind, avg)}</div>
-      <div class="c14-kpi__meta">Meta: ${fmtValor(ind, ind.meta)}</div>
-      ${nota}
-      <div class="c14-kpi__progress"><span style="width:${barWidth.toFixed(1)}%"></span></div>
-      <div class="c14-kpi__attainment">${avg == null ? 'Sin avance calculable' : `${attainment.toFixed(0)}% de la meta`}</div>
-      <div class="c14-kpi__foot is-${status}"><i></i>${esc(footTxt)}</div>
-    </div>`;
-  }).join('');
+
+    card.querySelector('.c14-kpi__value').textContent = fmtValor(ind, avg);
+    const nota = card.querySelector('.c14-kpi__nota');
+    if(ind.naNota){
+      nota.textContent = `${ind.naNota} (${auditadas}/${data.length})`;
+      nota.style.display = '';
+    } else {
+      nota.style.display = 'none';
+    }
+    card.querySelector('.c14-kpi__progress span').style.width = `${barWidth.toFixed(1)}%`;
+    card.querySelector('.c14-kpi__attainment').textContent = avg == null ? 'Sin avance calculable' : `${attainment.toFixed(0)}% de la meta`;
+    const foot = card.querySelector('.c14-kpi__foot');
+    foot.className = `c14-kpi__foot is-${status}`;
+    foot.querySelector('.c14-kpi__foot-text').textContent = footTxt;
+  });
 }
 
 function renderMapaAvance(data){
