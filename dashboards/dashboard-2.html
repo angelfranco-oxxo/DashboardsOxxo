@@ -760,7 +760,8 @@ function monthKeyFromRow(row, cols){
 function monthLabel(key){
   const m = String(key || '').match(/^(\d{4})-(\d{2})$/);
   if(!m) return key || 'Sin mes';
-  return `${MONTH_ABBR[+m[2]-1]}-${String(m[1]).slice(-2)}`;
+  const names = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return `${names[+m[2]-1]} ${m[1]}`;
 }
 let BASE_BAJAS_DATA = [];
 let BAJAS_COLS = {};
@@ -815,8 +816,10 @@ function latestMonthKey(data, cols){
   return uniqueFilterOptions(data, cols, 'mes').slice(-1)[0] || '';
 }
 
-function defaultFilterState(data, cols){
-  const mes = latestMonthKey(data, cols);
+function defaultFilterState(data, cols, restoreShared = true){
+  const available = uniqueFilterOptions(data, cols, 'mes');
+  const latest = available.slice(-1)[0] || '';
+  const mes = restoreShared ? OXXO.restoreDashboardPeriod(available, latest) : latest;
   return mes ? { mes } : {};
 }
 
@@ -920,7 +923,7 @@ function setFilterBar(data, cols){
     const values = uniqueFilterOptions(data, cols, key);
     const selected = FILTER_STATE[key] || '';
     const options = [''].concat(values).map(v => {
-      const label = v === '' ? 'Todos' : filterOptionLabel(key, v);
+      const label = v === '' ? (key === 'mes' ? 'Todos los meses' : 'Todos') : filterOptionLabel(key, v);
       return `<option value="${String(v).replace(/"/g,'&quot;')}" ${String(v) === String(selected) ? 'selected' : ''}>${label}</option>`;
     }).join('');
     return `
@@ -938,6 +941,7 @@ function setFilterBar(data, cols){
       const key = select.dataset.filter;
       FILTER_STATE[key] = select.value;
       if (!FILTER_STATE[key]) delete FILTER_STATE[key];
+      if(key === 'mes') OXXO.persistDashboardPeriod(select.value);
       document.querySelectorAll('.bajas-kpis .kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
       renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
       if(key === 'mes' && BASE_DENOM_DATA.length) renderDenominaciones(filterDenomByMes(BASE_DENOM_DATA));
@@ -1032,7 +1036,8 @@ function setFilterBar(data, cols){
   const resetBtn = document.getElementById('reset-filters');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
-      FILTER_STATE = defaultFilterState(BASE_BAJAS_DATA, BAJAS_COLS);
+      FILTER_STATE = defaultFilterState(BASE_BAJAS_DATA, BAJAS_COLS, false);
+      OXXO.persistDashboardPeriod(FILTER_STATE.mes || '');
       SELECTED_ASESORES = defaultAsesorSelection(BASE_BAJAS_DATA, BAJAS_COLS);
       document.querySelectorAll('.bajas-kpis .kpi-card[data-kpi]').forEach(c => c.classList.remove('active'));
       setFilterBar(BASE_BAJAS_DATA, BAJAS_COLS);
@@ -1904,6 +1909,7 @@ async function initDashboard(){
   BAJAS_COLS = cols;
   if(rawOtras && rawOtras.length) OTRAS_PLAZAS_DATA = rawOtras;
   FILTER_STATE = defaultFilterState(BASE_BAJAS_DATA, BAJAS_COLS);
+  OXXO.persistDashboardPeriod(FILTER_STATE.mes || '');
   SELECTED_ASESORES = defaultAsesorSelection(BASE_BAJAS_DATA, BAJAS_COLS);
   setFilterBar(BASE_BAJAS_DATA, BAJAS_COLS);
   renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);

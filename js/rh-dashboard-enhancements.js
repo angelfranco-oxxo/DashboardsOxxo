@@ -168,7 +168,12 @@
         </select>
       </span>`;
     const select = wrapper.querySelector('select');
-    select.addEventListener('change', () => { location.href = select.value; });
+    select.addEventListener('change', () => {
+      const target = new URL(select.value, location.href);
+      const period = new URLSearchParams(location.search).get('periodo');
+      if (period) target.searchParams.set('periodo', period);
+      location.href = target.href;
+    });
     meta.insertBefore(wrapper, meta.firstChild);
   }
 

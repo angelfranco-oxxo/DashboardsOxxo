@@ -2040,6 +2040,7 @@ function getFiltros(){
   };
 }
 
+let DEFAULT_MES = '';
 function limpiarFiltros(){
   setSelectedAsesores(defaultAsesorSelection());
   setSelectedPuestos(availableDefaultPuestos());
@@ -2047,7 +2048,8 @@ function limpiarFiltros(){
   document.getElementById('tienda-search').value='';
   renderTiendaOptions();
   setSelectedDias(defaultDiasSelection());
-  document.getElementById('filtro-mes').value='';
+  document.getElementById('filtro-mes').value=DEFAULT_MES;
+  OXXO.persistDashboardPeriod(DEFAULT_MES);
   activePuesto = '';
   refreshDashboard();
 }
@@ -2281,14 +2283,15 @@ function poblarFiltros(){
   setSelectedTiendas();
   renderTiendaOptions();
   const selMes=document.getElementById('filtro-mes');
-  const meses=[...new Map(allData.filter(r=>r.mesKey).map(r=>[r.mesKey,r.mesLabel||mesLabel(r.mesKey)])).entries()]
+  const meses=[...new Map(allData.filter(r=>r.mesKey).map(r=>[r.mesKey,mesLabel(r.mesKey)])).entries()]
     .sort((a,b)=>a[0].localeCompare(b[0]));
   meses.forEach(([value,label])=>selMes.add(new Option(label,value)));
-  if(meses.length){
-    selMes.value=meses[meses.length-1][0];
-  }
+  DEFAULT_MES=meses.length ? meses[meses.length-1][0] : '';
+  selMes.value=OXXO.restoreDashboardPeriod(meses.map(([value])=>value), DEFAULT_MES);
+  OXXO.persistDashboardPeriod(selMes.value);
   ['filtro-mes'].forEach(id=>{
     document.getElementById(id).addEventListener('change', () => {
+      OXXO.persistDashboardPeriod(document.getElementById(id).value);
       refreshDashboard();
     });
   });

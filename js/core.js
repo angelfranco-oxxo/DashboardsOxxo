@@ -50,6 +50,32 @@ const sheetDataInflight = new Map();
 const sheetDataStatus = new Map();
 const sheetConnectionIssues = new Map();
 let dashboardRetryHandler = null;
+const SHARED_PERIOD_KEY = 'oxxo_rh_dashboard_period';
+
+// Conserva el periodo elegido al recargar o cambiar entre dashboards de RH.
+// sessionStorage evita que una seleccion antigua quede como predeterminada en
+// una sesion futura cuando Google Sheets ya tenga un mes mas reciente.
+function restoreDashboardPeriod(availablePeriods, defaultPeriod = '') {
+  const available = new Set((availablePeriods || []).map(String));
+  let saved = '';
+  try {
+    const queryValue = new URLSearchParams(location.search).get('periodo');
+    saved = queryValue !== null ? queryValue : (sessionStorage.getItem(SHARED_PERIOD_KEY) || '');
+  } catch (_) {}
+  if (saved === 'todos') return '';
+  return available.has(saved) ? saved : String(defaultPeriod || '');
+}
+
+function persistDashboardPeriod(period) {
+  const value = String(period || 'todos');
+  try { sessionStorage.setItem(SHARED_PERIOD_KEY, value); } catch (_) {}
+  try {
+    const url = new URL(location.href);
+    url.searchParams.set('periodo', value);
+    history.replaceState(history.state, '', url);
+  } catch (_) {}
+}
+
 function cloneSheetRows(rows) {
   if (!Array.isArray(rows)) return rows;
   return rows.map((row) => ({ ...row }));
@@ -2453,6 +2479,8 @@ window.OXXO = {
   clearSheetDataCache,
   getSheetDataStatus,
   setRetryHandler,
+  restoreDashboardPeriod,
+  persistDashboardPeriod,
   renderDownloadButton,
   mountAsesorFilter,
   buildSheetURL,
