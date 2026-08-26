@@ -2547,12 +2547,16 @@ function renderD1Donut(labels, values){
 
 async function initDashboard(){
   OXXO.renderDownloadButton('hero-download','d1');
-  const rawData=await OXXO.fetchSheetData(TAB);
+  // La base y el catalogo son independientes: descargarlos al mismo tiempo
+  // evita sumar ambas latencias antes de poder pintar el dashboard.
+  const [rawData, asesorCatalog] = await Promise.all([
+    OXXO.fetchSheetData(TAB),
+    OXXO.loadAsesorCatalog(),
+  ]);
   if(rawData===null){['kpi-section','tabla-detalle','ranking-container','semaforo-table','vacantes-asesor-table'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(rawData.length===0){['kpi-section','tabla-detalle','ranking-container','semaforo-table','vacantes-asesor-table'].forEach(id=>OXXO.showEmpty(id));return;}
 
   colMap=buildMap(rawData);
-  const asesorCatalog = await OXXO.loadAsesorCatalog();
 
   // Normalizar datos
   allData=rawData.map(r=>{

@@ -937,12 +937,17 @@ let OTRAS_PLAZAS_D3 = [];
 
 async function initDashboard(){
   OXXO.renderDownloadButton('hero-download','d3');
-  const rawData = await OXXO.fetchSheetData(TAB);
+  // Carga principal, catalogo y comparativo de plazas en paralelo. Son
+  // fuentes independientes y mantenerlas en serie retrasaba el primer render.
+  const [rawData, asesorCatalog, rawD3Plazas] = await Promise.all([
+    OXXO.fetchSheetData(TAB),
+    OXXO.loadAsesorCatalog(),
+    OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3plazas),
+  ]);
   if(rawData===null){['kpi-section','plazas-row','tabla-at'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(rawData.length===0){['kpi-section','plazas-row','tabla-at'].forEach(id=>OXXO.showEmpty(id));return;}
 
   const map = buildMap(rawData);
-  const asesorCatalog = await OXXO.loadAsesorCatalog();
 
   // Normalizar datos (aprov y vacante ya vienen en unidades de % en el sheet, ej. "90.9%" = 90.9)
   const data = rawData.map(r=>({
@@ -979,7 +984,6 @@ async function initDashboard(){
   const dataFiltrada = data;
 
   ALL_DATA = dataFiltrada;
-  const rawD3Plazas = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3plazas);
   if(rawD3Plazas && rawD3Plazas.length) OTRAS_PLAZAS_D3 = rawD3Plazas;
   SEMANAS = [...new Set(dataFiltrada.map(r=>r.semana).filter(Boolean))].sort();
   ACTIVE_SEMANA = SEMANAS[SEMANAS.length-1] || '';

@@ -1748,10 +1748,12 @@ function denomRowValida(row, cols){
 }
 let BASE_DENOM_DATA = [];
 let DENOM_SORT = 'fecha-desc';
-async function loadDenominaciones(){
+async function loadDenominaciones(rawData){
   const section = document.getElementById('denom-section');
   try {
-    const raw = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2denom);
+    const raw = rawData === undefined
+      ? await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2denom)
+      : rawData;
     if(!raw || !raw.length) return;
     const cols = buildColsGeneric(raw, ALIASES_DENOM);
     const rows = raw.filter(r => denomRowValida(r, cols) && cleanKey(val(r,cols,'asesor',''))!=='timoteoantonioperez').map(r => {
@@ -1870,11 +1872,17 @@ function buildColsGeneric(data, aliases){
 
 async function initDashboard(){
   OXXO.renderDownloadButton('hero-download','d2','bajas-header__badge');
-  const raw = await OXXO.fetchSheetData(TAB);
+  // Estas cuatro fuentes no dependen entre si. La tabla opcional de
+  // denominaciones tambien arranca ya, pero no bloquea el tablero principal.
+  const rawDenominacionesPromise = OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2denom);
+  const [raw, asesorCatalog, rawOtras] = await Promise.all([
+    OXXO.fetchSheetData(TAB),
+    OXXO.loadAsesorCatalog(),
+    OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2otras),
+  ]);
   if(raw === null){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar con Google Sheets.')); return; }
   if(!raw.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }
   const cols = buildCols(raw);
-  const asesorCatalog = await OXXO.loadAsesorCatalog();
   const rawSinTimoteo = raw.filter(row => cleanKey(val(row, cols, 'asesor', '')) !== 'timoteoantonioperez');
   // Corregir el asesor de cada baja contra el catalogo por Tienda (D2 no trae CR):
   // asi las bajas se agrupan bajo el asesor que realmente tiene esa tienda hoy,
@@ -1894,13 +1902,12 @@ async function initDashboard(){
 
   BASE_BAJAS_DATA = data;
   BAJAS_COLS = cols;
-  const rawOtras = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2otras);
   if(rawOtras && rawOtras.length) OTRAS_PLAZAS_DATA = rawOtras;
   FILTER_STATE = defaultFilterState(BASE_BAJAS_DATA, BAJAS_COLS);
   SELECTED_ASESORES = defaultAsesorSelection(BASE_BAJAS_DATA, BAJAS_COLS);
   setFilterBar(BASE_BAJAS_DATA, BAJAS_COLS);
   renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
-  loadDenominaciones();
+  void rawDenominacionesPromise.then(loadDenominaciones).catch(() => {});
 }
 window.addEventListener('oxxo-theme-change', () => {
   if (BASE_BAJAS_DATA.length && BAJAS_COLS) renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
