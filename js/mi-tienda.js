@@ -1114,7 +1114,47 @@
       requestAnimationFrame(() => target.classList.add('mt-section-focus'));
       setTimeout(() => target.classList.remove('mt-section-focus'), 1700);
     }));
+    return a;
   }
+
+  // Escaparate: agrupa las mismas alertas de renderAlertas() por las 4
+  // categorias que ya usa renderResumen (Operacion/Personas/Estructura/
+  // Administrativo) en vez de listarlas planas. Cada "ventana" toma el peor
+  // semaforo de sus alertas -- is-info (la sugerencia de TREO) no cuenta
+  // como problema para esto, solo is-warn/is-bad.
+  const STOREFRONT_GROUPS = [
+    { label: 'Operación', targets: ['sec-d1', 'sec-d2', 'sec-d4', 'sec-d6'] },
+    { label: 'Personas', targets: ['sec-d5', 'sec-d8', 'sec-d10', 'sec-d11'] },
+    { label: 'Estructura', targets: ['sec-d3', 'sec-d7'] },
+    { label: 'Administrativo', targets: ['sec-inventarios'] },
+  ];
+  function renderStorefront(alerts) {
+    const windowsEl = document.getElementById('mt-storefront-windows');
+    const signEl = document.getElementById('mt-storefront-sign');
+    if (!windowsEl || !signEl) return;
+    const rank = { ok: 0, warn: 1, bad: 2 };
+    let worst = 'ok';
+    const windows = STOREFRONT_GROUPS.map((group) => {
+      const relevant = alerts.filter((a) => group.targets.includes(a.target));
+      let tone = 'ok';
+      if (relevant.some((a) => a.t === 'is-bad')) tone = 'bad';
+      else if (relevant.some((a) => a.t === 'is-warn')) tone = 'warn';
+      if (rank[tone] > rank[worst]) worst = tone;
+      return { label: group.label, tone };
+    });
+    windowsEl.innerHTML = windows.map((w) => `<div class="mt-storefront__window is-${w.tone}">
+        <span class="mt-storefront__window-dot"></span>
+        <span class="mt-storefront__window-label">${esc(w.label)}</span>
+      </div>`).join('');
+    const total = alerts.length;
+    const icon = worst === 'bad' ? '!' : worst === 'warn' ? '▲' : '✓';
+    const text = worst === 'ok' ? 'Todo en orden'
+      : worst === 'bad' ? `${total} punto${total > 1 ? 's' : ''} crítico${total > 1 ? 's' : ''}`
+      : `${total} punto${total > 1 ? 's' : ''} por revisar`;
+    signEl.className = `mt-storefront__sign is-${worst}`;
+    signEl.innerHTML = `<span aria-hidden="true">${icon}</span><span>${esc(text)}</span>`;
+  }
+
   // A diferencia del resumen (un indicador -> una tarjeta) y las alertas (un
   // indicador -> un chip), esto combina 2+ indicadores de DISTINTAS fuentes
   // en una sola historia -- el tipo de lectura que antes exigia comparar a
@@ -1298,7 +1338,8 @@
     };
     renderIdentidad(tiendaDisplay, S);
     renderResumen(S);
-    renderAlertas(S);
+    const alertas = renderAlertas(S);
+    renderStorefront(alertas);
     renderLecturaCruzada(S);
   }
 
