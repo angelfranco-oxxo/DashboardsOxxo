@@ -14,6 +14,55 @@ if (!window.OXXO_CONFIG) {
 }
 const SHEETS_CONFIG = window.OXXO_CONFIG;
 
+// Contexto geografico/operativo normalizado. Hoy solo existe Plaza Oaxaca;
+// estas funciones dejan lista la misma estructura para sumar region, plaza y
+// zona sin duplicar dashboards ni depender del texto visible de la tienda.
+function getDataContext() {
+  const source = SHEETS_CONFIG.DATA_CONTEXT || {};
+  return Object.freeze({
+    countryCode: String(source.COUNTRY_CODE || 'MX').trim().toUpperCase(),
+    country: String(source.COUNTRY || 'Mexico').trim(),
+    state: String(source.STATE || 'Oaxaca').trim(),
+    region: String(source.REGION || source.STATE || 'Oaxaca').trim(),
+    plazaId: String(source.PLAZA_ID || 'PLAZA-OAXACA').trim().toUpperCase(),
+    plaza: String(source.PLAZA || 'Plaza Oaxaca').trim(),
+    zone: String(source.ZONE || '').trim(),
+    brandSubtitle: String(source.BRAND_SUBTITLE || source.PLAZA || 'Plaza Oaxaca').trim()
+  });
+}
+
+function getScopeLabel() {
+  return getDataContext().plaza;
+}
+
+const DATA_CONTEXT_COLUMNS = {
+  Region: 'region',
+  REGION: 'region',
+  Plaza: 'plaza',
+  PLAZA: 'plaza',
+  Zona: 'zone',
+  ZONA: 'zone'
+};
+const STORE_CR_COLUMNS = ['CR', 'CR TIENDA', 'CR Tienda', 'Cr de Tienda', 'Cr de tienda', 'ID Tienda'];
+
+// Completa solo las columnas que el destino ya declara. Esto mantiene
+// compatibles las hojas actuales y evita agregar encabezados inesperados a
+// dashboards antiguos. El CR siempre se normaliza como la llave estable.
+function applyDataContextDefaults(row, { columns = [] } = {}) {
+  const copy = { ...(row || {}) };
+  const context = getDataContext();
+  const allowed = new Set((columns || []).map(String));
+  Object.entries(DATA_CONTEXT_COLUMNS).forEach(([column, contextKey]) => {
+    if (!allowed.has(column) && !Object.prototype.hasOwnProperty.call(copy, column)) return;
+    if (String(copy[column] ?? '').trim() === '') copy[column] = context[contextKey];
+  });
+  STORE_CR_COLUMNS.forEach((column) => {
+    if (!allowed.has(column) && !Object.prototype.hasOwnProperty.call(copy, column)) return;
+    if (String(copy[column] ?? '').trim() !== '') copy[column] = normalizeCatalogCr(copy[column]);
+  });
+  return copy;
+}
+
 // ─────────────────────────────────────────────────────────────
 // FUNCIÓN BASE: Construir URL de descarga CSV
 // Google Sheets publica cada pestaña como CSV accesible
@@ -1432,7 +1481,16 @@ function buildAsesorCatalog(rows) {
   const byTienda = new Map();
   const validTiendas = new Set();
   rows.forEach(row => {
-    const item = { asesor: String(row.asesor || '').trim(), tienda: String(row.tienda || '').trim(), cr: String(row.cr || '').trim() };
+    const context = getDataContext();
+    const item = {
+      asesor: String(row.asesor || '').trim(),
+      tienda: String(row.tienda || '').trim(),
+      cr: normalizeCatalogCr(row.cr),
+      region: String(row.region || context.region).trim(),
+      plaza: String(row.plaza || context.plaza).trim(),
+      zona: String(row.zona || context.zone).trim(),
+      activa: String(row.activa || 'SI').trim().toUpperCase() !== 'NO'
+    };
     const crKey = normalizeCatalogCr(item.cr);
     const tiendaKey = normalizeCatalogTienda(item.tienda);
     // Una fila sin asesor (p.ej. un CR "huerfano" rescatado de una celda-blob corrupta
@@ -1484,10 +1542,27 @@ async function fetchCatalogRowsDirect() {
   // Fila 1 = "sacrificio" (_buffer_) si la hoja se publico con
   // writeWithBufferRow; fila real de encabezados justo despues.
   if (values.length && values[0].every(c => String(c ?? '').trim() === '_buffer_')) values = values.slice(1);
+  const headers = (values[0] || []).map((value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, ' '));
+  const indexOf = (...aliases) => headers.findIndex((header) => aliases.includes(header));
+  const indexOr = (fallback, ...aliases) => {
+    const found = indexOf(...aliases);
+    return found >= 0 ? found : fallback;
+  };
+  const indexes = {
+    // Las primeras tres columnas son contrato historico; los fallbacks
+    // conservan compatibilidad si un encabezado viejo trae caracteres raros.
+    asesor: indexOr(0, 'ASESOR'), tienda: indexOr(1, 'TIENDA'), cr: indexOr(2, 'CR TIENDA', 'CR'),
+    region: indexOf('REGION'), plaza: indexOf('PLAZA'), zona: indexOf('ZONA'), activa: indexOf('ACTIVA')
+  };
+  const cell = (row, index) => index >= 0 ? String(row[index] ?? '').trim() : '';
   const rows = [];
   values.slice(1).forEach((r) => {
-    const asesor = String(r[0] ?? '').trim(), tienda = String(r[1] ?? '').trim(), cr = String(r[2] ?? '').trim();
-    if (validCatalogRow(asesor, tienda, cr)) rows.push({ asesor, tienda, cr });
+    const asesor = cell(r, indexes.asesor), tienda = cell(r, indexes.tienda), cr = cell(r, indexes.cr);
+    if (validCatalogRow(asesor, tienda, cr)) rows.push({
+      asesor, tienda, cr,
+      region: cell(r, indexes.region), plaza: cell(r, indexes.plaza),
+      zona: cell(r, indexes.zona), activa: cell(r, indexes.activa)
+    });
   });
   return rows;
 }
@@ -2475,6 +2550,9 @@ async function renderDownloadButton(elId, dashboardId, badgeClass = 'hero-badge'
 // Exportar para uso global (disponible en todos los dashboards)
 window.OXXO = {
   SHEETS_CONFIG,
+  getDataContext,
+  getScopeLabel,
+  applyDataContextDefaults,
   fetchSheetData,
   clearSheetDataCache,
   getSheetDataStatus,

@@ -10,6 +10,21 @@ window.OXXO_CONFIG = {
   // Pestanas base.
   CONFIG_SHEET: "Configuracion",
   CATALOG_SHEET: "Catalogo_Asesores",
+
+  // Contexto operativo central. Por ahora el sitio solo publica Plaza Oaxaca,
+  // pero mantener estos valores en un unico lugar evita dejar la plaza
+  // hardcodeada dentro de cada dashboard. Cuando se incorpore otra plaza se
+  // cambia/selecciona el contexto, no se reconstruyen las pantallas.
+  DATA_CONTEXT: {
+    COUNTRY_CODE: "MX",
+    COUNTRY: "Mexico",
+    STATE: "Oaxaca",
+    REGION: "Oaxaca",
+    PLAZA_ID: "PLAZA-OAXACA",
+    PLAZA: "Plaza Oaxaca",
+    ZONE: "",
+    BRAND_SUBTITLE: "Plaza Oaxaca-ByPamsb"
+  },
   // Quien hereda las tiendas de un asesor que ya no esta (ej. Anadelia -> Timoteo).
   // Se administra desde el panel admin, pestana "Reasignaciones" -- no requiere
   // tocar codigo cuando otro asesor deje la empresa. Si la pestana aun no

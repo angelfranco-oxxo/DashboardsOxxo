@@ -47,7 +47,7 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
   function deriveD5(row){return {...row,Fecha_Inicio:isoDate(parseDate(row.Fecha_Inicio)),Fecha_Fin:isoDate(parseDate(row.Fecha_Fin)),Periodo_Anterior:row.Periodo_Anterior||0,Periodo_Actual:row.Periodo_Actual||0,Dias_Restantes:row.Dias_Restantes||row['Total dias restantes']||0};}
   function deriveD6(row){return {...row,'Inicio de validez':isoDate(parseDate(row['Inicio de validez'])),'Fin de validez':isoDate(parseDate(row['Fin de validez'])),'Inicio de semana':isoDate(parseDate(row['Inicio de semana'])),'Fin de semana':isoDate(parseDate(row['Fin de semana'])),Dias:row.Dias||row['Absentismos solo en la semana']||0};}
   function deriveD7(row){return {...row,'Estructura Propuesta TREO P2 Jun - Ago':row['Estructura Propuesta TREO P2 Jun - Ago']||row.TREO,'Estructura SAP':row['Estructura SAP']||row.SAP,'Empleados Activos':row['Empleados Activos']||row.Activos,'Dif SAP vs Est Optima Final':row['Dif SAP vs Est Optima Final']||row.DIF,'Movimiento Inicial':row['Movimiento Inicial']||row.Movimiento};}
-  function deriveCatalog(row){return {...row,ASESOR:String(row.ASESOR||'').trim(),TIENDA:String(row.TIENDA||'').trim(),'CR TIENDA':String(row['CR TIENDA']||'').trim().toUpperCase()};}
+  function deriveCatalog(row){return {...row,ASESOR:String(row.ASESOR||'').trim(),TIENDA:String(row.TIENDA||'').trim(),'CR TIENDA':String(row['CR TIENDA']||'').trim().toUpperCase(),ACTIVA:String(row.ACTIVA||'SI').trim().toUpperCase()};}
   function ratioValue(value){
     const raw=String(value??'').trim();
     const number=toNumber(value);
@@ -190,7 +190,7 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
     const rawRows=matrix.slice(headerInfo.index+1).map(line=>{const row={};extractColumns.forEach(col=>{row[col]=matched[col]!==undefined?(line[matched[col]]??''):'';});return row;}).filter(row=>Object.values(row).some(v=>String(v??'').trim()!==''));
     const filtered=rawRows.map(row=>dash.derive?dash.derive(row):row).filter(row=>!dash.filter||dash.filter(row)).map(row=>{const cleaned={};extractColumns.forEach(col=>{cleaned[col]=row[col]??'';});return cleaned;});
     const aggregated=dash.aggregate?dash.aggregate(filtered):filtered;
-    const finalRows=enrichRows(aggregated,dash);
+    const finalRows=enrichRows(aggregated,dash).map(row=>OXXO.applyDataContextDefaults(row,{columns:dash.output}));
     const supplemental=Math.max(0,finalRows.length-aggregated.length);
     return{rows:finalRows,headers:dash.output,headerRow:headerInfo.index+1,sourceRows:rawRows.length+supplemental,sourceHeaders};
   }

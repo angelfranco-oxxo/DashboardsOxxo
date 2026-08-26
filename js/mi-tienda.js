@@ -24,6 +24,14 @@
   const K = (row, aliases) => OXXO.metricsFindKey(row, aliases);
   const n = (v) => OXXO.formatNum(Math.round(Number(v) || 0));
   const tKey = (v) => OXXO.normalizeCatalogTienda(v);
+  const DATA_CONTEXT = OXXO.getDataContext();
+
+  function applyScopeLabels() {
+    const brand = document.getElementById('scope-brand-subtitle');
+    const footer = document.getElementById('scope-footer-label');
+    if (brand) brand.textContent = DATA_CONTEXT.brandSubtitle;
+    if (footer) footer.textContent = DATA_CONTEXT.plaza;
+  }
 
   function setSectionBadge(id, kicker, value, tone) {
     const el = document.getElementById(id);
@@ -1317,7 +1325,7 @@
     corte.className = `hero-badge${failures ? ' is-partial' : ''}`;
     corte.textContent = failures
       ? `⚠ Datos parciales · ${failures} fuente${failures > 1 ? 's' : ''} sin respuesta`
-      : '✓ Datos actualizados · Plaza Oaxaca';
+      : `✓ Datos actualizados · ${DATA_CONTEXT.plaza}`;
     OXXO.updateFooterTime('load-time');
   }
 
@@ -1396,6 +1404,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    applyScopeLabels();
     OXXO.setRetryHandler(init);
     document.getElementById('mi-retry').addEventListener('click', init);
     document.getElementById('mi-pdf-btn')?.addEventListener('click', () => window.print());
