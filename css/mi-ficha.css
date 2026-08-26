@@ -117,6 +117,16 @@
 
 /* Alertas: solo aparecen las que aplican */
 .ficha__alertas{display:flex;flex-wrap:wrap;gap:7px;padding:12px 18px;border-bottom:1px solid var(--mt-line);background:rgba(255,255,255,.34)}
+
+/* Lectura cruzada: a diferencia del resumen (un indicador -> una tarjeta) y
+   las alertas (un indicador -> un chip), esto combina 2+ indicadores de
+   distintas fuentes en una sola historia (ej. ausentismo + tiempo extra).
+   Reutiliza .mt-signal (ya usado en Capacidades) para la misma semantica de
+   color en vez de inventar un tercer lenguaje visual. */
+.ficha__cruzado{background:linear-gradient(145deg,rgba(255,252,249,.97),rgba(255,246,239,.76));padding:0;border-bottom:1px solid var(--mt-line)}
+.mt-cruzado-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;padding:13px 16px 16px}
+.mt-cruzado-list .mt-signal{margin-bottom:0}
+@media(max-width:660px){.mt-cruzado-list{grid-template-columns:1fr;padding:11px}}
 .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:700;line-height:1.3;border:1px solid transparent}
 .chip.is-ok{background:var(--mt-ok-bg);color:var(--mt-ok);border-color:rgba(29,185,84,.28)}
 .chip.is-warn{background:var(--mt-warn-bg);color:var(--mt-warn);border-color:rgba(242,165,43,.4)}

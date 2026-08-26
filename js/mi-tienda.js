@@ -1115,6 +1115,88 @@
       setTimeout(() => target.classList.remove('mt-section-focus'), 1700);
     }));
   }
+  // A diferencia del resumen (un indicador -> una tarjeta) y las alertas (un
+  // indicador -> un chip), esto combina 2+ indicadores de DISTINTAS fuentes
+  // en una sola historia -- el tipo de lectura que antes exigia comparar a
+  // mano varios paneles (ej. "el ausentismo esta detras de la brecha de
+  // estructura", "la rotacion se esta pagando en tiempo extra"). Cada regla
+  // se apaga sola si a la tienda le falta alguna de las fuentes que cruza.
+  function renderLecturaCruzada(S) {
+    const insights = [];
+
+    if (S.d3 && S.d6 && Number.isFinite(S.d3.ec) && Number.isFinite(S.d3.ecSin)) {
+      const brecha = S.d3.ecSin - S.d3.ec;
+      if (brecha >= 10 && S.d6.diasAus > 0) {
+        insights.push({
+          level: brecha >= 20 ? 'high' : 'medium',
+          title: `El ausentismo explica ${brecha} pts de la brecha de estructura`,
+          detail: `Sin su impacto, Equipo Completo subiría de ${S.d3.ec}% a ${S.d3.ecSin}%. Ya van ${n(S.d6.diasAus)} días de ausentismo este mes.`,
+        });
+      }
+    }
+
+    if (S.d1?.vacantes > 0 && S.d2?.bajas > 0 && S.d4?.horas > 0) {
+      insights.push({
+        level: S.d4.horas >= 20 ? 'high' : 'medium',
+        title: 'La rotación se está pagando en tiempo extra',
+        detail: `${S.d1.vacantes} vacante${S.d1.vacantes > 1 ? 's' : ''} sin cubrir y ${S.d2.bajas} baja${S.d2.bajas > 1 ? 's' : ''} este mes coinciden con ${n(S.d4.horas)}h de tiempo extra${S.d4.gasto ? ` ($${n(S.d4.gasto)})` : ''}.`,
+      });
+    } else if (S.d6?.diasAus >= 10 && S.d4?.horas >= 20) {
+      // Misma idea que la anterior pero sin vacantes/bajas de por medio: el
+      // ausentismo puro cubierto con TE. No se agregan las dos a la vez
+      // para no contar la misma historia de tiempo extra dos veces.
+      insights.push({
+        level: 'medium',
+        title: 'El ausentismo se está cubriendo con tiempo extra',
+        detail: `${n(S.d6.diasAus)} días de ausentismo (${n(S.d6.ausentes)} persona${S.d6.ausentes > 1 ? 's' : ''}) coinciden con ${n(S.d4.horas)}h de tiempo extra${S.d4.gasto ? ` ($${n(S.d4.gasto)})` : ''}.`,
+      });
+    }
+
+    if (S.d7?.mov?.cls === 'bajar' && S.d1?.vacantes > 0) {
+      insights.push({
+        level: 'medium',
+        title: 'TREO sugiere bajar estructura, pero hay vacantes activas',
+        detail: `La estructura óptima pide bajar ${Math.abs(S.d7.dif)} posición${Math.abs(S.d7.dif) > 1 ? 'es' : ''}; antes de cubrir ${S.d1.vacantes > 1 ? 'las' : 'la'} ${S.d1.vacantes} vacante${S.d1.vacantes > 1 ? 's' : ''}, valida si de verdad se necesita${S.d1.vacantes > 1 ? 'n' : ''}.`,
+      });
+    }
+
+    if (S.inventarios?.ratio > .005 && S.d9?.faltante > 0) {
+      insights.push({
+        level: S.inventarios.ratio > .01 ? 'high' : 'medium',
+        title: 'Dos señales de control interno al mismo tiempo',
+        detail: `Merma de inventario al ${invPercent(S.inventarios.ratio)} y $${n(S.d9.faltante)} en faltantes de caja este periodo.`,
+      });
+    }
+
+    if (S.d8?.pendientes > 0 && S.d2?.bajas > 0) {
+      insights.push({
+        level: 'medium',
+        title: 'Posible personal nuevo sin capacitación completa',
+        detail: `${S.d2.bajas} baja${S.d2.bajas > 1 ? 's' : ''} este mes y ${n(S.d8.pendientes)} persona${S.d8.pendientes > 1 ? 's' : ''} con certificaciones pendientes: revisa si el equipo ya completó lo básico.`,
+      });
+    }
+
+    if (S.d11 && S.d11.cumplTotal != null && S.d11.cumplTotal < 80 && S.d6?.faltas > 0) {
+      insights.push({
+        level: S.d11.cumplTotal < 60 ? 'high' : 'medium',
+        title: 'El checador podría no reflejar el ausentismo real',
+        detail: `Cumplimiento de registro al ${S.d11.cumplTotal}%; con ese nivel, conviene confirmar ${S.d6.faltas > 1 ? `las ${S.d6.faltas} faltas detectadas` : 'la falta detectada'} antes de actuar sobre ${S.d6.faltas > 1 ? 'ellas' : 'ella'}.`,
+      });
+    }
+
+    const container = document.getElementById('ficha-cruzado');
+    if (!container) return;
+    const list = insights.length
+      ? insights.map((i) => signalHTML(i.level, i.title, i.detail)).join('')
+      : signalHTML('low', 'Sin señales cruzadas', 'Los indicadores de esta tienda no muestran, por ahora, patrones combinados que requieran atención.');
+    container.innerHTML = `
+      <div class="mt-current-head">
+        <div><span class="mt-current-head__eyebrow">Lectura cruzada</span><strong>Qué está pasando de fondo</strong></div>
+        <span class="mt-current-head__note">Combina varios indicadores a la vez</span>
+      </div>
+      <div class="mt-cruzado-list">${list}</div>`;
+  }
+
   function renderIdentidad(tiendaDisplay, S) {
     document.getElementById('ficha-tienda-title').textContent = tiendaDisplay;
     const d7 = S.d7 || {};
@@ -1217,6 +1299,7 @@
     renderIdentidad(tiendaDisplay, S);
     renderResumen(S);
     renderAlertas(S);
+    renderLecturaCruzada(S);
   }
 
   async function init() {
