@@ -223,6 +223,33 @@ git log origin/main --reverse --pretty=format:'%ad|%s' --date=format:'%Y-%m-%d %
 | 2026-08-18 12:29 | Consolida colores de admin.html a variables de marca | [#335](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/335) |
 | 2026-08-18 12:44 | Extiende reemplazo de emojis a títulos, pestañas e íconos de sección | [#336](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/336) |
 | 2026-08-18 13:03 | Corrige porcentajes x100 inflados en Registro y Apego a Horario | [#337](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/337) |
+| 2026-08-18 19:27 | Agrega registro de uso de IA (Norma FEMSA 02.05.09.6) | [#338](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/338) |
+| 2026-08-18 19:31 | Quitar unidades de Entrenamiento/Operaciones del buscador de Mi Tienda | [#339](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/339) |
+| 2026-08-18 19:50 | Descartar filas basura con Tienda puramente numérica | [#340](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/340) |
+| 2026-08-19 13:59 | Corregir hueco vacío en KPIs de Dashboard 9 (Balance de Caja) | [#341](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/341) |
+| 2026-08-19 15:06 | Corregir 2 bugs encontrados al auditar los generadores de presentaciones | [#342](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/342) |
+| 2026-08-19 15:41 | Corregir 'Sin Asesor Asignado' en ranking de Aprovechamiento de presentaciones | [#343](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/343) |
+| 2026-08-19 16:17 | Agrega pestañas tipo carpeta (RH / Comercial) arriba de Dashboards Diarios | [#344](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/344) |
+| 2026-08-19 16:52 | Ocultar Mi Dashboard/Mi Tienda en Comercial; renombrar hero a "Torre de Control" | [#345](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/345) |
+| 2026-08-19 17:17 | Ampliar el modal de detalle para que quepan tablas anchas | [#346](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/346) |
+| 2026-08-21 15:48 | Validar la contraseña del panel admin contra el servidor | [#347](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/347) |
+| 2026-08-21 16:22 | Filtrar el Detalle por Empleado al hacer clic en un asesor (D8) | [#348](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/348) |
+| 2026-08-21 16:30 | Abrir la ficha del empleado al hacer clic en el Detalle por Empleado (D8) | [#349](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/349) |
+| 2026-08-21 17:24 | Dashboard 12 - Enfoque del Líder (mensual, con histórico de 12 meses) | [#350](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/350) |
+| 2026-08-21 17:32 | Documentar el redespliegue del Apps Script sin cambiar la URL | [#351](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/351) |
+| 2026-08-21 17:42 | Apuntar ADMIN_UPLOAD_URL a la implementación con Dashboard_12_Mensual | [#352](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/352) |
+| 2026-08-21 19:45 | Dashboard 13 - Control de Ausentismo | [#353](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/353) |
+| 2026-08-21 19:50 | Aceptar los dos formatos de fecha en el Dashboard 13 | [#354](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/354) |
+| 2026-08-24 16:17 | Seguridad: quitar datos innecesarios, frenar la fuerza bruta y sacar el sitio de los buscadores | [#355](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/355) |
+| 2026-08-24 19:20 | Dashboard 13: semáforo de seguimiento y mapa de calor por asesor y mes | [#356](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/356) |
+| 2026-08-25 16:37 | Dashboard 13: rediseño del ranking de días perdidos por asesor y mes | [#357](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/357) |
+| 2026-08-25 17:23 | Dashboard 13: clic en una clasificación filtra el dashboard | [#358](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/358) |
+| 2026-08-25 18:05 | Dashboard 13: barras verticales ascendentes en el ranking mensual de asesores | [#359](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/359) |
+| 2026-08-25 18:29 | Dashboard 13: icono de estetoscopio en la tarjeta de inicio | [#360](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/360) |
+| 2026-08-25 18:57 | Agrega Dashboard 14: Avance Comercial | [#361](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/361) |
+| 2026-08-25 19:06 | Actualiza ADMIN_UPLOAD_URL a la nueva implementacion de Apps Script | [#362](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/362) |
+| 2026-08-25 19:15 | Panel admin: Dashboard 14 era inalcanzable desde la pestaña Comercial | [#363](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/363) |
+| 2026-08-26 17:11 | Dashboard 14: la barra de avance del KPI ahora anima de verdad al filtrar | [#364](https://github.com/humanresources-oxxo/DashboardsOxxo/pull/364) |
 <!-- BITACORA_END -->
 
 ## Referencias

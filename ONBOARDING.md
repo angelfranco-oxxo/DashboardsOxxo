@@ -15,7 +15,7 @@ Todo vive en `js/config.js` (`window.OXXO_CONFIG`), cargado antes que
 - `CONFIG_SHEET`, `CATALOG_SHEET`, `REASIGNACIONES_SHEET` — nombres de pestañas.
 - `ADMIN_UPLOAD_URL` — el Web App de Apps Script que usa el panel admin para
   publicar y para leer el catálogo directo (`action=readSheet`, ver más abajo).
-- `TABS` — nombres exactos de las 12 pestañas de datos (`Dashboard_1_Diario`, etc).
+- `TABS` — nombres exactos de las 20 pestañas de datos (`Dashboard_1_Diario`, etc).
 
 Para un cliente nuevo, técnicamente bastaría con: crear su propio Google
 Sheet con esas mismas pestañas y columnas (tabla en la sección 3), desplegar
@@ -90,25 +90,32 @@ Excel de origen antes de publicar:
 | `Dashboard_6_Semanal` | 6 — Ausentismos | Plaza, Asesor, N de personal, Nombre del empleado o candidato, Tienda, Tipo_Ausentismo, Denominacion, Absentismos solo en la semana, Semana |
 | `Dashboard_7_Semanal` | 7 — TREO | Plaza, CR, Tienda, Asesor, Estructura Propuesta TREO, Estructura SAP, Empleados Activos, Vacantes, Movimiento Inicial |
 | `Dashboard_8_Diario` | 8 — Capacidades | Plaza, Asesor_Correcto, Puesto_Correcto, Empleados |
+| `Dashboard_9_Semanal` | 9 — Faltantes y sobrantes | CR, Importe, Fecha, Semana |
+| `Dashboard_10_FLEX` | 10 — Personal FLEX | Tienda, Asesor, Fecha |
+| `Dashboard_11_Semanal` | 11 — Registro y Apego a Horario | Tienda, Asesor, Fecha |
+| `Dashboard_12_Mensual` | 12 — Enfoque del Líder | Mes, Plaza, CR Tienda, Tienda, Asesor, Clas Final |
+| `Dashboard_13_Ausentismo` | 13 — Control de Ausentismo | Nombre, Clasificacion, Tienda, Asesor |
+| `Dashboard_14_Comercial` | 14 — Avance Comercial | Tienda, Asesor, Spin, Premia, Cruzada Andatti, Venta Sugerida, Banner |
+| `Inventarios` | Administrativo — Resultados de Inventario | CR, Tienda, Plaza, Asesor Comercial, Fecha de Inventario, Resultado de Inventario, Ventas sin TAE del mes |
+| `Promociones` | Comercial — PromosD100 | (se edita directo en Sheets, no pasa por el panel admin; ver `admin-commercial-panel` en `admin.html`) |
 | `Catalogo_Asesores` | Catálogo compartido | ASESOR, TIENDA, CR TIENDA |
 | `Reasignaciones` | Reasignación de asesores salientes | (ver `js/admin-reasignaciones.js`) |
 | `Configuracion` | Fecha de corte global | (ver panel admin) |
 
-## 4. Apps Script — el gap más urgente
+## 4. Apps Script
 
-El Web App que publica datos y sirve el catálogo en vivo (`readSheet`) **no
-está versionado en este repo** — vive solo en el editor de script.google.com
-de esta cuenta. Cada redeploy genera una URL `/exec` nueva y la anterior
-queda congelada (no falla, simplemente deja de reflejar cambios — pasó 3
-veces en esta sesión). Para un cliente nuevo hoy habría que recrear ese
-script a mano desde cero, revisando `ALLOWED_SHEETS`, `doPost`, `doGet`,
-`assertAuthorized` y `writeWithBufferRow`.
-
-**Pendiente**: pegar el contenido actual del Apps Script en el repo (p.ej.
-`apps-script/AdminUpload.gs`) para tenerlo como plantilla versionada.
-Cuando quieras, pásamelo (copia y pega desde el editor) y lo dejo como
-archivo de referencia — así un cliente nuevo se arranca copiando ese
-archivo en vez de reconstruirlo de memoria.
+El Web App que publica datos y sirve el catálogo en vivo (`readSheet`) está
+versionado en `apps-script/admin-upload.gs`. **Ese archivo es solo un
+espejo**: cada vez que se edita hay que copiarlo a mano al editor de
+script.google.com y volver a desplegarlo — git no lo publica solo. Cada
+redeploy genera una URL `/exec` nueva si se usa "Nueva implementación" (la
+anterior queda congelada, no falla, simplemente deja de reflejar cambios;
+pasó varias veces en este proyecto) o conserva la misma URL si se usa
+"Nueva versión" sobre la implementación existente (ver
+`docs/GUIA_ACTUALIZACION.md`, sección "Redesplegar el Apps Script sin
+romper la URL"). Para un cliente nuevo: copiar `apps-script/admin-upload.gs`
+al proyecto de Apps Script de su propio Sheet, ajustar `SPREADSHEET_ID` /
+`ALLOWED_SHEETS` si aplica, y desplegarlo como Web App.
 
 ## 5. Checklist manual para un cliente nuevo (estado actual, sin refactor)
 
