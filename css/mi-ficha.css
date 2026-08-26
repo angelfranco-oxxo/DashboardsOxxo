@@ -115,6 +115,29 @@
 @media(max-width:1100px){.mt-summary-groups{grid-template-columns:1fr 1fr}}
 @media(max-width:660px){.mt-current-head{align-items:flex-start;flex-direction:column}.mt-current-head__note{white-space:normal}.mt-summary-groups{grid-template-columns:1fr;padding:11px}.mt-summary-group__grid,.mt-summary-group--estructura .mt-summary-group__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+/* "Escaparate": la ficha como una tienda OXXO en miniatura -- el marquee
+   rojo con el logo real hace de toldo, cada "ventana" es una de las 4
+   categorias que ya usa el Resumen (Operacion/Personas/Estructura/
+   Administrativo) coloreada por el peor semaforo de sus alertas, y el
+   letrero de abajo resume el estado general. No inventa un semaforo nuevo:
+   reutiliza el mismo arreglo que ya arma renderAlertas(), solo agrupado por
+   categoria en vez de listado plano. */
+.mt-storefront{border-bottom:1px solid var(--mt-line)}
+.mt-storefront__marquee{background:var(--color-red,#F71926);padding:11px 20px;display:flex;align-items:center;justify-content:center}
+.mt-storefront__logo{height:34px;width:auto;display:block}
+.mt-storefront__windows{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--mt-line)}
+.mt-storefront__window{background:linear-gradient(160deg,rgba(255,255,255,.92),rgba(255,255,255,.6));padding:13px 8px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center}
+.mt-storefront__window-dot{width:10px;height:10px;border-radius:50%;background:currentColor;box-shadow:0 0 0 5px color-mix(in srgb,currentColor 16%,transparent)}
+.mt-storefront__window.is-ok{color:var(--mt-ok)}
+.mt-storefront__window.is-warn{color:var(--mt-warn)}
+.mt-storefront__window.is-bad{color:var(--mt-bad)}
+.mt-storefront__window-label{font-size:9.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--mt-ink);opacity:.72}
+.mt-storefront__sign{display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 18px;font-family:var(--font-display);font-weight:800;font-size:12.5px}
+.mt-storefront__sign.is-ok{background:var(--mt-ok-bg);color:var(--mt-ok)}
+.mt-storefront__sign.is-warn{background:var(--mt-warn-bg);color:var(--mt-warn)}
+.mt-storefront__sign.is-bad{background:var(--mt-bad-bg);color:var(--mt-bad)}
+@media(max-width:660px){.mt-storefront__windows{grid-template-columns:repeat(2,1fr)}}
+
 /* Alertas: solo aparecen las que aplican */
 .ficha__alertas{display:flex;flex-wrap:wrap;gap:7px;padding:12px 18px;border-bottom:1px solid var(--mt-line);background:rgba(255,255,255,.34)}
 
