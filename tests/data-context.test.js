@@ -69,6 +69,12 @@ assert.equal(preserved.CR, 'AB123');
 const untouched = OXXO.applyDataContextDefaults({ Tienda: 'Centro' });
 assert.deepEqual(JSON.parse(JSON.stringify(untouched)), { Tienda: 'Centro' });
 
+assert.deepEqual(JSON.parse(JSON.stringify(OXXO.getSystemNoticeContext('/dashboards/dashboard-14.html'))), { page: 'dashboard-14', area: 'comercial' });
+assert.deepEqual(JSON.parse(JSON.stringify(OXXO.getSystemNoticeContext('/dashboards/inventarios.html'))), { page: 'inventarios', area: 'administrativo' });
+assert.deepEqual(JSON.parse(JSON.stringify(OXXO.getSystemNoticeContext('/dashboards/mi-tienda.html'))), { page: 'mi-tienda', area: 'rh' });
+assert.equal(OXXO.systemNoticeMatches({ target: 'area:comercial' }, OXXO.getSystemNoticeContext('/dashboards/dashboard-14.html')), true);
+assert.equal(OXXO.systemNoticeMatches({ target: 'dashboard:dashboard-13' }, OXXO.getSystemNoticeContext('/dashboards/dashboard-14.html')), false);
+
 // El formato historico del catalogo (solo ASESOR, TIENDA y CR TIENDA) debe
 // seguir siendo valido; las columnas nuevas se completan sin pedir cambios al
 // Excel que hoy usa Plaza Oaxaca.
@@ -101,4 +107,4 @@ assert.deepEqual(JSON.parse(JSON.stringify(parsed.rows[0])), {
   Region: 'Oaxaca', Plaza: 'Plaza Oaxaca', Zona: '', ACTIVA: 'SI'
 });
 
-console.log('data-context: 5 pruebas correctas');
+console.log('data-context y avisos: 10 pruebas correctas');

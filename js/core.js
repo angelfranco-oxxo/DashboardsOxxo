@@ -2548,6 +2548,78 @@ async function renderDownloadButton(elId, dashboardId, badgeClass = 'hero-badge'
 }
 
 // Exportar para uso global (disponible en todos los dashboards)
+// ─────────────────────────────────────────────────────────────
+// AVISOS OPERATIVOS — publicados desde el Panel Admin
+// ─────────────────────────────────────────────────────────────
+function getSystemNoticeContext(pathname = location.pathname) {
+  const file = String(pathname || '').replace(/\\/g, '/').split('/').pop().replace(/\.html$/i, '') || 'index';
+  let area = '';
+  if (['dashboard-14', 'promociones'].includes(file)) area = 'comercial';
+  else if (['dashboard-9', 'dashboard-9-analisis', 'inventarios'].includes(file)) area = 'administrativo';
+  else if (/^dashboard-(?:[1-8]|1[0-3])(?:-analisis)?$/.test(file) || ['mi-tienda', 'mi-dashboard'].includes(file)) area = 'rh';
+  return { page: file, area };
+}
+
+function systemNoticeMatches(notice, context = getSystemNoticeContext()) {
+  const target = String(notice?.target || 'global').toLowerCase();
+  return target === 'global' || target === `dashboard:${context.page}` || Boolean(context.area && target === `area:${context.area}`);
+}
+
+function ensureSystemNoticeStyles() {
+  if (document.getElementById('oxxo-system-notice-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'oxxo-system-notice-styles';
+  style.textContent = `.system-notices{width:min(1560px,calc(100% - 32px));margin:14px auto;display:grid;gap:9px;position:relative;z-index:80}.system-notice{--notice:#12608f;--notice-soft:#edf7fc;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:12px;border:1px solid color-mix(in srgb,var(--notice) 24%,white);border-left:5px solid var(--notice);border-radius:15px;background:color-mix(in srgb,var(--notice-soft) 86%,white);padding:13px 15px;box-shadow:0 10px 28px color-mix(in srgb,var(--notice) 10%,transparent);color:#263239}.system-notice.warn{--notice:#d88800;--notice-soft:#fff8e9}.system-notice.critical{--notice:#d51e29;--notice-soft:#fff0f0}.system-notice__icon{display:grid;place-items:center;width:27px;height:27px;border-radius:50%;background:var(--notice);color:#fff;font-weight:950}.system-notice strong{display:block;color:#211312;font-size:13px}.system-notice p{margin:3px 0 0;font-size:12px;font-weight:650;line-height:1.4}.system-notice small{display:block;margin-top:5px;color:#746662;font-size:9.5px;font-weight:750}.system-notice__close{border:0;border-radius:50%;width:29px;height:29px;background:rgba(255,255,255,.78);color:#695854;font-size:18px;line-height:1;cursor:pointer}@media(max-width:640px){.system-notices{width:calc(100% - 20px);margin:10px auto}.system-notice{grid-template-columns:auto minmax(0,1fr);padding:12px}.system-notice__close{position:absolute;right:7px;margin-top:-5px}.system-notice__copy{padding-right:23px}}`;
+  document.head.appendChild(style);
+}
+
+function renderSystemNotices(notices) {
+  const context = getSystemNoticeContext();
+  const dismissed = new Set(JSON.parse(sessionStorage.getItem('oxxo-dismissed-notices') || '[]'));
+  const matching = (Array.isArray(notices) ? notices : []).filter((notice) => systemNoticeMatches(notice, context) && !dismissed.has(notice.id)).slice(0, 3);
+  document.getElementById('oxxo-system-notices')?.remove();
+  if (!matching.length) return;
+  ensureSystemNoticeStyles();
+  const host = document.createElement('section');
+  host.id = 'oxxo-system-notices';
+  host.className = 'system-notices';
+  host.setAttribute('aria-live', 'polite');
+  host.innerHTML = matching.map((notice) => {
+    const type = ['warn', 'critical'].includes(notice.type) ? notice.type : 'info';
+    const icon = type === 'critical' ? '!' : type === 'warn' ? '!' : 'i';
+    const expiry = notice.endsAt ? `<small>Vigente hasta ${escHtml(new Date(notice.endsAt).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }))}</small>` : '';
+    return `<article class="system-notice ${type}" data-system-notice="${escHtml(notice.id)}"><span class="system-notice__icon" aria-hidden="true">${icon}</span><div class="system-notice__copy"><strong>${escHtml(notice.title)}</strong><p>${escHtml(notice.message)}</p>${expiry}</div><button class="system-notice__close" type="button" aria-label="Cerrar aviso">×</button></article>`;
+  }).join('');
+  const anchor = document.querySelector('.topbar, header');
+  if (anchor?.parentNode) anchor.insertAdjacentElement('afterend', host);
+  else document.body.prepend(host);
+  host.addEventListener('click', (event) => {
+    const close = event.target.closest('.system-notice__close');
+    if (!close) return;
+    const card = close.closest('[data-system-notice]');
+    dismissed.add(card.dataset.systemNotice);
+    sessionStorage.setItem('oxxo-dismissed-notices', JSON.stringify([...dismissed]));
+    card.remove();
+    if (!host.children.length) host.remove();
+  });
+}
+
+async function refreshSystemNotices() {
+  if (/\/admin\.html$/i.test(location.pathname) || !SHEETS_CONFIG.ADMIN_UPLOAD_URL) return [];
+  try {
+    const separator = SHEETS_CONFIG.ADMIN_UPLOAD_URL.includes('?') ? '&' : '?';
+    const response = await fetch(`${SHEETS_CONFIG.ADMIN_UPLOAD_URL}${separator}action=notices&_=${Date.now()}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    if (result.ok === false) throw new Error(result.error || 'No fue posible consultar avisos');
+    renderSystemNotices(result.notices || []);
+    return result.notices || [];
+  } catch (error) {
+    console.warn('[OXXO] Avisos no disponibles:', error.message || error);
+    return [];
+  }
+}
+
 window.OXXO = {
   SHEETS_CONFIG,
   getDataContext,
@@ -2639,6 +2711,9 @@ window.OXXO = {
   metricsD2Rows,
   metricsD3Rows,
   metricsD7Rows,
+  getSystemNoticeContext,
+  systemNoticeMatches,
+  refreshSystemNotices,
 };
 
 // Arranca el catalogo al mismo tiempo que cada dashboard descarga su propia
@@ -2647,4 +2722,13 @@ window.OXXO = {
 if (/\/dashboards\//i.test(location.pathname.replace(/\\/g, '/'))
     && !/\/(promociones|inventarios)\.html$/i.test(location.pathname)) {
   void loadAsesorCatalog().catch(() => {});
+}
+
+if (!/\/admin\.html$/i.test(location.pathname)) {
+  const startSystemNotices = () => {
+    void refreshSystemNotices();
+    window.setInterval(() => void refreshSystemNotices(), 60000);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startSystemNotices, { once: true });
+  else startSystemNotices();
 }

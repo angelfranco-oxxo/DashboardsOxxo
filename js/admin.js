@@ -176,7 +176,7 @@
     $('admin-area-count').textContent=`${available.length} ${available.length===1?'base':'bases'}`;
     $('admin-upload-tab-label').textContent='Cargar y Publicar Bases';
     $('tabpanel-upload').dataset.adminArea=area;
-    document.querySelectorAll('.admin-tab').forEach(tab=>tab.classList.toggle('hidden',area!=='rh'&&!['upload','calidad','bitacora'].includes(tab.dataset.tab)));
+    document.querySelectorAll('.admin-tab').forEach(tab=>tab.classList.toggle('hidden',area!=='rh'&&!['upload','calidad','bitacora','consola'].includes(tab.dataset.tab)));
     if(area!=='rh')selectUploadTab();
     // Comercial tiene dos cosas distintas: PromosD100 (se edita directo en
     // Sheets, panel informativo fijo) y bases que SI se suben por Excel (ej.

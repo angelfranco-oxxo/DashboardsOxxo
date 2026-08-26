@@ -12,13 +12,15 @@
  * Despues de eso, admin.html publica directo sin pedir URL.
  */
 const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
-const APP_VERSION = '37';
+const APP_VERSION = '38';
 const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const AUDIT_SHEET = '_Admin_Bitacora';
 const BACKUP_PREFIX = '_BK_';
 const BACKUP_LIMIT = 5;
 const MAX_UPLOAD_ROWS = 100000;
 const MAX_UPLOAD_COLUMNS = 250;
+const SYSTEM_NOTICES_SHEET = 'Avisos_Sistema';
+const SYSTEM_NOTICE_HEADERS = ['ID', 'Tipo', 'Destino', 'Titulo', 'Mensaje', 'Inicio', 'Fin', 'Activo', 'Creado', 'Actualizado'];
 const ALLOWED_SHEETS = [
   'Dashboard_1_Diario',
   'Dashboard_2_Diario',
@@ -51,6 +53,13 @@ const ALLOWED_SHEETS = [
 // ALLOWED_SHEETS para diagnostico rapido.
 function doGet(e) {
   const action = String((e && e.parameter && e.parameter.action) || '');
+  if (action === 'notices') {
+    try {
+      return jsonResponse({ ok: true, version: APP_VERSION, notices: getPublicSystemNotices() });
+    } catch (error) {
+      return jsonResponse({ ok: false, error: String(error.message || error), notices: [] });
+    }
+  }
   if (action === 'readSheet') {
     const sheetName = String((e && e.parameter && e.parameter.sheet) || '').trim();
     if (!sheetName) return jsonResponse({ ok: false, error: 'sheet requerido' });
@@ -92,6 +101,10 @@ function repairSystemStructure() {
     {
       name: 'Reasignaciones',
       headers: ['CR', 'Tienda', 'Asesor_Entrante', 'Nota', 'Fecha']
+    },
+    {
+      name: SYSTEM_NOTICES_SHEET,
+      headers: SYSTEM_NOTICE_HEADERS
     }
   ];
   const created = [];
@@ -141,6 +154,30 @@ function doPost(e) {
 
     if (String(payload.action || '') === 'getAdminOverview') {
       return jsonResponse(getAdminOverview(Number(payload.limit || 100)));
+    }
+
+    if (String(payload.action || '') === 'getSystemNotices') {
+      return jsonResponse({ ok: true, notices: readSystemNotices(true) });
+    }
+
+    if (String(payload.action || '') === 'saveSystemNotice') {
+      const noticeLock = LockService.getScriptLock();
+      noticeLock.waitLock(30000);
+      try {
+        return jsonResponse(saveSystemNotice(payload));
+      } finally {
+        noticeLock.releaseLock();
+      }
+    }
+
+    if (String(payload.action || '') === 'setSystemNoticeStatus') {
+      const noticeStatusLock = LockService.getScriptLock();
+      noticeStatusLock.waitLock(30000);
+      try {
+        return jsonResponse(setSystemNoticeStatus(payload));
+      } finally {
+        noticeStatusLock.releaseLock();
+      }
     }
 
     if (String(payload.action || '') === 'preflight') {
@@ -498,6 +535,158 @@ function appendAudit(ss, payload, result, status, message, backupName) {
   ]);
 }
 
+function ensureSystemNoticesSheet() {
+  const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SYSTEM_NOTICES_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(SYSTEM_NOTICES_SHEET);
+    sheet.getRange(1, 1, 1, SYSTEM_NOTICE_HEADERS.length).setValues([SYSTEM_NOTICE_HEADERS]);
+    sheet.setFrozenRows(1);
+    sheet.autoResizeColumns(1, SYSTEM_NOTICE_HEADERS.length);
+  }
+  return sheet;
+}
+
+function systemNoticeLayout(sheet) {
+  const values = sheet.getDataRange().getValues();
+  const hasBuffer = values.length && values[0].length && values[0].every(function(value) { return normalizeCell(value) === BUFFER_ROW_VALUE; });
+  const headerIndex = hasBuffer ? 1 : 0;
+  const headers = (values[headerIndex] || []).map(String);
+  const validHeaders = SYSTEM_NOTICE_HEADERS.every(function(header) { return headers.indexOf(header) !== -1; });
+  if (!validHeaders) {
+    if (sheet.getLastRow() > 0 && values.some(function(row) { return row.some(function(value) { return normalizeCell(value) !== ''; }); })) {
+      throw new Error(SYSTEM_NOTICES_SHEET + ' existe pero sus encabezados no son validos');
+    }
+    sheet.clearContents();
+    sheet.getRange(1, 1, 1, SYSTEM_NOTICE_HEADERS.length).setValues([SYSTEM_NOTICE_HEADERS]);
+    sheet.setFrozenRows(1);
+    return { values: [SYSTEM_NOTICE_HEADERS], headerIndex: 0, headers: SYSTEM_NOTICE_HEADERS.slice() };
+  }
+  return { values: values, headerIndex: headerIndex, headers: headers };
+}
+
+function systemNoticeBoolean(value) {
+  if (value === true || value === 1) return true;
+  return /^(true|si|sí|1|activo)$/i.test(String(value || '').trim());
+}
+
+function systemNoticeDate(value) {
+  if (!value) return '';
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value)) return value.toISOString();
+  const parsed = new Date(String(value));
+  return isNaN(parsed) ? '' : parsed.toISOString();
+}
+
+function readSystemNotices(includeInactive) {
+  const sheet = ensureSystemNoticesSheet();
+  const layout = systemNoticeLayout(sheet);
+  const headerMap = {};
+  layout.headers.forEach(function(header, index) { headerMap[header] = index; });
+  return layout.values.slice(layout.headerIndex + 1).map(function(row) {
+    return {
+      id: String(row[headerMap.ID] || '').trim(),
+      type: String(row[headerMap.Tipo] || 'info').trim().toLowerCase(),
+      target: String(row[headerMap.Destino] || 'global').trim().toLowerCase(),
+      title: String(row[headerMap.Titulo] || '').trim(),
+      message: String(row[headerMap.Mensaje] || '').trim(),
+      startsAt: systemNoticeDate(row[headerMap.Inicio]),
+      endsAt: systemNoticeDate(row[headerMap.Fin]),
+      active: systemNoticeBoolean(row[headerMap.Activo]),
+      createdAt: systemNoticeDate(row[headerMap.Creado]),
+      updatedAt: systemNoticeDate(row[headerMap.Actualizado])
+    };
+  }).filter(function(notice) {
+    return notice.id && notice.title && notice.message && (includeInactive || notice.active);
+  }).sort(function(a, b) {
+    return String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt));
+  });
+}
+
+function getPublicSystemNotices() {
+  const now = Date.now();
+  return readSystemNotices(false).filter(function(notice) {
+    const starts = notice.startsAt ? Date.parse(notice.startsAt) : 0;
+    const ends = notice.endsAt ? Date.parse(notice.endsAt) : 0;
+    return (!starts || starts <= now) && (!ends || ends >= now);
+  }).map(function(notice) {
+    return {
+      id: notice.id, type: notice.type, target: notice.target,
+      title: notice.title, message: notice.message,
+      startsAt: notice.startsAt, endsAt: notice.endsAt
+    };
+  });
+}
+
+function cleanSystemNoticeText(value, maxLength, label) {
+  const text = String(value || '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!text) throw new Error(label + ' requerido');
+  if (text.length > maxLength) throw new Error(label + ' supera ' + maxLength + ' caracteres');
+  return text;
+}
+
+function validateSystemNoticeTarget(value) {
+  const target = String(value || 'global').trim().toLowerCase();
+  if (!/^(global|area:(rh|comercial|administrativo)|dashboard:[a-z0-9-]+)$/.test(target)) {
+    throw new Error('Destino de aviso no permitido');
+  }
+  return target;
+}
+
+function saveSystemNotice(payload) {
+  const sheet = ensureSystemNoticesSheet();
+  const layout = systemNoticeLayout(sheet);
+  const id = String(payload.id || '').trim() || Utilities.getUuid();
+  const type = String(payload.type || 'info').trim().toLowerCase();
+  if (['info', 'warn', 'critical'].indexOf(type) === -1) throw new Error('Tipo de aviso no permitido');
+  const title = cleanSystemNoticeText(payload.title, 100, 'Titulo');
+  const message = cleanSystemNoticeText(payload.message, 500, 'Mensaje');
+  const target = validateSystemNoticeTarget(payload.target);
+  const startsAt = payload.startsAt ? systemNoticeDate(payload.startsAt) : '';
+  const endsAt = payload.endsAt ? systemNoticeDate(payload.endsAt) : '';
+  if (payload.startsAt && !startsAt) throw new Error('Fecha de inicio invalida');
+  if (payload.endsAt && !endsAt) throw new Error('Fecha de vencimiento invalida');
+  if (startsAt && endsAt && Date.parse(endsAt) <= Date.parse(startsAt)) throw new Error('El vencimiento debe ser posterior al inicio');
+  const now = new Date().toISOString();
+  let rowNumber = 0;
+  let createdAt = now;
+  const idIndex = layout.headers.indexOf('ID');
+  const createdIndex = layout.headers.indexOf('Creado');
+  for (let index = layout.headerIndex + 1; index < layout.values.length; index++) {
+    if (String(layout.values[index][idIndex] || '').trim() !== id) continue;
+    rowNumber = index + 1;
+    createdAt = systemNoticeDate(layout.values[index][createdIndex]) || now;
+    break;
+  }
+  const active = payload.active === undefined ? true : systemNoticeBoolean(payload.active);
+  const byHeader = {
+    ID: id, Tipo: type, Destino: target, Titulo: title, Mensaje: message,
+    Inicio: startsAt, Fin: endsAt, Activo: active ? 'SI' : 'NO', Creado: createdAt, Actualizado: now
+  };
+  const values = layout.headers.map(function(header) { return byHeader[header] === undefined ? '' : byHeader[header]; });
+  if (rowNumber) sheet.getRange(rowNumber, 1, 1, values.length).setValues([values]);
+  else sheet.appendRow(values);
+  SpreadsheetApp.flush();
+  return { ok: true, notice: { id: id, type: type, target: target, title: title, message: message, startsAt: startsAt, endsAt: endsAt, active: active, createdAt: createdAt, updatedAt: now } };
+}
+
+function setSystemNoticeStatus(payload) {
+  const id = String(payload.id || '').trim();
+  if (!id) throw new Error('ID de aviso requerido');
+  const sheet = ensureSystemNoticesSheet();
+  const layout = systemNoticeLayout(sheet);
+  const idIndex = layout.headers.indexOf('ID');
+  const activeIndex = layout.headers.indexOf('Activo');
+  const updatedIndex = layout.headers.indexOf('Actualizado');
+  for (let index = layout.headerIndex + 1; index < layout.values.length; index++) {
+    if (String(layout.values[index][idIndex] || '').trim() !== id) continue;
+    sheet.getRange(index + 1, activeIndex + 1).setValue(systemNoticeBoolean(payload.active) ? 'SI' : 'NO');
+    sheet.getRange(index + 1, updatedIndex + 1).setValue(new Date().toISOString());
+    SpreadsheetApp.flush();
+    return { ok: true, id: id, active: systemNoticeBoolean(payload.active) };
+  }
+  throw new Error('Aviso no encontrado');
+}
+
 function readAudit(limit) {
   const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(AUDIT_SHEET);
@@ -590,7 +779,7 @@ function getAdminOverview(limit) {
 
 function publicationThresholds(sheetName) {
   const daily = ['Dashboard_1_Diario', 'Dashboard_2_Diario', 'Dashboard_2_Otras_Plazas', 'Denominaciones_Dashboard_2_Diario', 'Dashboard_2_Plan_Accion', 'Dashboard_3_Diario', 'Dashboard_3_Otras_Plazas', 'Dashboard_8_Diario'];
-  const weekly = ['Dashboard_4_Semanal', 'Dashboard_5_Semanal', 'Dashboard_6_Semanal', 'Dashboard_7_Semanal', 'Dashboard_9_Semanal', 'Dashboard_10_FLEX', 'Dashboard_11_Semanal'];
+  const weekly = ['Dashboard_4_Semanal', 'Dashboard_5_Semanal', 'Dashboard_6_Semanal', 'Dashboard_7_Semanal', 'Dashboard_9_Semanal', 'Dashboard_10_FLEX', 'Dashboard_11_Semanal', 'Dashboard_14_Comercial'];
   const monthly = ['Dashboard_12_Mensual', 'Dashboard_13_Ausentismo', 'Inventarios'];
   if (daily.indexOf(sheetName) !== -1) return { warn: 14, bad: 45 };
   if (weekly.indexOf(sheetName) !== -1) return { warn: 14, bad: 35 };
