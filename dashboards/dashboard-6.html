@@ -156,6 +156,12 @@
         <div id="filtro-asesor"></div>
       </div>
       <div class="vac-fbox">
+        <label>Semana</label>
+        <select class="filtro-select" id="filtro-semana" onchange="applyFilters()" aria-label="Filtrar por semana">
+          <option value="">Semana más reciente</option>
+        </select>
+      </div>
+      <div class="vac-fbox">
         <label>Tipo de Ausentismo</label>
         <select class="filtro-select" id="filtro-tipo" onchange="applyFilters()">
           <option value="">Todos los tipos</option>
@@ -329,11 +335,14 @@ let BASE_DATA = [];
 let chartTipos = null, chartTiendas = null, chartFuncion = null;
 let SELECTED_ASESORES = null;
 let asesorFilterHandle = null;
+let LATEST_SEMANA = '';
 
 function filteredData() {
   let d = BASE_DATA;
+  const s = document.getElementById('filtro-semana')?.value || LATEST_SEMANA;
   const t = document.getElementById('filtro-tipo')?.value;
   const f = document.getElementById('filtro-funcion')?.value;
+  if(s) d = d.filter(r => String(r[C.semana]||'').trim() === s);
   if(SELECTED_ASESORES) d = d.filter(r => SELECTED_ASESORES.includes(r[C.asesor]));
   if(t) d = d.filter(r => r[C.tipo] === t);
   if(f) d = d.filter(r => r[C.funcion] === f);
@@ -352,7 +361,8 @@ function renderAll() {
   const vacaciones   = data.filter(r => (r[C.tipo]||'').toLowerCase().includes('vacac')).length;
   const permisos     = data.filter(r => { const t=(r[C.tipo]||'').toLowerCase(); return t.includes('matern')||t.includes('patern')||t.includes('permiso'); }).length;
   const tiendas      = new Set(data.map(r => r[C.tienda])).size;
-  const semana       = BASE_DATA[0]?.[C.semana] || '—';
+  const semana       = document.getElementById('filtro-semana')?.value || LATEST_SEMANA || data[0]?.[C.semana] || '—';
+  document.getElementById('semana-badge').textContent = `⟳ ${semana} · Plaza Oaxaca`;
 
   // KPIs
   document.getElementById('kpi-section').innerHTML = `
@@ -521,6 +531,7 @@ function applyFilters(){ renderAll(); }
 
 function limpiarFiltros(){
   ['filtro-tipo','filtro-funcion'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('filtro-semana').value = LATEST_SEMANA;
   if (asesorFilterHandle) asesorFilterHandle.reset(); else renderAll();
 }
 
@@ -534,26 +545,28 @@ async function initDashboard() {
   data.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
   data = OXXO.filterValidTiendas(data, asesorCatalog, C.tienda, C.cr);
 
-  // Quedarse solo con la semana mas reciente presente en los datos: el Sheet acumula el
-  // historico completo de semanas (periodColumn:'Semana' en admin.js reemplaza por periodo,
-  // no por semana individual mostrada aqui), asi que sin este filtro las KPIs y graficas
-  // sumaban todas las semanas juntas en vez de solo la actual.
-  const semanaActual = OXXO.metricsLatestSemanaNumerica(data, C.semana);
-  if(semanaActual) data = data.filter(r => String(r[C.semana]||'').trim() === semanaActual);
+  // Conservamos el historico para permitir cambiar de semana. La vista inicia en la
+  // semana mas reciente, evitando mezclar periodos en las KPIs y graficas.
+  LATEST_SEMANA = OXXO.metricsLatestSemanaNumerica(data, C.semana) || '';
   BASE_DATA = data;
-
-  // Semana badge
-  const sem = data[0]?.[C.semana]||'—';
-  document.getElementById('semana-badge').textContent = `⟳ ${sem} · Plaza Oaxaca`;
 
   // Poblar filtros
   const asesores  = [...new Set(data.map(r=>r[C.asesor]).filter(Boolean))].sort();
   const tipos     = [...new Set(data.map(r=>r[C.tipo]).filter(Boolean))].sort();
   const funciones = [...new Set(data.map(r=>r[C.funcion]).filter(Boolean))].sort();
+  const semanas   = [...new Set(data.map(r=>String(r[C.semana]||'').trim()).filter(Boolean))]
+    .sort((a,b) => {
+      const na = Number((a.match(/\d+/)||[])[0]) || 0;
+      const nb = Number((b.match(/\d+/)||[])[0]) || 0;
+      return nb - na || b.localeCompare(a,'es');
+    });
 
   asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
     onChange: (selected) => { SELECTED_ASESORES = selected; renderAll(); },
   });
+  const selS = document.getElementById('filtro-semana');
+  selS.innerHTML = '';
+  semanas.forEach(s=>{ const o=document.createElement('option');o.value=s;o.textContent=s;o.selected=s===LATEST_SEMANA;selS.appendChild(o); });
   const selT = document.getElementById('filtro-tipo');
   tipos.forEach(t=>{ const o=document.createElement('option');o.value=t;o.textContent=t;selT.appendChild(o); });
   const selF = document.getElementById('filtro-funcion');
