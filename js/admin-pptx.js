@@ -434,6 +434,7 @@
     btn.textContent = 'Generando...';
     if(statusEl) statusEl.textContent = 'Consultando Google Sheets...';
     try {
+      await window.OXXO_ADMIN_ASSETS.ensure('pptx');
       const results = [];
       for(const d of DASHBOARDS){
         try {

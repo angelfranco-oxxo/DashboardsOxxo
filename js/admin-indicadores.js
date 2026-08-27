@@ -84,6 +84,7 @@
     btn.textContent = 'Generando...';
     if(statusEl) statusEl.textContent = 'Consultando Google Sheets...';
     try {
+      await window.OXXO_ADMIN_ASSETS.ensure('jszip');
       const res = await fetch(`${TEMPLATE_URL}?v=${Date.now()}`, { cache: 'no-store' });
       if(!res.ok) throw new Error(`No se pudo cargar la plantilla (HTTP ${res.status})`);
       const buf = await res.arrayBuffer();

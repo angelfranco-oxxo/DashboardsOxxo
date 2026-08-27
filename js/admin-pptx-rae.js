@@ -650,6 +650,7 @@
     btn.textContent = 'Generando...';
     if(statusEl) statusEl.textContent = 'Consultando Google Sheets...';
     try {
+      await window.OXXO_ADMIN_ASSETS.ensure('pptx');
       const mesSelect = document.getElementById('pptx-rae-mes');
       const mesOption = mesSelect ? mesSelect.selectedOptions[0] : null;
       const mesD1 = mesOption ? mesOption.value : '';

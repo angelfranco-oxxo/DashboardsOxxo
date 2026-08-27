@@ -47,7 +47,10 @@
   async function authenticateAdmin(password){
     if(!String(password||'').trim())throw new Error('Ingresa la contrasena.');
     try{
-      await postAdminPayload({action:'auth',adminPassword:password});
+      await Promise.race([
+        postAdminPayload({action:'auth',adminPassword:password}),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('Tiempo de validacion agotado.')),4500))
+      ]);
     }catch(error){
       if(/no autorizado/i.test(String(error?.message||error||''))){
         throw new Error('Contrasena incorrecta.');
@@ -64,16 +67,25 @@
     setTimeout(()=>input.focus(),80);
     form.addEventListener('submit',async event=>{
       event.preventDefault();
+      const button=form.querySelector('button[type="submit"]');
       const password=input.value;
       if(error)error.textContent='Validando...';
+      input.disabled=true;
+      if(button){button.disabled=true;button.textContent='Entrando...';}
       try{
         await authenticateAdmin(password);
         input.value='';
         if(error)error.textContent='';
         lock.classList.add('hidden');
+        const warmup=()=>window.OXXO_ADMIN_ASSETS?.warmup().catch(error=>console.warn('[OXXO] Recursos avanzados pendientes.',error));
+        if('requestIdleCallback' in window)window.requestIdleCallback(warmup,{timeout:4000});
+        else setTimeout(warmup,1500);
       }catch(err){
         if(error)error.textContent=err.message||'Contrasena incorrecta. Intenta de nuevo.';
         input.select();
+      }finally{
+        input.disabled=false;
+        if(button){button.disabled=false;button.textContent='Entrar';}
       }
     });
   }
@@ -202,7 +214,23 @@
   // (ej. "MÃ¡rquez" en vez de "Márquez") — XLSX.js sin esto puede asumir otra
   // codificacion para archivos .csv (los .xlsx no se ven afectados, ya traen
   // su propia codificacion declarada).
-  async function handleFile(file){if(!file)return;state.fileName=file.name||'';const buffer=await file.arrayBuffer();state.workbook=XLSX.read(buffer,{type:'array',cellDates:true,codepage:65001});state.sheetMatrixCache=new Map();$('file-meta').textContent=`${file.name} - ${(file.size/1024/1024).toFixed(2)} MB`;fillSheets();loadCurrentSheet();}
+  async function handleFile(file){
+    if(!file)return;
+    state.fileName=file.name||'';
+    $('file-meta').textContent='Preparando lector de Excel...';
+    try{
+      await window.OXXO_ADMIN_ASSETS.ensure('xlsx');
+      const buffer=await file.arrayBuffer();
+      state.workbook=XLSX.read(buffer,{type:'array',cellDates:true,codepage:65001});
+      state.sheetMatrixCache=new Map();
+      $('file-meta').textContent=`${file.name} - ${(file.size/1024/1024).toFixed(2)} MB`;
+      fillSheets();
+      loadCurrentSheet();
+    }catch(error){
+      $('file-meta').textContent='No se pudo abrir el archivo.';
+      alert(`No se pudo preparar el lector de Excel: ${error.message||error}`);
+    }
+  }
   function urlFromQuery(){try{return new URLSearchParams(location.search).get('uploadUrl')||'';}catch(_){return ''}}
   const {
     downloadCsv,

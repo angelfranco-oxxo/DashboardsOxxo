@@ -298,6 +298,7 @@
     btn.textContent = 'Generando...';
     if(statusEl) statusEl.textContent = 'Consultando Google Sheets...';
     try {
+      await window.OXXO_ADMIN_ASSETS.ensure('pptx');
       const today = new Date();
       const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
       const dateLabel = `${MESES[today.getMonth()]} ${today.getFullYear()}`;
