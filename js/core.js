@@ -2802,33 +2802,48 @@ function initScopeSelector() {
     applyScopeLabels();
     return;
   }
-  if (document.querySelector('[data-oxxo-scope-selector]')) return;
   const catalog = getScopeCatalog();
   if (!catalog.length) return;
-  const active = getActiveDataScope();
-  const host = document.createElement('div');
-  host.className = 'oxxo-scope-selector';
-  host.dataset.oxxoScopeSelector = 'true';
-  host.innerHTML = `
-    <label for="oxxo-scope-select"><span>Alcance</span>
-      <select id="oxxo-scope-select" aria-label="Seleccionar región o plaza">
-        ${catalog.map((region) => `
-          <option value="region|${escHtml(region.name)}"${active.level === 'region' && normalizeScopeToken(active.region) === normalizeScopeToken(region.name) ? ' selected' : ''}>Región ${escHtml(region.name)}</option>
-          ${region.plazas.map((plaza) => `<option value="plaza|${escHtml(region.name)}|${escHtml(plaza.name)}"${active.level !== 'region' && normalizeScopeToken(active.plaza) === normalizeScopeToken(plaza.name) ? ' selected' : ''}>${escHtml(plaza.name)}</option>`).join('')}
-        `).join('')}
-      </select>
-    </label>`;
-  const style = document.createElement('style');
-  style.textContent = `
-    .oxxo-scope-selector{position:fixed;right:18px;bottom:18px;z-index:9990;padding:8px 10px;border:1px solid rgba(22,99,137,.2);border-radius:15px;background:rgba(255,255,255,.96);box-shadow:0 12px 32px rgba(29,53,65,.16);backdrop-filter:blur(12px);font-family:inherit}
-    .oxxo-scope-selector label{display:flex;align-items:center;gap:8px;margin:0}.oxxo-scope-selector span{color:#577080;font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
-    .oxxo-scope-selector select{min-width:170px;border:0;border-radius:10px;background:#eef7fb;color:#174f6d;padding:8px 30px 8px 10px;font:700 12px/1.2 inherit;outline:none;cursor:pointer}
-    .oxxo-scope-selector select:focus{box-shadow:0 0 0 3px rgba(26,129,177,.18)}
-    @media(max-width:640px){.oxxo-scope-selector{right:10px;bottom:10px;left:10px}.oxxo-scope-selector label{justify-content:space-between}.oxxo-scope-selector select{min-width:0;max-width:70%;flex:1}}
-    @media print{.oxxo-scope-selector{display:none!important}}
-  `;
-  document.head.appendChild(style);
-  document.body.appendChild(host);
+  // El portal (index.html) muestra el resumen de todos los dashboards, no los
+  // datos de una plaza en particular: el control de Alcance solo tiene
+  // sentido dentro de cada dashboard, no aqui.
+  const hideWidget = Boolean(document.documentElement?.dataset?.oxxoHideScopeWidget);
+  if (!hideWidget && !document.querySelector('[data-oxxo-scope-selector]')) {
+    const active = getActiveDataScope();
+    const host = document.createElement('div');
+    host.className = 'oxxo-scope-selector';
+    host.dataset.oxxoScopeSelector = 'true';
+    host.innerHTML = `
+      <label for="oxxo-scope-select"><span>Alcance</span>
+        <select id="oxxo-scope-select" aria-label="Seleccionar región o plaza">
+          ${catalog.map((region) => `
+            <option value="region|${escHtml(region.name)}"${active.level === 'region' && normalizeScopeToken(active.region) === normalizeScopeToken(region.name) ? ' selected' : ''}>Región ${escHtml(region.name)}</option>
+            ${region.plazas.map((plaza) => `<option value="plaza|${escHtml(region.name)}|${escHtml(plaza.name)}"${active.level !== 'region' && normalizeScopeToken(active.plaza) === normalizeScopeToken(plaza.name) ? ' selected' : ''}>${escHtml(plaza.name)}</option>`).join('')}
+          `).join('')}
+        </select>
+      </label>`;
+    const style = document.createElement('style');
+    style.textContent = `
+      .oxxo-scope-selector{position:fixed;right:18px;bottom:18px;z-index:9990;padding:8px 10px;border:1px solid rgba(22,99,137,.2);border-radius:15px;background:rgba(255,255,255,.96);box-shadow:0 12px 32px rgba(29,53,65,.16);backdrop-filter:blur(12px);font-family:inherit}
+      .oxxo-scope-selector label{display:flex;align-items:center;gap:8px;margin:0}.oxxo-scope-selector span{color:#577080;font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+      .oxxo-scope-selector select{min-width:170px;border:0;border-radius:10px;background:#eef7fb;color:#174f6d;padding:8px 30px 8px 10px;font:700 12px/1.2 inherit;outline:none;cursor:pointer}
+      .oxxo-scope-selector select:focus{box-shadow:0 0 0 3px rgba(26,129,177,.18)}
+      @media(max-width:640px){.oxxo-scope-selector{right:10px;bottom:10px;left:10px}.oxxo-scope-selector label{justify-content:space-between}.oxxo-scope-selector select{min-width:0;max-width:70%;flex:1}}
+      @media print{.oxxo-scope-selector{display:none!important}}
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(host);
+    host.querySelector('select').addEventListener('change', (event) => {
+      const [level, region, plaza = ''] = String(event.target.value || '').split('|');
+      setActiveDataScope({ level, region, plaza }, { updateUrl: true });
+      clearSheetDataCache();
+      if (/\/admin\.html$/i.test(location.pathname)) {
+        document.getElementById('dashboard-select')?.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        location.reload();
+      }
+    });
+  }
   applyScopeLabels();
   if (typeof MutationObserver !== 'undefined') {
     const observer = new MutationObserver((mutations) => {
@@ -2839,16 +2854,6 @@ function initScopeSelector() {
     });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   }
-  host.querySelector('select').addEventListener('change', (event) => {
-    const [level, region, plaza = ''] = String(event.target.value || '').split('|');
-    setActiveDataScope({ level, region, plaza }, { updateUrl: true });
-    clearSheetDataCache();
-    if (/\/admin\.html$/i.test(location.pathname)) {
-      document.getElementById('dashboard-select')?.dispatchEvent(new Event('change', { bubbles: true }));
-    } else {
-      location.reload();
-    }
-  });
 }
 
 function replaceScopeTextNode(node) {
