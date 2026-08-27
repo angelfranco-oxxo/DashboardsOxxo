@@ -27,12 +27,104 @@ function getDataContext() {
     plazaId: String(source.PLAZA_ID || 'PLAZA-OAXACA').trim().toUpperCase(),
     plaza: String(source.PLAZA || 'Plaza Oaxaca').trim(),
     zone: String(source.ZONE || '').trim(),
-    brandSubtitle: String(source.BRAND_SUBTITLE || source.PLAZA || 'Plaza Oaxaca').trim()
+    brandSubtitle: String(source.BRAND_SUBTITLE || source.PLAZA || 'Plaza Oaxaca').trim(),
+    plazaAliases: Array.isArray(source.PLAZA_ALIASES) ? source.PLAZA_ALIASES.map(String).filter(Boolean) : []
   });
 }
 
 function getScopeLabel() {
-  return getDataContext().plaza;
+  const scope = getActiveDataScope();
+  return scope.zone || scope.plaza || scope.region || getDataContext().plaza;
+}
+
+function normalizeScopeToken(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function normalizeDataScope(scope = {}) {
+  const context = getDataContext();
+  const level = ['region', 'plaza', 'zona'].includes(String(scope.level || '').toLowerCase())
+    ? String(scope.level).toLowerCase()
+    : String((SHEETS_CONFIG.SCOPE_MODEL || {}).DEFAULT_LEVEL || 'plaza').toLowerCase();
+  return Object.freeze({
+    level,
+    region: String(scope.region || context.region).trim(),
+    plaza: level === 'region' ? '' : String(scope.plaza || context.plaza).trim(),
+    zone: level === 'zona' ? String(scope.zone || context.zone).trim() : ''
+  });
+}
+
+function getActiveDataScope() {
+  const model = SHEETS_CONFIG.SCOPE_MODEL || {};
+  let saved = {};
+  try { saved = JSON.parse(sessionStorage.getItem(model.STORAGE_KEY || 'oxxo_active_data_scope') || '{}') || {}; } catch (_) {}
+  try {
+    const query = new URLSearchParams(location.search || '');
+    const level = query.get(model.QUERY_PARAM || 'scope');
+    const region = query.get('region');
+    const plaza = query.get('plaza');
+    const zone = query.get('zona');
+    if (level || region || plaza || zone) saved = { ...saved, level: level || saved.level, region: region || saved.region, plaza: plaza || saved.plaza, zone: zone || saved.zone };
+  } catch (_) {}
+  return normalizeDataScope(saved);
+}
+
+function setActiveDataScope(scope, { updateUrl = true } = {}) {
+  const normalized = normalizeDataScope(scope);
+  const model = SHEETS_CONFIG.SCOPE_MODEL || {};
+  try { sessionStorage.setItem(model.STORAGE_KEY || 'oxxo_active_data_scope', JSON.stringify(normalized)); } catch (_) {}
+  if (updateUrl) {
+    try {
+      const url = new URL(location.href);
+      url.searchParams.set(model.QUERY_PARAM || 'scope', normalized.level);
+      normalized.region ? url.searchParams.set('region', normalized.region) : url.searchParams.delete('region');
+      normalized.plaza ? url.searchParams.set('plaza', normalized.plaza) : url.searchParams.delete('plaza');
+      normalized.zone ? url.searchParams.set('zona', normalized.zone) : url.searchParams.delete('zona');
+      history.replaceState(history.state, '', url);
+    } catch (_) {}
+  }
+  document.dispatchEvent(new CustomEvent('oxxo:scope-change', { detail: normalized }));
+  return normalized;
+}
+
+const SCOPE_ROW_ALIASES = {
+  region: ['Region', 'REGION', 'Región', 'REGION OPERATIVA'],
+  plaza: ['Plaza', 'PLAZA', 'Plazas', 'CR Plaza'],
+  zone: ['Zona', 'ZONA', 'Zone']
+};
+
+function scopeRowValue(row, dimension) {
+  const aliases = SCOPE_ROW_ALIASES[dimension] || [];
+  const key = Object.keys(row || {}).find((candidate) => aliases.some((alias) => normalizeScopeToken(candidate) === normalizeScopeToken(alias)));
+  return key ? String(row[key] || '').trim() : '';
+}
+
+function matchesScopeValue(value, dimension = 'plaza', scope = getActiveDataScope()) {
+  const actual = normalizeScopeToken(value);
+  if (!actual) return true;
+  const expected = dimension === 'region' ? scope.region : dimension === 'zone' ? scope.zone : scope.plaza;
+  if (!expected) return true;
+  const candidates = [expected];
+  if (dimension === 'plaza' && normalizeScopeToken(expected) === normalizeScopeToken(getDataContext().plaza)) candidates.push(...getDataContext().plazaAliases);
+  return candidates.some((candidate) => {
+    const token = normalizeScopeToken(candidate);
+    return token && (actual === token || actual.includes(token) || token.includes(actual));
+  });
+}
+
+function rowMatchesDataScope(row, scope = getActiveDataScope()) {
+  if (!row || typeof row !== 'object') return false;
+  const region = scopeRowValue(row, 'region');
+  const plaza = scopeRowValue(row, 'plaza');
+  const zone = scopeRowValue(row, 'zone');
+  if (region && !matchesScopeValue(region, 'region', scope)) return false;
+  if (scope.level !== 'region' && plaza && !matchesScopeValue(plaza, 'plaza', scope)) return false;
+  if (scope.level === 'zona' && zone && !matchesScopeValue(zone, 'zone', scope)) return false;
+  return true;
+}
+
+function filterRowsByDataScope(rows, scope = getActiveDataScope()) {
+  return Array.isArray(rows) ? rows.filter((row) => rowMatchesDataScope(row, scope)) : rows;
 }
 
 const DATA_CONTEXT_COLUMNS = {
@@ -2624,6 +2716,12 @@ window.OXXO = {
   SHEETS_CONFIG,
   getDataContext,
   getScopeLabel,
+  normalizeDataScope,
+  getActiveDataScope,
+  setActiveDataScope,
+  matchesScopeValue,
+  rowMatchesDataScope,
+  filterRowsByDataScope,
   applyDataContextDefaults,
   fetchSheetData,
   clearSheetDataCache,

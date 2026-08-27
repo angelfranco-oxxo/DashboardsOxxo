@@ -48,6 +48,13 @@ const context = OXXO.getDataContext();
 assert.equal(context.plaza, 'Plaza Oaxaca');
 assert.equal(context.region, 'Oaxaca');
 assert.equal(context.plazaId, 'PLAZA-OAXACA');
+assert.equal(OXXO.getActiveDataScope().level, 'plaza');
+assert.equal(OXXO.getActiveDataScope().plaza, 'Plaza Oaxaca');
+assert.equal(OXXO.matchesScopeValue('10VHT Oaxaca', 'plaza'), true);
+assert.equal(OXXO.rowMatchesDataScope({ Plaza: 'Villahermosa' }), false);
+const regionalScope = OXXO.normalizeDataScope({ level: 'region', region: 'Sureste' });
+assert.equal(OXXO.rowMatchesDataScope({ Region: 'Sureste', Plaza: 'Villahermosa' }, regionalScope), true);
+assert.equal(OXXO.filterRowsByDataScope([{ Plaza: 'Oaxaca' }, { Plaza: 'Tuxtla' }]).length, 1);
 
 const completed = OXXO.applyDataContextDefaults(
   { Region: '', Plaza: '', Zona: '', 'CR TIENDA': ' 50-i34 ' },
@@ -107,4 +114,4 @@ assert.deepEqual(JSON.parse(JSON.stringify(parsed.rows[0])), {
   Region: 'Oaxaca', Plaza: 'Plaza Oaxaca', Zona: '', ACTIVA: 'SI'
 });
 
-console.log('data-context y avisos: 10 pruebas correctas');
+console.log('data-context, alcance regional y avisos: 16 pruebas correctas');

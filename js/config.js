@@ -23,7 +23,17 @@ window.OXXO_CONFIG = {
     PLAZA_ID: "PLAZA-OAXACA",
     PLAZA: "Plaza Oaxaca",
     ZONE: "",
-    BRAND_SUBTITLE: "Plaza Oaxaca-ByPamsb"
+    BRAND_SUBTITLE: "Plaza Oaxaca-ByPamsb",
+    PLAZA_ALIASES: ["Oaxaca", "OXXO OAXACA", "10VHT Oaxaca"]
+  },
+  // El alcance se mantiene en Oaxaca hasta registrar las plazas reales de la
+  // region. La arquitectura ya acepta region/plaza/zona desde URL o sesion sin
+  // duplicar paginas: ?scope=region, ?plaza=... o ?zona=...
+  SCOPE_MODEL: {
+    DEFAULT_LEVEL: "plaza",
+    QUERY_PARAM: "scope",
+    STORAGE_KEY: "oxxo_active_data_scope",
+    DISCOVER_FROM_CATALOG: true
   },
   // Quien hereda las tiendas de un asesor que ya no esta (ej. Anadelia -> Timoteo).
   // Se administra desde el panel admin, pestana "Reasignaciones" -- no requiere

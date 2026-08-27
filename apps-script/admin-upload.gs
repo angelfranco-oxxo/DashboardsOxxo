@@ -12,7 +12,7 @@
  * Despues de eso, admin.html publica directo sin pedir URL.
  */
 const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
-const APP_VERSION = '38';
+const APP_VERSION = '39';
 const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const AUDIT_SHEET = '_Admin_Bitacora';
 const BACKUP_PREFIX = '_BK_';
@@ -217,9 +217,10 @@ function doPost(e) {
     const updateMode = String(payload.updateMode || 'replaceAll').trim();
     const periodColumn = String(payload.periodColumn || '').trim();
     const periodValues = Array.isArray(payload.periodValues) ? payload.periodValues.map(normalizeCell).filter(Boolean) : [];
+    const scopeColumns = normalizeScopeColumns(payload.scopeColumns);
     const requiredHeaders = Array.isArray(payload.requiredHeaders) ? payload.requiredHeaders.map(String).filter(Boolean) : [];
 
-    validatePublicationRequest(targetSheet, rows, updateMode, periodColumn, periodValues, requiredHeaders);
+    validatePublicationRequest(targetSheet, rows, updateMode, periodColumn, periodValues, requiredHeaders, scopeColumns);
 
     const lock = LockService.getScriptLock();
     lock.waitLock(30000);
@@ -237,8 +238,10 @@ function doPost(e) {
       try {
         backupName = backupCurrentSheet(ss, sheet, targetSheet, String(payload.sourceFile || payload.source || 'Publicación desde Panel Admin'));
         result = updateMode === 'replacePeriod'
-          ? replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues)
-          : replaceAll(sheet, rows, newHeaders);
+          ? replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues, scopeColumns)
+          : scopeColumns.length
+            ? replaceScope(sheet, rows, newHeaders, scopeColumns)
+            : replaceAll(sheet, rows, newHeaders);
 
         appendAudit(ss, payload, result, 'Correcta', '', backupName);
       } catch (publishError) {
@@ -257,6 +260,8 @@ function doPost(e) {
         mode: result.mode,
         periodColumn: result.periodColumn || '',
         periodValues: result.periodValues || [],
+        scopeColumns: result.scopeColumns || [],
+        scopeKeys: result.scopeKeys || [],
         rows: result.rows,
         keptRows: result.keptRows || 0,
         columns: result.columns,
@@ -272,7 +277,7 @@ function doPost(e) {
   }
 }
 
-function validatePublicationRequest(targetSheet, rows, updateMode, periodColumn, periodValues, requiredHeaders) {
+function validatePublicationRequest(targetSheet, rows, updateMode, periodColumn, periodValues, requiredHeaders, scopeColumns) {
   if (!targetSheet) throw new Error('targetSheet requerido');
   if (ALLOWED_SHEETS.indexOf(targetSheet) === -1) throw new Error('targetSheet no permitido: ' + targetSheet);
   if (updateMode !== 'replaceAll' && updateMode !== 'replacePeriod') throw new Error('Modo de publicación no permitido: ' + updateMode);
@@ -306,6 +311,11 @@ function validatePublicationRequest(targetSheet, rows, updateMode, periodColumn,
     if (!periodValues || !periodValues.length) throw new Error('replacePeriod requiere periodValues; se bloqueó el reemplazo total por seguridad');
     if (normalizedHeaders.indexOf(normalizeHeader(periodColumn)) === -1) throw new Error('La columna de periodo no existe en los datos: ' + periodColumn);
   }
+  (scopeColumns || []).forEach(function(column) {
+    if (normalizedHeaders.indexOf(normalizeHeader(column)) === -1) throw new Error('La columna de alcance no existe en los datos: ' + column);
+    const actual = headers.find(function(candidate) { return normalizeHeader(candidate) === normalizeHeader(column); });
+    if (!rows.every(function(row) { return normalizeCell(row[actual]) !== ''; })) throw new Error('La columna de alcance contiene filas vacias: ' + column);
+  });
   return { headers: headers };
 }
 
@@ -327,8 +337,9 @@ function preflightPublication(payload) {
   const updateMode = String(payload.updateMode || 'replaceAll').trim();
   const periodColumn = String(payload.periodColumn || '').trim();
   const periodValues = Array.isArray(payload.periodValues) ? payload.periodValues.map(normalizeCell).filter(Boolean) : [];
+  const scopeColumns = normalizeScopeColumns(payload.scopeColumns);
   const requiredHeaders = Array.isArray(payload.requiredHeaders) ? payload.requiredHeaders.map(String).filter(Boolean) : [];
-  const validated = validatePublicationRequest(targetSheet, rows, updateMode, periodColumn, periodValues, requiredHeaders);
+  const validated = validatePublicationRequest(targetSheet, rows, updateMode, periodColumn, periodValues, requiredHeaders, scopeColumns);
   const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(targetSheet);
   const layout = sheetPublicationLayout(sheet);
@@ -336,13 +347,20 @@ function preflightPublication(payload) {
   let replacedRows = currentRows;
   let projectedRows = rows.length;
 
+  const incomingScopeKeys = scopeKeysFromObjects(rows, scopeColumns);
   if (updateMode === 'replacePeriod') {
     const periodIndex = findHeaderIndex(layout.headers, periodColumn);
     if (currentRows && periodIndex < 0) throw new Error('La hoja actual no contiene la columna de periodo ' + periodColumn + '; no se modificó nada');
     const periodSet = {};
     periodValues.forEach(function(value) { periodSet[normalizePeriodValue(value, periodColumn)] = true; });
     replacedRows = periodIndex < 0 ? 0 : layout.rows.filter(function(row) {
-      return Boolean(periodSet[normalizePeriodValue(row[periodIndex], periodColumn)]);
+      const scopeMatches = !scopeColumns.length || incomingScopeKeys.indexOf(scopeKeyFromArray(layout.headers, row, scopeColumns)) !== -1;
+      return scopeMatches && Boolean(periodSet[normalizePeriodValue(row[periodIndex], periodColumn)]);
+    }).length;
+    projectedRows = currentRows - replacedRows + rows.length;
+  } else if (scopeColumns.length) {
+    replacedRows = layout.rows.filter(function(row) {
+      return incomingScopeKeys.indexOf(scopeKeyFromArray(layout.headers, row, scopeColumns)) !== -1;
     }).length;
     projectedRows = currentRows - replacedRows + rows.length;
   }
@@ -359,7 +377,9 @@ function preflightPublication(payload) {
     columns: validated.headers.length,
     willCreateBackup: Boolean(sheet && sheet.getLastRow() > 0),
     periodColumn: periodColumn,
-    periodValues: periodValues
+    periodValues: periodValues,
+    scopeColumns: scopeColumns,
+    scopeKeys: incomingScopeKeys
   };
 }
 
@@ -984,7 +1004,66 @@ function verifyPublishedSheet(sheet, result, expectedHeaders) {
   };
 }
 
-function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues) {
+function normalizeScopeColumns(value) {
+  const seen = {};
+  return (Array.isArray(value) ? value : []).map(function(column) { return String(column || '').trim(); }).filter(function(column) {
+    const key = normalizeHeader(column);
+    if (!key || seen[key]) return false;
+    seen[key] = true;
+    return true;
+  }).slice(0, 3);
+}
+
+function scopeKeyParts(values) {
+  const normalized = values.map(function(value) { return normalizeHeader(normalizeCell(value)); });
+  return normalized.some(function(value) { return !value; }) ? '' : normalized.join('::');
+}
+
+function scopeKeyFromObject(row, scopeColumns) {
+  if (!scopeColumns.length) return '';
+  const headers = Object.keys(row || {});
+  return scopeKeyParts(scopeColumns.map(function(column) {
+    const actual = findHeaderByKey(headers, normalizeHeader(column)) || column;
+    return row[actual];
+  }));
+}
+
+function scopeKeyFromArray(headers, row, scopeColumns) {
+  if (!scopeColumns.length) return '';
+  return scopeKeyParts(scopeColumns.map(function(column) {
+    const index = findHeaderIndex(headers, column);
+    return index >= 0 ? row[index] : '';
+  }));
+}
+
+function scopeKeysFromObjects(rows, scopeColumns) {
+  if (!scopeColumns.length) return [];
+  const seen = {};
+  return rows.map(function(row) { return scopeKeyFromObject(row, scopeColumns); }).filter(function(key) {
+    if (!key || seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+}
+
+function replaceScope(sheet, rows, newHeaders, scopeColumns) {
+  const incomingScopeKeys = scopeKeysFromObjects(rows, scopeColumns);
+  if (!incomingScopeKeys.length) throw new Error('No se detectaron valores para el alcance de publicacion');
+  const currentValues = sheet.getDataRange().getValues();
+  const hasBufferRow = currentValues.length && String(currentValues[0][0]) === BUFFER_ROW_VALUE;
+  const headerRowIndex = hasBufferRow ? 1 : 0;
+  const existingHeaders = currentValues.length > headerRowIndex ? currentValues[headerRowIndex].map(String) : [];
+  const keptRows = [];
+  for (let i = headerRowIndex + 1; i < currentValues.length; i++) {
+    const currentScopeKey = scopeKeyFromArray(existingHeaders, currentValues[i], scopeColumns);
+    if (!currentScopeKey || incomingScopeKeys.indexOf(currentScopeKey) === -1) keptRows.push(projectRowToHeaders(existingHeaders, currentValues[i], newHeaders));
+  }
+  const finalRows = keptRows.concat(rows);
+  writeWithBufferRow(sheet, rowsToValues(finalRows, newHeaders), newHeaders.length);
+  return { mode: 'replaceScope', rows: rows.length, keptRows: keptRows.length, columns: newHeaders.length, scopeColumns: scopeColumns, scopeKeys: incomingScopeKeys };
+}
+
+function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues, scopeColumns) {
   if (!periodValues.length) throw new Error('No se detectaron valores para ' + periodColumn);
 
   const currentValues = sheet.getDataRange().getValues();
@@ -998,6 +1077,8 @@ function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues) {
     return normalizePeriodValue(value, periodColumn);
   }).filter(Boolean));
   const keptRows = [];
+  const normalizedScopeColumns = normalizeScopeColumns(scopeColumns);
+  const incomingScopeKeys = scopeKeysFromObjects(rows, normalizedScopeColumns);
 
   rows.forEach(function(row) {
     row[periodColumn] = normalizePeriodValue(row[periodColumn], periodColumn);
@@ -1007,7 +1088,9 @@ function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues) {
     const projected = projectRowToHeaders(existingHeaders, currentValues[i], newHeaders);
     const periodHeader = findHeaderByKey(newHeaders, periodKey) || periodColumn;
     const currentPeriod = normalizePeriodValue(projected[periodHeader], periodColumn);
-    if (currentPeriod && !periodSet.has(currentPeriod)) {
+    const currentScopeKey = scopeKeyFromObject(projected, normalizedScopeColumns);
+    const scopeMatches = !normalizedScopeColumns.length || incomingScopeKeys.indexOf(currentScopeKey) !== -1;
+    if (!scopeMatches || (currentPeriod && !periodSet.has(currentPeriod))) {
       projected[periodHeader] = currentPeriod;
       keptRows.push(projected);
     }
@@ -1021,6 +1104,8 @@ function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues) {
     mode: 'replacePeriod',
     periodColumn: periodColumn,
     periodValues: periodValues,
+    scopeColumns: normalizedScopeColumns,
+    scopeKeys: incomingScopeKeys,
     rows: rows.length,
     keptRows: keptRows.length,
     columns: newHeaders.length
