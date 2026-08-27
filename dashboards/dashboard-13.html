@@ -413,7 +413,7 @@
 </div>
 
   <script src="../js/config.js?v=20260827scope1"></script>
-<script src="../js/core.js?v=20260827scope1"></script>
+<script src="../js/core.js?v=20260827load1"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.a13;
@@ -1208,50 +1208,57 @@ function limpiarFiltros(){
 }
 
 async function initDashboard(){
-  OXXO.renderDownloadButton('hero-download','a13');
-  let data = await OXXO.fetchSheetData(TAB);
-  if(data === null){ ['kpi-section','tabla-asesor','tabla-seguimiento','tabla-detalle'].forEach(id => OXXO.showError(id,'No se pudo conectar.')); return; }
-  if(data.length === 0){ ['kpi-section','tabla-asesor','tabla-seguimiento','tabla-detalle'].forEach(id => OXXO.showEmpty(id)); return; }
+  try {
+    OXXO.renderDownloadButton('hero-download','a13');
+    let data = await OXXO.fetchSheetData(TAB);
+    if(data === null){ ['kpi-section','tabla-asesor','tabla-seguimiento','tabla-detalle'].forEach(id => OXXO.showError(id,'No se pudo conectar.')); return; }
+    if(data.length === 0){ ['kpi-section','tabla-asesor','tabla-seguimiento','tabla-detalle'].forEach(id => OXXO.showEmpty(id)); return; }
 
-  C = buildColsD13(data[0]);
-  PARAMS = data.filter(r => normD13(val(r,C.registro)) === 'RESUMEN');
-  BASE = data.filter(r => normD13(val(r,C.registro)) !== 'RESUMEN' && val(r, C.nombre));
-  const anoParam=OXXO.metricsNum(PARAMS.find(Boolean)?.[C.anoReporte]);
-  const anosInicio=BASE.map(r=>Number(fechaIso(val(r,C.fIni))?.slice(0,4))).filter(Number.isFinite);
-  REPORT_YEAR=anoParam||anosInicio.sort((a,b)=>anosInicio.filter(x=>x===b).length-anosInicio.filter(x=>x===a).length)[0]||new Date().getFullYear();
-  const hoy=new Date();
-  CUTOFF_MONTH=REPORT_YEAR<hoy.getFullYear()?12:REPORT_YEAR>hoy.getFullYear()?0:Math.max(0,hoy.getMonth());
-  const catalog = await OXXO.loadAsesorCatalog();
-  BASE.forEach(row => OXXO.applyAsesorCatalog(row, catalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
-  // Se conservan las filas sin folio: el registro de Fatalidad no trae uno y es
-  // precisamente el que no puede desaparecer del tablero.
-  POR_COLAB = {};
-  BASE.forEach(r => { const k = claveColab(r); (POR_COLAB[k] = POR_COLAB[k] || []).push(r); });
+    C = buildColsD13(data[0]);
+    PARAMS = data.filter(r => normD13(val(r,C.registro)) === 'RESUMEN');
+    BASE = data.filter(r => normD13(val(r,C.registro)) !== 'RESUMEN' && val(r, C.nombre));
+    const anoParam=OXXO.metricsNum(PARAMS.find(Boolean)?.[C.anoReporte]);
+    const anosInicio=BASE.map(r=>Number(fechaIso(val(r,C.fIni))?.slice(0,4))).filter(Number.isFinite);
+    REPORT_YEAR=anoParam||anosInicio.sort((a,b)=>anosInicio.filter(x=>x===b).length-anosInicio.filter(x=>x===a).length)[0]||new Date().getFullYear();
+    const hoy=new Date();
+    CUTOFF_MONTH=REPORT_YEAR<hoy.getFullYear()?12:REPORT_YEAR>hoy.getFullYear()?0:Math.max(0,hoy.getMonth());
+    const catalog = await OXXO.loadAsesorCatalog();
+    BASE.forEach(row => OXXO.applyAsesorCatalog(row, catalog, { asesorKey:C.asesor, tiendaKey:C.tienda, crKey:C.cr }));
+    // Se conservan las filas sin folio: el registro de Fatalidad no trae uno y es
+    // precisamente el que no puede desaparecer del tablero.
+    POR_COLAB = {};
+    BASE.forEach(r => { const k = claveColab(r); (POR_COLAB[k] = POR_COLAB[k] || []).push(r); });
 
-  const fechas = BASE.map(r => fechaIso(val(r, C.fIni))).filter(Boolean).sort();
-  document.getElementById('corte-badge').textContent = CUTOFF_MONTH
-    ? `⟳ Acumulado ${MESES[0]}–${MESES[CUTOFF_MONTH-1]} ${REPORT_YEAR} · Plaza Oaxaca`
-    : '⟳ Control de Ausentismo · Plaza Oaxaca';
+    const fechas = BASE.map(r => fechaIso(val(r, C.fIni))).filter(Boolean).sort();
+    document.getElementById('corte-badge').textContent = CUTOFF_MONTH
+      ? `⟳ Acumulado ${MESES[0]}–${MESES[CUTOFF_MONTH-1]} ${REPORT_YEAR} · Plaza Oaxaca`
+      : '⟳ Control de Ausentismo · Plaza Oaxaca';
 
-  const asesores = [...new Set(BASE.map(r => val(r, C.asesor)).filter(Boolean))].sort();
-  asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
-    onChange: (sel) => { SELECTED_ASESORES = sel; DETALLE_ASESOR = null; CELDA_CALOR = null; renderAll(); },
-  });
-  const selC = document.getElementById('filtro-clas');
-  CLAS.filter(c => BASE.some(r => clasificacionCalculo(r) === c))
-      .forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = CLAS_LARGO[c] || c; selC.appendChild(o); });
-  const selP = document.getElementById('filtro-puesto');
-  [...new Set(BASE.map(r => val(r, C.puesto)).filter(Boolean))].sort()
-      .forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; selP.appendChild(o); });
+    const asesores = [...new Set(BASE.map(r => val(r, C.asesor)).filter(Boolean))].sort();
+    asesorFilterHandle = OXXO.mountAsesorFilter('filtro-asesor', asesores, {
+      onChange: (sel) => { SELECTED_ASESORES = sel; DETALLE_ASESOR = null; CELDA_CALOR = null; renderAll(); },
+    });
+    const selC = document.getElementById('filtro-clas');
+    CLAS.filter(c => BASE.some(r => clasificacionCalculo(r) === c))
+        .forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = CLAS_LARGO[c] || c; selC.appendChild(o); });
+    const selP = document.getElementById('filtro-puesto');
+    [...new Set(BASE.map(r => val(r, C.puesto)).filter(Boolean))].sort()
+        .forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; selP.appendChild(o); });
 
-  const selMesCalor=document.getElementById('filtro-mes-calor');
-  const mesesCorte=MESES.slice(0,CUTOFF_MONTH);
-  selMesCalor.innerHTML='<option value="">Todo el periodo</option>'+mesesCorte.map(m=>`<option value="${m}">${m}</option>`).join('');
-  MES_CALOR=mesesCorte[mesesCorte.length-1]||'';
-  selMesCalor.value=MES_CALOR;
+    const selMesCalor=document.getElementById('filtro-mes-calor');
+    const mesesCorte=MESES.slice(0,CUTOFF_MONTH);
+    selMesCalor.innerHTML='<option value="">Todo el periodo</option>'+mesesCorte.map(m=>`<option value="${m}">${m}</option>`).join('');
+    MES_CALOR=mesesCorte[mesesCorte.length-1]||'';
+    selMesCalor.value=MES_CALOR;
 
-  renderAll();
-  OXXO.updateFooterTime('load-time');
+    renderAll();
+    OXXO.updateFooterTime('load-time');
+  } catch(error) {
+    console.error('[D13] No se pudo completar la carga:', error);
+    ['kpi-section','tabla-asesor','tabla-seguimiento','tabla-detalle'].forEach(id => OXXO.showError(id,'No se pudo completar la carga. Reintenta.'));
+    const asesorBox=document.getElementById('filtro-asesor');
+    if(asesorBox && !asesorBox.children.length) asesorBox.innerHTML='<button type="button" class="filtro-btn" data-oxxo-retry>Reintentar carga</button>';
+  }
 }
 document.addEventListener('DOMContentLoaded', initDashboard);
 

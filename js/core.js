@@ -207,6 +207,20 @@ function buildSheetURL(tabName) {
   return `https://docs.google.com/spreadsheets/d/${SHEETS_CONFIG.SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
 }
 
+// Una solicitud bloqueada por el navegador (protección anti-rastreo, proxy o
+// una red corporativa inestable) no debe dejar el dashboard mostrando el
+// spinner para siempre. Cada fuente conserva sus respaldos normales; este
+// límite únicamente permite llegar a ellos de forma determinista.
+async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), Math.max(1000, Number(timeoutMs) || 15000));
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Ruta base del sitio, derivada del <script> que carga este mismo core.js
 // (dashboards lo incluyen como "../js/core.js" y admin.html como "js/core.js").
 // Sirve para resolver assets locales sin importar la profundidad de la pagina.
@@ -422,7 +436,7 @@ async function fetchSheetData(tabName, options = {}) {
           try {
             // Permite validacion HTTP del navegador; la vigencia funcional se
             // sigue controlando con savedAt y las constantes de arriba.
-            const response = await fetch(url, { cache: 'default' });
+            const response = await fetchWithTimeout(url, { cache: 'default' }, attempt === 0 ? 12000 : 18000);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const rows = parseCSV(await response.text());
             const entry = { rows, savedAt: Date.now() };
@@ -1675,7 +1689,7 @@ async function fetchCatalogRowsDirect() {
   if (!base) return null;
   const sheetName = SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores';
   const url = `${base}${base.includes('?') ? '&' : '?'}action=readSheet&sheet=${encodeURIComponent(sheetName)}`;
-  const response = await fetch(url, { cache: 'no-store' });
+  const response = await fetchWithTimeout(url, { cache: 'no-store' }, 6000);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
   if (!data.ok) throw new Error(data.error || 'respuesta invalida de readSheet');
@@ -2854,6 +2868,7 @@ window.OXXO = {
   rowMatchesDataScope,
   filterRowsByDataScope,
   applyDataContextDefaults,
+  fetchWithTimeout,
   fetchSheetData,
   clearSheetDataCache,
   getSheetDataStatus,
