@@ -75,7 +75,23 @@ function normalizeDataScope(scope = {}) {
   });
 }
 
+// Algunas fuentes siguen siendo exclusivas de una plaza. La pantalla puede
+// declararlo en <html> para ignorar tanto el alcance guardado como parametros
+// regionales heredados desde el portal.
+function getPageFixedDataScope() {
+  const data = document.documentElement?.dataset || {};
+  if (!String(data.oxxoFixedScope || '').trim()) return null;
+  return normalizeDataScope({
+    level: data.oxxoFixedScope,
+    region: data.oxxoFixedRegion || getDataContext().region,
+    plaza: data.oxxoFixedPlaza || getDataContext().plaza,
+    zone: data.oxxoFixedZone || ''
+  });
+}
+
 function getActiveDataScope() {
+  const fixed = getPageFixedDataScope();
+  if (fixed) return fixed;
   const model = SHEETS_CONFIG.SCOPE_MODEL || {};
   let saved = {};
   try { saved = JSON.parse(sessionStorage.getItem(model.STORAGE_KEY || 'oxxo_active_data_scope') || '{}') || {}; } catch (_) {}
@@ -91,6 +107,8 @@ function getActiveDataScope() {
 }
 
 function setActiveDataScope(scope, { updateUrl = true } = {}) {
+  const fixed = getPageFixedDataScope();
+  if (fixed) return fixed;
   const normalized = normalizeDataScope(scope);
   const model = SHEETS_CONFIG.SCOPE_MODEL || {};
   try { sessionStorage.setItem(model.STORAGE_KEY || 'oxxo_active_data_scope', JSON.stringify(normalized)); } catch (_) {}
@@ -2778,6 +2796,12 @@ async function refreshSystemNotices() {
 }
 
 function initScopeSelector() {
+  // Un dashboard de plaza fija no debe ofrecer un control que aparenta
+  // cambiar el origen de sus datos.
+  if (getPageFixedDataScope()) {
+    applyScopeLabels();
+    return;
+  }
   if (document.querySelector('[data-oxxo-scope-selector]')) return;
   const catalog = getScopeCatalog();
   if (!catalog.length) return;
@@ -2861,6 +2885,7 @@ window.OXXO = {
   getDataContext,
   getScopeCatalog,
   getScopeLabel,
+  getPageFixedDataScope,
   normalizeDataScope,
   getActiveDataScope,
   setActiveDataScope,

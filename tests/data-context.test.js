@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, '..');
 const listeners = new Map();
 const documentStub = {
   readyState: 'loading',
+  documentElement: { dataset: {} },
   body: null,
   head: { appendChild() {} },
   addEventListener(name, handler) { listeners.set(name, handler); },
@@ -58,6 +59,20 @@ assert.equal(OXXO.rowMatchesDataScope({ Region: 'TABASCO', Plaza: 'Villahermosa'
 assert.equal(OXXO.rowMatchesDataScope({ Region: 'TABASCO', Plaza: 'Puebla' }, regionalScope), false);
 assert.equal(OXXO.filterRowsByDataScope([{ Plaza: 'Oaxaca' }, { Plaza: 'Tuxtla' }]).length, 1);
 assert.equal(OXXO.rowMatchesDataScope({ Plaza: '' }, OXXO.normalizeDataScope({ level: 'plaza', plaza: 'Tuxtla' }), { legacyPlaza: 'Plaza Oaxaca' }), false);
+
+// Control de Ausentismo es una fuente exclusiva de Oaxaca: una plaza recibida
+// por URL o conservada en la sesion no debe cambiar su alcance.
+documentStub.documentElement.dataset = {
+  oxxoFixedScope: 'plaza',
+  oxxoFixedRegion: 'TABASCO',
+  oxxoFixedPlaza: 'Plaza Oaxaca'
+};
+sandbox.location.search = '?scope=plaza&region=TABASCO&plaza=Tuxtla';
+assert.equal(OXXO.getPageFixedDataScope().plaza, 'Plaza Oaxaca');
+assert.equal(OXXO.getActiveDataScope().plaza, 'Plaza Oaxaca');
+assert.equal(OXXO.setActiveDataScope({ level: 'plaza', region: 'TABASCO', plaza: 'Tuxtla' }).plaza, 'Plaza Oaxaca');
+documentStub.documentElement.dataset = {};
+sandbox.location.search = '';
 assert.equal(OXXO.metricsFilterBajasD2([
   { Plaza: 'Oaxaca', Medida: 'BAJA' },
   { Plaza: 'Tuxtla', Medida: 'BAJA' }
