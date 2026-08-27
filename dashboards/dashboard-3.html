@@ -730,8 +730,8 @@
   </div>
 </div>
 
-  <script src="../js/config.js?v=20260827r2"></script>
-<script src="../js/core.js?v=20260827r3"></script>
+  <script src="../js/config.js?v=20260827scope1"></script>
+<script src="../js/core.js?v=20260827scope1"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d3;
@@ -942,7 +942,7 @@ async function initDashboard(){
   const [rawData, asesorCatalog, rawD3Plazas] = await Promise.all([
     OXXO.fetchSheetData(TAB),
     OXXO.loadAsesorCatalog(),
-    OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3plazas),
+    OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3plazas,{scoped:false}),
   ]);
   if(rawData===null){['kpi-section','plazas-row','tabla-at'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(rawData.length===0){['kpi-section','plazas-row','tabla-at'].forEach(id=>OXXO.showEmpty(id));return;}

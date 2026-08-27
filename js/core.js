@@ -1797,7 +1797,13 @@ function resolveAsesor(catalog, { cr='', tienda='', asesor='' } = {}) {
   const crKey = normalizeCatalogCr(cr);
   const tiendaKey = normalizeCatalogTienda(tienda);
   const hit = (crKey && catalog.byCr.get(crKey)) || (tiendaKey && catalog.byTienda.get(tiendaKey));
-  return renameMergedAsesor(hit?.asesor || fallback);
+  // El catálogo histórico de Oaxaca no trae Plaza en sus tres columnas
+  // originales. buildAsesorCatalog la completa como Oaxaca; por eso un hit de
+  // ese catálogo solo puede corregir filas del alcance al que pertenece. Sin
+  // esta comprobación, una tienda homónima de Tuxtla/Villahermosa podía heredar
+  // silenciosamente el asesor de Oaxaca.
+  const hitMatchesScope = hit && rowMatchesDataScope({ Region: hit.region, Plaza: hit.plaza, Zona: hit.zona });
+  return renameMergedAsesor(hitMatchesScope ? hit.asesor : fallback);
 }
 function metricsIsSinAsesorD1(value) {
   const t = metricsNormText(value).replace(/[^A-Z]/g, '');
@@ -2209,19 +2215,15 @@ function metricsApplyD1Defaults(rows, keys) {
     .filter(r => metricsPasaAntiguedadDefaultD1(r, diasKey));
 }
 // filterData() de dashboard-2.html: si la hoja trae columna de Medida,
-// quedarse solo con movimientos de BAJA; si trae Plaza, quedarse solo con
-// Oaxaca. Cada filtro solo se aplica si existe la columna Y deja al menos
-// una fila (mismo criterio "solo si aplica" del dashboard real).
+// quedarse solo con movimientos de BAJA. El alcance geográfico ya fue
+// aplicado por fetchSheetData; volver a filtrar Oaxaca aquí rompía el modo
+// Región TABASCO al descartar Tuxtla, Villahermosa, Costa Istmo y Chontalpa.
 function metricsFilterBajasD2(rows, keys) {
-  const { medidaKey, plazaKey } = keys;
+  const { medidaKey } = keys;
   let base = rows;
   if (medidaKey) {
     const bajas = base.filter(r => metricsNormText(metricsVal(r, medidaKey)).includes('BAJA'));
     if (bajas.length) base = bajas;
-  }
-  if (plazaKey) {
-    const oax = base.filter(r => metricsNormText(metricsVal(r, plazaKey)).includes('OAXACA'));
-    if (oax.length) base = oax;
   }
   return base;
 }

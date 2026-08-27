@@ -102,7 +102,7 @@
     // las demas plazas capturadas a mano en Dashboard_2_Otras_Plazas.
     const plazaRanking = [{ plaza: 'Oaxaca', bajas: byMonth.length }];
     try {
-      const otras = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2otras);
+      const otras = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2otras,{scoped:false});
       if(otras && otras.length){
         const plazaOtrasKey = findDataKey(otras, ['Plazas','PLAZAS']);
         const bajasOtrasKey = findDataKey(otras, ['Bajas Plaza','Bajas_Plaza']);

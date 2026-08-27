@@ -661,12 +661,11 @@
   </div>
 </div>
 
-  <script src="../js/config.js?v=20260827r2"></script>
-<script src="../js/core.js?v=20260827r3"></script>
+  <script src="../js/config.js?v=20260827scope1"></script>
+<script src="../js/core.js?v=20260827scope1"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d2;
-const OBJETIVO_PLAZA = 'OAXACA';
 
 const ALIASES = {
   mes: ['Mes','MES','Mes baja','Mes de baja','Mes_baja'],
@@ -698,6 +697,17 @@ const ALIASES = {
 
 function cleanKey(str){return String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
 function cleanText(str){return String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();}
+function canonicalPlazaName(value){
+  const raw=String(value||'').trim();
+  const token=cleanText(raw);
+  for(const region of OXXO.getScopeCatalog()){
+    for(const plaza of region.plazas){
+      const candidates=[plaza.name,plaza.shortName,...plaza.aliases].map(cleanText).filter(Boolean);
+      if(candidates.some(candidate=>token===candidate||token.includes(candidate)||candidate.includes(token)))return plaza.shortName||plaza.name;
+    }
+  }
+  return raw||'Sin plaza';
+}
 // Delegado a core.js (OXXO.metricsFindKey): misma implementacion exacta,
 // para que dashboards y presentaciones nunca vuelvan a divergir.
 function findRealKey(row, aliases){ return OXXO.metricsFindKey(row, aliases); }
@@ -1089,11 +1099,7 @@ function filterData(data, cols){
     const bajas = rows.filter(r => cleanText(val(r, cols, 'medida')).includes('BAJA'));
     if(bajas.length) rows = bajas;
   }
-  // Filtrar Plaza Oaxaca si la columna existe.
-  if(cols.plaza){
-    const oaxaca = rows.filter(r => cleanText(val(r, cols, 'plaza')).includes(OBJETIVO_PLAZA));
-    if(oaxaca.length) rows = oaxaca;
-  }
+  // La plaza o región seleccionada ya viene filtrada por fetchSheetData().
   // Puestos operativos que sí entran al tablero.
   if(cols.puesto){
     const operativos = rows.filter(r => {
@@ -1169,38 +1175,35 @@ function renderTotalChart(labels, values){
   });
 }
 
-const COMPROMISOS_AT = [
-  {id:'timoteo', nombre:'Timoteo A.P.', full:'Timoteo Antonio Perez', comp:4},
-  {id:'ernesto', nombre:'Ernesto C.M.', full:'Ernesto Cruz Márquez', comp:4},
-  {id:'hector', nombre:'Hector D. R.G.', full:'Hector Demetrio Reyes Galo', comp:4},
-  {id:'jordan', nombre:'Jordan V.T.', full:'Jordan Vazquez Toala', comp:4},
-  {id:'jorge', nombre:'Jorge A. P.L.', full:'Jorge Adrian Posadas Lopez', comp:4},
-  {id:'laura', nombre:'Laura A. M.M.', full:'Laura Alejandra Moreno Mayoral', comp:4},
-  {id:'luis', nombre:'Luis J. R.C.', full:'Luis Javier Ramos Cruz', comp:4},
-  {id:'marisela', nombre:'Marisela M.S.', full:'Marisela Muñoz Sarabia', comp:4},
-  {id:'mirna', nombre:'Mirna M.L.', full:'Mirna Martinez Lorenzo', comp:4},
-  {id:'reyna', nombre:'Reyna A. R.G.', full:'Reyna Alicia Reyes Garcia', comp:7},
-  {id:'sofia', nombre:'Sofia C. J.G.', full:'Sofia Caridad Jimenez Gomez', comp:8},
-];
+function shortAsesorName(fullName){
+  const parts=String(fullName||'').trim().split(/\s+/).filter(Boolean);
+  if(parts.length<=2)return parts.join(' ');
+  return `${parts[0]} ${parts.slice(1).map(part=>`${part[0].toUpperCase()}.`).join('')}`;
+}
 
-function asesorId(nombre){
-  const n = cleanText(nombre);
-  // Anadelia y "Sin Asesor Asignado" quedan fusionados en Timoteo desde el
-  // resto del dashboard (ver initDashboard): esta tabla debe reconocerlo con
-  // el mismo nombre, si no sus bajas quedaban excluidas por completo (bucket
-  // 'otro', descartado) y la fila "Anadelia" se congelaba siempre en 0.
-  if(n.includes('TIMOTEO')) return 'timoteo';
-  if(n.includes('ERNESTO')) return 'ernesto';
-  if(n.includes('HECTOR')) return 'hector';
-  if(n.includes('JORDAN')) return 'jordan';
-  if(n.includes('JORGE')) return 'jorge';
-  if(n.includes('LAURA')) return 'laura';
-  if(n.includes('LUIS')) return 'luis';
-  if(n.includes('MARISELA')) return 'marisela';
-  if(n.includes('MIRNA')) return 'mirna';
-  if(n.includes('REYNA')) return 'reyna';
-  if(n.includes('SOFIA')) return 'sofia';
-  return 'otro';
+function compromisoConfigForScope(){
+  const config=OXXO.SHEETS_CONFIG.BAJAS_COMMITMENTS||{};
+  const byPlaza=config.BY_PLAZA||{};
+  const scope=OXXO.getActiveDataScope();
+  const target=Object.entries(byPlaza).find(([plaza])=>OXXO.matchesScopeValue(plaza,'plaza',scope));
+  return {defaultValue:Number(config.DEFAULT)||0,values:target?target[1]:{}};
+}
+
+function compromisoRoster(cols){
+  const month=FILTER_STATE.mes||latestMonthKey(BASE_BAJAS_DATA,cols);
+  const source=month?BASE_BAJAS_DATA.filter(row=>monthKeyFromRow(row,cols)===month):BASE_BAJAS_DATA;
+  const roster=new Map();
+  source.forEach(row=>{
+    const name=getAsesorValue(row,cols);
+    if(!name||name===SIN_ASESOR)return;
+    roster.set(cleanKey(name),name);
+  });
+  // Oaxaca ya tenía metas configuradas incluso para asesores con cero bajas.
+  // Se agregan al roster únicamente cuando Oaxaca es el alcance activo; las
+  // demás plazas se construyen exclusivamente con sus propios datos.
+  const configured=compromisoConfigForScope().values;
+  Object.keys(configured).forEach(name=>roster.set(cleanKey(name),name));
+  return roster;
 }
 
 function compPillClass(bajas){
@@ -1214,14 +1217,17 @@ function compPillClass(bajas){
 function renderCompromiso(data, cols){
   const counts = {};
   data.forEach(r => {
-    const id = asesorId(val(r, cols, 'asesor', ''));
-    if(id !== 'otro') counts[id] = (counts[id] || 0) + 1;
+    const name=getAsesorValue(r,cols);
+    if(name!==SIN_ASESOR){const id=cleanKey(name);counts[id]=(counts[id]||0)+1;}
   });
+  const commitmentConfig=compromisoConfigForScope();
+  const configuredByKey=new Map(Object.entries(commitmentConfig.values).map(([name,value])=>[cleanKey(name),Number(value)||0]));
   let totalBajas = 0;
   let totalComp = 0;
-  const sorted = COMPROMISOS_AT
-    .map(item => ({...item, bajas: counts[item.id] || 0}))
-    .sort((a,b) => b.bajas - a.bajas || a.nombre.localeCompare(b.nombre, 'es'));
+  const sorted = [...compromisoRoster(cols)].map(([id,full])=>({
+    id,full,nombre:shortAsesorName(full),bajas:counts[id]||0,
+    comp:configuredByKey.has(id)?configuredByKey.get(id):commitmentConfig.defaultValue
+  })).sort((a,b) => b.bajas - a.bajas || a.full.localeCompare(b.full, 'es'));
   const rows = sorted.map(item => {
     const bajas = item.bajas;
     const desfase = bajas - item.comp;
@@ -1609,14 +1615,11 @@ function renderPlazas(allData, cols) {
     plazasData.sort((a,b) => b.bajas - a.bajas);
   }
 
-  // Fallback: contar por columna Plaza. El dato ya viene pre-filtrado a Oaxaca (filterData
-  // aplica OBJETIVO_PLAZA), pero el texto literal varia entre cargas ("Oaxaca", "OXXO OAXACA",
-  // etc.) y sin normalizar se contaban como plazas distintas y duplicadas en el ranking.
+  // Fallback: contar por columna Plaza. Se normalizan los alias territoriales
+  // (p. ej. "OXXO OAXACA"/"Oaxaca" o "Plaza Tuxtla"/"Tuxtla") para que
+  // nunca aparezcan duplicados en el comparativo regional.
   if(!plazasData.length && cols.plaza) {
-    const byPlaza = countBy(data, r => {
-      const raw = val(r, cols, 'plaza', 'Sin plaza');
-      return cleanText(raw).includes(OBJETIVO_PLAZA) ? 'Oaxaca' : raw;
-    });
+    const byPlaza = countBy(data, r => canonicalPlazaName(val(r, cols, 'plaza', 'Sin plaza')));
     plazasData = Object.entries(byPlaza)
       .map(([plaza, bajas]) => ({ plaza, bajas }))
       .sort((a,b) => b.bajas - a.bajas)
@@ -1883,7 +1886,7 @@ async function initDashboard(){
   const [raw, asesorCatalog, rawOtras] = await Promise.all([
     OXXO.fetchSheetData(TAB),
     OXXO.loadAsesorCatalog(),
-    OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2otras),
+    OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2otras,{scoped:false}),
   ]);
   if(raw === null){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar con Google Sheets.')); return; }
   if(!raw.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }

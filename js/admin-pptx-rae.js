@@ -172,7 +172,7 @@
 
     let plazas = [];
     try {
-      const otras = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3plazas);
+      const otras = await OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3plazas,{scoped:false});
       if(otras && otras.length){
         // findDataKey (no findKey): la hoja de "Otras Plazas" es una carga
         // manual y, como la de TREO, puede traer el mismo problema de

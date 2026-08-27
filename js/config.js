@@ -56,6 +56,29 @@ window.OXXO_CONFIG = {
   // respaldo fijo que ya trae core.js).
   REASIGNACIONES_SHEET: "Reasignaciones",
 
+  // Metas mensuales de bajas por asesor. El tablero arma el roster desde los
+  // datos de la plaza activa; esta tabla solo conserva las excepciones de meta
+  // que ya estaban definidas para Oaxaca. Las plazas sin una meta particular
+  // usan DEFAULT, por lo que nunca heredan nombres de otra plaza.
+  BAJAS_COMMITMENTS: {
+    DEFAULT: 4,
+    BY_PLAZA: {
+      "Plaza Oaxaca": {
+        "Timoteo Antonio Perez": 4,
+        "Ernesto Cruz Márquez": 4,
+        "Hector Demetrio Reyes Galo": 4,
+        "Jordan Vazquez Toala": 4,
+        "Jorge Adrian Posadas Lopez": 4,
+        "Laura Alejandra Moreno Mayoral": 4,
+        "Luis Javier Ramos Cruz": 4,
+        "Marisela Muñoz Sarabia": 4,
+        "Mirna Martinez Lorenzo": 4,
+        "Reyna Alicia Reyes Garcia": 7,
+        "Sofia Caridad Jimenez Gomez": 8
+      }
+    }
+  },
+
   // Web App de Apps Script usado por el panel admin para publicar bases y
   // para leer hojas directo (sin pasar por gviz, ver ADMIN_READ_ACTION mas
   // abajo).

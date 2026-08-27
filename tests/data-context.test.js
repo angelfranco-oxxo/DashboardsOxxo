@@ -58,6 +58,10 @@ assert.equal(OXXO.rowMatchesDataScope({ Region: 'TABASCO', Plaza: 'Villahermosa'
 assert.equal(OXXO.rowMatchesDataScope({ Region: 'TABASCO', Plaza: 'Puebla' }, regionalScope), false);
 assert.equal(OXXO.filterRowsByDataScope([{ Plaza: 'Oaxaca' }, { Plaza: 'Tuxtla' }]).length, 1);
 assert.equal(OXXO.rowMatchesDataScope({ Plaza: '' }, OXXO.normalizeDataScope({ level: 'plaza', plaza: 'Tuxtla' }), { legacyPlaza: 'Plaza Oaxaca' }), false);
+assert.equal(OXXO.metricsFilterBajasD2([
+  { Plaza: 'Oaxaca', Medida: 'BAJA' },
+  { Plaza: 'Tuxtla', Medida: 'BAJA' }
+], { plazaKey: 'Plaza', medidaKey: 'Medida' }).length, 2);
 
 const completed = OXXO.applyDataContextDefaults(
   { Region: '', Plaza: '', Zona: '', 'CR TIENDA': ' 50-i34 ' },
@@ -117,4 +121,4 @@ assert.deepEqual(JSON.parse(JSON.stringify(parsed.rows[0])), {
   Region: 'TABASCO', Plaza: 'Plaza Oaxaca', Zona: '', ACTIVA: 'SI'
 });
 
-console.log('data-context, alcance regional y avisos: 19 pruebas correctas');
+console.log('data-context, alcance regional y avisos: 20 pruebas correctas');
