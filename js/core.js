@@ -2813,28 +2813,36 @@ function initScopeSelector() {
     const host = document.createElement('div');
     host.className = 'oxxo-scope-selector';
     host.dataset.oxxoScopeSelector = 'true';
+    const isActiveRegion = (region) => active.level === 'region' && normalizeScopeToken(active.region) === normalizeScopeToken(region.name);
+    const isActivePlaza = (plaza) => active.level !== 'region' && normalizeScopeToken(active.plaza) === normalizeScopeToken(plaza.name);
     host.innerHTML = `
-      <label for="oxxo-scope-select"><span>Alcance</span>
-        <select id="oxxo-scope-select" aria-label="Seleccionar región o plaza">
-          ${catalog.map((region) => `
-            <option value="region|${escHtml(region.name)}"${active.level === 'region' && normalizeScopeToken(active.region) === normalizeScopeToken(region.name) ? ' selected' : ''}>Región ${escHtml(region.name)}</option>
-            ${region.plazas.map((plaza) => `<option value="plaza|${escHtml(region.name)}|${escHtml(plaza.name)}"${active.level !== 'region' && normalizeScopeToken(active.plaza) === normalizeScopeToken(plaza.name) ? ' selected' : ''}>${escHtml(plaza.name)}</option>`).join('')}
-          `).join('')}
-        </select>
-      </label>`;
+      <span class="oxxo-scope-selector__label">Alcance</span>
+      <div class="oxxo-scope-switch" role="tablist" aria-label="Seleccionar región o plaza">
+        ${catalog.map((region) => `
+          <button type="button" class="oxxo-scope-switch__opt${isActiveRegion(region) ? ' is-active' : ''}" role="tab" aria-selected="${isActiveRegion(region)}" data-scope="region|${escHtml(region.name)}">Región ${escHtml(region.name)}</button>
+          ${region.plazas.map((plaza) => `<button type="button" class="oxxo-scope-switch__opt${isActivePlaza(plaza) ? ' is-active' : ''}" role="tab" aria-selected="${isActivePlaza(plaza)}" data-scope="plaza|${escHtml(region.name)}|${escHtml(plaza.name)}">${escHtml(plaza.shortName || plaza.name)}</button>`).join('')}
+        `).join('')}
+      </div>`;
     const style = document.createElement('style');
     style.textContent = `
-      .oxxo-scope-selector{position:fixed;right:18px;bottom:18px;z-index:9990;padding:8px 10px;border:1px solid rgba(22,99,137,.2);border-radius:15px;background:rgba(255,255,255,.96);box-shadow:0 12px 32px rgba(29,53,65,.16);backdrop-filter:blur(12px);font-family:inherit}
-      .oxxo-scope-selector label{display:flex;align-items:center;gap:8px;margin:0}.oxxo-scope-selector span{color:#577080;font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
-      .oxxo-scope-selector select{min-width:170px;border:0;border-radius:10px;background:#eef7fb;color:#174f6d;padding:8px 30px 8px 10px;font:700 12px/1.2 inherit;outline:none;cursor:pointer}
-      .oxxo-scope-selector select:focus{box-shadow:0 0 0 3px rgba(26,129,177,.18)}
-      @media(max-width:640px){.oxxo-scope-selector{right:10px;bottom:10px;left:10px}.oxxo-scope-selector label{justify-content:space-between}.oxxo-scope-selector select{min-width:0;max-width:70%;flex:1}}
+      .oxxo-scope-selector{position:fixed;right:18px;bottom:18px;z-index:9990;display:flex;align-items:center;gap:10px;max-width:min(580px,calc(100vw - 36px));padding:9px 12px;border:1px solid rgba(22,99,137,.2);border-radius:16px;background:rgba(255,255,255,.96);box-shadow:0 12px 32px rgba(29,53,65,.16);backdrop-filter:blur(12px);font-family:inherit}
+      .oxxo-scope-selector__label{color:#577080;font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap}
+      .oxxo-scope-switch{display:flex;flex-wrap:wrap;gap:5px}
+      .oxxo-scope-switch__opt{appearance:none;border:1px solid transparent;border-radius:999px;padding:7px 13px;font:800 11px/1.1 inherit;letter-spacing:.02em;cursor:pointer;transition:background .18s ease,color .18s ease,transform .12s ease,box-shadow .18s ease;
+        color:#4d6472 !important;background:#eef7fb !important;box-shadow:none !important}
+      .oxxo-scope-switch__opt:hover{background:#dcedf5 !important}
+      .oxxo-scope-switch__opt.is-active{color:#fff !important;background:linear-gradient(135deg,#2fa3d6,#12608f) !important;box-shadow:0 4px 10px rgba(18,96,143,.28) !important}
+      .oxxo-scope-switch__opt:active{transform:scale(.96)}
+      .oxxo-scope-switch__opt:focus-visible{outline:3px solid rgba(18,96,143,.25);outline-offset:2px}
+      @media(max-width:640px){.oxxo-scope-selector{right:10px;bottom:10px;left:10px;flex-direction:column;align-items:stretch}.oxxo-scope-selector__label{text-align:center}.oxxo-scope-switch{justify-content:center}}
       @media print{.oxxo-scope-selector{display:none!important}}
     `;
     document.head.appendChild(style);
     document.body.appendChild(host);
-    host.querySelector('select').addEventListener('change', (event) => {
-      const [level, region, plaza = ''] = String(event.target.value || '').split('|');
+    host.querySelector('.oxxo-scope-switch').addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-scope]');
+      if (!btn || btn.classList.contains('is-active')) return;
+      const [level, region, plaza = ''] = String(btn.dataset.scope || '').split('|');
       setActiveDataScope({ level, region, plaza }, { updateUrl: true });
       clearSheetDataCache();
       if (/\/admin\.html$/i.test(location.pathname)) {
