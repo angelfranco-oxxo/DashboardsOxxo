@@ -2856,9 +2856,16 @@ function replaceScopeTextNode(node) {
   const active = getActiveDataScope();
   const label = active.level === 'region' ? `Región ${active.region}` : active.plaza;
   const brand = active.level === 'region' ? `Región ${active.region}` : `${active.plaza}-ByPamsb`;
-  node.nodeValue = node.nodeValue
+  const next = node.nodeValue
     .replace(/Plaza Oaxaca-ByPamsb/gi, brand)
     .replace(/Plaza Oaxaca/gi, label);
+  // No reasignar si el texto no cambia (caso normal: alcance por defecto ya es
+  // "Plaza Oaxaca"). Escribir nodeValue encola una mutacion characterData
+  // aunque el valor sea identico, y el MutationObserver de abajo la vuelve a
+  // procesar: sin este guardado se reescribe a si mismo en un bucle infinito
+  // que congela la pestana (visto en produccion: CPU al 100% y el dashboard
+  // nunca termina de cargar).
+  if (next !== node.nodeValue) node.nodeValue = next;
 }
 
 function applyScopeLabels(root = document.body) {
