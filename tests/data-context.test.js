@@ -46,15 +46,17 @@ vm.runInContext(fs.readFileSync(path.join(root, 'js/core.js'), 'utf8'), sandbox)
 const { OXXO } = sandbox;
 const context = OXXO.getDataContext();
 assert.equal(context.plaza, 'Plaza Oaxaca');
-assert.equal(context.region, 'Oaxaca');
+assert.equal(context.region, 'TABASCO');
+assert.equal(OXXO.getScopeCatalog()[0].plazas.length, 5);
 assert.equal(context.plazaId, 'PLAZA-OAXACA');
 assert.equal(OXXO.getActiveDataScope().level, 'plaza');
 assert.equal(OXXO.getActiveDataScope().plaza, 'Plaza Oaxaca');
 assert.equal(OXXO.matchesScopeValue('10VHT Oaxaca', 'plaza'), true);
 assert.equal(OXXO.rowMatchesDataScope({ Plaza: 'Villahermosa' }), false);
-const regionalScope = OXXO.normalizeDataScope({ level: 'region', region: 'Sureste' });
-assert.equal(OXXO.rowMatchesDataScope({ Region: 'Sureste', Plaza: 'Villahermosa' }, regionalScope), true);
+const regionalScope = OXXO.normalizeDataScope({ level: 'region', region: 'TABASCO' });
+assert.equal(OXXO.rowMatchesDataScope({ Region: 'TABASCO', Plaza: 'Villahermosa' }, regionalScope), true);
 assert.equal(OXXO.filterRowsByDataScope([{ Plaza: 'Oaxaca' }, { Plaza: 'Tuxtla' }]).length, 1);
+assert.equal(OXXO.rowMatchesDataScope({ Plaza: '' }, OXXO.normalizeDataScope({ level: 'plaza', plaza: 'Tuxtla' }), { legacyPlaza: 'Plaza Oaxaca' }), false);
 
 const completed = OXXO.applyDataContextDefaults(
   { Region: '', Plaza: '', Zona: '', 'CR TIENDA': ' 50-i34 ' },
@@ -62,7 +64,7 @@ const completed = OXXO.applyDataContextDefaults(
 );
 assert.deepEqual(
   JSON.parse(JSON.stringify(completed)),
-  { Region: 'Oaxaca', Plaza: 'Plaza Oaxaca', Zona: '', 'CR TIENDA': '50I34' }
+  { Region: 'TABASCO', Plaza: 'Plaza Oaxaca', Zona: '', 'CR TIENDA': '50I34' }
 );
 
 const preserved = OXXO.applyDataContextDefaults(
@@ -94,7 +96,7 @@ const normLoose = (value) => String(value || '').normalize('NFD').replace(/[\u03
 const aliasesFor = (column) => [column, ...(aliases[column] || [])].map(norm);
 let catalogDashboard;
 const normalizers = sandbox.OXXO_ADMIN_NORMALIZERS({
-  state, norm, normLoose, aliasesFor,
+  state, norm, normLoose, aliasesFor, OXXO,
   dashboard: () => catalogDashboard,
   $: () => ({ value: '' })
 });
@@ -111,7 +113,7 @@ const parsed = normalizers.rowsFromMatrix([
 assert.equal(parsed.rows.length, 1);
 assert.deepEqual(JSON.parse(JSON.stringify(parsed.rows[0])), {
   ASESOR: 'Marisela Munoz', TIENDA: 'OXXO Centro', 'CR TIENDA': '50I34',
-  Region: 'Oaxaca', Plaza: 'Plaza Oaxaca', Zona: '', ACTIVA: 'SI'
+  Region: 'TABASCO', Plaza: 'Plaza Oaxaca', Zona: '', ACTIVA: 'SI'
 });
 
-console.log('data-context, alcance regional y avisos: 16 pruebas correctas');
+console.log('data-context, alcance regional y avisos: 18 pruebas correctas');

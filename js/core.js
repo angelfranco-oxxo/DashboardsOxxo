@@ -14,9 +14,7 @@ if (!window.OXXO_CONFIG) {
 }
 const SHEETS_CONFIG = window.OXXO_CONFIG;
 
-// Contexto geografico/operativo normalizado. Hoy solo existe Plaza Oaxaca;
-// estas funciones dejan lista la misma estructura para sumar region, plaza y
-// zona sin duplicar dashboards ni depender del texto visible de la tienda.
+// Contexto geografico/operativo normalizado para Región TABASCO.
 function getDataContext() {
   const source = SHEETS_CONFIG.DATA_CONTEXT || {};
   return Object.freeze({
@@ -37,19 +35,42 @@ function getScopeLabel() {
   return scope.zone || scope.plaza || scope.region || getDataContext().plaza;
 }
 
+function getScopeCatalog() {
+  const regions = Array.isArray(SHEETS_CONFIG.SCOPE_MODEL?.REGIONS) ? SHEETS_CONFIG.SCOPE_MODEL.REGIONS : [];
+  return regions.map((region) => ({
+    id: String(region.ID || '').trim(),
+    name: String(region.NAME || '').trim(),
+    plazas: (Array.isArray(region.PLAZAS) ? region.PLAZAS : []).map((plaza) => ({
+      id: String(plaza.ID || '').trim(),
+      name: String(plaza.NAME || '').trim(),
+      shortName: String(plaza.SHORT_NAME || plaza.NAME || '').trim(),
+      aliases: Array.isArray(plaza.ALIASES) ? plaza.ALIASES.map(String).filter(Boolean) : []
+    }))
+  })).filter((region) => region.name);
+}
+
 function normalizeScopeToken(value) {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
 function normalizeDataScope(scope = {}) {
   const context = getDataContext();
+  const catalog = getScopeCatalog();
+  const requestedRegion = String(scope.region || context.region).trim();
+  const region = catalog.find((item) => normalizeScopeToken(item.name) === normalizeScopeToken(requestedRegion)) || catalog[0];
   const level = ['region', 'plaza', 'zona'].includes(String(scope.level || '').toLowerCase())
     ? String(scope.level).toLowerCase()
     : String((SHEETS_CONFIG.SCOPE_MODEL || {}).DEFAULT_LEVEL || 'plaza').toLowerCase();
+  const requestedPlaza = String(scope.plaza || context.plaza).trim();
+  const plazaEntry = region?.plazas.find((item) => [item.name, item.shortName, ...item.aliases].some((candidate) => {
+    const actual = normalizeScopeToken(requestedPlaza);
+    const expected = normalizeScopeToken(candidate);
+    return actual && expected && (actual === expected || actual.includes(expected) || expected.includes(actual));
+  }));
   return Object.freeze({
     level,
-    region: String(scope.region || context.region).trim(),
-    plaza: level === 'region' ? '' : String(scope.plaza || context.plaza).trim(),
+    region: region?.name || requestedRegion,
+    plaza: level === 'region' ? '' : (plazaEntry?.name || requestedPlaza),
     zone: level === 'zona' ? String(scope.zone || context.zone).trim() : ''
   });
 }
@@ -105,6 +126,16 @@ function matchesScopeValue(value, dimension = 'plaza', scope = getActiveDataScop
   const expected = dimension === 'region' ? scope.region : dimension === 'zone' ? scope.zone : scope.plaza;
   if (!expected) return true;
   const candidates = [expected];
+  if (dimension === 'region') {
+    getScopeCatalog().filter((region) => normalizeScopeToken(region.name) === normalizeScopeToken(expected)).forEach((region) => {
+      region.plazas.forEach((plaza) => candidates.push(plaza.name, plaza.shortName, ...plaza.aliases));
+    });
+  }
+  if (dimension === 'plaza') {
+    getScopeCatalog().flatMap((region) => region.plazas).forEach((plaza) => {
+      if (normalizeScopeToken(plaza.name) === normalizeScopeToken(expected)) candidates.push(plaza.shortName, ...plaza.aliases);
+    });
+  }
   if (dimension === 'plaza' && normalizeScopeToken(expected) === normalizeScopeToken(getDataContext().plaza)) candidates.push(...getDataContext().plazaAliases);
   return candidates.some((candidate) => {
     const token = normalizeScopeToken(candidate);
@@ -112,10 +143,10 @@ function matchesScopeValue(value, dimension = 'plaza', scope = getActiveDataScop
   });
 }
 
-function rowMatchesDataScope(row, scope = getActiveDataScope()) {
+function rowMatchesDataScope(row, scope = getActiveDataScope(), { legacyPlaza = '' } = {}) {
   if (!row || typeof row !== 'object') return false;
   const region = scopeRowValue(row, 'region');
-  const plaza = scopeRowValue(row, 'plaza');
+  const plaza = scopeRowValue(row, 'plaza') || String(legacyPlaza || '').trim();
   const zone = scopeRowValue(row, 'zone');
   if (region && !matchesScopeValue(region, 'region', scope)) return false;
   if (scope.level !== 'region' && plaza && !matchesScopeValue(plaza, 'plaza', scope)) return false;
@@ -123,8 +154,8 @@ function rowMatchesDataScope(row, scope = getActiveDataScope()) {
   return true;
 }
 
-function filterRowsByDataScope(rows, scope = getActiveDataScope()) {
-  return Array.isArray(rows) ? rows.filter((row) => rowMatchesDataScope(row, scope)) : rows;
+function filterRowsByDataScope(rows, scope = getActiveDataScope(), options = {}) {
+  return Array.isArray(rows) ? rows.filter((row) => rowMatchesDataScope(row, scope, options)) : rows;
 }
 
 const DATA_CONTEXT_COLUMNS = {
@@ -143,10 +174,17 @@ const STORE_CR_COLUMNS = ['CR', 'CR TIENDA', 'CR Tienda', 'Cr de Tienda', 'Cr de
 function applyDataContextDefaults(row, { columns = [] } = {}) {
   const copy = { ...(row || {}) };
   const context = getDataContext();
+  const scope = getActiveDataScope();
+  const scopedContext = {
+    ...context,
+    region: scope.region || context.region,
+    plaza: scope.level === 'region' ? '' : (scope.plaza || context.plaza),
+    zone: scope.zone || context.zone
+  };
   const allowed = new Set((columns || []).map(String));
   Object.entries(DATA_CONTEXT_COLUMNS).forEach(([column, contextKey]) => {
     if (!allowed.has(column) && !Object.prototype.hasOwnProperty.call(copy, column)) return;
-    if (String(copy[column] ?? '').trim() === '') copy[column] = context[contextKey];
+    if (String(copy[column] ?? '').trim() === '') copy[column] = scopedContext[contextKey];
   });
   STORE_CR_COLUMNS.forEach((column) => {
     if (!allowed.has(column) && !Object.prototype.hasOwnProperty.call(copy, column)) return;
@@ -351,7 +389,12 @@ async function fetchSheetData(tabName, options = {}) {
   const key = String(tabName || '');
   const now = Date.now();
   let cached = sheetDataCache.get(key);
-  if (!options.fresh && cached && now - cached.savedAt < SHEET_CACHE_TTL_MS) return cloneSheetRows(cached.rows);
+  const legacyTabs = SHEETS_CONFIG.SCOPE_MODEL?.LEGACY_DEFAULT_PLAZA_TABS || [];
+  const legacyPlaza = legacyTabs.includes(key) ? getDataContext().plaza : '';
+  const prepareRows = (rows) => options.scoped === false
+    ? cloneSheetRows(rows)
+    : filterRowsByDataScope(cloneSheetRows(rows), getActiveDataScope(), { legacyPlaza });
+  if (!options.fresh && cached && now - cached.savedAt < SHEET_CACHE_TTL_MS) return prepareRows(cached.rows);
   if (!options.fresh && !cached) {
     const persistent = await readPersistentRows(`sheet:${key}`);
     if (persistent) {
@@ -359,7 +402,7 @@ async function fetchSheetData(tabName, options = {}) {
       sheetDataCache.set(key, persistent);
       if (now - persistent.savedAt < SHEET_CACHE_TTL_MS) {
         updateConnectionStatus(key, 'online', { source: 'cache' });
-        return cloneSheetRows(persistent.rows);
+        return prepareRows(persistent.rows);
       }
     }
   }
@@ -396,11 +439,11 @@ async function fetchSheetData(tabName, options = {}) {
   const rows = await request;
   if (rows) {
     updateConnectionStatus(key, 'online');
-    return cloneSheetRows(rows);
+    return prepareRows(rows);
   }
   if (options.allowStale !== false && cached && now - cached.savedAt < SHEET_STALE_LIMIT_MS) {
     updateConnectionStatus(key, 'stale', { ageMs: now - cached.savedAt });
-    return cloneSheetRows(cached.rows);
+    return prepareRows(cached.rows);
   }
   updateConnectionStatus(key, 'offline');
   return null;
@@ -2712,9 +2755,89 @@ async function refreshSystemNotices() {
   }
 }
 
+function initScopeSelector() {
+  if (document.querySelector('[data-oxxo-scope-selector]')) return;
+  const catalog = getScopeCatalog();
+  if (!catalog.length) return;
+  const active = getActiveDataScope();
+  const host = document.createElement('div');
+  host.className = 'oxxo-scope-selector';
+  host.dataset.oxxoScopeSelector = 'true';
+  host.innerHTML = `
+    <label for="oxxo-scope-select"><span>Alcance</span>
+      <select id="oxxo-scope-select" aria-label="Seleccionar región o plaza">
+        ${catalog.map((region) => `
+          <option value="region|${escHtml(region.name)}"${active.level === 'region' && normalizeScopeToken(active.region) === normalizeScopeToken(region.name) ? ' selected' : ''}>Región ${escHtml(region.name)}</option>
+          ${region.plazas.map((plaza) => `<option value="plaza|${escHtml(region.name)}|${escHtml(plaza.name)}"${active.level !== 'region' && normalizeScopeToken(active.plaza) === normalizeScopeToken(plaza.name) ? ' selected' : ''}>${escHtml(plaza.name)}</option>`).join('')}
+        `).join('')}
+      </select>
+    </label>`;
+  const style = document.createElement('style');
+  style.textContent = `
+    .oxxo-scope-selector{position:fixed;right:18px;bottom:18px;z-index:9990;padding:8px 10px;border:1px solid rgba(22,99,137,.2);border-radius:15px;background:rgba(255,255,255,.96);box-shadow:0 12px 32px rgba(29,53,65,.16);backdrop-filter:blur(12px);font-family:inherit}
+    .oxxo-scope-selector label{display:flex;align-items:center;gap:8px;margin:0}.oxxo-scope-selector span{color:#577080;font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+    .oxxo-scope-selector select{min-width:170px;border:0;border-radius:10px;background:#eef7fb;color:#174f6d;padding:8px 30px 8px 10px;font:700 12px/1.2 inherit;outline:none;cursor:pointer}
+    .oxxo-scope-selector select:focus{box-shadow:0 0 0 3px rgba(26,129,177,.18)}
+    @media(max-width:640px){.oxxo-scope-selector{right:10px;bottom:10px;left:10px}.oxxo-scope-selector label{justify-content:space-between}.oxxo-scope-selector select{min-width:0;max-width:70%;flex:1}}
+    @media print{.oxxo-scope-selector{display:none!important}}
+  `;
+  document.head.appendChild(style);
+  document.body.appendChild(host);
+  applyScopeLabels();
+  if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'characterData') replaceScopeTextNode(mutation.target);
+        mutation.addedNodes?.forEach((node) => applyScopeLabels(node));
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+  host.querySelector('select').addEventListener('change', (event) => {
+    const [level, region, plaza = ''] = String(event.target.value || '').split('|');
+    setActiveDataScope({ level, region, plaza }, { updateUrl: true });
+    clearSheetDataCache();
+    if (/\/admin\.html$/i.test(location.pathname)) {
+      document.getElementById('dashboard-select')?.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      location.reload();
+    }
+  });
+}
+
+function replaceScopeTextNode(node) {
+  if (!node || node.nodeType !== 3 || !/Plaza Oaxaca/i.test(node.nodeValue || '')) return;
+  const active = getActiveDataScope();
+  const label = active.level === 'region' ? `Región ${active.region}` : active.plaza;
+  const brand = active.level === 'region' ? `Región ${active.region}` : `${active.plaza}-ByPamsb`;
+  node.nodeValue = node.nodeValue
+    .replace(/Plaza Oaxaca-ByPamsb/gi, brand)
+    .replace(/Plaza Oaxaca/gi, label);
+}
+
+function applyScopeLabels(root = document.body) {
+  if (!root) return;
+  if (root.nodeType === 3) return replaceScopeTextNode(root);
+  if (root.nodeType !== 1 || ['SCRIPT', 'STYLE', 'OPTION', 'SELECT'].includes(root.tagName)) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      return ['SCRIPT', 'STYLE', 'OPTION', 'SELECT'].includes(node.parentElement?.tagName)
+        ? NodeFilter.FILTER_REJECT
+        : NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  let node;
+  while ((node = walker.nextNode())) replaceScopeTextNode(node);
+  if (/Plaza Oaxaca/i.test(document.title || '')) {
+    const active = getActiveDataScope();
+    document.title = document.title.replace(/Plaza Oaxaca/gi, active.level === 'region' ? `Región ${active.region}` : active.plaza);
+  }
+}
+
 window.OXXO = {
   SHEETS_CONFIG,
   getDataContext,
+  getScopeCatalog,
   getScopeLabel,
   normalizeDataScope,
   getActiveDataScope,
@@ -2812,7 +2935,12 @@ window.OXXO = {
   getSystemNoticeContext,
   systemNoticeMatches,
   refreshSystemNotices,
+  initScopeSelector,
+  applyScopeLabels,
 };
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initScopeSelector, { once: true });
+else initScopeSelector();
 
 // Arranca el catalogo al mismo tiempo que cada dashboard descarga su propia
 // base. Las pantallas lo esperan mas adelante para corregir asesores; iniciar

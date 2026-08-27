@@ -12,7 +12,7 @@
  * Despues de eso, admin.html publica directo sin pedir URL.
  */
 const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
-const APP_VERSION = '39';
+const APP_VERSION = '40';
 const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const AUDIT_SHEET = '_Admin_Bitacora';
 const BACKUP_PREFIX = '_BK_';
@@ -1019,20 +1019,42 @@ function scopeKeyParts(values) {
   return normalized.some(function(value) { return !value; }) ? '' : normalized.join('::');
 }
 
+function normalizeScopeValue(column, value) {
+  const token = normalizeHeader(normalizeCell(value));
+  if (normalizeHeader(column) === 'plaza') {
+    if (['oaxaca', 'plazaoaxaca', 'oxxooaxaca', '10vhtoaxaca'].indexOf(token) !== -1) return 'PLAZA-OAXACA';
+    if (['costaistmo', 'istmo', 'plazaistmo', 'oxxocostaistmo'].indexOf(token) !== -1) return 'PLAZA-COSTA-ISTMO';
+    if (['tuxtla', 'plazatuxtla', 'oxxotuxtla'].indexOf(token) !== -1) return 'PLAZA-TUXTLA';
+    if (['villahermosa', 'plazavillahermosa', 'oxxovillahermosa'].indexOf(token) !== -1) return 'PLAZA-VILLAHERMOSA';
+    if (['chontalpa', 'plazachontalpa', 'oxxochontalpa'].indexOf(token) !== -1) return 'PLAZA-CHONTALPA';
+  }
+  if (normalizeHeader(column) === 'region') {
+    const regional = ['tabasco','oaxaca','plazaoaxaca','costaistmo','istmo','tuxtla','villahermosa','chontalpa'];
+    if (regional.indexOf(token) !== -1) return 'REGION-TABASCO';
+  }
+  return value;
+}
+
 function scopeKeyFromObject(row, scopeColumns) {
   if (!scopeColumns.length) return '';
   const headers = Object.keys(row || {});
   return scopeKeyParts(scopeColumns.map(function(column) {
     const actual = findHeaderByKey(headers, normalizeHeader(column)) || column;
-    return row[actual];
+    return normalizeScopeValue(column, row[actual]);
   }));
 }
 
 function scopeKeyFromArray(headers, row, scopeColumns) {
   if (!scopeColumns.length) return '';
+  const legacyDefaults = { Region: 'TABASCO', Plaza: 'Plaza Oaxaca', Zona: '' };
   return scopeKeyParts(scopeColumns.map(function(column) {
     const index = findHeaderIndex(headers, column);
-    return index >= 0 ? row[index] : '';
+    const value = index >= 0 ? row[index] : '';
+    // Las pestañas existentes nacieron como mono-plaza. Al agregar por primera
+    // vez una columna territorial, sus filas previas pertenecen a Oaxaca; así
+    // una carga de otra plaza las conserva y la primera carga de Oaxaca las
+    // sustituye sin duplicarlas.
+    return normalizeScopeValue(column, String(value == null ? '' : value).trim() || legacyDefaults[column] || '');
   }));
 }
 

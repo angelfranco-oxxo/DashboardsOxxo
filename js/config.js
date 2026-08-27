@@ -11,29 +11,43 @@ window.OXXO_CONFIG = {
   CONFIG_SHEET: "Configuracion",
   CATALOG_SHEET: "Catalogo_Asesores",
 
-  // Contexto operativo central. Por ahora el sitio solo publica Plaza Oaxaca,
-  // pero mantener estos valores en un unico lugar evita dejar la plaza
-  // hardcodeada dentro de cada dashboard. Cuando se incorpore otra plaza se
-  // cambia/selecciona el contexto, no se reconstruyen las pantallas.
+  // Contexto operativo predeterminado. Oaxaca se conserva como plaza inicial
+  // durante la transición; todas las pantallas pueden cambiar de alcance sin
+  // duplicarse mediante SCOPE_MODEL.
   DATA_CONTEXT: {
     COUNTRY_CODE: "MX",
     COUNTRY: "Mexico",
     STATE: "Oaxaca",
-    REGION: "Oaxaca",
+    REGION: "TABASCO",
     PLAZA_ID: "PLAZA-OAXACA",
     PLAZA: "Plaza Oaxaca",
     ZONE: "",
     BRAND_SUBTITLE: "Plaza Oaxaca-ByPamsb",
     PLAZA_ALIASES: ["Oaxaca", "OXXO OAXACA", "10VHT Oaxaca"]
   },
-  // El alcance se mantiene en Oaxaca hasta registrar las plazas reales de la
-  // region. La arquitectura ya acepta region/plaza/zona desde URL o sesion sin
-  // duplicar paginas: ?scope=region, ?plaza=... o ?zona=...
+  // Catálogo territorial oficial de la Región TABASCO. Los alias permiten
+  // reconocer los nombres que ya aparecen en los archivos históricos.
   SCOPE_MODEL: {
     DEFAULT_LEVEL: "plaza",
     QUERY_PARAM: "scope",
     STORAGE_KEY: "oxxo_active_data_scope",
-    DISCOVER_FROM_CATALOG: true
+    DISCOVER_FROM_CATALOG: true,
+    // Estas hojas históricas no tenían Plaza. Sus filas vacías se interpretan
+    // como Oaxaca hasta que sean reemplazadas desde el panel regional.
+    LEGACY_DEFAULT_PLAZA_TABS: ["Dashboard_9_Semanal", "Dashboard_14_Comercial", "Promociones"],
+    REGIONS: [
+      {
+        ID: "REGION-TABASCO",
+        NAME: "TABASCO",
+        PLAZAS: [
+          { ID: "PLAZA-OAXACA", NAME: "Plaza Oaxaca", SHORT_NAME: "Oaxaca", ALIASES: ["Oaxaca", "OXXO OAXACA", "10VHT Oaxaca"] },
+          { ID: "PLAZA-COSTA-ISTMO", NAME: "Costa Istmo", SHORT_NAME: "Costa Istmo", ALIASES: ["Istmo", "Plaza Istmo", "OXXO COSTA ISTMO"] },
+          { ID: "PLAZA-TUXTLA", NAME: "Tuxtla", SHORT_NAME: "Tuxtla", ALIASES: ["Plaza Tuxtla", "OXXO TUXTLA"] },
+          { ID: "PLAZA-VILLAHERMOSA", NAME: "Villahermosa", SHORT_NAME: "Villahermosa", ALIASES: ["Plaza Villahermosa", "OXXO VILLAHERMOSA"] },
+          { ID: "PLAZA-CHONTALPA", NAME: "Chontalpa", SHORT_NAME: "Chontalpa", ALIASES: ["Plaza Chontalpa", "OXXO CHONTALPA"] }
+        ]
+      }
+    ]
   },
   // Quien hereda las tiendas de un asesor que ya no esta (ej. Anadelia -> Timoteo).
   // Se administra desde el panel admin, pestana "Reasignaciones" -- no requiere

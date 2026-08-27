@@ -70,6 +70,7 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       targetSheet:dash.tab,
       rows,
       requiredHeaders:dash.required||[],
+      scopeColumns:dash.scopeColumns||[],
       updateMode:period.enabled?'replacePeriod':'replaceAll',
       periodColumn:period.column,
       periodValues:period.values
@@ -94,7 +95,7 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
     for(const delay of [700,1200,1800]){
       await new Promise(resolve=>setTimeout(resolve,delay));
       OXXO.clearSheetDataCache(dash.tab);
-      const rows=await OXXO.fetchSheetData(dash.tab,{fresh:true,allowStale:false});
+      const rows=await OXXO.fetchSheetData(dash.tab,{fresh:true,allowStale:false,scoped:false});
       if(!Array.isArray(rows)||!rows.length){last={ok:false,rows:0,missing:required};continue;}
       const headers=Object.keys(rows[0]||{}).map(normHeader);
       const missing=required.filter(header=>!headers.includes(header));
@@ -142,7 +143,7 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       if(!matrix.length)continue;
       const parsed=rowsFromMatrix(matrix,dashDef);
       if(!parsed.rows.length)continue;
-      const result=await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:dashDef.tab,rows:parsed.rows,requiredHeaders:dashDef.required||[],source:`DashboardsOxxo Admin (auto desde ${parentKey})`,sourceFile:state.fileName||'',updateMode:'replaceAll'});
+      const result=await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:dashDef.tab,rows:parsed.rows,requiredHeaders:dashDef.required||[],scopeColumns:dashDef.scopeColumns||[],source:`DashboardsOxxo Admin (auto desde ${parentKey})`,sourceFile:state.fileName||'',updateMode:'replaceAll'});
       OXXO.clearSheetDataCache(dashDef.tab);
       notifyConfigDate(dashDef.key);
       const readback=await verifyPublicReadback(dashDef,result);
@@ -156,13 +157,21 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
     if(!url){alert('Falta configurar Apps Script una sola vez. Mientras tanto puedes descargar CSV.');return;}
     if(!state.validation?.ok){alert('La base aun tiene errores de validacion.');return;}
     const dash=dashboard(),period=periodInfo(dash,state.validation.rows);
-    const modeMessage=period.enabled?`Solo se reemplazara ${period.column}: ${period.values.join(', ')}.`:'Se reemplazara la pestana completa.';
+    if((dash.scopeColumns||[]).length&&Number(getRuntimeVersion?.()||0)<40){
+      alert('Publicación regional protegida: primero debe desplegarse Apps Script v40. No se modificó Google Sheets.');
+      return;
+    }
+    const activeScope=OXXO.getActiveDataScope();
+    const scopeMessage=(dash.scopeColumns||[]).length
+      ?` Alcance protegido: ${activeScope.level==='region'?'Región '+activeScope.region:activeScope.plaza}. Las demás plazas se conservarán.`
+      :'';
+    const modeMessage=(period.enabled?`Solo se reemplazara ${period.column}: ${period.values.join(', ')}.`:'Se reemplazara la foto del alcance seleccionado.')+scopeMessage;
     $('publish-btn').disabled=true;$('publish-btn').textContent='Validando impacto...';
     try{
       const preflight=await preflightPublication(dash,state.validation.rows,period);
       if(!confirmPublication(dash.label,dash.tab,state.validation.rows.length,modeMessage,preflight))return;
       $('publish-btn').textContent='Publicando...';
-      const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows:state.validation.rows,requiredHeaders:dash.required||[],source:'DashboardsOxxo Admin',sourceFile:state.fileName||'',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};
+      const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows:state.validation.rows,requiredHeaders:dash.required||[],scopeColumns:dash.scopeColumns||[],source:'DashboardsOxxo Admin',sourceFile:state.fileName||'',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};
       const result=await postAdminPayload(payload);
       OXXO.clearSheetDataCache(dash.tab);
       notifyConfigDate(dash.key);

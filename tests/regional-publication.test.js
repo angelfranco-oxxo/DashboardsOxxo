@@ -21,11 +21,12 @@ assert.deepEqual(
     {Region:'Sureste',Plaza:'Oaxaca'},
     {Region:'Sureste',Plaza:'Tuxtla'}
   ], ['Region','Plaza']))`)),
-  ['sureste::oaxaca', 'sureste::tuxtla']
+  ['sureste::plazaoaxaca', 'sureste::plazatuxtla']
 );
 
-assert.equal(evaluate(`scopeKeyFromArray(['Mes','Region','Plaza'], ['ago-26','Sureste','Oaxaca'], ['Region','Plaza'])`), 'sureste::oaxaca');
-assert.equal(evaluate(`scopeKeyFromArray(['Mes','Region','Plaza'], ['ago-26','','Oaxaca'], ['Region','Plaza'])`), '');
+assert.equal(evaluate(`scopeKeyFromArray(['Mes','Region','Plaza'], ['ago-26','Sureste','Oaxaca'], ['Region','Plaza'])`), 'sureste::plazaoaxaca');
+assert.equal(evaluate(`scopeKeyFromArray(['Mes','Region','Plaza'], ['ago-26','','Oaxaca'], ['Region','Plaza'])`), 'regiontabasco::plazaoaxaca');
+assert.equal(evaluate(`scopeKeyFromArray(['Mes'], ['ago-26'], ['Region','Plaza'])`), 'regiontabasco::plazaoaxaca');
 
 assert.doesNotThrow(() => evaluate(`validatePublicationRequest(
   'Dashboard_1_Diario',
@@ -42,4 +43,4 @@ assert.throws(
   /alcance contiene filas vacias/i
 );
 
-console.log('publicacion regional: 6 pruebas correctas');
+console.log('publicacion regional: 7 pruebas correctas');

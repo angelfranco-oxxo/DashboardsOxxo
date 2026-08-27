@@ -5,10 +5,12 @@
    ========================================================== */
 
 window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
-  const {state,norm,normLoose,aliasesFor,dashboard,$} = deps;
+  const {state,norm,normLoose,aliasesFor,dashboard,$,OXXO} = deps;
 
   function getHeaders(rows){const set=new Set();rows.forEach(row=>Object.keys(row||{}).forEach(key=>set.add(key)));return [...set];}
-  function containsOaxaca(value){return normLoose(value).includes('oaxaca');}
+  // Se conserva el nombre por compatibilidad con las definiciones existentes,
+  // pero ahora valida contra la plaza/región elegida en el selector global.
+  function containsOaxaca(value){return OXXO.matchesScopeValue(value,'plaza',OXXO.getActiveDataScope());}
   function toNumber(value){const n=Number(String(value??'').replace(/[$,%]/g,'').replace(/,/g,'').trim());return Number.isFinite(n)?n:0;}
   function pctValue(value){const n=toNumber(value);if(!n)return 0;return n<=1?n*100:n;}
   function parseDate(value){
@@ -125,7 +127,6 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
       const fila=Object.fromEntries((dash.output||[]).map(col=>[col,'']));
       Object.assign(fila,{
         'Registro Tipo':'RESUMEN',
-        'Plaza':'OXXO OAXACA',
         'Ano Reporte':ano,
         'Mes Numero':mesNumero,
         'Mes':String(actual[1]||historico[1]||'').trim().toUpperCase(),
