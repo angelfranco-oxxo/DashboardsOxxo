@@ -124,8 +124,14 @@ function matchesScopeValue(value, dimension = 'plaza', scope = getActiveDataScop
   const actual = normalizeScopeToken(value);
   if (!actual) return true;
   const expected = dimension === 'region' ? scope.region : dimension === 'zone' ? scope.zone : scope.plaza;
-  if (!expected) return true;
-  const candidates = [expected];
+  const regionalPlazaScope = dimension === 'plaza' && scope.level === 'region';
+  if (!expected && !regionalPlazaScope) return true;
+  const candidates = expected ? [expected] : [];
+  if (regionalPlazaScope) {
+    getScopeCatalog().filter((region) => normalizeScopeToken(region.name) === normalizeScopeToken(scope.region)).forEach((region) => {
+      region.plazas.forEach((plaza) => candidates.push(plaza.name, plaza.shortName, ...plaza.aliases));
+    });
+  }
   if (dimension === 'region') {
     getScopeCatalog().filter((region) => normalizeScopeToken(region.name) === normalizeScopeToken(expected)).forEach((region) => {
       region.plazas.forEach((plaza) => candidates.push(plaza.name, plaza.shortName, ...plaza.aliases));
@@ -149,7 +155,7 @@ function rowMatchesDataScope(row, scope = getActiveDataScope(), { legacyPlaza = 
   const plaza = scopeRowValue(row, 'plaza') || String(legacyPlaza || '').trim();
   const zone = scopeRowValue(row, 'zone');
   if (region && !matchesScopeValue(region, 'region', scope)) return false;
-  if (scope.level !== 'region' && plaza && !matchesScopeValue(plaza, 'plaza', scope)) return false;
+  if (plaza && !matchesScopeValue(plaza, 'plaza', scope)) return false;
   if (scope.level === 'zona' && zone && !matchesScopeValue(zone, 'zone', scope)) return false;
   return true;
 }

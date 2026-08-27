@@ -55,6 +55,7 @@ assert.equal(OXXO.matchesScopeValue('10VHT Oaxaca', 'plaza'), true);
 assert.equal(OXXO.rowMatchesDataScope({ Plaza: 'Villahermosa' }), false);
 const regionalScope = OXXO.normalizeDataScope({ level: 'region', region: 'TABASCO' });
 assert.equal(OXXO.rowMatchesDataScope({ Region: 'TABASCO', Plaza: 'Villahermosa' }, regionalScope), true);
+assert.equal(OXXO.rowMatchesDataScope({ Region: 'TABASCO', Plaza: 'Puebla' }, regionalScope), false);
 assert.equal(OXXO.filterRowsByDataScope([{ Plaza: 'Oaxaca' }, { Plaza: 'Tuxtla' }]).length, 1);
 assert.equal(OXXO.rowMatchesDataScope({ Plaza: '' }, OXXO.normalizeDataScope({ level: 'plaza', plaza: 'Tuxtla' }), { legacyPlaza: 'Plaza Oaxaca' }), false);
 
@@ -116,4 +117,4 @@ assert.deepEqual(JSON.parse(JSON.stringify(parsed.rows[0])), {
   Region: 'TABASCO', Plaza: 'Plaza Oaxaca', Zona: '', ACTIVA: 'SI'
 });
 
-console.log('data-context, alcance regional y avisos: 18 pruebas correctas');
+console.log('data-context, alcance regional y avisos: 19 pruebas correctas');
