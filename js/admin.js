@@ -8,7 +8,8 @@
 
   const columnAliases=window.OXXO_ADMIN_COLUMN_ALIASES||{};
 
-  const state={workbook:null,sheetName:'',fileName:'',rows:[],validation:null,headerRow:0,sourceRows:0,sourceHeaders:[],sheetMatrixCache:new Map(),runtimeVersion:0};
+  const VERIFIED_RUNTIME_VERSION=Number(OXXO.SHEETS_CONFIG.VERIFIED_ADMIN_RUNTIME_VERSION||0);
+  const state={workbook:null,sheetName:'',fileName:'',rows:[],validation:null,headerRow:0,sourceRows:0,sourceHeaders:[],sheetMatrixCache:new Map(),runtimeVersion:VERIFIED_RUNTIME_VERSION};
   let manualRows=[];
   const $=id=>document.getElementById(id);
 
@@ -234,9 +235,9 @@
       el.textContent=`Apps Script ${version}${sources}`;
       el.classList.add(result.version?'ok':'bad');
     }catch(error){
-      state.runtimeVersion=0;
-      el.textContent='Apps Script · no verificable';
-      el.classList.add('bad');
+      state.runtimeVersion=VERIFIED_RUNTIME_VERSION;
+      el.textContent=VERIFIED_RUNTIME_VERSION?`Apps Script v${VERIFIED_RUNTIME_VERSION} · verificada`:'Apps Script · no verificable';
+      el.classList.add(VERIFIED_RUNTIME_VERSION?'ok':'bad');
       console.warn('[OXXO] No se pudo comprobar la versión productiva de Apps Script.',error);
     }finally{clearTimeout(timeout);}
   }
