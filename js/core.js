@@ -2810,11 +2810,18 @@ function initScopeSelector() {
   const hideWidget = Boolean(document.documentElement?.dataset?.oxxoHideScopeWidget);
   if (!hideWidget && !document.querySelector('[data-oxxo-scope-selector]')) {
     const active = getActiveDataScope();
-    const host = document.createElement('div');
-    host.className = 'oxxo-scope-selector';
-    host.dataset.oxxoScopeSelector = 'true';
     const isActiveRegion = (region) => active.level === 'region' && normalizeScopeToken(active.region) === normalizeScopeToken(region.name);
     const isActivePlaza = (plaza) => active.level !== 'region' && normalizeScopeToken(active.plaza) === normalizeScopeToken(plaza.name);
+    // Preferimos montarlo dentro del encabezado (junto al badge "Diario ·
+    // Plaza") de cada dashboard, como el resto de sus controles. Solo si la
+    // pagina no tiene ese encabezado (ej. paginas con layout propio) cae al
+    // recuadro flotante de siempre.
+    let heroRow = document.querySelector('.hero-top');
+    if (!heroRow) heroRow = document.querySelector('.hero:has(> .hero-badge)');
+    const inline = Boolean(heroRow);
+    const host = document.createElement('div');
+    host.className = `oxxo-scope-selector ${inline ? 'oxxo-scope-selector--inline' : 'oxxo-scope-selector--floating'}`;
+    host.dataset.oxxoScopeSelector = 'true';
     host.innerHTML = `
       <span class="oxxo-scope-selector__label">Alcance</span>
       <div class="oxxo-scope-switch" role="tablist" aria-label="Seleccionar región o plaza">
@@ -2823,22 +2830,38 @@ function initScopeSelector() {
           ${region.plazas.map((plaza) => `<button type="button" class="oxxo-scope-switch__opt${isActivePlaza(plaza) ? ' is-active' : ''}" role="tab" aria-selected="${isActivePlaza(plaza)}" data-scope="plaza|${escHtml(region.name)}|${escHtml(plaza.name)}">${escHtml(plaza.shortName || plaza.name)}</button>`).join('')}
         `).join('')}
       </div>`;
-    const style = document.createElement('style');
-    style.textContent = `
-      .oxxo-scope-selector{position:fixed;right:18px;bottom:18px;z-index:9990;display:flex;align-items:center;gap:10px;max-width:min(580px,calc(100vw - 36px));padding:9px 12px;border:1px solid rgba(22,99,137,.2);border-radius:16px;background:rgba(255,255,255,.96);box-shadow:0 12px 32px rgba(29,53,65,.16);backdrop-filter:blur(12px);font-family:inherit}
-      .oxxo-scope-selector__label{color:#577080;font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap}
-      .oxxo-scope-switch{display:flex;flex-wrap:wrap;gap:5px}
-      .oxxo-scope-switch__opt{appearance:none;border:1px solid transparent;border-radius:999px;padding:7px 13px;font:800 11px/1.1 inherit;letter-spacing:.02em;cursor:pointer;transition:background .18s ease,color .18s ease,transform .12s ease,box-shadow .18s ease;
-        color:#4d6472 !important;background:#eef7fb !important;box-shadow:none !important}
-      .oxxo-scope-switch__opt:hover{background:#dcedf5 !important}
-      .oxxo-scope-switch__opt.is-active{color:#fff !important;background:linear-gradient(135deg,#2fa3d6,#12608f) !important;box-shadow:0 4px 10px rgba(18,96,143,.28) !important}
-      .oxxo-scope-switch__opt:active{transform:scale(.96)}
-      .oxxo-scope-switch__opt:focus-visible{outline:3px solid rgba(18,96,143,.25);outline-offset:2px}
-      @media(max-width:640px){.oxxo-scope-selector{right:10px;bottom:10px;left:10px;flex-direction:column;align-items:stretch}.oxxo-scope-selector__label{text-align:center}.oxxo-scope-switch{justify-content:center}}
-      @media print{.oxxo-scope-selector{display:none!important}}
-    `;
-    document.head.appendChild(style);
-    document.body.appendChild(host);
+    if (!document.getElementById('oxxo-scope-selector-style')) {
+      const style = document.createElement('style');
+      style.id = 'oxxo-scope-selector-style';
+      style.textContent = `
+        .oxxo-scope-selector{display:flex;align-items:center;gap:10px;font-family:inherit}
+        .oxxo-scope-selector--floating{position:fixed;right:18px;bottom:18px;z-index:9990;max-width:min(580px,calc(100vw - 36px));padding:9px 12px;border:1px solid rgba(22,99,137,.2);border-radius:16px;background:rgba(255,255,255,.96);box-shadow:0 12px 32px rgba(29,53,65,.16);backdrop-filter:blur(12px)}
+        .oxxo-scope-selector--floating .oxxo-scope-selector__label{color:#577080}
+        .oxxo-scope-selector--inline{position:relative;z-index:1;flex-wrap:wrap;padding:6px 8px 6px 14px;border-radius:999px;background:rgba(255,255,255,.14) !important;border:1px solid rgba(255,255,255,.32) !important;backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 10px 24px rgba(0,0,0,.12)}
+        .oxxo-scope-selector--inline .oxxo-scope-selector__label{color:#fff !important;opacity:.85}
+        .oxxo-scope-selector__label{font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap}
+        .oxxo-scope-switch{display:flex;flex-wrap:wrap;gap:5px}
+        .oxxo-scope-switch__opt{appearance:none;border:1px solid transparent;border-radius:999px;padding:7px 13px;font:800 11px/1.1 inherit;letter-spacing:.02em;cursor:pointer;transition:background .18s ease,color .18s ease,transform .12s ease,box-shadow .18s ease}
+        .oxxo-scope-selector--floating .oxxo-scope-switch__opt{color:#4d6472 !important;background:#eef7fb !important;box-shadow:none !important}
+        .oxxo-scope-selector--floating .oxxo-scope-switch__opt:hover{background:#dcedf5 !important}
+        .oxxo-scope-selector--floating .oxxo-scope-switch__opt.is-active{color:#fff !important;background:linear-gradient(135deg,#2fa3d6,#12608f) !important;box-shadow:0 4px 10px rgba(18,96,143,.28) !important}
+        .oxxo-scope-selector--inline .oxxo-scope-switch__opt{color:#fff !important;background:rgba(255,255,255,.14) !important;box-shadow:none !important}
+        .oxxo-scope-selector--inline .oxxo-scope-switch__opt:hover{background:rgba(255,255,255,.26) !important}
+        .oxxo-scope-selector--inline .oxxo-scope-switch__opt.is-active{color:#211514 !important;background:#fff !important;box-shadow:0 4px 10px rgba(0,0,0,.18) !important}
+        .oxxo-scope-switch__opt:active{transform:scale(.96)}
+        .oxxo-scope-switch__opt:focus-visible{outline:3px solid rgba(255,255,255,.55);outline-offset:2px}
+        .oxxo-scope-selector--floating .oxxo-scope-switch__opt:focus-visible{outline-color:rgba(18,96,143,.35)}
+        @media(max-width:640px){
+          .oxxo-scope-selector--floating{right:10px;bottom:10px;left:10px;flex-direction:column;align-items:stretch}
+          .oxxo-scope-selector--floating .oxxo-scope-selector__label{text-align:center}
+          .oxxo-scope-selector--inline{width:100%}
+        }
+        @media print{.oxxo-scope-selector{display:none!important}}
+      `;
+      document.head.appendChild(style);
+    }
+    if (heroRow) heroRow.appendChild(host);
+    else document.body.appendChild(host);
     host.querySelector('.oxxo-scope-switch').addEventListener('click', (event) => {
       const btn = event.target.closest('[data-scope]');
       if (!btn || btn.classList.contains('is-active')) return;
