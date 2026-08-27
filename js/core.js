@@ -2815,7 +2815,8 @@ function initScopeSelector() {
     // Plaza") de cada dashboard, como el resto de sus controles. Solo si la
     // pagina no tiene ese encabezado (ej. paginas con layout propio) cae al
     // recuadro flotante de siempre.
-    let heroRow = document.querySelector('.hero-top');
+    let heroRow = document.querySelector('[data-oxxo-scope-mount]');
+    if (!heroRow) heroRow = document.querySelector('.hero-top');
     if (!heroRow) heroRow = document.querySelector('.hero:has(> .hero-badge)');
     const inline = Boolean(heroRow);
     const host = document.createElement('div');
