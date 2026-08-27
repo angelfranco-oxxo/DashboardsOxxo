@@ -2230,6 +2230,7 @@ body:has(#chart-barras) .kpis.kpi-grid .kpi-card__delta {
 /* D2 Plazas: premium ranking + compact comparison chart */
 .plazas-panel {
   padding: 24px !important;
+  transition: padding .22s ease;
 }
 
 .plazas-panel__grid {
@@ -2379,9 +2380,45 @@ body:has(#chart-barras) .kpis.kpi-grid .kpi-card__delta {
   height: 100% !important;
 }
 
+/* Al consultar una sola plaza, evita conservar la altura del comparativo regional. */
+.plazas-panel.is-single-plaza {
+  padding: 18px 20px !important;
+}
+
+.plazas-panel.is-single-plaza .plazas-panel__grid {
+  align-items: start;
+}
+
+.plazas-panel.is-single-plaza .plaza-rank-list {
+  gap: 6px;
+}
+
+.plazas-panel.is-single-plaza .plaza-rank-row {
+  min-height: 54px;
+  padding-block: 8px;
+}
+
+.plazas-panel.is-single-plaza .plaza-rank-total {
+  margin-top: 8px;
+  padding-block: 10px;
+}
+
+.plazas-panel.is-single-plaza .plazas-chart {
+  flex: 0 0 180px;
+  height: 180px;
+  min-height: 180px;
+  transition: height .22s ease, min-height .22s ease;
+}
+
 @media (max-width: 1050px) {
   .plazas-panel__grid {
     grid-template-columns: 1fr;
+  }
+
+  .plazas-panel.is-single-plaza .plazas-chart {
+    flex-basis: 160px;
+    height: 160px;
+    min-height: 160px;
   }
 }
 

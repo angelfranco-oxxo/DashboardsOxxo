@@ -1651,6 +1651,13 @@ function renderPlazas(allData, cols) {
     plazasData=plazasData.filter(item=>OXXO.matchesScopeValue(item.plaza,'plaza',activeScope));
   }
 
+  // El comparativo regional necesita más altura; una plaza individual se
+  // presenta automáticamente en una versión compacta.
+  const plazasPanel=document.querySelector('.plazas-panel');
+  if(plazasPanel){
+    plazasPanel.classList.toggle('is-single-plaza', activeScope.level!=='region');
+  }
+
   if(!plazasData.length) {
     document.getElementById('tabla-plazas').innerHTML = '<div style="font-size:12px;color:var(--color-gray);padding:16px">No se encontraron columnas de plazas en los datos.</div>';
     return;
