@@ -1634,13 +1634,21 @@ function renderPlazas(allData, cols) {
     const keyPlazaOtras = findRealKey(OTRAS_PLAZAS_DATA[0], ['Plazas','PLAZAS']);
     const keyBajasOtras = findRealKey(OTRAS_PLAZAS_DATA[0], ['Bajas Plaza','Bajas_Plaza']);
     OTRAS_PLAZAS_DATA.forEach(r => {
-      const plaza = String((keyPlazaOtras ? r[keyPlazaOtras] : '') || '').trim();
+      const plaza = canonicalPlazaName((keyPlazaOtras ? r[keyPlazaOtras] : '') || '');
       const bajas = Number(String((keyBajasOtras ? r[keyBajasOtras] : '') || '').replace(/[^0-9.-]/g, ''));
-      if(plaza && !isNaN(bajas) && bajas > 0 && !plazasData.find(p => p.plaza === plaza)) {
+      if(plaza && !isNaN(bajas) && bajas > 0 && !plazasData.find(p => cleanText(p.plaza) === cleanText(plaza))) {
         plazasData.push({ plaza, bajas });
       }
     });
     plazasData.sort((a, b) => b.bajas - a.bajas);
+  }
+
+  // En alcance de plaza, ambos componentes deben hablar únicamente de la
+  // plaza seleccionada. El comparativo completo se conserva exclusivamente
+  // cuando el usuario elige "Región TABASCO".
+  const activeScope=OXXO.getActiveDataScope();
+  if(activeScope.level!=='region'){
+    plazasData=plazasData.filter(item=>OXXO.matchesScopeValue(item.plaza,'plaza',activeScope));
   }
 
   if(!plazasData.length) {
