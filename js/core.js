@@ -2810,7 +2810,6 @@ function initScopeSelector() {
   const hideWidget = Boolean(document.documentElement?.dataset?.oxxoHideScopeWidget);
   if (!hideWidget && !document.querySelector('[data-oxxo-scope-selector]')) {
     const active = getActiveDataScope();
-    const isActiveRegion = (region) => active.level === 'region' && normalizeScopeToken(active.region) === normalizeScopeToken(region.name);
     const isActivePlaza = (plaza) => active.level !== 'region' && normalizeScopeToken(active.plaza) === normalizeScopeToken(plaza.name);
     // Preferimos montarlo dentro del encabezado (junto al badge "Diario ·
     // Plaza") de cada dashboard, como el resto de sus controles. Solo si la
@@ -2824,11 +2823,8 @@ function initScopeSelector() {
     host.dataset.oxxoScopeSelector = 'true';
     host.innerHTML = `
       <span class="oxxo-scope-selector__label">Alcance</span>
-      <div class="oxxo-scope-switch" role="tablist" aria-label="Seleccionar región o plaza">
-        ${catalog.map((region) => `
-          <button type="button" class="oxxo-scope-switch__opt${isActiveRegion(region) ? ' is-active' : ''}" role="tab" aria-selected="${isActiveRegion(region)}" data-scope="region|${escHtml(region.name)}">Región ${escHtml(region.name)}</button>
-          ${region.plazas.map((plaza) => `<button type="button" class="oxxo-scope-switch__opt${isActivePlaza(plaza) ? ' is-active' : ''}" role="tab" aria-selected="${isActivePlaza(plaza)}" data-scope="plaza|${escHtml(region.name)}|${escHtml(plaza.name)}">${escHtml(plaza.shortName || plaza.name)}</button>`).join('')}
-        `).join('')}
+      <div class="oxxo-scope-switch" role="tablist" aria-label="Seleccionar plaza">
+        ${catalog.map((region) => region.plazas.map((plaza) => `<button type="button" class="oxxo-scope-switch__opt${isActivePlaza(plaza) ? ' is-active' : ''}" role="tab" aria-selected="${isActivePlaza(plaza)}" data-scope="plaza|${escHtml(region.name)}|${escHtml(plaza.name)}">${escHtml(plaza.shortName || plaza.name)}</button>`).join('')).join('')}
       </div>`;
     if (!document.getElementById('oxxo-scope-selector-style')) {
       const style = document.createElement('style');
