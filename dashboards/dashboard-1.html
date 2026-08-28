@@ -741,7 +741,7 @@
     align-items:center;
     justify-content:space-between;
     gap:6px;
-    margin-bottom:8px;
+    margin-bottom:10px;
   }
   .puesto-chip__heading{
     display:flex;
@@ -770,18 +770,21 @@
     stroke-linejoin:round;
   }
   .puesto-chip__label{
+    display:block;
     color:#4D302C;
     font-size:11px;
     font-weight:900;
+    line-height:1.25;
     letter-spacing:.06em;
     text-transform:uppercase;
   }
   .puesto-chip__priority{
     display:block;
-    margin-top:2px;
+    margin-top:4px;
     color:#9A746B;
     font-size:8.5px;
     font-weight:800;
+    line-height:1.35;
     letter-spacing:.06em;
     text-transform:uppercase;
   }
@@ -2648,13 +2651,13 @@ const donutCenterLabel = {
     ctx.textAlign = 'center';
     ctx.fillStyle = isDark() ? '#FFF8F0' : '#211514';
     ctx.font = '800 38px Barlow Condensed, sans-serif';
-    ctx.fillText(String(total), x, y - 10);
+    ctx.fillText(String(total), x, y - 17);
     ctx.fillStyle = isDark() ? 'rgba(255,248,240,.58)' : 'rgba(33,21,20,.56)';
     ctx.font = '800 9px Barlow, sans-serif';
-    ctx.fillText('VACANTES TOTALES', x, y + 7);
+    ctx.fillText('VACANTES TOTALES', x, y + 9);
     ctx.fillStyle = isDark() ? '#FFD166' : '#D91F2D';
     ctx.font = '800 10px Barlow, sans-serif';
-    ctx.fillText(total ? `${Math.round(dominant/total*100)}% ${String(dominantLabel).toUpperCase()}` : 'SIN REGISTROS', x, y + 26);
+    ctx.fillText(total ? `${Math.round(dominant/total*100)}% ${String(dominantLabel).toUpperCase()}` : 'SIN REGISTROS', x, y + 31);
     ctx.restore();
   }
 };
