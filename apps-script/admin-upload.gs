@@ -12,7 +12,7 @@
  * Despues de eso, admin.html publica directo sin pedir URL.
  */
 const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
-const APP_VERSION = '40';
+const APP_VERSION = '41';
 const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const AUDIT_SHEET = '_Admin_Bitacora';
 const BACKUP_PREFIX = '_BK_';
@@ -20,6 +20,7 @@ const BACKUP_LIMIT = 5;
 const MAX_UPLOAD_ROWS = 100000;
 const MAX_UPLOAD_COLUMNS = 250;
 const SYSTEM_NOTICES_SHEET = 'Avisos_Sistema';
+const HOME_SHEET = '00_INICIO';
 const SYSTEM_NOTICE_HEADERS = ['ID', 'Tipo', 'Destino', 'Titulo', 'Mensaje', 'Inicio', 'Fin', 'Activo', 'Creado', 'Actualizado'];
 const ALLOWED_SHEETS = [
   'Dashboard_1_Diario',
@@ -128,14 +129,29 @@ function repairSystemStructure() {
     sheet.hideSheet();
     hiddenBackups.push(sheet.getName());
   });
+  const home = ensureHomeSheet_(ss);
   SpreadsheetApp.flush();
   return {
     ok: true,
     created: created,
     alreadyExisted: existing,
     hiddenBackups: hiddenBackups,
+    homeSheet: home.getName(),
     catalogUntouched: true
   };
+}
+
+/**
+ * Crea o reconstruye la portada navegable del libro sin modificar ninguna BD.
+ * Se puede ejecutar manualmente desde Apps Script cuando se reorganicen hojas.
+ */
+function refreshHomeSheet() {
+  const ss = SPREADSHEET_ID
+    ? SpreadsheetApp.openById(SPREADSHEET_ID)
+    : SpreadsheetApp.getActiveSpreadsheet();
+  const home = ensureHomeSheet_(ss);
+  SpreadsheetApp.flush();
+  return { ok: true, sheet: home.getName(), databases: home.getRange('K3').getValue() };
 }
 
 function doPost(e) {
@@ -158,6 +174,16 @@ function doPost(e) {
 
     if (String(payload.action || '') === 'getSystemNotices') {
       return jsonResponse({ ok: true, notices: readSystemNotices(true) });
+    }
+
+    if (String(payload.action || '') === 'refreshHomeSheet') {
+      const homeLock = LockService.getScriptLock();
+      homeLock.waitLock(30000);
+      try {
+        return jsonResponse(refreshHomeSheet());
+      } finally {
+        homeLock.releaseLock();
+      }
     }
 
     if (String(payload.action || '') === 'saveSystemNotice') {
@@ -252,6 +278,7 @@ function doPost(e) {
       sheet.setFrozenRows(2); // fila 1 = sacrificio, fila 2 = encabezados reales
       sheet.autoResizeColumns(1, Math.min(result.columns, 20));
       const verification = verifyPublishedSheet(sheet, result, newHeaders);
+      ensureHomeSheet_(ss);
 
       return jsonResponse({
         ok: true,
@@ -275,6 +302,149 @@ function doPost(e) {
   } catch (error) {
     return jsonResponse({ ok: false, error: String(error.message || error) });
   }
+}
+
+function ensureHomeSheet_(ss) {
+  let home = ss.getSheetByName(HOME_SHEET);
+  if (!home) home = ss.insertSheet(HOME_SHEET);
+
+  const previousActive = ss.getActiveSheet();
+  ss.setActiveSheet(home);
+  ss.moveActiveSheet(1);
+
+  const minimumRows = 90;
+  const minimumColumns = 14;
+  if (home.getMaxRows() < minimumRows) home.insertRowsAfter(home.getMaxRows(), minimumRows - home.getMaxRows());
+  if (home.getMaxColumns() < minimumColumns) home.insertColumnsAfter(home.getMaxColumns(), minimumColumns - home.getMaxColumns());
+  const canvas = home.getRange(1, 1, home.getMaxRows(), home.getMaxColumns());
+  canvas.breakApart();
+  canvas.clear();
+  canvas.setBackground('#F7F3EF').setFontFamily('Arial').setVerticalAlignment('middle');
+  home.setHiddenGridlines(true);
+  home.setTabColor('#E3182D');
+  home.setFrozenRows(4);
+
+  for (let column = 1; column <= minimumColumns; column++) {
+    home.setColumnWidth(column, [5, 10].indexOf(column) !== -1 ? 24 : 92);
+  }
+  home.setRowHeight(1, 18);
+  home.setRowHeight(2, 46);
+  home.setRowHeight(3, 28);
+  home.setRowHeight(4, 18);
+
+  home.getRange('A2:J2').merge().setValue('CENTRO DE DATOS · DASHBOARDS ATS')
+    .setFontSize(20).setFontWeight('bold').setFontColor('#FFFFFF')
+    .setBackground('#B51224').setHorizontalAlignment('left');
+  home.getRange('A3:J3').merge().setValue('Acceso directo a las bases publicadas en Google Sheets')
+    .setFontSize(10).setFontColor('#FFE6E8').setBackground('#B51224');
+  home.getRange('K2:N2').merge().setValue('BASES DISPONIBLES')
+    .setFontSize(9).setFontWeight('bold').setFontColor('#FFE6E8')
+    .setBackground('#7D0C18').setHorizontalAlignment('center');
+
+  const sheets = ss.getSheets().filter(function(sheet) {
+    const name = sheet.getName();
+    return name !== HOME_SHEET && name.indexOf(BACKUP_PREFIX) !== 0 && !sheet.isSheetHidden();
+  });
+  home.getRange('K3:N3').merge().setValue(sheets.length)
+    .setFontSize(18).setFontWeight('bold').setFontColor('#FFFFFF')
+    .setBackground('#7D0C18').setHorizontalAlignment('center');
+  home.getRange('K2').setNote(String(sheets.length) + ' bases visibles');
+
+  const groups = [
+    {
+      title: 'RECURSOS HUMANOS', color: '#E3182D', soft: '#FFF0F2',
+      sheets: ['Dashboard_1_Diario', 'Dashboard_2_Diario', 'Dashboard_3_Diario', 'Dashboard_4_Semanal', 'Dashboard_5_Semanal', 'Dashboard_6_Semanal', 'Dashboard_7_Semanal', 'Dashboard_8_Diario', 'Dashboard_10_FLEX', 'Dashboard_11_Semanal', 'Dashboard_12_Mensual', 'Dashboard_13_Ausentismo', 'Catalogo_Asesores']
+    },
+    {
+      title: 'COMERCIAL', color: '#1479A8', soft: '#EDF8FC',
+      sheets: ['Dashboard_14_Comercial', 'Promociones', 'PromosD100']
+    },
+    {
+      title: 'ADMINISTRATIVO', color: '#7155A3', soft: '#F4F0FB',
+      sheets: ['Dashboard_9_Semanal', 'Inventarios']
+    },
+    {
+      title: 'SOPORTE Y CONFIGURACION', color: '#5C514B', soft: '#F2EFED',
+      sheets: ['Dashboard_2_Otras_Plazas', 'Denominaciones_Dashboard_2_Diario', 'Dashboard_2_Plan_Accion', 'Dashboard_3_Otras_Plazas', 'Reasignaciones', 'Avisos_Sistema', 'Configuracion', '_Admin_Bitacora']
+    }
+  ];
+
+  const assigned = {};
+  let row = 6;
+  groups.forEach(function(group) {
+    const groupSheets = group.sheets.map(function(name) { return ss.getSheetByName(name); }).filter(function(sheet) {
+      if (!sheet || sheet.isSheetHidden() || sheet.getName().indexOf(BACKUP_PREFIX) === 0) return false;
+      assigned[sheet.getName()] = true;
+      return true;
+    });
+    if (!groupSheets.length) return;
+    row = renderHomeGroup_(ss, home, row, group.title, group.color, group.soft, groupSheets);
+  });
+
+  const otherSheets = sheets.filter(function(sheet) { return !assigned[sheet.getName()]; });
+  if (otherSheets.length) {
+    row = renderHomeGroup_(ss, home, row, 'OTRAS BASES', '#5C514B', '#F2EFED', otherSheets);
+  }
+
+  home.getRange(row + 1, 1, 2, 14).merge().setValue('Esta portada se actualiza automáticamente después de cada publicación. No reemplaza ni modifica el contenido de las bases.')
+    .setFontSize(9).setFontColor('#776A64').setHorizontalAlignment('center');
+  home.getRange(1, 1, row + 3, 14).setWrap(true);
+
+  if (previousActive && previousActive.getSheetId() !== home.getSheetId() && ss.getSheetByName(previousActive.getName())) {
+    ss.setActiveSheet(previousActive);
+  }
+  return home;
+}
+
+function renderHomeGroup_(ss, home, startRow, title, color, softColor, sheets) {
+  const starts = [1, 6, 11];
+  home.getRange(startRow, 1, 1, 14).merge().setValue(title)
+    .setFontSize(11).setFontWeight('bold').setFontColor(color)
+    .setHorizontalAlignment('left');
+  home.setRowHeight(startRow, 30);
+
+  sheets.forEach(function(sheet, index) {
+    const cardRow = startRow + 1 + Math.floor(index / 3) * 3;
+    const cardColumn = starts[index % 3];
+    const titleRange = home.getRange(cardRow, cardColumn, 1, 4);
+    const detailRange = home.getRange(cardRow + 1, cardColumn, 1, 4);
+    titleRange.merge().setValue(homeSheetLabel_(sheet.getName()))
+      .setFontSize(10).setFontWeight('bold').setFontColor('#2A211E')
+      .setBackground('#FFFFFF').setHorizontalAlignment('left');
+    const rowCount = Math.max(0, sheet.getLastRow() - (ALLOWED_SHEETS.indexOf(sheet.getName()) !== -1 ? 2 : 1));
+    const columnCount = sheet.getLastColumn();
+    const linkText = 'ABRIR BASE  →    ' + rowCount + ' filas · ' + columnCount + ' columnas';
+    const richLink = SpreadsheetApp.newRichTextValue()
+      .setText(linkText)
+      .setLinkUrl(ss.getUrl() + '#gid=' + sheet.getSheetId())
+      .build();
+    detailRange.merge().setRichTextValue(richLink)
+      .setFontSize(8).setFontColor(color).setBackground(softColor)
+      .setHorizontalAlignment('left');
+    home.getRange(cardRow, cardColumn, 2, 4).setBorder(true, true, true, true, false, false, '#E2D8D3', SpreadsheetApp.BorderStyle.SOLID);
+    home.getRange(cardRow, cardColumn, 2, 1).setBorder(null, true, null, null, null, null, color, SpreadsheetApp.BorderStyle.SOLID_THICK);
+    home.setRowHeight(cardRow, 32);
+    home.setRowHeight(cardRow + 1, 28);
+    home.setRowHeight(cardRow + 2, 10);
+  });
+  return startRow + 1 + Math.ceil(sheets.length / 3) * 3;
+}
+
+function homeSheetLabel_(sheetName) {
+  const labels = {
+    Dashboard_1_Diario: 'Vacantes diarias', Dashboard_2_Diario: 'Bajas diarias',
+    Dashboard_3_Diario: 'Aprovechamiento de estructura', Dashboard_4_Semanal: 'Tiempo extra',
+    Dashboard_5_Semanal: 'Vacaciones', Dashboard_6_Semanal: 'Ausentismos',
+    Dashboard_7_Semanal: 'TREO', Dashboard_8_Diario: 'Capacidades',
+    Dashboard_9_Semanal: 'Faltantes y sobrantes', Dashboard_10_FLEX: 'Personal FLEX',
+    Dashboard_11_Semanal: 'Marcajes semanales', Dashboard_12_Mensual: 'Enfoque de líder',
+    Dashboard_13_Ausentismo: 'Control de ausentismo', Dashboard_14_Comercial: 'Avance comercial',
+    Inventarios: 'Resultados de inventario', Catalogo_Asesores: 'Catálogo de asesores',
+    Promociones: 'Promociones', PromosD100: 'PromosD100', Reasignaciones: 'Reasignaciones',
+    Avisos_Sistema: 'Avisos del sistema', Configuracion: 'Configuración',
+    _Admin_Bitacora: 'Bitácora administrativa'
+  };
+  return labels[sheetName] || String(sheetName).replace(/_/g, ' ');
 }
 
 function validatePublicationRequest(targetSheet, rows, updateMode, periodColumn, periodValues, requiredHeaders, scopeColumns) {
