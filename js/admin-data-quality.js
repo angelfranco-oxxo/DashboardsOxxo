@@ -110,7 +110,12 @@
     return `https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/edit#gid=${gid}&range=${encodeURIComponent(result.cell || 'A1')}`;
   }
   async function inspect(source) {
-    const rows = await OXXO.fetchSheetData(source.tab, { fresh: true, allowStale: false });
+    // scoped:false: este diagnostico revisa la salud de la fuente completa,
+    // no solo de la plaza activa en el switch de Alcance (que ni siquiera se
+    // muestra ya en el panel admin) -- sin esto, filtrar a una sola plaza
+    // podia reportar una pestana como vacia/con error aunque tuviera datos
+    // sanos de otras plazas.
+    const rows = await OXXO.fetchSheetData(source.tab, { fresh: true, allowStale: false, scoped: false });
     if (!Array.isArray(rows)) return { ...source, status: 'bad', rows: 0, cut: null, note: 'La fuente no respondió.' };
     if (!rows.length) return { ...source, status: 'bad', rows: 0, cut: null, note: 'La pestaña está vacía.' };
     const map = headerMap(rows[0]);

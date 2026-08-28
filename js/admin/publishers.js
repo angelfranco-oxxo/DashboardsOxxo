@@ -161,9 +161,21 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       alert('Publicación regional protegida: primero debe desplegarse Apps Script v40. No se modificó Google Sheets.');
       return;
     }
-    const activeScope=OXXO.getActiveDataScope();
+    // Antes decia "Alcance protegido: <plaza activa del switch>", pero desde
+    // que containsOaxaca() dejo de filtrar por esa plaza (ver
+    // matchesAnyKnownPlaza en core.js) una sola carga puede traer varias
+    // plazas a la vez -- se listan las que de verdad estan en las filas a
+    // publicar, no la que estuviera activa en un switch que ya ni se
+    // muestra en este panel.
     const scopeMessage=(dash.scopeColumns||[]).length
-      ?` Alcance protegido: ${activeScope.level==='region'?'Región '+activeScope.region:activeScope.plaza}. Las demás plazas se conservarán.`
+      ?(()=>{
+          const rows=state.validation.rows||[];
+          const plazaKey=rows.length?Object.keys(rows[0]||{}).find(k=>/^plaza$/i.test(k))||Object.keys(rows[0]||{}).find(k=>/plaza/i.test(k)):null;
+          const plazas=plazaKey?[...new Set(rows.map(r=>String(r[plazaKey]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')):[];
+          return plazas.length
+            ?` Alcance protegido: ${plazas.join(', ')}. Las demás plazas ya publicadas se conservarán.`
+            :' Alcance protegido por plaza. Las demás plazas ya publicadas se conservarán.';
+        })()
       :'';
     const modeMessage=(period.enabled?`Solo se reemplazara ${period.column}: ${period.values.join(', ')}.`:'Se reemplazara la foto del alcance seleccionado.')+scopeMessage;
     $('publish-btn').disabled=true;$('publish-btn').textContent='Validando impacto...';
