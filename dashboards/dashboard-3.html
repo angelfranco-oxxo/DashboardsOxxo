@@ -1068,8 +1068,15 @@ function renderPlazaGauges(){
     .map(([plaza, v]) => ({ plaza, aprov: v.n>0 ? v.sum/v.n : 0 }))
     .sort((a,b) => b.aprov - a.aprov);
 
-  // Auto-calcular OAXACA como EC% (Equipo Completo / Total) desde los datos cargados
-  if(total > 0 && !plazaData.find(p => p.plaza.toUpperCase() === 'OAXACA')) {
+  // Auto-calcular OAXACA como EC% (Equipo Completo / Total) desde los datos cargados.
+  // ALL_DATA son las filas de Dashboard_3_Diario de la plaza ACTIVA (scoped por
+  // defecto) -- ahora que esa base tiene filas reales de las 5 plazas, hay que
+  // confirmar que la plaza activa sea Oaxaca antes de etiquetar este calculo como
+  // "OAXACA": si no, se duplicaba la plaza activa con la etiqueta equivocada
+  // (ej. viendo Tuxtla aparecia una gráfica extra "OAXACA" con el numero de Tuxtla).
+  const activeScope = OXXO.getActiveDataScope();
+  const isOaxacaScope = !activeScope?.plaza || String(activeScope.plaza).toLowerCase().includes('oaxaca');
+  if(isOaxacaScope && total > 0 && !plazaData.find(p => p.plaza.toUpperCase() === 'OAXACA')) {
     const ecOaxaca = completas / total * 100;
     if(ecOaxaca > 0) plazaData.push({ plaza: 'OAXACA', aprov: ecOaxaca });
   }
