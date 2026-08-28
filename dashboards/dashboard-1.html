@@ -682,15 +682,19 @@
   .puesto-panel{
     position:relative;
     z-index:1;
-    min-height:340px;
+    min-height:330px;
     display:grid;
-    grid-template-rows:minmax(190px, 1fr) auto;
-    gap:14px;
+    grid-template-rows:minmax(184px, 1fr) auto;
+    gap:12px;
   }
   .puesto-panel .chart-sm{
     height:auto;
-    min-height:196px;
+    min-height:190px;
     margin-bottom:0;
+    border-color:rgba(217,31,45,.08);
+    background:
+      radial-gradient(circle at 50% 45%,rgba(246,183,60,.10),transparent 42%),
+      linear-gradient(145deg,rgba(255,255,255,.72),rgba(255,248,241,.38));
   }
   .puesto-breakdown{
     position:relative;
@@ -700,30 +704,80 @@
     gap:9px;
   }
   .puesto-chip{
-    padding:11px 12px;
-    border-radius:16px;
-    background:linear-gradient(135deg,rgba(255,255,255,.74),rgba(255,247,239,.45));
-    border:1px solid rgba(255,255,255,.70);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.76),0 8px 18px rgba(80,34,20,.05);
+    --puesto-color:#D91F2D;
+    position:relative;
+    overflow:hidden;
+    padding:12px 13px;
+    border-radius:18px;
+    background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(255,247,239,.54));
+    border:1px solid rgba(128,63,38,.09);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.86),0 8px 18px rgba(80,34,20,.05);
+    transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+  }
+  .puesto-chip::before{
+    content:"";
+    position:absolute;
+    inset:0 auto 0 0;
+    width:4px;
+    background:var(--puesto-color);
+  }
+  .puesto-chip:hover{
+    transform:translateY(-2px);
+    border-color:color-mix(in srgb,var(--puesto-color) 28%,transparent);
+    box-shadow:0 13px 25px rgba(80,34,20,.08),inset 0 1px 0 rgba(255,255,255,.9);
+  }
+  .puesto-chip.is-dominant{
+    background:
+      radial-gradient(circle at 92% 15%,color-mix(in srgb,var(--puesto-color) 13%,transparent),transparent 38%),
+      linear-gradient(135deg,#FFFDF9,#FFF4E6);
   }
   .puesto-chip__top{
     display:flex;
     align-items:center;
     justify-content:space-between;
     gap:6px;
-    margin-bottom:5px;
+    margin-bottom:8px;
   }
-  .puesto-chip__dot{
-    width:8px;
-    height:8px;
-    border-radius:999px;
-    box-shadow:0 0 0 4px rgba(246,183,60,.10);
+  .puesto-chip__heading{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+  }
+  .puesto-chip__icon{
+    width:28px;
+    height:28px;
+    display:grid;
+    place-items:center;
+    flex:0 0 auto;
+    border-radius:10px;
+    color:var(--puesto-color);
+    background:color-mix(in srgb,var(--puesto-color) 10%,white);
+    border:1px solid color-mix(in srgb,var(--puesto-color) 18%,white);
+  }
+  .puesto-chip__icon svg{
+    width:15px;
+    height:15px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
   }
   .puesto-chip__label{
-    color:#8B6A5F;
-    font-size:10px;
+    color:#4D302C;
+    font-size:11px;
     font-weight:900;
-    letter-spacing:.08em;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+  }
+  .puesto-chip__priority{
+    display:block;
+    margin-top:2px;
+    color:#9A746B;
+    font-size:8.5px;
+    font-weight:800;
+    letter-spacing:.06em;
     text-transform:uppercase;
   }
   .puesto-chip__value{
@@ -734,9 +788,14 @@
     line-height:1;
   }
   .puesto-chip__pct{
-    color:#D91F2D;
-    font-size:11px;
+    min-width:39px;
+    padding:5px 7px;
+    border-radius:999px;
+    color:var(--puesto-color);
+    background:color-mix(in srgb,var(--puesto-color) 9%,white);
+    font-size:10.5px;
     font-weight:900;
+    text-align:center;
   }
   .puesto-chip__body{
     display:grid;
@@ -745,7 +804,7 @@
     gap:12px;
   }
   .puesto-chip__track{
-    height:8px;
+    height:9px;
     border-radius:999px;
     background:rgba(128,63,38,.075);
     overflow:hidden;
@@ -754,14 +813,15 @@
   .puesto-chip__fill{
     height:100%;
     border-radius:999px;
-    box-shadow:0 0 14px rgba(217,31,45,.16);
+    background:linear-gradient(90deg,var(--puesto-color),#F6B73C);
+    box-shadow:0 0 14px color-mix(in srgb,var(--puesto-color) 22%,transparent);
   }
   @media (min-width:1200px){
     .puesto-panel{
       grid-template-columns:minmax(190px, .95fr) minmax(160px, .75fr);
       grid-template-rows:1fr;
       align-items:stretch;
-      min-height:342px;
+      min-height:330px;
     }
     .puesto-panel .chart-sm{
       min-height:100%;
@@ -2570,19 +2630,24 @@ const donutCenterLabel = {
   afterDraw(chart){
     if(chart.config.type !== 'doughnut') return;
     const total = chart.data.datasets[0].data.reduce((s,v)=>s+(Number(v)||0),0);
-    const main = chart.data.datasets[0].data[2] || 0;
+    const values = chart.data.datasets[0].data.map(v=>Number(v)||0);
+    const dominantIndex = values.indexOf(Math.max(...values));
+    const dominant = values[dominantIndex] || 0;
+    const dominantLabel = chart.data.labels[dominantIndex] || 'Sin datos';
     const {ctx, chartArea:{left,right,top,bottom}} = chart;
     const x = (left + right) / 2;
     const y = (top + bottom) / 2;
     ctx.save();
     ctx.textAlign = 'center';
     ctx.fillStyle = isDark() ? '#FFF8F0' : '#211514';
-    ctx.font = '800 32px Barlow Condensed, sans-serif';
-    ctx.fillText(total ? `${Math.round(main/total*100)}%` : '0%', x, y - 4);
+    ctx.font = '800 38px Barlow Condensed, sans-serif';
+    ctx.fillText(String(total), x, y - 10);
     ctx.fillStyle = isDark() ? 'rgba(255,248,240,.58)' : 'rgba(33,21,20,.56)';
+    ctx.font = '800 9px Barlow, sans-serif';
+    ctx.fillText('VACANTES TOTALES', x, y + 7);
+    ctx.fillStyle = isDark() ? '#FFD166' : '#D91F2D';
     ctx.font = '800 10px Barlow, sans-serif';
-    ctx.letterSpacing = '1px';
-    ctx.fillText('AYUDANTE', x, y + 16);
+    ctx.fillText(total ? `${Math.round(dominant/total*100)}% ${String(dominantLabel).toUpperCase()}` : 'SIN REGISTROS', x, y + 26);
     ctx.restore();
   }
 };
@@ -2825,24 +2890,27 @@ function renderOverview(allData){
 
   // Dona por tipo
   renderD1Donut(['Lider','Encargado','Ayudante'],[lideres,encargados,ayudantes]);
-  const puestoTotal = Math.max(total, 1);
+  const puestoTotal = Math.max(lideres+encargados+ayudantes, 1);
   const puestoData = [
-    {label:'Lider', value:lideres, color:'#D91F2D'},
-    {label:'Encargado', value:encargados, color:'#E97822'},
-    {label:'Ayudante', value:ayudantes, color:'#F6B73C'},
-  ];
+    {label:'Líder', value:lideres, color:'#D91F2D', icon:'<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/>'},
+    {label:'Encargado', value:encargados, color:'#E97822', icon:'<path d="M12 3 5 6v5c0 4.6 2.9 8.1 7 10 4.1-1.9 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>'},
+    {label:'Ayudante', value:ayudantes, color:'#F6B73C', icon:'<circle cx="12" cy="8" r="3"/><path d="M5.5 20c.6-4 2.8-6 6.5-6s5.9 2 6.5 6"/>'},
+  ].sort((a,b)=>b.value-a.value);
   const puestoBreakdown = document.getElementById('puesto-breakdown');
   if(puestoBreakdown){
-    puestoBreakdown.innerHTML = puestoData.map(p => `
-      <div class="puesto-chip">
+    puestoBreakdown.innerHTML = puestoData.map((p,i) => `
+      <div class="puesto-chip ${i===0?'is-dominant':''}" style="--puesto-color:${p.color}">
         <div class="puesto-chip__top">
-          <span class="puesto-chip__label"><span class="puesto-chip__dot" style="background:${p.color}"></span> ${p.label}</span>
+          <span class="puesto-chip__heading">
+            <span class="puesto-chip__icon"><svg viewBox="0 0 24 24" aria-hidden="true">${p.icon}</svg></span>
+            <span><span class="puesto-chip__label">${p.label}</span><span class="puesto-chip__priority">${i===0?'Mayor necesidad':'Posición '+(i+1)}</span></span>
+          </span>
           <span class="puesto-chip__pct">${Math.round(p.value/puestoTotal*100)}%</span>
         </div>
         <div class="puesto-chip__body">
           <div class="puesto-chip__value">${p.value}</div>
           <div class="puesto-chip__track">
-            <div class="puesto-chip__fill" style="width:${Math.max(6, Math.round(p.value/puestoTotal*100))}%;background:linear-gradient(90deg,${p.color},#F6B73C)"></div>
+            <div class="puesto-chip__fill" style="width:${Math.max(6, Math.round(p.value/puestoTotal*100))}%"></div>
           </div>
         </div>
       </div>
