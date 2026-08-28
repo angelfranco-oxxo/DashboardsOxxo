@@ -98,12 +98,6 @@
 .am-head__sub{display:block;font-family:var(--font-body,inherit);font-size:11px;font-weight:600;color:var(--color-gray);margin-top:2px;text-transform:none;letter-spacing:0}
 .am-kpi b{display:block;font-family:var(--font-display);font-size:1.3rem}
 .am-kpi span{font-size:10px;color:var(--color-gray);text-transform:uppercase;letter-spacing:.06em}
-#emp-table tbody tr[data-clickable]{cursor:pointer}
-#emp-table tbody tr[data-clickable]:hover{background:var(--color-bg)}
-.am-back{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:0 0 14px;font-size:12px;font-weight:700;color:var(--color-red);cursor:pointer}
-.am-back:hover{text-decoration:underline}
-.am-subtitle{font-family:var(--font-display);font-size:.95rem;margin:0 0 4px}
-.am-subtitle small{display:block;font-family:var(--font-body,inherit);font-size:11px;font-weight:600;color:var(--color-gray);margin-top:2px}
 
 @media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.row2,.row2-wide{grid-template-columns:1fr}}
 @media(max-width:600px){.kpis{grid-template-columns:1fr 1fr !important}.row2,.row2-wide{grid-template-columns:1fr}.chart-md{height:200px}.chart-lg{height:240px}}
@@ -284,22 +278,12 @@
       <h3 id="emp-title">Empleado<small class="am-head__sub"></small></h3>
       <button class="am-close" onclick="closeEmpleadoModal()" aria-label="Cerrar">&times;</button>
     </div>
-    <div class="am-body" id="emp-body-main">
+    <div class="am-body">
       <div class="am-kpis" id="emp-kpis"></div>
       <div class="am-chips" id="emp-chips"></div>
       <div class="tbl-wrap" style="max-height:320px">
         <table class="tbl" id="emp-table">
           <thead><tr><th>Certificación</th><th class="center">Avance</th><th class="center">Estatus</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="am-body" id="emp-body-cert" style="display:none">
-      <button type="button" class="am-back" onclick="showEmpleadoModalMain()">&larr; Volver a <span id="cert-back-name"></span></button>
-      <h4 class="am-subtitle" id="cert-pend-title"></h4>
-      <div class="tbl-wrap" style="max-height:360px">
-        <table class="tbl" id="cert-pend-table">
-          <thead><tr><th>Empleado</th><th>Puesto</th><th>Tienda</th><th>Asesor</th><th class="center">Avance</th><th class="center">Estatus</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -580,18 +564,16 @@ function closeAsesorCapModal(){ document.getElementById('asesor-cap-modal').clas
 
 // Clic en una fila de "Detalle por Empleado": ficha del empleado con su
 // avance certificacion por certificacion.
-let EMP_MODAL_NOMBRE = '';
 function openEmpleadoModal(idx){
   const r = DETALLE_FILAS[idx];
   if(!r) return;
 
   const nombre = String(r[C.empleado] || '').trim() || 'Empleado sin nombre';
-  EMP_MODAL_NOMBRE = nombre;
   const noPers = String(r[C.noPers] || '').trim();
   document.getElementById('emp-title').innerHTML =
     `${OXXO.escHtml(nombre)}<small class="am-head__sub">${noPers ? 'N&ordm; personal ' + OXXO.escHtml(noPers) : 'Sin N&ordm; personal'}</small>`;
 
-  const certs = CERT_COLS.map(c => ({ key: c.key, label: c.label, v: capValue(r, c.key) }));
+  const certs = CERT_COLS.map(c => ({ label: c.label, v: capValue(r, c.key) }));
   const aplic = certs.filter(c => c.v !== null);
   const comp = aplic.filter(c => c.v >= 1);
   const pct = aplic.length ? Math.round(comp.length / aplic.length * 100) : null;
@@ -610,58 +592,15 @@ function openEmpleadoModal(idx){
    .map(([label, value]) => `<div class="am-chip"><span>${label}</span><b>${OXXO.escHtml(String(value).trim())}</b></div>`)
    .join('');
 
-  // Certificaciones aplicables (v !== null) son clicables: muestran, dentro
-  // del mismo modal, que otros empleados del listado filtrado actual
-  // todavia no la completan.
   document.getElementById('emp-table').querySelector('tbody').innerHTML = certs.map(c => {
     if(c.v === null) return `<tr><td>${OXXO.escHtml(c.label)}</td><td class="center">—</td><td class="center"><span class="cap-badge na">No aplica</span></td></tr>`;
     const avance = Math.round(c.v * 100);
     const cls = c.v >= 1 ? 'verde' : (c.v > 0 ? 'amarillo' : 'rojo');
     const txt = c.v >= 1 ? 'Completada' : (c.v > 0 ? 'En proceso' : 'Pendiente');
-    return `<tr data-clickable onclick="showCertPendientes('${escapeAttr(c.key)}','${escapeAttr(c.label)}')" title="Ver quienes faltan de ${OXXO.escHtml(c.label)}">
-      <td>${OXXO.escHtml(c.label)}</td><td class="center">${avance}%</td><td class="center"><span class="cap-badge ${cls}">${txt}</span></td>
-    </tr>`;
+    return `<tr><td>${OXXO.escHtml(c.label)}</td><td class="center">${avance}%</td><td class="center"><span class="cap-badge ${cls}">${txt}</span></td></tr>`;
   }).join('');
 
-  showEmpleadoModalMain();
   document.getElementById('empleado-modal').classList.add('open');
-}
-function showEmpleadoModalMain(){
-  document.getElementById('emp-body-cert').style.display = 'none';
-  document.getElementById('emp-body-main').style.display = '';
-}
-// Lista, dentro del mismo modal, los empleados del "Detalle por Empleado"
-// filtrado actual (DETALLE_FILAS: respeta filtros globales + asesor
-// seleccionado) que no tienen esa certificacion completada -- pendientes y
-// en proceso, ordenados por avance ascendente (los mas atrasados primero).
-function showCertPendientes(certKey, certLabel){
-  const faltantes = DETALLE_FILAS
-    .map(r => ({ r, v: capValue(r, certKey) }))
-    .filter(x => x.v !== null && x.v < 1)
-    .sort((a, b) => a.v - b.v);
-
-  document.getElementById('cert-back-name').textContent = EMP_MODAL_NOMBRE;
-  document.getElementById('cert-pend-title').innerHTML =
-    `${OXXO.escHtml(certLabel)}<small>${faltantes.length} de ${DETALLE_FILAS.length} empleados sin completarla (según los filtros activos)</small>`;
-
-  document.getElementById('cert-pend-table').querySelector('tbody').innerHTML = faltantes.length
-    ? faltantes.map(({ r, v }) => {
-        const avance = Math.round(v * 100);
-        const cls = v > 0 ? 'amarillo' : 'rojo';
-        const txt = v > 0 ? 'En proceso' : 'Pendiente';
-        return `<tr>
-          <td>${OXXO.escHtml(r[C.empleado] || '—')}</td>
-          <td style="font-size:11px">${OXXO.escHtml(r[C.puesto] || '—')}</td>
-          <td style="font-size:11px">${OXXO.escHtml(r[C.unidad] || '—')}</td>
-          <td style="font-size:11px">${OXXO.escHtml(r[C.asesor] || 'Sin Asesor Asignado')}</td>
-          <td class="center">${avance}%</td>
-          <td class="center"><span class="cap-badge ${cls}">${txt}</span></td>
-        </tr>`;
-      }).join('')
-    : `<tr><td colspan="6" style="text-align:center;color:var(--color-gray);padding:18px">Todos los empleados filtrados ya la completaron.</td></tr>`;
-
-  document.getElementById('emp-body-main').style.display = 'none';
-  document.getElementById('emp-body-cert').style.display = '';
 }
 function closeEmpleadoModal(){ document.getElementById('empleado-modal').classList.remove('open'); }
 
