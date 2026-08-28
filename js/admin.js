@@ -1,7 +1,14 @@
 (function(){
   const ADMIN_CONFIG_KEY='oxxo_admin_apps_script_url';
   let adminPassword='';
-  const PLAZA_TARGET='OAXACA';
+  // Antes era una constante fija 'OAXACA': desde que el panel soporta varias
+  // plazas (switch de Alcance arriba), el filtro que decide que filas se
+  // publican usa la plaza ACTIVA en ese switch, no siempre Oaxaca. Se lee en
+  // vivo (no una vez al cargar) porque cambiar de plaza en el switch de este
+  // panel no recarga la pagina.
+  function activePlazaLabel(){
+    return String((window.OXXO&&OXXO.getActiveDataScope&&OXXO.getActiveDataScope().plaza)||'Oaxaca').replace(/^Plaza\s+/i,'');
+  }
   const DEFAULT_UPLOAD_URL=(window.OXXO&&OXXO.SHEETS_CONFIG&&OXXO.SHEETS_CONFIG.ADMIN_UPLOAD_URL)||'';
 
   let dashboards=[];
@@ -124,16 +131,18 @@
   function validateRows(){
     const dash=dashboard(),rows=state.rows||[],headers=getHeaders(rows),missing=dash.required.filter(col=>!rows.some(row=>String(row[col]??'').trim()!=='')),nonEmpty=rows.filter(row=>Object.values(row||{}).some(v=>String(v??'').trim()!=='')),period=periodInfo(dash,nonEmpty);
     if(dash.periodColumn&&!period.values.length)missing.push(dash.periodColumn);
+    const plazaLbl=activePlazaLabel();
+    const droppedByScope=Math.max(0,(state.sourceRows||0)-rows.length);
     setStatus([
-      {type:rows.length?'ok':'bad',title:'Archivo leido',text:rows.length?`${rows.length} filas Oaxaca listas desde "${state.sheetName}".`:`No se detectaron filas utiles para ${PLAZA_TARGET}.`,badge:rows.length?'OK':'Revisar'},
+      {type:rows.length?'ok':'bad',title:'Archivo leido',text:rows.length?`${rows.length} filas de ${plazaLbl} listas desde "${state.sheetName}".`:`No se detectaron filas de ${plazaLbl} en el archivo.`,badge:rows.length?'OK':'Revisar'},
       {type:missing.length?'bad':'ok',title:'Columnas obligatorias',text:missing.length?`Faltan o vienen vacias: ${missing.join(', ')}`:`Columnas criticas OK para ${dash.label}.`,badge:missing.length?missing.length+' faltan':'OK'},
-      {type:state.sourceRows===rows.length?'ok':'warn',title:'Filtro Oaxaca',text:state.sourceRows===rows.length?'Todas las filas utiles corresponden al filtro esperado.':`${state.sourceRows} filas leidas; ${rows.length} quedaron despues de filtros/reglas.`,badge:`${rows.length} utiles`},
+      {type:droppedByScope?'warn':'ok',title:`Filtro de Alcance (${plazaLbl})`,text:droppedByScope?`${state.sourceRows} filas leidas; solo ${rows.length} son de ${plazaLbl} (la plaza activa arriba) y se publicaran. Las otras ${droppedByScope} NO se van a subir -- cambia el Alcance a su plaza y vuelve a subir este mismo archivo para publicarlas.`:'Todas las filas utiles corresponden a la plaza activa.',badge:`${rows.length} de ${plazaLbl}`},
       {type:'warn',title:'Regla aplicada',text:dash.notes||'Se normalizaron columnas al formato del dashboard.',badge:'Auto'},
       {type:period.enabled?'ok':'warn',title:'Modo de publicacion',text:period.enabled?`Se reemplazara solo ${period.column}: ${period.values.join(', ')}.`:'Sin periodo confiable: esta base reemplaza la pestana completa.',badge:period.enabled?'Por periodo':'Completo'}
     ]);
     state.validation={ok:rows.length>0&&missing.length===0,missing,headers,rows:nonEmpty};
     $('download-csv-btn').disabled=!rows.length;$('publish-btn').disabled=!state.validation.ok;
-    $('admin-guidance').textContent=state.validation.ok?`Listo para publicar en ${dash.tab}. Encabezados detectados en fila ${state.headerRow}; se enviaran ${dash.output.length} columnas normalizadas.`:'Revisa la hoja seleccionada o el dashboard destino: faltan columnas criticas o no hay filas Oaxaca.';
+    $('admin-guidance').textContent=state.validation.ok?`Listo para publicar en ${dash.tab}. Encabezados detectados en fila ${state.headerRow}; se enviaran ${dash.output.length} columnas normalizadas.`:`Revisa la hoja seleccionada o el dashboard destino: faltan columnas criticas o no hay filas de ${plazaLbl} (la plaza activa en el switch de Alcance arriba).`;
     renderPublishImpact({
       area:ADMIN_AREAS[currentAdminArea]?.title||currentAdminArea,
       target:dash.tab,
