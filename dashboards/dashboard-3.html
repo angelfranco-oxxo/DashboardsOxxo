@@ -731,7 +731,7 @@
 </div>
 
   <script src="../js/config.js?v=20260827scope1"></script>
-<script src="../js/core.js?v=20260828scope10"></script>
+<script src="../js/core.js?v=20260828perf1"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d3;
@@ -934,21 +934,79 @@ function renderEstatusDistribution(completas, incompletas, criticas, total){
 // Plazas foco (hardcoded para las tarjetas superiores)
 const PLAZAS_FOCO = ['OAXACA','TUXTLA','ISTMO','VILLAHERMOSA','CHONTALPA'];
 let OTRAS_PLAZAS_D3 = [];
+// EC% (Equipo Completo / Total) por plaza, calculado directo de Dashboard_3_Diario
+// sin scope (todas las tiendas de todas las plazas) -- ver computePlazaStatsFromRows.
+let PLAZA_STATS_D3 = {};
+
+// Normaliza cualquier variante de nombre de plaza (ej. "ISTMO", "Costa Istmo",
+// "OXXO COSTA ISTMO") al nombre canonico del catalogo regional (js/config.js),
+// para que dos fuentes distintas (Dashboard_3_Diario y la hoja manual Otras
+// Plazas) que nombran la misma plaza distinto no aparezcan como si fueran dos.
+function canonicalPlazaLabel(raw){
+  const s = String(raw||'').trim();
+  if(!s) return s;
+  const norm = v => String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const target = norm(s);
+  const catalog = (window.OXXO && OXXO.getScopeCatalog) ? OXXO.getScopeCatalog() : [];
+  for(const region of catalog){
+    for(const plaza of region.plazas){
+      const candidates = [plaza.name, plaza.shortName, ...(plaza.aliases||[])];
+      if(candidates.some(c => { const t = norm(c); return t && (target===t || target.includes(t) || t.includes(target)); })) {
+        return plaza.shortName || plaza.name;
+      }
+    }
+  }
+  return s;
+}
+// Agrupa las filas crudas (sin scope) por su columna real de Plaza y calcula el
+// EC% de cada una -- misma regla que el KPI "Aprovechamiento General" (Equipo
+// Completo / Total), solo que por plaza en vez de para la plaza activa.
+function computePlazaStatsFromRows(rows){
+  if(!Array.isArray(rows) || !rows.length) return {};
+  const map = buildMap(rows);
+  const byPlaza = {};
+  rows.forEach(r => {
+    const plazaRaw = String(gv(r,map,'col_plaza','')).trim();
+    const estatus = String(gv(r,map,'estatus','')).trim();
+    if(!plazaRaw) return;
+    const plaza = canonicalPlazaLabel(plazaRaw);
+    const key = plaza.toUpperCase();
+    if(!byPlaza[key]) byPlaza[key] = { plaza, total:0, completas:0 };
+    byPlaza[key].total++;
+    if(isCompleta(estatus)) byPlaza[key].completas++;
+  });
+  const stats = {};
+  Object.values(byPlaza).forEach(v => {
+    if(v.total>0) stats[v.plaza.toUpperCase()] = { plaza:v.plaza, aprov: v.completas/v.total*100, total:v.total };
+  });
+  return stats;
+}
 
 async function initDashboard(){
   OXXO.renderDownloadButton('hero-download','d3');
   // Carga principal, catalogo y comparativo de plazas en paralelo. Son
   // fuentes independientes y mantenerlas en serie retrasaba el primer render.
-  const [rawData, asesorCatalog, rawD3Plazas] = await Promise.all([
+  // rawDataTodas (scoped:false) reusa la MISMA peticion de red que rawData
+  // (fetchSheetData deduplica por pestana, sin importar el scope de cada
+  // llamada) -- no cuesta una llamada extra al Sheet.
+  const [rawData, asesorCatalog, rawD3Plazas, rawDataTodas] = await Promise.all([
     OXXO.fetchSheetData(TAB),
     OXXO.loadAsesorCatalog(),
     OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d3plazas,{scoped:false}),
+    OXXO.fetchSheetData(TAB,{scoped:false}),
   ]);
   // OTRAS_PLAZAS_D3 se guarda ANTES de los cortes de abajo: el comparativo
   // "Aprovechamiento por Plaza" es independiente de la plaza activa (siempre
   // scoped:false), asi que no debe depender de si Dashboard_3_Diario trae
   // filas para la plaza seleccionada.
   if(rawD3Plazas && rawD3Plazas.length) OTRAS_PLAZAS_D3 = rawD3Plazas;
+  // Comparativo real por plaza: ahora que Dashboard_3_Diario trae filas de
+  // tienda para las 5 plazas (ya no solo Oaxaca), se calcula el EC% de cada
+  // una directo de esos datos -- ya no depende de que alguien mantenga
+  // actualizada a mano la pestana Dashboard_3_Otras_Plazas. Esa pestana se
+  // conserva como respaldo (ver renderPlazaGauges) solo para una plaza que
+  // todavia no tenga su base por tienda cargada.
+  PLAZA_STATS_D3 = computePlazaStatsFromRows(rawDataTodas);
   if(rawData===null){['kpi-section','plazas-row','tabla-at'].forEach(id=>OXXO.showError(id,'No se pudo conectar.'));return;}
   if(rawData.length===0){
     ['kpi-section','tabla-at'].forEach(id=>OXXO.showEmpty(id));
@@ -1045,53 +1103,32 @@ async function initDashboard(){
   OXXO.updateFooterTime('load-time');
 }
 
-// Valor fijo 'Aprovechamiento de estructura a hoy' emparejado con la columna 'PLAZAS'
-// (lista fija de plazas en el sheet). No existe plaza por tienda en la base, por lo que se
-// muestra el porcentaje precalculado de cada plaza tal cual viene.
-// Independiente de ALL_DATA/OTRAS_PLAZAS_D3: se llama tanto desde render() (con datos)
-// como desde initDashboard() cuando la plaza activa no tiene filas en Dashboard_3_Diario
-// (ej. Villahermosa aun sin datos por tienda) -- antes, ese caso cortaba initDashboard()
-// antes de siquiera intentar dibujar este comparativo, dejandolo en spinner eterno aunque
-// OTRAS_PLAZAS_D3 (fuente separada, siempre scoped:false) si tuviera datos.
+// Comparativo por plaza: PLAZA_STATS_D3 (calculado en initDashboard desde
+// Dashboard_3_Diario SIN scope, ver computePlazaStatsFromRows) es ahora la
+// fuente principal para las 5 plazas -- ya no hace falta que alguien
+// mantenga actualizada a mano la pestana Dashboard_3_Otras_Plazas. Esa
+// pestana se conserva solo como respaldo para una plaza que todavia no
+// tenga su base por tienda cargada (por eso el merge de abajo NO
+// sobreescribe una plaza que ya vino calculada).
+// Independiente de ALL_DATA: se llama tanto desde render() (con datos)
+// como desde initDashboard() cuando la plaza activa no tiene filas en
+// Dashboard_3_Diario (ej. una plaza sin base por tienda todavia) -- antes,
+// ese caso cortaba initDashboard() antes de siquiera intentar dibujar este
+// comparativo, dejandolo en spinner eterno.
 function renderPlazaGauges(){
-  const total = ALL_DATA.length;
-  const completas = ALL_DATA.filter(r=>isCompleta(r.estatus)).length;
-  const plazaSums = {};
-  ALL_DATA.forEach(r => {
-    const plaza = r.plazaAt;
-    if(!plaza || !(r.aprovPlaza>0)) return;
-    if(!plazaSums[plaza]) plazaSums[plaza] = { sum:0, n:0 };
-    plazaSums[plaza].sum += r.aprovPlaza;
-    plazaSums[plaza].n++;
-  });
-  const plazaData = Object.entries(plazaSums)
-    .map(([plaza, v]) => ({ plaza, aprov: v.n>0 ? v.sum/v.n : 0 }))
-    .sort((a,b) => b.aprov - a.aprov);
+  const plazaData = Object.values(PLAZA_STATS_D3)
+    .filter(v => v.aprov > 0)
+    .map(v => ({ plaza: v.plaza, aprov: v.aprov }));
 
-  // Auto-calcular OAXACA como EC% (Equipo Completo / Total) desde los datos cargados.
-  // ALL_DATA son las filas de Dashboard_3_Diario de la plaza ACTIVA (scoped por
-  // defecto) -- ahora que esa base tiene filas reales de las 5 plazas, hay que
-  // confirmar que la plaza activa sea Oaxaca antes de etiquetar este calculo como
-  // "OAXACA": si no, se duplicaba la plaza activa con la etiqueta equivocada
-  // (ej. viendo Tuxtla aparecia una gráfica extra "OAXACA" con el numero de Tuxtla).
-  const activeScope = OXXO.getActiveDataScope();
-  const isOaxacaScope = !activeScope?.plaza || String(activeScope.plaza).toLowerCase().includes('oaxaca');
-  if(isOaxacaScope && total > 0 && !plazaData.find(p => p.plaza.toUpperCase() === 'OAXACA')) {
-    const ecOaxaca = completas / total * 100;
-    if(ecOaxaca > 0) plazaData.push({ plaza: 'OAXACA', aprov: ecOaxaca });
-  }
-
-  // Agregar otras plazas desde la hoja manual (sin sobreescribir OAXACA).
-  // findDataKey (no acceso directo por nombre literal de columna): esta
-  // hoja es una carga manual y de vez en cuando trae el mismo problema de
-  // exportacion de Google que Dashboard_7_Semanal (el encabezado real
-  // queda pegado como texto en otra columna, "_buffer_..."); el acceso
-  // directo r['PLAZAS'] se quedaba en blanco en esos casos.
+  // Respaldo: hoja manual, solo para una plaza que PLAZA_STATS_D3 no traiga
+  // todavia (findDataKey por si el encabezado llega pegado como texto en
+  // otra columna, mismo problema de exportacion que Dashboard_7_Semanal).
   if(OTRAS_PLAZAS_D3.length) {
     const plazaKey = OXXO.metricsFindDataKey(OTRAS_PLAZAS_D3, ['PLAZAS','Plazas','Plaza']);
     const aprovKey = OXXO.metricsFindDataKey(OTRAS_PLAZAS_D3, ['Aprovechamiento de estructura a hoy','Aprovechamiento'], 25, true);
     OTRAS_PLAZAS_D3.forEach(r => {
-      const plaza = String(OXXO.metricsVal(r, plazaKey)||'').trim();
+      const plazaRaw = String(OXXO.metricsVal(r, plazaKey)||'').trim();
+      const plaza = canonicalPlazaLabel(plazaRaw);
       const aprov = OXXO.metricsNum(OXXO.metricsVal(r, aprovKey));
       if(plaza && !isNaN(aprov) && aprov > 0 && !plazaData.find(p => p.plaza.toUpperCase() === plaza.toUpperCase())) {
         plazaData.push({ plaza, aprov });

@@ -2938,15 +2938,24 @@ function applyScopeLabels(root = document.body) {
   if (!root) return;
   if (root.nodeType === 3) return replaceScopeTextNode(root);
   if (root.nodeType !== 1 || ['SCRIPT', 'STYLE', 'OPTION', 'SELECT'].includes(root.tagName)) return;
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      return ['SCRIPT', 'STYLE', 'OPTION', 'SELECT'].includes(node.parentElement?.tagName)
-        ? NodeFilter.FILTER_REJECT
-        : NodeFilter.FILTER_ACCEPT;
-    }
-  });
-  let node;
-  while ((node = walker.nextNode())) replaceScopeTextNode(node);
+  // Salida rapida antes del TreeWalker: el MutationObserver de abajo llama
+  // esto por cada nodo agregado al DOM, incluida cada fila cuando una tabla
+  // grande se reconstruye entera (ej. cientos de filas en Dashboard 1/8).
+  // textContent es una sola lectura nativa; evita crear un TreeWalker y
+  // recorrer nodo por nodo cuando ese subarbol ni siquiera menciona "Plaza
+  // Oaxaca" (el caso normal para filas de datos). El titulo del documento
+  // no vive dentro de root, asi que se revisa aparte, no bajo esta salida.
+  if (/Plaza Oaxaca/i.test(root.textContent || '')) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        return ['SCRIPT', 'STYLE', 'OPTION', 'SELECT'].includes(node.parentElement?.tagName)
+          ? NodeFilter.FILTER_REJECT
+          : NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    let node;
+    while ((node = walker.nextNode())) replaceScopeTextNode(node);
+  }
   if (/Plaza Oaxaca/i.test(document.title || '')) {
     const active = getActiveDataScope();
     document.title = document.title.replace(/Plaza Oaxaca/gi, active.level === 'region' ? `Región ${active.region}` : active.plaza);
