@@ -12,7 +12,7 @@
  * Despues de eso, admin.html publica directo sin pedir URL.
  */
 const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
-const APP_VERSION = '41';
+const APP_VERSION = '42';
 const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const AUDIT_SHEET = '_Admin_Bitacora';
 const BACKUP_PREFIX = '_BK_';
@@ -21,6 +21,39 @@ const MAX_UPLOAD_ROWS = 100000;
 const MAX_UPLOAD_COLUMNS = 250;
 const SYSTEM_NOTICES_SHEET = 'Avisos_Sistema';
 const HOME_SHEET = '00_INICIO';
+const HOME_SHEET_ORDER = [
+  HOME_SHEET,
+  // Recursos Humanos
+  'Dashboard_1_Diario',
+  'Dashboard_2_Diario',
+  'Dashboard_3_Diario',
+  'Dashboard_4_Semanal',
+  'Dashboard_5_Semanal',
+  'Dashboard_6_Semanal',
+  'Dashboard_7_Semanal',
+  'Dashboard_8_Diario',
+  'Dashboard_10_FLEX',
+  'Dashboard_11_Semanal',
+  'Dashboard_12_Mensual',
+  'Dashboard_13_Ausentismo',
+  'Catalogo_Asesores',
+  // Comercial
+  'Dashboard_14_Comercial',
+  'Promociones',
+  'PromosD100',
+  // Administrativo
+  'Dashboard_9_Semanal',
+  'Inventarios',
+  // Soporte y configuracion
+  'Dashboard_2_Otras_Plazas',
+  'Denominaciones_Dashboard_2_Diario',
+  'Dashboard_2_Plan_Accion',
+  'Dashboard_3_Otras_Plazas',
+  'Reasignaciones',
+  'Avisos_Sistema',
+  'Configuracion',
+  '_Admin_Bitacora'
+];
 const SYSTEM_NOTICE_HEADERS = ['ID', 'Tipo', 'Destino', 'Titulo', 'Mensaje', 'Inicio', 'Fin', 'Activo', 'Creado', 'Actualizado'];
 const ALLOWED_SHEETS = [
   'Dashboard_1_Diario',
@@ -309,8 +342,7 @@ function ensureHomeSheet_(ss) {
   if (!home) home = ss.insertSheet(HOME_SHEET);
 
   const previousActive = ss.getActiveSheet();
-  ss.setActiveSheet(home);
-  ss.moveActiveSheet(1);
+  reorderSheets_(ss);
 
   const minimumRows = 90;
   const minimumColumns = 14;
@@ -394,6 +426,30 @@ function ensureHomeSheet_(ss) {
     ss.setActiveSheet(previousActive);
   }
   return home;
+}
+
+function reorderSheets_(ss) {
+  const byName = {};
+  ss.getSheets().forEach(function(sheet) { byName[sheet.getName()] = sheet; });
+  const ordered = [];
+  const included = {};
+  HOME_SHEET_ORDER.forEach(function(name) {
+    const sheet = byName[name];
+    if (!sheet || sheet.isSheetHidden() || included[name]) return;
+    ordered.push(sheet);
+    included[name] = true;
+  });
+  // Una base nueva que todavia no tenga clasificacion queda visible al final,
+  // nunca mezclada entre respaldos ocultos.
+  ss.getSheets().forEach(function(sheet) {
+    if (sheet.isSheetHidden() || sheet.getName().indexOf(BACKUP_PREFIX) === 0 || included[sheet.getName()]) return;
+    ordered.push(sheet);
+    included[sheet.getName()] = true;
+  });
+  ordered.forEach(function(sheet, index) {
+    ss.setActiveSheet(sheet);
+    ss.moveActiveSheet(index + 1);
+  });
 }
 
 function renderHomeGroup_(ss, home, startRow, title, color, softColor, sheets) {
