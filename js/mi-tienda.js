@@ -989,8 +989,8 @@
     return { flex, fecha };
   }
 
-  // ── D11 · Registro y Apego a Horario (foto semanal, por asesor) ──
-  function pctVal(v) { const num = OXXO.metricsNum(v); return Number.isFinite(num) ? Math.round(num) : null; }
+  // ── D11 · Cumplimiento de Marcajes (foto semanal regional) ──
+  function pctVal(v) { const num = OXXO.metricsNum(v); return Number.isFinite(num) ? Math.round((Math.abs(num) <= 3 ? num * 100 : num) * 10) / 10 : null; }
   function pctTxt(v) { const p = pctVal(v); return p === null ? '—' : p + '%'; }
   function pctTone(p) { if (p === null) return ''; return p >= 90 ? 'verde' : p >= 70 ? 'amarillo' : 'rojo'; }
   async function loadD11() {
@@ -1002,16 +1002,13 @@
     // columna (ej. CR) con la de Tienda y ensucie el buscador global.
     const tiendaKey = OXXO.metricsFindKeyExact(h, ['Tienda']);
     const asesorKey = K(h, ['Asesor']);
-    const fechaKey = K(h, ['Fecha']);
+    const fechaKey = K(h, ['Semana', 'Fecha']);
     const entradasKey = K(h, ['% Cumpl Reg Entradas']);
     const salidasKey = K(h, ['% Cumpl Reg Salidas']);
     const totalKey = K(h, ['% Cumpl Reg Total']);
-    const edicionKey = K(h, ['% Edicion Registros', '% Edición Registros']);
-    const anadidosKey = K(h, ['% Anadidos', '% Añadidos']);
-    const sinEditarKey = K(h, ['% Sin Editar']);
-    const apegoEjecKey = K(h, ['% Apego Ejecutado']);
-    const apegoPubKey = K(h, ['% Apego Publicado']);
-    DATA.d11 = { rows: raw, tiendaKey, asesorKey, fechaKey, entradasKey, salidasKey, totalKey, edicionKey, anadidosKey, sinEditarKey, apegoEjecKey, apegoPubKey };
+    const estatusKey = K(h, ['Estatus']);
+    const calidadKey = K(h, ['Alerta Calidad']);
+    DATA.d11 = { rows: raw, tiendaKey, asesorKey, fechaKey, entradasKey, salidasKey, totalKey, estatusKey, calidadKey };
     addTiendas(raw, tiendaKey);
   }
   function renderD11(tienda) {
@@ -1024,7 +1021,7 @@
     if (!rows.length) {
       setSectionBadge('badge-d11', 'Corte', 'Sin datos');
       document.getElementById('stats-d11').innerHTML = '';
-      tbody.innerHTML = emptyRow(9, 'Tu tienda no aparece en Registro y Apego a Horario.');
+      tbody.innerHTML = emptyRow(6, 'Tu tienda no aparece en Cumplimiento de Marcajes.');
       return null;
     }
     setSectionBadge('badge-d11', 'Corte', V(rows[0], d.fechaKey) || 'Sin fecha', 'is-current');
@@ -1033,24 +1030,21 @@
       return vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : null;
     };
     const cumplTotal = avg(d.totalKey);
-    const apegoEjec = avg(d.apegoEjecKey);
-    const apegoPub = avg(d.apegoPubKey);
+    const entradas = avg(d.entradasKey);
+    const salidas = avg(d.salidasKey);
     document.getElementById('stats-d11').innerHTML =
       statTile(cumplTotal === null ? '—' : cumplTotal + '%', 'Cumpl. registro', pctTone(cumplTotal)) +
-      statTile(apegoEjec === null ? '—' : apegoEjec + '%', 'Apego ejecutado', pctTone(apegoEjec)) +
-      statTile(apegoPub === null ? '—' : apegoPub + '%', 'Apego publicado', pctTone(apegoPub));
+      statTile(entradas === null ? '—' : entradas + '%', 'Entradas', pctTone(entradas)) +
+      statTile(salidas === null ? '—' : salidas + '%', 'Salidas', pctTone(salidas));
     tbody.innerHTML = rows.map((r) => `<tr>
         <td>${esc(OXXO.truncate(String(V(r, d.asesorKey) || '—'), 22))}</td>
         <td class="center">${pctTxt(V(r, d.entradasKey))}</td>
         <td class="center">${pctTxt(V(r, d.salidasKey))}</td>
         <td class="center">${pctTxt(V(r, d.totalKey))}</td>
-        <td class="center">${pctTxt(V(r, d.edicionKey))}</td>
-        <td class="center">${pctTxt(V(r, d.anadidosKey))}</td>
-        <td class="center">${pctTxt(V(r, d.sinEditarKey))}</td>
-        <td class="center">${pctTxt(V(r, d.apegoEjecKey))}</td>
-        <td class="center">${pctTxt(V(r, d.apegoPubKey))}</td>
+        <td class="center">${esc(V(r, d.estatusKey) || '—')}</td>
+        <td class="center">${esc(V(r, d.calidadKey) || '—')}</td>
       </tr>`).join('');
-    return { cumplTotal, apegoEjec, apegoPub };
+    return { cumplTotal, entradas, salidas };
   }
 
   // ── Resumen y alertas ──────────────────────────────────

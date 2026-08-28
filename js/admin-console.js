@@ -14,7 +14,7 @@
     Dashboard_3_Otras_Plazas: ['RH', 'Aprovechamiento · otras plazas'], Dashboard_4_Semanal: ['RH', 'Tiempo extra'],
     Dashboard_5_Semanal: ['RH', 'Vacaciones'], Dashboard_6_Semanal: ['RH', 'Ausentismos'],
     Dashboard_7_Semanal: ['RH', 'TREO'], Dashboard_8_Diario: ['RH', 'Capacidades'],
-    Dashboard_10_FLEX: ['RH', 'Personal FLEX'], Dashboard_11_Semanal: ['RH', 'Registro y apego'],
+    Dashboard_10_FLEX: ['RH', 'Personal FLEX'], Dashboard_11_Semanal: ['RH', 'Cumplimiento de marcajes'],
     Dashboard_12_Mensual: ['RH', 'Alineación global'], Dashboard_13_Ausentismo: ['RH', 'Control de ausentismo'],
     Dashboard_14_Comercial: ['Comercial', 'Avance comercial'], Promociones: ['Comercial', 'PromosD100'],
     Dashboard_9_Semanal: ['Administrativo', 'Faltantes y sobrantes'], Inventarios: ['Administrativo', 'Resultados de inventario']

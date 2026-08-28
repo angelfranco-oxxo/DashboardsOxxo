@@ -313,6 +313,45 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
     return salida;
   }
 
+  // Dashboard 11 · Reporte de marcajes. El libro trae una foto nacional en
+  // "Ranking por Tienda" y la region TABASCO completa en el mismo archivo.
+  // Esta fuente se publica siempre completa: no usa periodo ni conserva filas
+  // de la carga anterior. Los porcentajes quedan como fraccion (0.80 = 80%)
+  // para mantener el contrato historico de la hoja Dashboard_11_Semanal.
+  function ratioD11(value){
+    const raw=String(value??'').trim();
+    if(!raw)return '';
+    const n=Number(raw.replace(/[%\s]/g,'').replace(',','.'));
+    if(!Number.isFinite(n))return '';
+    return raw.includes('%')?n/100:n;
+  }
+  function semanaD11(){
+    const source=`${state?.fileName||''} ${state?.sheetName||''}`;
+    const match=source.match(/(?:sem(?:ana)?\s*)?(\d{1,2})/i);
+    return match?`SEM ${Number(match[1])}`:'SEMANA ACTUAL';
+  }
+  function deriveD11(row){
+    const entrada=ratioD11(row['% Cumpl Reg Entradas']);
+    const salida=ratioD11(row['% Cumpl Reg Salidas']);
+    const total=ratioD11(row['% Cumpl Reg Total']);
+    const puntos=Number(total)*100;
+    const estatus=!Number.isFinite(puntos)?'Sin dato':puntos>=90?'Sobresaliente':puntos>=75?'En seguimiento':puntos>=50?'Prioridad':'Critico';
+    const fueraRango=[entrada,salida,total].some(v=>Number.isFinite(Number(v))&&Number(v)>1);
+    return {
+      ...row,
+      Semana:semanaD11(),
+      Region:String(row.Region||'').replace(/\s+/g,' ').trim(),
+      Plaza:String(row.Plaza||'').replace(/\s+/g,' ').trim(),
+      Asesor:String(row.Asesor||'').replace(/\s+/g,' ').trim(),
+      Tienda:String(row.Tienda||'').replace(/\s+/g,' ').trim(),
+      '% Cumpl Reg Entradas':entrada,
+      '% Cumpl Reg Salidas':salida,
+      '% Cumpl Reg Total':total,
+      Estatus:estatus,
+      'Alerta Calidad':fueraRango?'PORCENTAJE MAYOR A 100%':''
+    };
+  }
+
   const definitions = [
     {key:'d1',label:'Dashboard 1 - Vacantes diarias',tab:OXXO.SHEETS_CONFIG.TABS.d1,periodColumn:'Mes',preferredSheets:['Estructura','Dashboard_1_Diario'],output:['Plaza','Asesor','Unidad org','CR TIENDA','ID posiciones','Descripcion de Posicion','Status ocupacion','Empleados','Fecha','Dias Vacantes','Mes'],required:['Plaza','Asesor','Unidad org','ID posiciones','Descripcion de Posicion','Status ocupacion'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD1,notes:'Estructura cruda. Mes se toma del nombre del archivo; Dias Vacantes se deriva del texto vacante si no viene en el archivo. Se publican TODAS las posiciones (no solo vacantes) para que TREO calcule SAP/Activos por tienda; Dashboard 1 filtra por su cuenta las que son vacante (Status/Empleados vacio).'},
     {key:'d2',label:'Dashboard 2 - Bajas diarias',tab:OXXO.SHEETS_CONFIG.TABS.d2,periodColumn:'Mes',preferredSheets:['Bajas'],output:['Plaza','Asesor','Nombre del empleado','No Personal','Fecha','Mes','Semana','Temporalidad','Rot_Temp','Puesto','Tienda','Motivo','Detalle','Edad','Genero'],required:['Plaza','Asesor','Nombre del empleado','Fecha','Semana','Temporalidad','Rot_Temp','Puesto','Tienda'],filter:r=>containsOaxaca(r.Plaza),derive:deriveD2,notes:'Base principal de bajas. Mes se toma del nombre del archivo si trae fecha; si no, se calcula con F. Validez/Fecha.'},
@@ -343,7 +382,7 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
     {key:'catalog',label:'Catalogo de asesores',tab:OXXO.SHEETS_CONFIG.CATALOG_SHEET,preferredSheets:['Catalogo_Asesores','Catalogo asesores','Hoja1','ASESORES ACTJUNJUL'],output:['ASESOR','TIENDA','CR TIENDA','Region','Plaza','Zona','ACTIVA'],required:['ASESOR','TIENDA','CR TIENDA'],filter:r=>Boolean(r.ASESOR&&(r.TIENDA||r['CR TIENDA'])),derive:deriveCatalog,notes:'Catalogo maestro por CR. Region y Plaza se completan automaticamente con el contexto activo (hoy Plaza Oaxaca); Zona es opcional y ACTIVA queda en SI si no viene en el archivo.'},
     {key:'s9',label:'Dashboard 9 - Faltantes y sobrantes',tab:OXXO.SHEETS_CONFIG.TABS.s9,periodColumn:'Semana',preferredSheets:[],output:['Region','Plaza','Fecha','CR','Tienda','Asesor','Importe','Tipo','Concepto','Semana'],required:['CR','Importe','Fecha','Semana'],filter:r=>Boolean(String(r.CR||'').trim())&&Number.isFinite(r.Importe),derive:deriveD9,notes:'Faltantes y sobrantes de caja por plaza. Cada mes viene en su propia hoja del Excel de origen; se reemplazan solamente las semanas y la plaza seleccionadas, conservando los demás periodos y plazas.'},
     {key:'d10',label:'Dashboard 10 - Personal FLEX',tab:OXXO.SHEETS_CONFIG.TABS.d10,preferredSheets:['Sheet 1','Hoja1'],output:['Tienda','Zona','Region','Plaza','Asesor','Fecha','COLABORADORESFLEX_NUM'],required:['Tienda','Asesor','Fecha'],filter:r=>containsOaxaca(r.Plaza),derive:r=>r,notes:'Numero de colaboradores FLEX por tienda (foto). Cada carga reemplaza toda la pestana. Fecha llega como texto en espanol (ej. "9 de agosto de 2026"), no requiere parseo.'},
-    {key:'d11',label:'Dashboard 11 - Registro y Apego a Horario',tab:OXXO.SHEETS_CONFIG.TABS.d11,preferredSheets:['Sheet 1','Hoja1'],output:['Tienda','Zona','Region','Plaza','Asesor','Fecha','% Cumpl Reg Entradas','% Cumpl Reg Salidas','% Cumpl Reg Total','% Edicion Registros','% Anadidos','% Sin Editar','% Apego Ejecutado','% Apego Publicado'],required:['Tienda','Asesor','Fecha'],filter:r=>containsOaxaca(r.Plaza),derive:r=>r,notes:'Cumplimiento de registro de entrada/salida y apego a horario (checador), por asesor. Foto semanal: cada carga reemplaza toda la pestana. Fecha llega como texto en espanol, no requiere parseo. Las columnas de % vienen como fraccion 0-1 (1 = 100%).'},
+    {key:'d11',label:'Dashboard 11 - Cumplimiento de Marcajes',tab:OXXO.SHEETS_CONFIG.TABS.d11,preferredSheets:['Ranking por Tienda'],sourceColumns:['Semana','Zona','Region','Plaza','Asesor','Tienda','% Cumpl Reg Entradas','% Cumpl Reg Salidas','% Cumpl Reg Total','Estatus','Alerta Calidad'],output:['Semana','Zona','Region','Plaza','Asesor','Tienda','% Cumpl Reg Entradas','% Cumpl Reg Salidas','% Cumpl Reg Total','Estatus','Alerta Calidad'],required:['Region','Plaza','Asesor','Tienda','% Cumpl Reg Total'],scopeColumns:[],filter:r=>normPlazaNombre(r.Region)==='TABASCO'&&Boolean(String(r.Tienda||'').trim()),derive:deriveD11,notes:'Foto semanal regional de marcajes. Lee exclusivamente Ranking por Tienda, filtra Region TABASCO y reemplaza toda la pestana en cada carga; no conserva historico. Semana se deriva del nombre del archivo. Los porcentajes se publican como fraccion y valores mayores a 100% quedan marcados como alerta de calidad.'},
     {key:'m12',label:'Dashboard 12 - Enfoque del Lider',tab:OXXO.SHEETS_CONFIG.TABS.m12,periodColumn:'Mes',preferredSheets:['Hoja1','Sheet1'],output:['Mes','Zona','Region','Plaza','CR Plaza','CR Tienda','Tienda','Asesor','Lider','No Empleado','Tipo Lider','Meses Ops','Faltante Inventario','Faltante Inventario %','Faltante Efectivo','Plantilla Completa','MEP PP','Venta Lealtad','Evaluacion Operativa','Est Faltante Inv','Est Faltante Efectivo','Est Ingreso','Est Equipo Completo','Est MEP PP','Est Equipo','Est Venta Lealtad','Est Evaluacion Op','Est Cliente','Etapa Anterior','Etapa Final','Clas Final','Mes Completo','A+ Consecutivos','C Consecutivas','% Var Ventas','Numero de Clientes','% Var Trafico','Ticket Promedio','Venta Neta'],required:['Mes','Plaza','CR Tienda','Tienda','Asesor','Clas Final'],filter:r=>containsOaxaca(r.Plaza)&&Boolean(String(r.Mes||'').trim())&&Boolean(String(r['CR Tienda']||'').trim()),derive:deriveD12,notes:'Reporte Enfoque del Lider (mensual, una fila por tienda por mes). Se publica por periodo sobre la columna Mes: subir el reporte de un mes reemplaza SOLO ese mes y conserva los anteriores, que es lo que alimenta las graficas de 12 meses. El Excel de origen trae \"MEP P.P.\" y \"EVALUACION OPERATIVA\" repetidas (valor numerico y despues su OK/NO OK): la segunda ocurrencia se resuelve por posicion, ver buildSourceMap en normalizers.js. La letra A+/A/B/C/N no se publica porque es un recodificado 1 a 1 de Clas Final; el dashboard la deriva.'},
     {key:'a13',label:'Dashboard 13 - Control de Ausentismo',tab:OXXO.SHEETS_CONFIG.TABS.a13,periodColumn:'',preferredSheets:['Sábana','Sabana'],supplementalSourceColumns:['Fecha Nacimiento'],output:['Registro Tipo','Fecha Captura','Folio','No Empleado','Nombre','Clasificacion','Clasificacion Calculo','Tipo','Fecha Inicio','Fecha Termino','Dias','Dias Acumulados','Mes Expedicion','Puesto','Tienda','CR','Asesor','Genero','Edad','Fecha Ingreso','Antiguedad','Documento Entregado','Mecanismo RT','Especificacion Mecanismo','Area Anatomica','Fecha Accidente','Turno Accidente','Lugar Accidente','Calificacion RT IMSS','Dictamen ST7','ST2','Acto o Condicion Insegura','Descripcion ST7','D Ene','D Feb','D Mar','D Abr','D May','D Jun','D Jul','D Ago','D Sep','D Oct','D Nov','D Dic','Plaza','Ano Reporte','Mes Numero','Mes','Head Count 2026','Head Count 2025','Casos RT 2025','DP RT 2025','Casos RTY 2025','DP RTY 2025','Casos EG 2025','DP EG 2025','IATP 2025','Tasa DP EG 2025','Costo Diario'],required:['Nombre','Clasificacion','Tienda','Asesor'],filter:r=>Boolean(String(r.Nombre||'').trim()),derive:deriveD13,enrich:'caratulaD13',notes:'Publica la Sabana de incapacidades y agrega 12 filas RESUMEN tomadas de Caratula. Los casos cuentan solo Tipo=Inicial; los dias usan la distribucion Ene-Dic; RT/RTY/Enfermedad Profesional rechazados por IMSS se reclasifican a EG. Head Count 2026 y comparativos 2025 salen de Caratula. Edad se calcula desde Fecha de Nac cuando viene vacia, sin publicar la fecha de nacimiento. Reporte RH, IMSS, Cronicos y Asesores no alimentan los indicadores principales.'},
     {key:'c14',label:'Dashboard 14 - Avance Comercial',tab:OXXO.SHEETS_CONFIG.TABS.c14,preferredSheets:['bd','Hoja1','Sheet1'],output:['Region','Plaza','Tienda','CR','Asesor','Spin','Premia','Cruzada Andatti','Venta Sugerida','Banner','Mep'],required:['Tienda','Asesor','Spin','Premia','Cruzada Andatti','Venta Sugerida','Banner'],filter:r=>Boolean(String(r.Tienda||'').trim()),derive:r=>r,notes:'Avance de indicadores comerciales por tienda y plaza, quincenal. La carga reemplaza solamente la plaza seleccionada y conserva las demás.'},

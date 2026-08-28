@@ -27,7 +27,7 @@
     { area: 'RH', name: 'TREO', tab: tabs().s7, cadence: 'snapshot', required: [['tienda'], ['asesor'], ['estructura sap']] },
     { area: 'RH', name: 'Capacidades', tab: tabs().d8, cadence: 'snapshot', required: [['unidad org'], ['empleados'], ['asesor correcto', 'asesor']] },
     { area: 'RH', name: 'Personal FLEX', tab: tabs().d10, cadence: 'weekly', required: [['tienda'], ['asesor'], ['fecha']], dates: ['Fecha'] },
-    { area: 'RH', name: 'Registro y Apego', tab: tabs().d11, cadence: 'weekly', required: [['tienda'], ['asesor'], ['fecha']], dates: ['Fecha'] },
+    { area: 'RH', name: 'Cumplimiento de Marcajes', tab: tabs().d11, cadence: 'snapshot', required: [['tienda'], ['asesor'], ['semana'], ['cumpl reg total']] },
     { area: 'RH', name: 'Enfoque del Lider', tab: tabs().m12, cadence: 'monthly', required: [['tienda'], ['asesor'], ['mes']], dates: ['Mes'] },
     { area: 'RH', name: 'Control de Ausentismo', tab: tabs().a13, cadence: 'monthly', required: [['tienda'], ['nombre'], ['clasificacion']], dates: ['Fecha Captura', 'Fecha Inicio'] },
     { area: 'Administrativo', name: 'Faltantes y Sobrantes', tab: tabs().s9, cadence: 'weekly', required: [['cr'], ['fecha'], ['importe']], dates: ['Fecha'] },

@@ -10,6 +10,7 @@
     ['dashboard-6.html', 'Ausentismos', 'Semanal'],
     ['dashboard-7.html', 'TREO', 'Semanal'],
     ['dashboard-8.html', 'Capacidades', 'Diario'],
+    ['dashboard-11.html', 'Marcajes', 'Semanal'],
     ['dashboard-12.html', 'Enfoque del Líder', 'Mensual'],
     ['dashboard-13.html', 'Control de Ausentismo', 'Mensual'],
   ];
@@ -150,6 +151,16 @@
         completion?.value !== null && completion.value < 80 && insight('critical', 'Cumplimiento bajo', `El cumplimiento global es ${completion.valueText}.`),
         critical && insight('warning', 'Certificación prioritaria', `${critical.valueText}: ${critical.deltaText || 'requiere seguimiento'}.`),
         stores?.value > 0 && insight('info', 'Cobertura del tablero', `${stores.valueText} tiendas incluidas en la lectura.`),
+      ];
+    },
+    'dashboard-11.html': (kpis) => {
+      const total = findKpi(kpis, 'cumplimiento total');
+      const under = findKpi(kpis, 'tiendas bajo 75');
+      const quality = findKpi(kpis, 'datos fuera de rango');
+      return [
+        under?.value > 0 && insight('critical', 'Tiendas prioritarias', `${under.valueText} tiendas están debajo de 75%.`),
+        quality?.value > 0 && insight('warning', 'Validación de datos', `${quality.valueText} porcentajes superan 100% y deben revisarse.`),
+        total?.value !== null && insight(total.value >= 90 ? 'success' : 'info', 'Cumplimiento visible', `Promedio de ${total.valueText} con los filtros activos.`),
       ];
     },
   };
