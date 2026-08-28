@@ -374,7 +374,7 @@
   }
   .tbl-wrap, .table-wrap{ border-radius: 14px !important; overflow: hidden; }
 </style>
-  <link rel="stylesheet" href="../css/dashboard-skin.css?v=spatial-final" />
+  <link rel="stylesheet" href="../css/dashboard-skin.css?v=20260828plazatoggle" />
   <style id="d2-asesor-overrides">
     /* permitir que el desplegable del filtro Asesor sobresalga del header */
     .bajas-header{ overflow: visible !important; position: relative; z-index: 40; }
@@ -586,6 +586,9 @@
 
   <!-- TABLA RANKING PLAZAS -->
   <section class="bajas-panel plazas-panel" style="margin-bottom:14px;padding:20px">
+    <div class="plazas-panel__toolbar">
+      <button type="button" id="plazas-scope-toggle" class="plazas-scope-toggle">Ver todas las plazas</button>
+    </div>
     <div class="plazas-panel__grid">
       <!-- Ranking plazas -->
       <div>
@@ -775,6 +778,9 @@ function monthLabel(key){
 }
 let BASE_BAJAS_DATA = [];
 let BAJAS_COLS = {};
+// Boton local "Ver todas las plazas" del panel Ranking/Comparativo de
+// Plazas: por defecto solo muestra la plaza activa (ver renderPlazas).
+let PLAZAS_SHOW_ALL = false;
 let OTRAS_PLAZAS_DATA = [];
 let FILTER_STATE = {};
 let SELECTED_ASESORES = null; // array de asesores seleccionados (multi-select)
@@ -1644,10 +1650,12 @@ function renderPlazas(allData, cols) {
   }
 
   // En alcance de plaza, ambos componentes deben hablar únicamente de la
-  // plaza seleccionada. El comparativo completo se conserva exclusivamente
-  // cuando el usuario elige "Región TABASCO".
+  // plaza seleccionada. El comparativo completo se ve solo si el usuario
+  // activa el boton "Ver todas las plazas" (PLAZAS_SHOW_ALL) -- el switch
+  // global de Alcance ya no ofrece un nivel de "region", asi que este
+  // toggle local es la unica forma de ver el comparativo completo.
   const activeScope=OXXO.getActiveDataScope();
-  if(activeScope.level!=='region'){
+  if(!PLAZAS_SHOW_ALL){
     plazasData=plazasData.filter(item=>OXXO.matchesScopeValue(item.plaza,'plaza',activeScope));
   }
 
@@ -1655,7 +1663,12 @@ function renderPlazas(allData, cols) {
   // presenta automáticamente en una versión compacta.
   const plazasPanel=document.querySelector('.plazas-panel');
   if(plazasPanel){
-    plazasPanel.classList.toggle('is-single-plaza', activeScope.level!=='region');
+    plazasPanel.classList.toggle('is-single-plaza', !PLAZAS_SHOW_ALL);
+  }
+  const plazasToggleBtn=document.getElementById('plazas-scope-toggle');
+  if(plazasToggleBtn){
+    plazasToggleBtn.textContent=PLAZAS_SHOW_ALL ? `Ver solo · ${String(activeScope.plaza||'Oaxaca').replace(/^Plaza\s+/i,'')}` : 'Ver todas las plazas';
+    plazasToggleBtn.classList.toggle('is-active',PLAZAS_SHOW_ALL);
   }
 
   if(!plazasData.length) {
@@ -1932,6 +1945,10 @@ async function initDashboard(){
   setFilterBar(BASE_BAJAS_DATA, BAJAS_COLS);
   renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
   void rawDenominacionesPromise.then(loadDenominaciones).catch(() => {});
+  document.getElementById('plazas-scope-toggle')?.addEventListener('click', () => {
+    PLAZAS_SHOW_ALL = !PLAZAS_SHOW_ALL;
+    renderPlazas(BASE_BAJAS_DATA, BAJAS_COLS);
+  });
 }
 window.addEventListener('oxxo-theme-change', () => {
   if (BASE_BAJAS_DATA.length && BAJAS_COLS) renderBajasDashboard(applyUserFilters(BASE_BAJAS_DATA, BAJAS_COLS), BAJAS_COLS);
