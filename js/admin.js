@@ -1,13 +1,15 @@
 (function(){
   const ADMIN_CONFIG_KEY='oxxo_admin_apps_script_url';
   let adminPassword='';
-  // Antes era una constante fija 'OAXACA': desde que el panel soporta varias
-  // plazas (switch de Alcance arriba), el filtro que decide que filas se
-  // publican usa la plaza ACTIVA en ese switch, no siempre Oaxaca. Se lee en
-  // vivo (no una vez al cargar) porque cambiar de plaza en el switch de este
-  // panel no recarga la pagina.
-  function activePlazaLabel(){
-    return String((window.OXXO&&OXXO.getActiveDataScope&&OXXO.getActiveDataScope().plaza)||'Oaxaca').replace(/^Plaza\s+/i,'');
+  // Detecta que columna trae la plaza en las filas ya leidas (normalmente
+  // 'Plaza'), para poder informar cuantas y cuales plazas distintas trae el
+  // archivo. Una carga puede traer varias plazas a la vez: cada una se
+  // publica en su propio bloque de filas via scopeColumns/replaceScope (ver
+  // apps-script/admin-upload.gs), no hace falta subir un archivo por plaza.
+  function detectPlazaColumn(rows){
+    if(!rows||!rows.length) return null;
+    const keys=Object.keys(rows[0]||{});
+    return keys.find(k=>/^plaza$/i.test(k))||keys.find(k=>/plaza/i.test(k))||null;
   }
   const DEFAULT_UPLOAD_URL=(window.OXXO&&OXXO.SHEETS_CONFIG&&OXXO.SHEETS_CONFIG.ADMIN_UPLOAD_URL)||'';
 
@@ -131,18 +133,19 @@
   function validateRows(){
     const dash=dashboard(),rows=state.rows||[],headers=getHeaders(rows),missing=dash.required.filter(col=>!rows.some(row=>String(row[col]??'').trim()!=='')),nonEmpty=rows.filter(row=>Object.values(row||{}).some(v=>String(v??'').trim()!=='')),period=periodInfo(dash,nonEmpty);
     if(dash.periodColumn&&!period.values.length)missing.push(dash.periodColumn);
-    const plazaLbl=activePlazaLabel();
-    const droppedByScope=Math.max(0,(state.sourceRows||0)-rows.length);
+    const droppedRows=Math.max(0,(state.sourceRows||0)-rows.length);
+    const plazaCol=detectPlazaColumn(rows);
+    const plazasDetected=plazaCol?[...new Set(rows.map(r=>String(r[plazaCol]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')):[];
     setStatus([
-      {type:rows.length?'ok':'bad',title:'Archivo leido',text:rows.length?`${rows.length} filas de ${plazaLbl} listas desde "${state.sheetName}".`:`No se detectaron filas de ${plazaLbl} en el archivo.`,badge:rows.length?'OK':'Revisar'},
+      {type:rows.length?'ok':'bad',title:'Archivo leido',text:rows.length?`${rows.length} filas utiles listas desde "${state.sheetName}".`:'No se detectaron filas utiles en el archivo.',badge:rows.length?'OK':'Revisar'},
       {type:missing.length?'bad':'ok',title:'Columnas obligatorias',text:missing.length?`Faltan o vienen vacias: ${missing.join(', ')}`:`Columnas criticas OK para ${dash.label}.`,badge:missing.length?missing.length+' faltan':'OK'},
-      {type:droppedByScope?'warn':'ok',title:`Filtro de Alcance (${plazaLbl})`,text:droppedByScope?`${state.sourceRows} filas leidas; solo ${rows.length} son de ${plazaLbl} (la plaza activa arriba) y se publicaran. Las otras ${droppedByScope} NO se van a subir -- cambia el Alcance a su plaza y vuelve a subir este mismo archivo para publicarlas.`:'Todas las filas utiles corresponden a la plaza activa.',badge:`${rows.length} de ${plazaLbl}`},
+      {type:droppedRows?'warn':'ok',title:'Plazas detectadas',text:plazasDetected.length?`Se van a publicar ${rows.length} filas de ${plazasDetected.length} plaza${plazasDetected.length===1?'':'s'}: ${plazasDetected.join(', ')}.${droppedRows?` ${droppedRows} fila(s) sin una plaza reconocida se descartaron.`:' Un mismo archivo puede traer varias plazas a la vez, cada una se publica sin pisar las demas.'}`:(droppedRows?`${droppedRows} fila(s) se descartaron por no tener una plaza reconocida.`:'No se detecto una columna de Plaza; se publican todas las filas utiles tal cual.'),badge:plazasDetected.length?`${plazasDetected.length} plaza${plazasDetected.length===1?'':'s'}`:`${rows.length} filas`},
       {type:'warn',title:'Regla aplicada',text:dash.notes||'Se normalizaron columnas al formato del dashboard.',badge:'Auto'},
       {type:period.enabled?'ok':'warn',title:'Modo de publicacion',text:period.enabled?`Se reemplazara solo ${period.column}: ${period.values.join(', ')}.`:'Sin periodo confiable: esta base reemplaza la pestana completa.',badge:period.enabled?'Por periodo':'Completo'}
     ]);
     state.validation={ok:rows.length>0&&missing.length===0,missing,headers,rows:nonEmpty};
     $('download-csv-btn').disabled=!rows.length;$('publish-btn').disabled=!state.validation.ok;
-    $('admin-guidance').textContent=state.validation.ok?`Listo para publicar en ${dash.tab}. Encabezados detectados en fila ${state.headerRow}; se enviaran ${dash.output.length} columnas normalizadas.`:`Revisa la hoja seleccionada o el dashboard destino: faltan columnas criticas o no hay filas de ${plazaLbl} (la plaza activa en el switch de Alcance arriba).`;
+    $('admin-guidance').textContent=state.validation.ok?`Listo para publicar en ${dash.tab}. Encabezados detectados en fila ${state.headerRow}; se enviaran ${dash.output.length} columnas normalizadas.`:'Revisa la hoja seleccionada o el dashboard destino: faltan columnas criticas o no se detectaron filas con una plaza reconocida.';
     renderPublishImpact({
       area:ADMIN_AREAS[currentAdminArea]?.title||currentAdminArea,
       target:dash.tab,

@@ -8,9 +8,15 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
   const {state,norm,normLoose,aliasesFor,dashboard,$,OXXO} = deps;
 
   function getHeaders(rows){const set=new Set();rows.forEach(row=>Object.keys(row||{}).forEach(key=>set.add(key)));return [...set];}
-  // Se conserva el nombre por compatibilidad con las definiciones existentes,
-  // pero ahora valida contra la plaza/región elegida en el selector global.
-  function containsOaxaca(value){return OXXO.matchesScopeValue(value,'plaza',OXXO.getActiveDataScope());}
+  // Se conserva el nombre por compatibilidad con las definiciones existentes.
+  // Antes validaba solo contra la plaza activa del switch de Alcance, lo que
+  // rompia cargas consolidadas con varias plazas en un mismo archivo: las
+  // filas de cualquier plaza distinta a la activa se descartaban en
+  // silencio. El reemplazo real en Google Sheets ya separa cada plaza por su
+  // propio valor (scopeColumns -> replaceScope en admin-upload.gs), asi que
+  // aqui basta con aceptar cualquier plaza reconocida en el catalogo -- ya
+  // no depende de cual este activa arriba.
+  function containsOaxaca(value){return OXXO.matchesAnyKnownPlaza(value);}
   function toNumber(value){const n=Number(String(value??'').replace(/[$,%]/g,'').replace(/,/g,'').trim());return Number.isFinite(n)?n:0;}
   function pctValue(value){const n=toNumber(value);if(!n)return 0;return n<=1?n*100:n;}
   function parseDate(value){

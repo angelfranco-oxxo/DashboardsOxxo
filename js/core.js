@@ -167,6 +167,28 @@ function matchesScopeValue(value, dimension = 'plaza', scope = getActiveDataScop
   });
 }
 
+// A diferencia de matchesScopeValue (que compara contra la plaza ACTIVA),
+// esto acepta cualquier plaza reconocida en el catalogo, sin importar cual
+// este activa. Lo usa el panel admin para validar cargas: una base
+// consolidada con varias plazas no debe filtrarse a "solo la plaza que
+// estaba seleccionada arriba" -- el reemplazo real en Google Sheets ya
+// separa cada plaza por su propio valor (ver replaceScope en
+// apps-script/admin-upload.gs), asi que aqui solo se descartan filas cuya
+// Plaza no es ninguna de las conocidas (fila vacia o basura).
+function matchesAnyKnownPlaza(value) {
+  const actual = normalizeScopeToken(value);
+  if (!actual) return true;
+  const candidates = [getDataContext().plaza, ...getDataContext().plazaAliases];
+  getScopeCatalog().forEach((region) => {
+    candidates.push(region.name);
+    region.plazas.forEach((plaza) => candidates.push(plaza.name, plaza.shortName, ...plaza.aliases));
+  });
+  return candidates.some((candidate) => {
+    const token = normalizeScopeToken(candidate);
+    return token && (actual === token || actual.includes(token) || token.includes(actual));
+  });
+}
+
 function rowMatchesDataScope(row, scope = getActiveDataScope(), { legacyPlaza = '' } = {}) {
   if (!row || typeof row !== 'object') return false;
   const region = scopeRowValue(row, 'region');
@@ -2941,6 +2963,7 @@ window.OXXO = {
   getActiveDataScope,
   setActiveDataScope,
   matchesScopeValue,
+  matchesAnyKnownPlaza,
   rowMatchesDataScope,
   filterRowsByDataScope,
   applyDataContextDefaults,
