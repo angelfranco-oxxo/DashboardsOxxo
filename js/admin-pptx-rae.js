@@ -114,20 +114,37 @@
     const medidaKey = findKey(raw[0], ['Denominación Medida','Denominacion Medida','Medida','Med.']);
     const plazaKey = findKey(raw[0], ['Plaza']);
     const fechaKey = findKey(raw[0], ['Fecha']);
-    const asesorCrudoOk = r => String(val(r, asesorKey)||'').trim() && normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ';
+    const tiendaKey = findKey(raw[0], ['Tienda','Unidad org']);
+    // Igual que initDashboard() en dashboard-2.html: primero se descarta la fila
+    // cuyo Asesor crudo ya es 'Timoteo Antonio Perez' literal, y LUEGO se
+    // resuelve el Asesor real de cada fila contra el catalogo por Tienda (D2 no
+    // trae CR) via resolveAsesorD1. Sin este paso, las bajas de tiendas sin AT
+    // vigente que el catalogo reatribuye a Timoteo (regla Anadelia/herencia) se
+    // perdian del conteo en vez de contarse bajo Timoteo -- el total de esta
+    // funcion quedaba por debajo del "Total Bajas" real del dashboard (11 bajas
+    // de diferencia detectadas en una revision).
+    const asesorCatalog = await OXXO.loadAsesorCatalog();
+    const rawSinTimoteoLiteral = raw.filter(r => normText(val(r, asesorKey)).replace(/[^A-Z]/g,'') !== 'TIMOTEOANTONIOPEREZ');
+    rawSinTimoteoLiteral.forEach(r => {
+      r[asesorKey] = OXXO.resolveAsesorD1(asesorCatalog, { tienda: val(r, tiendaKey), asesor: val(r, asesorKey) });
+    });
     // Igual que filterData() en dashboard-2.html: si la hoja trae columna de
     // Medida, quedarse solo con movimientos de BAJA; si trae Plaza, quedarse
     // solo con Oaxaca. Cada filtro solo se aplica si existe la columna y deja
     // al menos una fila (mismo criterio "solo si aplica" del dashboard).
-    const base = OXXO.metricsFilterBajasD2(raw.filter(r => asesorCrudoOk(r)), { medidaKey, plazaKey });
+    const base = OXXO.metricsFilterBajasD2(rawSinTimoteoLiteral, { medidaKey, plazaKey });
     const { mes, rows: byMonth } = filterLatestMonth(base, r => rowMonthKeyD2(r, mesKey, fechaKey), targetMes);
+    // 'Sin Asesor Asignado' que sobrevive a resolveAsesorD1 es el caso legitimo
+    // sin reatribucion (tiendas de Entrenamiento/Operaciones): se excluye igual
+    // que defaultAsesorSelection() en dashboard-2.html, que lo quita por
+    // defecto. Puesto NO se filtra: el dashboard no excluye "Otro" por
+    // defecto, y Total Bajas cuenta cada fila igual que aqui (Otro se rastrea
+    // aparte en byPuesto, sin aparecer en el donut, igual que dataD1()).
     const rows = byMonth.filter(r => {
       const asesor = normText(val(r, asesorKey));
-      if(!asesor || asesor.includes('SIN ASESOR')) return false;
-      const puesto = tipoPuesto(val(r, puestoKey));
-      return puesto !== 'Otro';
+      return asesor && !asesor.includes('SIN ASESOR');
     });
-    const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0 };
+    const byPuesto = { Lider: 0, Encargado: 0, Ayudante: 0, Otro: 0 };
     rows.forEach(r => { byPuesto[tipoPuesto(val(r, puestoKey))]++; });
     return {
       total: rows.length, sub: mes ? `Mes ${mes}` : 'Plaza Oaxaca',
