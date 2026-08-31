@@ -2358,6 +2358,7 @@ async function metricsBuildEstructuraDiariaD1() {
   const tiendaKey = metricsFindKey(rows[0], ['Unidad org', 'Unidad org/', 'Tienda', 'Nombre Tienda']);
   const crKey = metricsFindKey(rows[0], ['CR TIENDA', 'CR', 'ID Tienda', 'ID_Tienda']);
   const empleadoKey = metricsFindKey(rows[0], ['Empleados', 'Empleado', 'Nombre del empleado', 'Nombre empleado', 'Nombre del empleado o candidato']);
+  const puestoKey = metricsFindKey(rows[0], ['Descripcion de Posicion', 'Descripcion Posicion', 'Puesto']);
   if (!empleadoKey) return out;
   const { mes, rows: latestRows } = metricsFilterLatestMonth(rows, r => metricsRowMonthKeyD1(r, mesKey, fechaKey));
   out.periodo = mes;
@@ -2366,6 +2367,13 @@ async function metricsBuildEstructuraDiariaD1() {
     const cr = String(metricsVal(r, crKey) || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     const tienda = metricsNormTiendaD7(metricsVal(r, tiendaKey));
     if (!cr && !tienda) return;
+    // Posiciones de Incapacidad (Ayudante/Encargado/Lider Incapacidad) no son
+    // estructura real para TREO: se excluyen del conteo por completo (ni SAP
+    // ni Activos), igual que buildEstructuraDiaria() en dashboard-7.html. Sin
+    // este filtro, esta version "compartida" inflaba el SAP recalculado por
+    // tienda/CR y reclasificaba Alineada/Subir/Bajar distinto al dashboard
+    // real (se detecto una diferencia de decenas de tiendas en una revision).
+    if (puestoKey && metricsCleanKey(metricsVal(r, puestoKey)).includes('incapacidad')) return;
     const empleado = String(metricsVal(r, empleadoKey) || '').trim();
     if (empleado) empleadosDetectados++;
     const add = target => {
