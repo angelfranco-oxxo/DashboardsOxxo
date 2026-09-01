@@ -22,7 +22,24 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
   function parseDate(value){
     if(value instanceof Date&&!isNaN(value))return value;
     const raw=String(value??'').trim();if(!raw||/^n\/?a$/i.test(raw))return null;
-    if(/^\d+(\.\d+)?$/.test(raw)){const serial=Number(raw);if(serial>25000&&serial<80000)return new Date(Date.UTC(1899,11,30)+serial*86400000);}
+    // El serial de Excel es solo un dia calendario, sin zona horaria, pero
+    // Date.UTC(...) construye un instante UTC concreto. isoDate()/monthKey()
+    // de aqui abajo leen el resultado con getters LOCALES (getFullYear/
+    // getMonth/getDate) -- en el navegador del admin que publica (huso
+    // horario de Mexico, UTC-6), medianoche UTC de una fecha cae la tarde del
+    // dia anterior en hora local, asi que una celda de Excel tipeada como
+    // Fecha (no texto) se publicaba en Google Sheets un dia antes del real
+    // (confirmado: subir vacantes con la columna Fecha como fecha de Excel
+    // las publicaba en el dia anterior). Se leen los componentes en UTC y se
+    // reconstruye la fecha con el constructor LOCAL, para que isoDate() y el
+    // resto escriban el dia calendario real sin importar el huso horario.
+    if(/^\d+(\.\d+)?$/.test(raw)){
+      const serial=Number(raw);
+      if(serial>25000&&serial<80000){
+        const utc=new Date(Date.UTC(1899,11,30)+serial*86400000);
+        return new Date(utc.getUTCFullYear(),utc.getUTCMonth(),utc.getUTCDate());
+      }
+    }
     const embedded=raw.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
     const clean=(embedded?embedded[0]:raw.replace(/\s+\d{1,2}:\d{2}(:\d{2})?.*$/,'')).replace(/[.]/g,'/').replace(/-/g,'/');
     const parts=clean.split('/').map(p=>p.trim()).filter(Boolean);

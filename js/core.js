@@ -979,10 +979,14 @@ function normalizarFecha(val) {
   if (!val || !val.trim()) return val;
   const v = val.trim();
 
-  // Serial numérico de Excel/Sheets (ej. 46179)
+  // Serial numérico de Excel/Sheets (ej. 46179). timeZone:'UTC' evita que
+  // toLocaleDateString() lo formatee con la hora local del navegador -- sin
+  // esto, en husos horarios negativos (ej. Mexico, UTC-6) medianoche UTC cae
+  // la tarde del dia anterior y la fecha mostrada se corre un dia hacia
+  // atras (mismo bug de fondo que metricsParseFecha en este archivo).
   if (/^\d{4,5}$/.test(v)) {
     const date = new Date(Date.UTC(1899, 11, 30) + parseInt(v) * 86400000);
-    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
   }
 
   // Ya tiene mes abreviado (ej. "10/jun/2026") → devolver tal cual
@@ -2121,7 +2125,20 @@ function metricsParseFecha(value) {
   if (/^\d+(\.\d+)?$/.test(raw)) {
     const serial = Number(raw);
     if (serial > 25000 && serial < 80000) {
-      const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+      // El serial de Excel no tiene zona horaria (es solo un dia calendario),
+      // pero Date.UTC(...) construye un instante UTC concreto. Si el resultado
+      // se lee despues con getters LOCALES (getFullYear/getMonth/getDate, como
+      // hace mesKeyFromDate en todo el codebase) en un huso horario negativo
+      // (ej. Mexico, UTC-6), medianoche UTC del 1 de septiembre cae la tarde
+      // del 31 de agosto en hora local -- el dia se corria uno hacia atras
+      // (confirmado: subir vacantes con la columna Mes/Fecha como fecha de
+      // Excel las agrupaba en el dia anterior). Se leen los componentes en
+      // UTC y se reconstruye la fecha con el constructor LOCAL, para que
+      // coincida con el dia calendario real sin importar el huso horario del
+      // navegador.
+      const utc = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+      if (isNaN(utc)) return null;
+      const d = new Date(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate());
       return isNaN(d) ? null : d;
     }
   }
