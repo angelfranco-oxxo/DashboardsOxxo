@@ -1748,7 +1748,7 @@
 </div>
 
   <script src="../js/config.js?v=20260827scope1"></script>
-<script src="../js/core.js?v=20260901tz1"></script>
+<script src="../js/core.js?v=20260901vac2"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d1;
@@ -2037,8 +2037,11 @@ const DIAS_OPTS=[
   {value:'3',label:'Más de 3 días'},
   {value:'1',label:'Más de 1 día'},
 ];
-const DEFAULT_DIAS_VALUES=['30','21','15','7','3','1'];
-function defaultDiasSelection(){ return [...DEFAULT_DIAS_VALUES]; }
+// El tablero debe iniciar mostrando todas las vacantes, incluidas las que se
+// abrieron hoy y por eso tienen 0 dias. Antes se preseleccionaban umbrales de
+// 1+ dias; al publicar el corte del primer dia del mes, todas las vacantes
+// nuevas quedaban ocultas y el dashboard parecia vacio.
+function defaultDiasSelection(){ return []; }
 let selectedDiasValues=[];
 function selectedDias(){ return [...selectedDiasValues]; }
 function setSelectedDias(values=[]){

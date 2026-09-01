@@ -2261,12 +2261,10 @@ function metricsIsVacanteSourceD1(row, keys) {
   if (empleadoKey) return String(metricsVal(row, empleadoKey) || '').trim() === '';
   return true;
 }
-// diasMatch()/esTiendaNueva() de dashboard-1.html: el filtro de Antigüedad
-// por defecto selecciona los 6 umbrales ['30','21','15','7','3','1']
-// (unión: pasa si dias>=ALGUNO). El mínimo es "más de 1 día", así que una
-// vacante con Dias Vacantes=0 (abierta el mismo día del corte) no cumple
-// ninguno y queda excluida — igual que una "tienda nueva" (dias>500 o sin
-// Fecha), que tampoco está en el default.
+// Compatibilidad para consumidores que necesiten aplicar explicitamente el
+// criterio historico de 1+ dias. El Dashboard 1 ya no lo usa como default:
+// una vacante abierta hoy (0 dias) sigue siendo una vacante vigente y debe
+// aparecer en el corte, especialmente el primer dia de cada mes.
 function metricsPasaAntiguedadDefaultD1(row, diasKey) {
   const dias = metricsDiasVacantesValue(metricsVal(row, diasKey));
   const diasRaw = String(metricsVal(row, diasKey) || '').trim();
@@ -2274,16 +2272,15 @@ function metricsPasaAntiguedadDefaultD1(row, diasKey) {
   if (esTiendaNueva) return false;
   return dias >= 1;
 }
-// Aplica los filtros DEFAULT completos de dashboard-1.html (catálogo de
+// Aplica los filtros DEFAULT completos de dashboard-1.html (catalogo de
 // tiendas + timoteoantonioperez ya deben aplicarse antes, por separado,
-// porque también los usa Dashboard 7). Regresa las filas listas para
-// agrupar por mes con metricsRowMonthKeyD1.
+// porque tambien los usa Dashboard 7). La antiguedad inicia en "todas": no
+// se eliminan vacantes de 0 dias ni tiendas nuevas.
 function metricsApplyD1Defaults(rows, keys) {
-  const { tiendaKey, asesorKey, puestoKey, diasKey } = keys;
+  const { tiendaKey, puestoKey } = keys;
   return rows
     .filter(r => !metricsIsDefaultExcludedTiendaD1(metricsVal(r, tiendaKey)))
-    .filter(r => METRICS_DEFAULT_PUESTOS_D1.has(String(metricsVal(r, puestoKey) || '').trim().toUpperCase()))
-    .filter(r => metricsPasaAntiguedadDefaultD1(r, diasKey));
+    .filter(r => METRICS_DEFAULT_PUESTOS_D1.has(String(metricsVal(r, puestoKey) || '').trim().toUpperCase()));
 }
 // filterData() de dashboard-2.html: si la hoja trae columna de Medida,
 // quedarse solo con movimientos de BAJA. El alcance geográfico ya fue
@@ -2488,7 +2485,12 @@ async function metricsD1Rows(allMonths = false) {
     });
   const base = metricsApplyD1Defaults(stepCatalog, { tiendaKey, asesorKey, puestoKey, diasKey });
   if (allMonths) return { rows: base, mes: '', asesorKey, puestoKey, tiendaKey, mesKey, fechaKey };
-  const { mes, rows } = metricsFilterLatestMonth(base, r => metricsRowMonthKeyD1(r, mesKey, fechaKey));
+  // El corte vigente se determina con la fuente completa del alcance, no con
+  // las vacantes que sobrevivieron los filtros. Si el mes actual tiene cero
+  // vacantes operativas (caso real: Tuxtla, agosto 2026), elegir el ultimo mes
+  // dentro de `base` podia retroceder silenciosamente a un periodo anterior.
+  const mes = metricsFilterLatestMonth(raw, r => metricsRowMonthKeyD1(r, mesKey, fechaKey)).mes;
+  const rows = mes ? base.filter(r => metricsRowMonthKeyD1(r, mesKey, fechaKey) === mes) : base;
   return { rows, mes, asesorKey, puestoKey, tiendaKey, mesKey, fechaKey };
 }
 

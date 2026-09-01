@@ -63,8 +63,17 @@ for (const plaza of plazas) {
   locationStub.href = `https://humanresources-oxxo.github.io/DashboardsOxxo/admin.html${locationStub.search}`;
   const result = await sandbox.OXXO.metricsD1Rows();
   assert(result, `${plaza}: no fue posible leer Dashboard_1_Diario`);
-  assert(result.rows.length > 0, `${plaza}: el pipeline vigente no devolvio vacantes`);
-  assert.equal(result.mes, '2026-08', `${plaza}: el corte vigente no es agosto 2026`);
+  const sourceRows = await sandbox.OXXO.fetchSheetData(sandbox.OXXO.SHEETS_CONFIG.TABS.d1);
+  assert(sourceRows?.length > 0, `${plaza}: la base vigente no devolvio posiciones para la plaza`);
+  const sourceMesKey = sandbox.OXXO.metricsFindKey(sourceRows[0], ['Mes']);
+  const sourceFechaKey = sandbox.OXXO.metricsFindKey(sourceRows[0], ['Fecha']);
+  const sourceLatestMes = sourceRows
+    .map((row) => sandbox.OXXO.metricsRowMonthKeyD1(row, sourceMesKey, sourceFechaKey))
+    .filter(Boolean)
+    .sort()
+    .at(-1) || '';
+  assert(sourceLatestMes, `${plaza}: la fuente no contiene un periodo reconocible`);
+  assert.equal(result.mes, sourceLatestMes, `${plaza}: el dashboard no usa el ultimo mes publicado`);
 
   const sample = result.rows[0];
   const plazaKey = sandbox.OXXO.metricsFindKey(sample, ['Plaza']);
@@ -78,6 +87,7 @@ for (const plaza of plazas) {
   results.push({
     plaza,
     periodo: result.mes,
+    posiciones_fuente: sourceRows.length,
     vacantes: result.rows.length,
     tiendas: new Set(result.rows.map((row) => sandbox.OXXO.metricsVal(row, storeKey)).filter(Boolean)).size,
     asesores: new Set(result.rows.map((row) => sandbox.OXXO.metricsVal(row, adviserKey)).filter(Boolean)).size,
@@ -90,9 +100,11 @@ locationStub.search = '?scope=region&region=TABASCO';
 locationStub.href = `https://humanresources-oxxo.github.io/DashboardsOxxo/admin.html${locationStub.search}`;
 const regional = await sandbox.OXXO.metricsD1Rows();
 assert(regional, 'Region TABASCO: no fue posible leer Dashboard_1_Diario');
-const plazaSum = results.reduce((sum, item) => sum + item.vacantes, 0);
+const plazaSum = results
+  .filter((item) => item.periodo === regional.mes)
+  .reduce((sum, item) => sum + item.vacantes, 0);
 assert.equal(regional.rows.length, plazaSum, 'Region TABASCO: el total no coincide con la suma de sus plazas');
-assert.equal(regional.mes, '2026-08', 'Region TABASCO: el corte vigente no es agosto 2026');
+assert.equal(regional.mes, results.map((item) => item.periodo).sort().at(-1), 'Region TABASCO: no usa el corte mas reciente de sus plazas');
 
 console.log(`Total Region TABASCO: ${regional.rows.length} vacantes (suma de plazas: ${plazaSum})`);
-console.log('vacantes regionales: 5 plazas con corte vigente y sin mezcla de datos');
+console.log('vacantes regionales: 5 plazas con fuente vigente, cero válido y sin mezcla de datos');

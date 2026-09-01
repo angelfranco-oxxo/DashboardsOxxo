@@ -78,6 +78,19 @@ assert.equal(OXXO.metricsFilterBajasD2([
   { Plaza: 'Tuxtla', Medida: 'BAJA' }
 ], { plazaKey: 'Plaza', medidaKey: 'Medida' }).length, 2);
 
+// Una vacante abierta el dia del corte llega desde Sheets como el serial cero
+// de Excel (30/12/1899). Debe conservarse en la vista inicial de Vacantes.
+assert.equal(OXXO.metricsDiasVacantesValue('30/12/1899'), 0);
+assert.deepEqual(JSON.parse(JSON.stringify(OXXO.metricsApplyD1Defaults([
+  { Tienda: 'OXXO NUEVA', Puesto: 'AYUDANTE TIENDA', Dias: '30/12/1899' },
+  { Tienda: 'OXXO ANTIGUA', Puesto: 'LIDER TIENDA', Dias: '12' },
+  { Tienda: 'OPERACIONES 1 OAXACA', Puesto: 'AYUDANTE TIENDA', Dias: '4' },
+  { Tienda: 'OXXO ADMIN', Puesto: 'ADMINISTRATIVO', Dias: '8' }
+], { tiendaKey: 'Tienda', puestoKey: 'Puesto', diasKey: 'Dias' }))), [
+  { Tienda: 'OXXO NUEVA', Puesto: 'AYUDANTE TIENDA', Dias: '30/12/1899' },
+  { Tienda: 'OXXO ANTIGUA', Puesto: 'LIDER TIENDA', Dias: '12' }
+]);
+
 const completed = OXXO.applyDataContextDefaults(
   { Region: '', Plaza: '', Zona: '', 'CR TIENDA': ' 50-i34 ' },
   { columns: ['Region', 'Plaza', 'Zona', 'CR TIENDA'] }
@@ -136,4 +149,4 @@ assert.deepEqual(JSON.parse(JSON.stringify(parsed.rows[0])), {
   Region: 'TABASCO', Plaza: 'Plaza Oaxaca', Zona: '', ACTIVA: 'SI'
 });
 
-console.log('data-context, alcance regional y avisos: 20 pruebas correctas');
+console.log('data-context, alcance regional y avisos: 22 pruebas correctas');
