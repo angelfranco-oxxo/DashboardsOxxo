@@ -49,6 +49,24 @@ window.OXXO_CONFIG = {
       }
     ]
   },
+  // Columna de Plaza dentro de cada pestaña publicada. Core usa este mapa
+  // para pedirle a GViz solamente las filas de la plaza activa; en alcance
+  // Región se conserva la lectura completa. Las fuentes legacy sin Plaza no
+  // se incluyen porque deben seguir resolviéndose del lado del navegador.
+  SCOPED_GVIZ_COLUMNS: {
+    "Dashboard_1_Diario": "A",
+    "Dashboard_2_Diario": "A",
+    "Dashboard_3_Diario": "A",
+    "Dashboard_4_Semanal": "C",
+    "Dashboard_5_Semanal": "B",
+    "Dashboard_6_Semanal": "C",
+    "Dashboard_7_Semanal": "A",
+    "Dashboard_8_Diario": "C",
+    "Dashboard_10_FLEX": "D",
+    "Dashboard_11_Semanal": "D",
+    "Dashboard_12_Mensual": "D",
+    "Inventarios": "E"
+  },
   // Quien hereda las tiendas de un asesor que ya no esta (ej. Anadelia -> Timoteo).
   // Se administra desde el panel admin, pestana "Reasignaciones" -- no requiere
   // tocar codigo cuando otro asesor deje la empresa. Si la pestana aun no

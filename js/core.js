@@ -243,8 +243,31 @@ function applyDataContextDefaults(row, { columns = [] } = {}) {
 // FUNCIÓN BASE: Construir URL de descarga CSV
 // Google Sheets publica cada pestaña como CSV accesible
 // ─────────────────────────────────────────────────────────────
-function buildSheetURL(tabName) {
-  return `https://docs.google.com/spreadsheets/d/${SHEETS_CONFIG.SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+function activeScopeQuery(tabName, options = {}) {
+  if (options.scoped === false) return '';
+  const column = String(SHEETS_CONFIG.SCOPED_GVIZ_COLUMNS?.[tabName] || '').trim().toUpperCase();
+  if (!/^[A-Z]+$/.test(column)) return '';
+  const scope = options.scope ? normalizeDataScope(options.scope) : getActiveDataScope();
+  if (!scope.plaza || scope.level === 'region') return '';
+  const plazaToken = normalizeScopeToken(scope.plaza).replace(/^plaza\s+/, '').trim();
+  if (!plazaToken) return '';
+  // lower() evita depender de cómo venga capitalizada la Plaza en cada Excel.
+  // La comilla se duplica según la sintaxis del Google Visualization Query.
+  return `select * where lower(${column}) contains '${plazaToken.replace(/'/g, "''")}'`;
+}
+
+function buildSheetURL(tabName, options = {}) {
+  const url = new URL(`https://docs.google.com/spreadsheets/d/${SHEETS_CONFIG.SPREADSHEET_ID}/gviz/tq`);
+  url.searchParams.set('tqx', 'out:csv');
+  url.searchParams.set('sheet', tabName);
+  const query = activeScopeQuery(tabName, options);
+  if (query) url.searchParams.set('tq', query);
+  return url.toString();
+}
+
+function sheetRequestCacheKey(tabName, options = {}) {
+  const query = activeScopeQuery(tabName, options);
+  return query ? `${tabName}|${query}` : String(tabName || '');
 }
 
 // Una solicitud bloqueada por el navegador (protección anti-rastreo, proxy o
@@ -375,10 +398,15 @@ async function deletePersistentRows(cacheKey) {
 function clearSheetDataCache(tabName) {
   if (tabName) {
     const key = String(tabName);
-    sheetDataCache.delete(key);
-    void deletePersistentRows(`sheet:${key}`);
+    [...sheetDataCache.keys()].filter((cacheKey) => cacheKey === key || cacheKey.startsWith(`${key}|`))
+      .forEach((cacheKey) => sheetDataCache.delete(cacheKey));
+    [...sheetDataInflight.keys()].filter((cacheKey) => cacheKey === key || cacheKey.startsWith(`${key}|`))
+      .forEach((cacheKey) => sheetDataInflight.delete(cacheKey));
+    // Cache Storage no expone búsqueda por prefijo de forma barata. Publicar
+    // es poco frecuente, así que se invalida el libro local completo para que
+    // ninguna vista conserve una variante regional anterior.
+    void deletePersistentRows();
     if (key === (SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores')) {
-      void deletePersistentRows(`catalog:${key}`);
       asesorCatalogPromise = null;
     }
   } else {
@@ -446,11 +474,12 @@ document.addEventListener('click', (event) => {
   if (button) retryDashboardData(button);
 });
 async function fetchSheetData(tabName, options = {}) {
-  const key = String(tabName || '');
+  const tabKey = String(tabName || '');
+  const key = sheetRequestCacheKey(tabKey, options);
   const now = Date.now();
   let cached = sheetDataCache.get(key);
   const legacyTabs = SHEETS_CONFIG.SCOPE_MODEL?.LEGACY_DEFAULT_PLAZA_TABS || [];
-  const legacyPlaza = legacyTabs.includes(key) ? getDataContext().plaza : '';
+  const legacyPlaza = legacyTabs.includes(tabKey) ? getDataContext().plaza : '';
   const prepareRows = (rows) => options.scoped === false
     ? cloneSheetRows(rows)
     : filterRowsByDataScope(cloneSheetRows(rows), getActiveDataScope(), { legacyPlaza });
@@ -461,14 +490,14 @@ async function fetchSheetData(tabName, options = {}) {
       cached = persistent;
       sheetDataCache.set(key, persistent);
       if (now - persistent.savedAt < SHEET_CACHE_TTL_MS) {
-        updateConnectionStatus(key, 'online', { source: 'cache' });
+        updateConnectionStatus(tabKey, 'online', { source: 'cache' });
         return prepareRows(persistent.rows);
       }
     }
   }
   let request = sheetDataInflight.get(key);
   if (!request) {
-    const url = buildSheetURL(tabName);
+    const url = buildSheetURL(tabName, options);
     request = (async () => {
       let lastError = null;
       try {
@@ -498,14 +527,14 @@ async function fetchSheetData(tabName, options = {}) {
   }
   const rows = await request;
   if (rows) {
-    updateConnectionStatus(key, 'online');
+    updateConnectionStatus(tabKey, 'online');
     return prepareRows(rows);
   }
   if (options.allowStale !== false && cached && now - cached.savedAt < SHEET_STALE_LIMIT_MS) {
-    updateConnectionStatus(key, 'stale', { ageMs: now - cached.savedAt });
+    updateConnectionStatus(tabKey, 'stale', { ageMs: now - cached.savedAt });
     return prepareRows(cached.rows);
   }
-  updateConnectionStatus(key, 'offline');
+  updateConnectionStatus(tabKey, 'offline');
   return null;
 }
 
@@ -1775,34 +1804,51 @@ async function loadAsesorCatalogRows() {
   if (cached && Date.now() - cached.savedAt < 5 * 60 * 1000) {
     return buildAsesorCatalog(cloneSheetRows(cached.rows));
   }
-  // 1) Fuente principal: lectura directa via Apps Script (ver arriba).
-  try {
-    const rows = await fetchCatalogRowsDirect();
-    if (rows && rows.length) {
-      void writePersistentRows(catalogCacheKey, rows);
-      return buildAsesorCatalog(rows);
-    }
-    if (rows) console.warn('[OXXO] Lectura directa de Catalogo_Asesores vino vacia, usando respaldo.');
-  } catch (e) {
-    console.warn('[OXXO] No se pudo leer Catalogo_Asesores via Apps Script, usando respaldo:', e);
-  }
-  // 2) Respaldo: catalogo estatico versionado en el repo
-  //    (assets/catalogo_asesores.csv), por si el Apps Script no responde.
-  try {
-    const localUrl = siteBasePath() + 'assets/catalogo_asesores.csv';
-    const resp = await fetch(localUrl, { cache: 'no-store' });
-    if (resp.ok) {
-      const rows = parseAsesorCatalogCSV(await resp.text());
-      if (rows.length) {
+  // La fuente viva y el respaldo versionado arrancan al mismo tiempo. Antes
+  // se esperaba hasta 6 segundos a Apps Script y solo despues se intentaba el
+  // archivo local; una intermitencia del endpoint bloqueaba todos los tableros
+  // aunque ya existiera un catalogo valido en el propio sitio.
+  const directPromise = (async () => {
+    try {
+      const rows = await fetchCatalogRowsDirect();
+      if (rows && rows.length) {
         void writePersistentRows(catalogCacheKey, rows);
-        return buildAsesorCatalog(rows);
+        return rows;
       }
-      console.warn('[OXXO] catalogo_asesores.csv sin filas validas, usando gviz.');
+      if (rows) console.warn('[OXXO] Lectura directa de Catalogo_Asesores vino vacia, usando respaldo.');
+    } catch (e) {
+      console.warn('[OXXO] No se pudo leer Catalogo_Asesores via Apps Script, usando respaldo:', e);
     }
-  } catch (e) {
-    console.warn('[OXXO] No se pudo leer catalogo_asesores.csv, usando gviz:', e);
+    return null;
+  })();
+  const localPromise = (async () => {
+    try {
+      const localUrl = siteBasePath() + 'assets/catalogo_asesores.csv';
+      const resp = await fetch(localUrl, { cache: 'default' });
+      if (!resp.ok) return null;
+      const rows = parseAsesorCatalogCSV(await resp.text());
+      if (rows.length) return rows;
+      console.warn('[OXXO] catalogo_asesores.csv sin filas validas, usando gviz.');
+    } catch (e) {
+      console.warn('[OXXO] No se pudo leer catalogo_asesores.csv, usando gviz:', e);
+    }
+    return null;
+  })();
+  const fastDirect = await Promise.race([
+    directPromise,
+    new Promise((resolve) => setTimeout(() => resolve(null), 1200))
+  ]);
+  if (fastDirect?.length) return buildAsesorCatalog(fastDirect);
+  const localRows = await localPromise;
+  if (localRows?.length) {
+    // directPromise sigue trabajando y, si responde, deja la version viva en
+    // Cache Storage para la siguiente navegación sin retrasar esta pantalla.
+    void directPromise;
+    return buildAsesorCatalog(localRows);
   }
-  // 3) Ultimo respaldo: hoja Catalogo_Asesores via gviz (puede venir con
+  const delayedDirect = await directPromise;
+  if (delayedDirect?.length) return buildAsesorCatalog(delayedDirect);
+  // Ultimo respaldo: hoja Catalogo_Asesores via gviz (puede venir con
   //    filas fusionadas para esta hoja en particular; solo se llega aqui si
   //    fallaron los dos anteriores).
   try {

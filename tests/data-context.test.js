@@ -59,6 +59,12 @@ assert.equal(OXXO.rowMatchesDataScope({ Region: 'TABASCO', Plaza: 'Villahermosa'
 assert.equal(OXXO.rowMatchesDataScope({ Region: 'TABASCO', Plaza: 'Puebla' }, regionalScope), false);
 assert.equal(OXXO.filterRowsByDataScope([{ Plaza: 'Oaxaca' }, { Plaza: 'Tuxtla' }]).length, 1);
 assert.equal(OXXO.rowMatchesDataScope({ Plaza: '' }, OXXO.normalizeDataScope({ level: 'plaza', plaza: 'Tuxtla' }), { legacyPlaza: 'Plaza Oaxaca' }), false);
+const scopedD1Url = new URL(OXXO.buildSheetURL(OXXO.SHEETS_CONFIG.TABS.d1));
+assert.match(scopedD1Url.searchParams.get('tq') || '', /where lower\(A\) contains 'oaxaca'/);
+assert.equal(new URL(OXXO.buildSheetURL(OXXO.SHEETS_CONFIG.TABS.d1, { scoped: false })).searchParams.has('tq'), false);
+assert.equal(new URL(OXXO.buildSheetURL(OXXO.SHEETS_CONFIG.TABS.d1, {
+  scope: { level: 'region', region: 'TABASCO' }
+})).searchParams.has('tq'), false);
 
 // Control de Ausentismo es una fuente exclusiva de Oaxaca: una plaza recibida
 // por URL o conservada en la sesion no debe cambiar su alcance.
@@ -149,4 +155,4 @@ assert.deepEqual(JSON.parse(JSON.stringify(parsed.rows[0])), {
   Region: 'TABASCO', Plaza: 'Plaza Oaxaca', Zona: '', ACTIVA: 'SI'
 });
 
-console.log('data-context, alcance regional y avisos: 22 pruebas correctas');
+console.log('data-context, alcance regional y avisos: 25 pruebas correctas');

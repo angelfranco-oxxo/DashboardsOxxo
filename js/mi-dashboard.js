@@ -42,6 +42,8 @@
   let CATALOG = null;
   const ASESORES = new Set();
   const DATA = {};
+  let activeAsesor = '';
+  let asesorSelectControl = null;
 
   function addAsesores(names) {
     names.forEach((a) => {
@@ -637,6 +639,7 @@
   // ── Orquestacion ───────────────────────────────────────
   function renderFor(asesor) {
     if (!asesor) return;
+    activeAsesor = asesor;
     document.getElementById('mi-empty').style.display = 'none';
     document.getElementById('mi-content').style.display = 'block';
     const S = {
@@ -648,17 +651,50 @@
     renderAlertas(S);
   }
 
-  async function init() {
-    CATALOG = await OXXO.loadAsesorCatalog();
-    await Promise.all([loadD1(), loadD2(), loadD3(), loadD4(), loadD5(), loadD6(), loadD7(), loadD8()]);
-    PLAZA = computePlaza();
-    document.getElementById('corte-badge').textContent = '⟳ Datos en vivo · Plaza Oaxaca';
-    mountSingleSelect('mi-asesor-select', [...ASESORES], {
+  function mountAsesorSelector() {
+    const previous = activeAsesor;
+    asesorSelectControl = mountSingleSelect('mi-asesor-select', [...ASESORES], {
       placeholder: 'Selecciona tu nombre',
       searchId: 'mi-asesor-search',
       searchPlaceholder: 'Buscar tu nombre...',
       onChange: renderFor,
     });
+    if (previous && ASESORES.has(previous)) {
+      asesorSelectControl?.setValue(previous);
+      renderFor(previous);
+    }
+  }
+
+  async function init() {
+    CATALOG = await OXXO.loadAsesorCatalog();
+    // El selector ya puede construirse con el catalogo; no debe esperar a que
+    // terminen ocho bases independientes. Los paneles se completan de forma
+    // progresiva si el usuario elige su nombre mientras siguen cargando.
+    addAsesores((CATALOG?.rows || [])
+      .filter((row) => OXXO.rowMatchesDataScope({ Region: row.region, Plaza: row.plaza, Zona: row.zona }))
+      .map((row) => row.asesor));
+    PLAZA = computePlaza();
+    mountAsesorSelector();
+    const badge = document.getElementById('corte-badge');
+    const loaders = [loadD1, loadD2, loadD3, loadD4, loadD5, loadD6, loadD7, loadD8];
+    let completed = 0;
+    badge.textContent = `⟳ Cargando indicadores · ${completed}/${loaders.length}`;
+    await Promise.allSettled(loaders.map(async (load) => {
+      try {
+        await load();
+      } catch (error) {
+        console.error('Mi Dashboard: no se pudo completar una fuente', error);
+      } finally {
+        completed += 1;
+        PLAZA = computePlaza();
+        badge.textContent = `⟳ Cargando indicadores · ${completed}/${loaders.length}`;
+        if (activeAsesor) renderFor(activeAsesor);
+      }
+    }));
+    // Incorpora asesores que existan en una base reciente pero aun no en el
+    // catalogo, conservando la seleccion hecha durante la carga.
+    mountAsesorSelector();
+    badge.textContent = `⟳ Datos en vivo · ${OXXO.getScopeLabel()}`;
     OXXO.updateFooterTime('load-time');
   }
 
