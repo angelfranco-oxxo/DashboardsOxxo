@@ -1,0 +1,62 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const documentStub = {
+  readyState: 'loading', documentElement: { dataset: {} }, body: null,
+  head: { appendChild() {} }, addEventListener() {}, removeEventListener() {}, dispatchEvent() {},
+  getElementsByTagName() { return []; }, getElementById() { return null; },
+  querySelector() { return null; }, querySelectorAll() { return []; },
+  createElement() { return { style: {}, dataset: {}, addEventListener() {}, remove() {} }; }
+};
+const sandbox = {
+  console, document: documentStub,
+  location: {
+    pathname: '/index.html', origin: 'https://humanresources-oxxo.github.io',
+    href: 'https://humanresources-oxxo.github.io/DashboardsOxxo/index.html',
+    search: '?scope=region&region=TABASCO'
+  },
+  history: { state: null, replaceState() {} },
+  sessionStorage: { getItem() { return null; }, setItem() {} },
+  localStorage: { getItem() { return null; }, setItem() {} }, navigator: {},
+  CustomEvent: function CustomEvent() {}, URL, URLSearchParams, Request, Response, Blob,
+  TextDecoder, Uint8Array, AbortController, fetch, setTimeout, clearTimeout, setInterval, clearInterval,
+  Map, Set, Date, Promise
+};
+sandbox.window = sandbox;
+vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync(path.join(root, 'js/config.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(root, 'js/core.js'), 'utf8'), sandbox);
+
+const catalog = await sandbox.OXXO.loadTiendaCatalog();
+assert.equal(catalog.loaded, true, 'No se pudo construir el catalogo vivo desde Catalogo_Tiendas o TREO');
+assert(catalog.rows.length >= 200, `Catalogo regional inesperadamente pequeño: ${catalog.rows.length}`);
+assert.equal(new Set(catalog.rows.map(row => row.cr)).size, catalog.byCr.size);
+assert.equal(catalog.rows.some(row => /entrenamiento|operaciones/i.test(row.tienda)), false);
+const plazas = [...new Set(catalog.rows.map(row => row.plaza))].sort();
+assert(plazas.some(plaza => /oaxaca/i.test(plaza)));
+
+// Cobertura cruzada contra la fotografía más reciente de estructura/vacantes.
+sandbox.location.search = '?scope=plaza&region=TABASCO&plaza=Plaza%20Oaxaca';
+const d1Rows = await sandbox.OXXO.fetchSheetData(sandbox.OXXO.SHEETS_CONFIG.TABS.d1, { fresh: true });
+const crKey = sandbox.OXXO.metricsFindDataKey(d1Rows, ['CR TIENDA', 'CR'], 25, true);
+const tiendaKey = sandbox.OXXO.metricsFindDataKey(d1Rows, ['Unidad org', 'Tienda'], 25, true);
+const mesKey = sandbox.OXXO.metricsFindDataKey(d1Rows, ['Mes'], 25, true);
+const fechaKey = sandbox.OXXO.metricsFindDataKey(d1Rows, ['Fecha'], 25, true);
+const latest = sandbox.OXXO.metricsFilterLatestMonth(d1Rows, row => sandbox.OXXO.metricsRowMonthKeyD1(row, mesKey, fechaKey));
+const operational = latest.rows.filter(row => !sandbox.OXXO.metricsIsDefaultExcludedTiendaD1(row[tiendaKey]));
+const currentStores = new Map();
+operational.forEach(row => {
+  const cr = sandbox.OXXO.normalizeCatalogCr(row[crKey]);
+  const tienda = String(row[tiendaKey] || '').trim();
+  if (cr || tienda) currentStores.set(cr || sandbox.OXXO.normalizeCatalogTienda(tienda), { cr, tienda });
+});
+const missing = [...currentStores.values()].filter(store => !(
+  (store.cr && catalog.byCr.has(store.cr)) || catalog.byTienda.has(sandbox.OXXO.normalizeCatalogTienda(store.tienda))
+));
+assert.equal(missing.length, 0, `Tiendas del último corte D1 ausentes de TREO: ${missing.map(item => item.tienda).join(', ')}`);
+
+console.log({ source: catalog.source, tiendas: catalog.byCr.size, plazas, periodoD1: latest.mes, tiendasD1: currentStores.size, faltantesD1: missing.length });

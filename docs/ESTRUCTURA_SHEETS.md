@@ -11,6 +11,7 @@ Campos importantes:
 - `SPREADSHEET_ID`: ID del Google Sheet principal.
 - `CONFIG_SHEET`: pestana de configuracion de portada.
 - `CATALOG_SHEET`: pestana de catalogo de asesores.
+- `STORE_CATALOG_SHEET`: catálogo automático de tiendas activas derivado de TREO.
 - `ADMIN_UPLOAD_URL`: URL del Web App de Apps Script para publicar desde el panel admin.
 - `TABS`: nombres exactos de pestanas usadas por cada dashboard.
 
@@ -29,6 +30,7 @@ Campos importantes:
 | s5 | Dashboard_5_Semanal | Vacaciones |
 | s6 | Dashboard_6_Semanal | Ausentismos |
 | s7 | Dashboard_7_Semanal | TREO |
+| stores | Catalogo_Tiendas | Tiendas activas por CR; se regenera automáticamente al publicar o restaurar TREO |
 | catalog | Catalogo_Asesores | Correccion de asesores por tienda/CR |
 
 ## Publicacion desde el panel admin
@@ -42,6 +44,11 @@ El panel admin no escribe directamente sobre archivos del repo. El flujo correct
 
 Para Inventarios, selecciona `Administrativo - Inventarios` y carga la hoja `Resultado de Inventario` del archivo `.xlsm`. El panel genera `Periodo` en formato `AAAA-MM` desde el mes y ano del nombre del archivo; si no estan presentes, usa `Fecha de Inventario` como respaldo. La publicacion reemplaza solamente ese mes en la pestaña `Inventarios`.
 5. Los dashboards leen la informacion publicada.
+
+Cuando se publica `Dashboard_7_Semanal`, Apps Script toma la fotografía regional
+resultante, elimina Entrenamiento/Operaciones, deduplica por CR y reconstruye
+`Catalogo_Tiendas`. Ese catálogo decide qué tiendas son operativas; si una plaza
+todavía no tiene TREO publicado, el sistema conserva sus datos sin filtrarlos.
 
 ## Modos de publicacion
 

@@ -66,6 +66,17 @@ assert.equal(new URL(OXXO.buildSheetURL(OXXO.SHEETS_CONFIG.TABS.d1, {
   scope: { level: 'region', region: 'TABASCO' }
 })).searchParams.has('tq'), false);
 
+const storeCatalog = OXXO.buildTiendaCatalog([
+  { CR: '50-I34', Tienda: 'OXXO Centro OAX', Region: 'TABASCO', Plaza: '10VHT Oaxaca', ACTIVA: 'SI' },
+  { CR: '50-X99', Tienda: 'OXXO Cerrada OAX', Region: 'TABASCO', Plaza: 'Plaza Oaxaca', ACTIVA: 'NO' },
+  { CR: '50-E01', Tienda: 'Tienda Entrenamiento Oaxaca', Region: 'TABASCO', Plaza: 'Plaza Oaxaca', ACTIVA: 'SI' }
+]);
+assert.equal(storeCatalog.rows.length, 2);
+assert.equal(OXXO.isTiendaValid({ storeCatalog }, 'OXXO Centro', '50I34'), true);
+assert.equal(OXXO.isTiendaValid({ storeCatalog }, 'OXXO Cerrada', '50X99'), false);
+assert.equal(OXXO.isTiendaValid({ storeCatalog }, 'OXXO No Catalogada', '50N00'), false);
+assert.equal(OXXO.isTiendaValid({}, 'OXXO Respaldo', '50R00'), true);
+
 // Control de Ausentismo es una fuente exclusiva de Oaxaca: una plaza recibida
 // por URL o conservada en la sesion no debe cambiar su alcance.
 documentStub.documentElement.dataset = {
@@ -155,4 +166,4 @@ assert.deepEqual(JSON.parse(JSON.stringify(parsed.rows[0])), {
   Region: 'TABASCO', Plaza: 'Plaza Oaxaca', Zona: '', ACTIVA: 'SI'
 });
 
-console.log('data-context, alcance regional y avisos: 25 pruebas correctas');
+console.log('data-context, alcance regional, catalogo de tiendas y avisos: 30 pruebas correctas');

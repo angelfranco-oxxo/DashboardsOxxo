@@ -186,6 +186,9 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       const payload={adminPassword:getAdminPassword(),targetSheet:dash.tab,rows:state.validation.rows,requiredHeaders:dash.required||[],scopeColumns:dash.scopeColumns||[],source:'DashboardsOxxo Admin',sourceFile:state.fileName||'',updateMode:period.enabled?'replacePeriod':'replaceAll',periodColumn:period.column,periodValues:period.values};
       const result=await postAdminPayload(payload);
       OXXO.clearSheetDataCache(dash.tab);
+      if(dash.key==='s7'&&OXXO.SHEETS_CONFIG.STORE_CATALOG_SHEET){
+        OXXO.clearSheetDataCache(OXXO.SHEETS_CONFIG.STORE_CATALOG_SHEET);
+      }
       notifyConfigDate(dash.key);
       $('publish-btn').textContent='Verificando...';
       const readback=await verifyPublicReadback(dash,result);
@@ -199,7 +202,10 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
           autoMsg=' Ojo: no se pudieron actualizar los dashboards derivados, revisalos aparte si hace falta.';
         }
       }
-      const message=(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestaña reemplazada completa'}.`)+serverVerificationText(result)+readbackText(readback)+autoMsg;
+      const catalogMsg=result?.storeCatalog?.ok
+        ?` Catálogo de tiendas activas actualizado: ${Number(result.storeCatalog.rows||0).toLocaleString('es-MX')} tiendas desde TREO.`
+        :result?.storeCatalog?` TREO quedó publicado, pero el catálogo físico usará el respaldo directo hasta su siguiente sincronización.`:'';
+      const message=(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestaña reemplazada completa'}.`)+serverVerificationText(result)+readbackText(readback)+catalogMsg+autoMsg;
       renderPublicationResult?.({
         type:result.compatibilityMode||!readback?.ok?'warn':'ok',
         title:result.compatibilityMode?'Solicitud enviada':'Publicación completada',

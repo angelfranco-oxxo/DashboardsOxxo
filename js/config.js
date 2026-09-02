@@ -10,6 +10,7 @@ window.OXXO_CONFIG = {
   // Pestanas base.
   CONFIG_SHEET: "Configuracion",
   CATALOG_SHEET: "Catalogo_Asesores",
+  STORE_CATALOG_SHEET: "Catalogo_Tiendas",
 
   // Contexto operativo predeterminado. Oaxaca se conserva como plaza inicial
   // durante la transición; todas las pantallas pueden cambiar de alcance sin
@@ -65,7 +66,8 @@ window.OXXO_CONFIG = {
     "Dashboard_10_FLEX": "D",
     "Dashboard_11_Semanal": "D",
     "Dashboard_12_Mensual": "D",
-    "Inventarios": "E"
+    "Inventarios": "E",
+    "Catalogo_Tiendas": "D"
   },
   // Quien hereda las tiendas de un asesor que ya no esta (ej. Anadelia -> Timoteo).
   // Se administra desde el panel admin, pestana "Reasignaciones" -- no requiere
@@ -165,10 +167,12 @@ window.OXXO_CONFIG = {
   // la anterior sigue viva pero congelada sin Dashboard_14_Comercial).
   // Verificado antes de fijarla: doGet responde con las 21 hojas permitidas
   // incluyendo Dashboard_14_Comercial.
+  // 2026-09-02 (v43): Catalogo_Tiendas se reconstruye automaticamente desde
+  // la fotografia regional vigente de Dashboard_7_Semanal (TREO).
   ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxLR3dIFgqFoN2rKOg5tTReOu90iKVeGl9b0sghToomWfOkoikU9PqVRiD-s1u1kk1C/exec",
   // Confirmado directamente contra la URL /exec el 27-08-2026. Sirve como
   // respaldo cuando Brave u otro navegador bloquea solo la consulta de salud.
-  VERIFIED_ADMIN_RUNTIME_VERSION: 42,
+  VERIFIED_ADMIN_RUNTIME_VERSION: 43,
 
   // Nombres exactos de pestanas en Google Sheets.
   TABS: {

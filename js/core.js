@@ -409,6 +409,10 @@ function clearSheetDataCache(tabName) {
     if (key === (SHEETS_CONFIG.CATALOG_SHEET || 'Catalogo_Asesores')) {
       asesorCatalogPromise = null;
     }
+    if (key === (SHEETS_CONFIG.STORE_CATALOG_SHEET || 'Catalogo_Tiendas') || key === SHEETS_CONFIG.TABS?.s7) {
+      tiendaCatalogPromise = null;
+      asesorCatalogPromise = null;
+    }
   } else {
     sheetDataCache.clear();
     void deletePersistentRows();
@@ -1631,6 +1635,7 @@ if (document.readyState === 'loading') {
 
 // Catalogo compartido para corregir Asesor por CR/Tienda
 let asesorCatalogPromise = null;
+let tiendaCatalogPromise = null;
 let reasignacionesPromise = null;
 function stripAccents(value) {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -1732,13 +1737,86 @@ function buildAsesorCatalog(rows) {
   });
   return { loaded: true, rows, byCr, byTienda, validTiendas };
 }
-// Desactivado a peticion del usuario: Catalogo_Asesores estaba muy desactualizado
-// (23% de asesores no coincidian con los dashboards en vivo, y 13 tiendas activas
-// faltaban del catalogo por completo) y esa desincronizacion causaba que
-// isTiendaValid() excluyera en silencio tiendas reales y validas de varios
-// dashboards. Ahora siempre se acepta la tienda; ya no se filtra contra el catalogo.
+
+function catalogValueByAliases(row, aliases) {
+  const keys = Object.keys(row || {});
+  for (const alias of aliases) {
+    const wanted = normalizeCatalogTienda(alias);
+    const key = keys.find(candidate => normalizeCatalogTienda(candidate) === wanted);
+    if (key) return row[key];
+  }
+  return '';
+}
+function catalogPlazaKey(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  return normalizeScopeToken(normalizeDataScope({ level: 'plaza', region: getDataContext().region, plaza: raw }).plaza);
+}
+function buildTiendaCatalog(rows, { source = 'Catalogo_Tiendas', loaded = true } = {}) {
+  const byCr = new Map();
+  const byTienda = new Map();
+  const coveredPlazas = new Set();
+  const cleanRows = [];
+  (Array.isArray(rows) ? rows : []).forEach(row => {
+    const cr = normalizeCatalogCr(catalogValueByAliases(row, ['CR', 'CR TIENDA', 'CR Reg', 'ID Tienda']));
+    const tienda = String(catalogValueByAliases(row, ['Tienda', 'Unidad org', 'Unidad organizativa']) || '').trim();
+    const plaza = String(catalogValueByAliases(row, ['Plaza']) || '').trim();
+    const region = String(catalogValueByAliases(row, ['Region']) || 'TABASCO').trim();
+    const zona = String(catalogValueByAliases(row, ['Zona']) || '').trim();
+    const asesor = String(catalogValueByAliases(row, ['Asesor', 'AT']) || '').trim();
+    const activeRaw = String(catalogValueByAliases(row, ['ACTIVA', 'Activo', 'Estatus']) || 'SI').trim().toUpperCase();
+    const activa = !/^(NO|FALSE|FALSO|0|INACTIVA|INACTIVO|BAJA)$/.test(activeRaw);
+    const tiendaKey = normalizeCatalogTienda(tienda);
+    if (!cr || !tiendaKey || !plaza || tiendaKey.includes('ENTRENAMIENTO') || tiendaKey.includes('OPERACIONES')) return;
+    const item = { cr, tienda, region, plaza, zona, asesor, activa, source };
+    coveredPlazas.add(catalogPlazaKey(plaza));
+    if (!byCr.has(cr) || (!byCr.get(cr).asesor && asesor)) byCr.set(cr, item);
+    if (!byTienda.has(tiendaKey) || (!byTienda.get(tiendaKey).asesor && asesor)) byTienda.set(tiendaKey, item);
+    cleanRows.push(item);
+  });
+  return { loaded, source, rows: cleanRows, byCr, byTienda, coveredPlazas };
+}
+async function loadTiendaCatalog() {
+  if (tiendaCatalogPromise) return tiendaCatalogPromise;
+  tiendaCatalogPromise = (async () => {
+    const catalogName = SHEETS_CONFIG.STORE_CATALOG_SHEET || 'Catalogo_Tiendas';
+    const treoName = SHEETS_CONFIG.TABS?.s7 || 'Dashboard_7_Semanal';
+    const catalogRequest = fetchSheetData(catalogName).then(rows => (
+      Array.isArray(rows) ? buildTiendaCatalog(rows, { source: catalogName }) : null
+    )).catch(() => null);
+    // Respaldo inmediato: mientras Apps Script v43 crea la hoja física, TREO
+    // ya permite activar el catálogo sin esperar otra carga administrativa.
+    const treoRequest = fetchSheetData(treoName).then(rows => (
+      Array.isArray(rows) ? buildTiendaCatalog(rows, { source: treoName }) : null
+    )).catch(() => null);
+    const first = await Promise.race([
+      catalogRequest.then(value => value?.rows?.length ? value : treoRequest),
+      treoRequest.then(value => value?.rows?.length ? value : catalogRequest),
+      new Promise(resolve => setTimeout(() => resolve(null), 1600))
+    ]);
+    if (first?.loaded) return first;
+    return buildTiendaCatalog([], { source: 'sin catalogo disponible', loaded: false });
+  })();
+  return tiendaCatalogPromise;
+}
+
+// Catalogo_Asesores sigue resolviendo responsables; Catalogo_Tiendas,
+// reconstruido desde TREO, es ahora la unica fuente que decide actividad.
+// Si temporalmente ninguna de las dos fuentes responde, se falla abierto para
+// no desaparecer tiendas por una intermitencia de red.
 function isTiendaValid(catalog, tienda, cr='') {
-  return true;
+  const stores = catalog?.storeCatalog;
+  if (!stores?.loaded) return true;
+  const crKey = normalizeCatalogCr(cr);
+  const tiendaKey = normalizeCatalogTienda(tienda);
+  const hit = (crKey && stores.byCr.get(crKey)) || (tiendaKey && stores.byTienda.get(tiendaKey));
+  if (hit) return Boolean(hit.activa);
+  // TREO se carga por plaza. Mientras una plaza aún no haya publicado su
+  // archivo, no se usa el catálogo parcial para ocultar sus tiendas. En una
+  // plaza ya cubierta sí se exige que el CR/nombre exista en TREO vigente.
+  const scope = getActiveDataScope();
+  if (scope.level !== 'plaza') return true;
+  return !stores.coveredPlazas?.has(catalogPlazaKey(scope.plaza));
 }
 function filterValidTiendas(rows, catalog, tiendaKey, crKey) {
   if (!Array.isArray(rows) || !tiendaKey) return rows;
@@ -1870,8 +1948,9 @@ async function loadAsesorCatalogRows() {
 async function loadAsesorCatalog() {
   if (asesorCatalogPromise) return asesorCatalogPromise;
   asesorCatalogPromise = (async () => {
-    const [catalog, reasignaciones] = await Promise.all([loadAsesorCatalogRows(), loadReasignaciones()]);
+    const [catalog, reasignaciones, storeCatalog] = await Promise.all([loadAsesorCatalogRows(), loadReasignaciones(), loadTiendaCatalog()]);
     catalog.reasignaciones = reasignaciones;
+    catalog.storeCatalog = storeCatalog;
     return catalog;
   })();
   return asesorCatalogPromise;
@@ -3070,6 +3149,8 @@ window.OXXO = {
   downloadRowsAsCSV,
   handleDownloadButton,
   loadAsesorCatalog,
+  loadTiendaCatalog,
+  buildTiendaCatalog,
   loadReasignaciones,
   resolveAsesor,
   resolveAsesorD1,

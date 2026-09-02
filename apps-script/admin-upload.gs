@@ -12,7 +12,7 @@
  * Despues de eso, admin.html publica directo sin pedir URL.
  */
 const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
-const APP_VERSION = '42';
+const APP_VERSION = '43';
 const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const AUDIT_SHEET = '_Admin_Bitacora';
 const BACKUP_PREFIX = '_BK_';
@@ -21,6 +21,8 @@ const MAX_UPLOAD_ROWS = 100000;
 const MAX_UPLOAD_COLUMNS = 250;
 const SYSTEM_NOTICES_SHEET = 'Avisos_Sistema';
 const HOME_SHEET = '00_INICIO';
+const STORE_CATALOG_SHEET = 'Catalogo_Tiendas';
+const STORE_CATALOG_HEADERS = ['CR', 'Tienda', 'Region', 'Plaza', 'Zona', 'Asesor', 'ACTIVA', 'Fuente', 'Actualizado'];
 const HOME_SHEET_ORDER = [
   HOME_SHEET,
   // Recursos Humanos
@@ -36,6 +38,7 @@ const HOME_SHEET_ORDER = [
   'Dashboard_11_Semanal',
   'Dashboard_12_Mensual',
   'Dashboard_13_Ausentismo',
+  STORE_CATALOG_SHEET,
   'Catalogo_Asesores',
   // Comercial
   'Dashboard_14_Comercial',
@@ -75,6 +78,7 @@ const ALLOWED_SHEETS = [
   'Dashboard_13_Ausentismo',
   'Dashboard_14_Comercial',
   'Inventarios',
+  STORE_CATALOG_SHEET,
   'Catalogo_Asesores',
   'Reasignaciones'
 ];
@@ -118,6 +122,7 @@ function doGet(e) {
  *
  * - Crea unicamente las pestanas de soporte que falten.
  * - No reemplaza ni modifica Catalogo_Asesores ni ninguna base existente.
+ * - Crea Catalogo_Tiendas desde TREO si aun no existe.
  * - Oculta respaldos que por accidente hayan quedado visibles.
  *
  * Esta funcion se ejecuta manualmente una sola vez desde el editor de Apps
@@ -162,6 +167,7 @@ function repairSystemStructure() {
     sheet.hideSheet();
     hiddenBackups.push(sheet.getName());
   });
+  const storeCatalog = safeRebuildStoreCatalogFromTreo_(ss);
   const home = ensureHomeSheet_(ss);
   SpreadsheetApp.flush();
   return {
@@ -170,7 +176,8 @@ function repairSystemStructure() {
     alreadyExisted: existing,
     hiddenBackups: hiddenBackups,
     homeSheet: home.getName(),
-    catalogUntouched: true
+    catalogUntouched: true,
+    storeCatalog: storeCatalog
   };
 }
 
@@ -302,6 +309,15 @@ function doPost(e) {
             ? replaceScope(sheet, rows, newHeaders, scopeColumns)
             : replaceAll(sheet, rows, newHeaders);
 
+        // TREO es la fuente oficial de tiendas operativas. Una vez que su
+        // publicación queda escrita (incluidas las demás plazas conservadas
+        // por replaceScope), se reconstruye un catálogo independiente y
+        // deduplicado por CR para que todos los dashboards compartan el mismo
+        // universo de tiendas activas.
+        if (targetSheet === 'Dashboard_7_Semanal') {
+          result.storeCatalog = safeRebuildStoreCatalogFromTreo_(ss);
+        }
+
         appendAudit(ss, payload, result, 'Correcta', '', backupName);
       } catch (publishError) {
         appendAudit(ss, payload, { mode: updateMode, rows: rows.length, keptRows: 0 }, 'Error', String(publishError.message || publishError), backupName);
@@ -327,7 +343,8 @@ function doPost(e) {
         columns: result.columns,
         backupSheet: backupName,
         audited: true,
-        verification: verification
+        verification: verification,
+        storeCatalog: result.storeCatalog || null
       });
     } finally {
       lock.releaseLock();
@@ -385,7 +402,7 @@ function ensureHomeSheet_(ss) {
   const groups = [
     {
       title: 'RECURSOS HUMANOS', color: '#E3182D', soft: '#FFF0F2',
-      sheets: ['Dashboard_1_Diario', 'Dashboard_2_Diario', 'Dashboard_3_Diario', 'Dashboard_4_Semanal', 'Dashboard_5_Semanal', 'Dashboard_6_Semanal', 'Dashboard_7_Semanal', 'Dashboard_8_Diario', 'Dashboard_10_FLEX', 'Dashboard_11_Semanal', 'Dashboard_12_Mensual', 'Dashboard_13_Ausentismo', 'Catalogo_Asesores']
+      sheets: ['Dashboard_1_Diario', 'Dashboard_2_Diario', 'Dashboard_3_Diario', 'Dashboard_4_Semanal', 'Dashboard_5_Semanal', 'Dashboard_6_Semanal', 'Dashboard_7_Semanal', 'Dashboard_8_Diario', 'Dashboard_10_FLEX', 'Dashboard_11_Semanal', 'Dashboard_12_Mensual', 'Dashboard_13_Ausentismo', STORE_CATALOG_SHEET, 'Catalogo_Asesores']
     },
     {
       title: 'COMERCIAL', color: '#1479A8', soft: '#EDF8FC',
@@ -495,7 +512,7 @@ function homeSheetLabel_(sheetName) {
     Dashboard_9_Semanal: 'Faltantes y sobrantes', Dashboard_10_FLEX: 'Personal FLEX',
     Dashboard_11_Semanal: 'Marcajes semanales', Dashboard_12_Mensual: 'Enfoque de líder',
     Dashboard_13_Ausentismo: 'Control de ausentismo', Dashboard_14_Comercial: 'Avance comercial',
-    Inventarios: 'Resultados de inventario', Catalogo_Asesores: 'Catálogo de asesores',
+    Inventarios: 'Resultados de inventario', Catalogo_Tiendas: 'Catálogo de tiendas activas', Catalogo_Asesores: 'Catálogo de asesores',
     Promociones: 'Promociones', PromosD100: 'PromosD100', Reasignaciones: 'Reasignaciones',
     Avisos_Sistema: 'Avisos del sistema', Configuracion: 'Configuración',
     _Admin_Bitacora: 'Bitácora administrativa'
@@ -555,6 +572,91 @@ function sheetPublicationLayout(sheet) {
     return row.some(function(value) { return normalizeCell(value) !== ''; });
   });
   return { headers: headers, rows: rows };
+}
+
+/**
+ * Reconstruye el catálogo maestro de tiendas activas desde la fotografía
+ * vigente de TREO. Dashboard_7_Semanal ya conserva por plaza el último
+ * archivo publicado, por lo que su contenido completo representa el universo
+ * operativo regional actual. El CR es la llave; el nombre solo es etiqueta.
+ */
+function rebuildStoreCatalogFromTreo_(ss) {
+  const source = ss.getSheetByName('Dashboard_7_Semanal');
+  let target = ss.getSheetByName(STORE_CATALOG_SHEET);
+  if (!target) target = ss.insertSheet(STORE_CATALOG_SHEET);
+  if (!source || source.getLastRow() < 2) {
+    writeWithBufferRow(target, [STORE_CATALOG_HEADERS], STORE_CATALOG_HEADERS.length);
+    target.setFrozenRows(2);
+    return { ok: false, rows: 0, source: 'Dashboard_7_Semanal', reason: 'TREO sin datos' };
+  }
+
+  const layout = sheetPublicationLayout(source);
+  const indexes = {};
+  const indexOf = function() {
+    const aliases = Array.prototype.slice.call(arguments).map(normalizeHeader);
+    for (let aliasIndex = 0; aliasIndex < aliases.length; aliasIndex++) {
+      for (let i = 0; i < layout.headers.length; i++) {
+        if (normalizeHeader(layout.headers[i]) === aliases[aliasIndex]) return i;
+      }
+    }
+    return -1;
+  };
+  indexes.cr = indexOf('CR', 'CR TIENDA', 'CR Reg', 'ID Tienda');
+  indexes.tienda = indexOf('Tienda', 'Unidad org', 'Unidad organizativa');
+  indexes.region = indexOf('Region');
+  indexes.plaza = indexOf('Plaza');
+  indexes.zona = indexOf('Zona');
+  indexes.asesor = indexOf('Asesor', 'AT');
+  if (indexes.cr < 0 || indexes.tienda < 0 || indexes.plaza < 0) {
+    throw new Error('TREO no contiene CR, Tienda y Plaza para reconstruir ' + STORE_CATALOG_SHEET);
+  }
+
+  const today = Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || 'America/Mexico_City', 'yyyy-MM-dd HH:mm');
+  const byCr = {};
+  layout.rows.forEach(function(values) {
+    const cr = normalizeCell(values[indexes.cr]).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const tienda = normalizeCell(values[indexes.tienda]);
+    const tiendaToken = normalizeHeader(tienda);
+    const plaza = normalizeCell(values[indexes.plaza]);
+    if (!cr || !tienda || !plaza || tiendaToken.indexOf('entrenamiento') !== -1 || tiendaToken.indexOf('operaciones') !== -1) return;
+    const candidate = {
+      CR: cr,
+      Tienda: tienda,
+      Region: indexes.region >= 0 ? normalizeCell(values[indexes.region]) : 'TABASCO',
+      Plaza: plaza,
+      Zona: indexes.zona >= 0 ? normalizeCell(values[indexes.zona]) : '',
+      Asesor: indexes.asesor >= 0 ? normalizeCell(values[indexes.asesor]) : '',
+      ACTIVA: 'SI',
+      Fuente: 'Dashboard_7_Semanal · TREO',
+      Actualizado: today
+    };
+    // Si TREO trae el mismo CR más de una vez, conservar la fila con asesor.
+    if (!byCr[cr] || (!byCr[cr].Asesor && candidate.Asesor)) byCr[cr] = candidate;
+  });
+
+  const rows = Object.keys(byCr).map(function(cr) { return byCr[cr]; }).sort(function(a, b) {
+    const plazaOrder = String(a.Plaza).localeCompare(String(b.Plaza));
+    return plazaOrder || String(a.Tienda).localeCompare(String(b.Tienda));
+  });
+  writeWithBufferRow(target, rowsToValues(rows, STORE_CATALOG_HEADERS), STORE_CATALOG_HEADERS.length);
+  target.setFrozenRows(2);
+  target.setTabColor('#16A34A');
+  target.autoResizeColumns(1, STORE_CATALOG_HEADERS.length);
+  return { ok: true, rows: rows.length, source: 'Dashboard_7_Semanal', updatedAt: today };
+}
+
+function safeRebuildStoreCatalogFromTreo_(ss) {
+  try {
+    return rebuildStoreCatalogFromTreo_(ss);
+  } catch (error) {
+    // TREO ya pudo haberse publicado. Vaciar el catálogo derivado obliga al
+    // navegador a usar TREO directamente y evita conservar un catálogo viejo.
+    let target = ss.getSheetByName(STORE_CATALOG_SHEET);
+    if (!target) target = ss.insertSheet(STORE_CATALOG_SHEET);
+    writeWithBufferRow(target, [STORE_CATALOG_HEADERS], STORE_CATALOG_HEADERS.length);
+    target.setFrozenRows(2);
+    return { ok: false, rows: 0, source: 'Dashboard_7_Semanal', error: String(error.message || error) };
+  }
 }
 
 function preflightPublication(payload) {
@@ -754,6 +856,7 @@ function restoreLatestBackup(payload) {
   const undoBackup = saveSnapshot(ss, targetSheet, currentValues, 'Estado anterior a restaurar ' + selected.backupSheet);
   writeSnapshot(target, backupValues);
   target.setFrozenRows(Math.min(2, target.getLastRow()));
+  const storeCatalog = targetSheet === 'Dashboard_7_Semanal' ? safeRebuildStoreCatalogFromTreo_(ss) : null;
 
   const dataRows = Math.max(0, backupValues.length - 2);
   const result = { mode: 'restoreBackup', rows: dataRows, keptRows: 0, columns: backupValues[0].length };
@@ -763,7 +866,7 @@ function restoreLatestBackup(payload) {
     sourceFile: selected.backupSheet,
     adminUser: String(payload.adminUser || 'Administrador')
   }, result, 'Restaurada', '', undoBackup);
-  return { ok: true, restored: true, targetSheet: targetSheet, rows: dataRows, restoredFrom: selected.backupSheet, backupSheet: undoBackup, reversible: true };
+  return { ok: true, restored: true, targetSheet: targetSheet, rows: dataRows, restoredFrom: selected.backupSheet, backupSheet: undoBackup, reversible: true, storeCatalog: storeCatalog };
 }
 
 function appendAudit(ss, payload, result, status, message, backupName) {
