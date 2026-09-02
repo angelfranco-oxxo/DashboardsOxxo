@@ -229,6 +229,41 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
     if(state.sheetMatrixCache.has(name))return state.sheetMatrixCache.get(name);
     const sheet=state.workbook.Sheets[name];
     const matrix=sheet?XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false}):[];
+    // raw:false entrega celdas de fecha real (cellDates:true en XLSX.read)
+    // como TEXTO formateado, y ese formato depende del NUMBER FORMAT que
+    // traiga la celda en el Excel de origen -- no de una convencion fija.
+    // Confirmado con datos reales: varios reportes (Bajas, Enfoque del
+    // Lider) formatean fechas M/D/AA (americano), mientras parseDate() en
+    // este mismo archivo asume D/M/A (como se captura normalmente aqui).
+    // Cuando el dia es <=12 ambas lecturas dan una fecha VALIDA pero
+    // DISTINTA (ej. "01/09/2026" = 1 de septiembre o 9 de enero segun la
+    // convencion) -- no hay forma de detectar el error solo con el texto,
+    // asi que se publicaba en silencio la fecha equivocada (confirmado: una
+    // baja con F. Validez "01/09/2026" se publicaba como "2026-01-09").
+    // Se sustituye aqui la celda por su objeto Date real (via el mapa crudo
+    // de la hoja, que si respeta cellDates) SOLO cuando la celda es
+    // genuinamente de tipo fecha en el Excel (cell.t==='d') -- el resto de
+    // columnas (numeros, porcentajes, texto) se queda con el texto
+    // formateado de raw:false, que es lo que ya esperan toNumber()/
+    // pctValue() y los derive*() de cada dashboard. parseDate() ya sabe
+    // manejar un objeto Date directamente (su primer chequeo), asi que esto
+    // corrige el problema para todos los dashboards que lo usan sin volver
+    // a tocar cada parser individual -- salvo los que tienen su propio
+    // parser de texto (Dashboard 9 y 12), que se ajustaron aparte para
+    // aceptar tambien un Date real.
+    if(sheet&&sheet['!ref']){
+      const range=XLSX.utils.decode_range(sheet['!ref']);
+      for(let r=range.s.r;r<=range.e.r;r++){
+        const rowIdx=r-range.s.r;
+        if(!matrix[rowIdx])continue;
+        for(let c=range.s.c;c<=range.e.c;c++){
+          const cell=sheet[XLSX.utils.encode_cell({r,c})];
+          if(cell&&cell.t==='d'&&cell.v instanceof Date&&!isNaN(cell.v)){
+            matrix[rowIdx][c-range.s.c]=cell.v;
+          }
+        }
+      }
+    }
     state.sheetMatrixCache.set(name,matrix);
     return matrix;
   }

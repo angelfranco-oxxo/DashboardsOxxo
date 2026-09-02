@@ -103,6 +103,11 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
   // de mes en new Date()). Se parsea aqui con su propio formato en vez de
   // tocar parseDate(), que si funciona bien para los demas 8 dashboards.
   function parseFechaD9(value){
+    // getSheetMatrix() (normalizers.js) ahora entrega un Date real para
+    // celdas de fecha genuinas -- sin ambiguedad de formato, se usa tal
+    // cual. El regex M/D/AA de abajo se queda como respaldo para el caso
+    // (cada vez menos comun) de que la celda llegue como texto suelto.
+    if(value instanceof Date&&!isNaN(value))return value;
     const m=String(value||'').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
     if(!m)return null;
     let year=Number(m[3]);if(year<100)year+=2000;
@@ -158,6 +163,14 @@ window.OXXO_ADMIN_DASHBOARDS = function createAdminDashboards(deps){
   // entrega como texto y el formato varia (serial, dd/mm/aaaa, "1 de agosto
   // de 2025"). Se normaliza a AAAA-MM, que es la clave de periodo.
   function mesKeyD12(value){
+    // getSheetMatrix() (normalizers.js) ahora entrega un Date real para
+    // celdas de fecha genuinas -- sin ambiguedad de formato, se usa tal
+    // cual. El resto de esta funcion se queda como respaldo para el caso de
+    // que la celda llegue como texto suelto (serial, dd/mm/aaaa, "1 de
+    // agosto de 2025").
+    if(value instanceof Date&&!isNaN(value)){
+      return `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,'0')}`;
+    }
     const texto=String(value??'').trim();
     if(!texto)return '';
     const yaIso=texto.match(/^(\d{4})[-/](\d{1,2})/);
