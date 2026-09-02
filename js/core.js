@@ -261,7 +261,13 @@ function buildSheetURL(tabName, options = {}) {
   url.searchParams.set('tqx', 'out:csv');
   url.searchParams.set('sheet', tabName);
   const query = activeScopeQuery(tabName, options);
-  if (query) url.searchParams.set('tq', query);
+  if (query) {
+    // Las bases publicadas usan una fila buffer y después los encabezados
+    // reales. Al filtrar sin declarar ambas filas, GViz interpreta la primera
+    // tienda resultante como encabezado y el dashboard pierde un registro.
+    url.searchParams.set('headers', '2');
+    url.searchParams.set('tq', query);
+  }
   return url.toString();
 }
 
