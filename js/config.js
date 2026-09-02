@@ -169,7 +169,17 @@ window.OXXO_CONFIG = {
   // incluyendo Dashboard_14_Comercial.
   // 2026-09-02 (v43): Catalogo_Tiendas se reconstruye automaticamente desde
   // la fotografia regional vigente de Dashboard_7_Semanal (TREO).
-  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbxLR3dIFgqFoN2rKOg5tTReOu90iKVeGl9b0sghToomWfOkoikU9PqVRiD-s1u1kk1C/exec",
+  // 2026-09-02 (v43, URL nueva): el usuario redesplego con "Nueva
+  // implementacion" (no "Nueva version") al subir el fix de
+  // writeWithBufferRow() que fuerza texto plano en columnas de fecha -- eso
+  // crea una implementacion/URL DISTINTA en vez de actualizar la anterior, y
+  // la anterior queda congelada con el codigo de ese momento (ver
+  // docs/GUIA_ACTUALIZACION.md, "Redesplegar el Apps Script sin romper la
+  // URL"). Se apunta aqui a la URL nueva porque es la que se confirmo con el
+  // fix realmente pegado; el numero de version en el health-check (v43) no
+  // sirve para distinguirlas porque es una constante fija en el .gs que no se
+  // incrementa sola con cada cambio.
+  ADMIN_UPLOAD_URL: "https://script.google.com/macros/s/AKfycbwe_RcnVRkZy9x1YcRuum4qdLucIWLTVsnTZcMvQDyobo6f3ot-YG0Lv00hYS-1XEg/exec",
   // Confirmado directamente contra la URL /exec el 27-08-2026. Sirve como
   // respaldo cuando Brave u otro navegador bloquea solo la consulta de salud.
   VERIFIED_ADMIN_RUNTIME_VERSION: 43,
