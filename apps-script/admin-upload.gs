@@ -1225,11 +1225,51 @@ function assertAuthorized(payload) {
 // tiene pinta de encabezado), asi que esto sigue siendo compatible sin tocar los
 // dashboards.
 const BUFFER_ROW_VALUE = '_buffer_';
+// Columnas que los derive*() de js/admin/normalizers.js llenan con isoDate()
+// (texto plano "aaaa-mm-dd", nunca un objeto Date real) — ver DATE_TEXT_COLUMNS
+// abajo, mismo set replicado aqui porque Apps Script no puede importar ese
+// archivo. Si Sheets las autoformatea como Fecha (heredando el formato de la
+// columna, o autodetectando el patron "aaaa-mm-dd" al escribir mas alla del
+// rango previamente formateado), la columna queda con un tipo MEZCLADO: unas
+// celdas Fecha real, otras texto plano. gviz infiere un solo tipo por columna
+// para toda la hoja -- con esa mezcla, las filas nuevas (o toda la respuesta)
+// pueden quedar fuera de lo que expone /gviz/tq, aunque el valor crudo este
+// bien escrito (confirmado: cargas nuevas de Dashboard_1/2_Diario invisibles
+// en el CSV publico hasta forzar texto plano en su columna Fecha).
+const DATE_TEXT_COLUMNS = [
+  'Fecha', 'F.Crea', 'F. Crea', 'F.Crea.', 'Fecha_Inicio', 'Fecha_Fin',
+  'Inicio de validez', 'Fin de validez', 'Inicio de semana', 'Fin de semana',
+  'Fecha de Inventario', 'Fecha de Inventario Anterior',
+];
 function writeWithBufferRow(sheet, values, numCols) {
   const prevMaxRows = sheet.getMaxRows();
   const prevMaxCols = sheet.getMaxColumns();
   const bufferRow = new Array(numCols).fill(BUFFER_ROW_VALUE);
   const allRows = [bufferRow].concat(values); // buffer + encabezados + datos, un solo arreglo
+  const totalRows = allRows.length;
+
+  // Forzar texto plano ('@') en las columnas de fecha-texto ANTES de escribir
+  // los valores: si se hace despues, Sheets ya convirtio el string "aaaa-mm-dd"
+  // a un valor Fecha real al detectar el patron (o al heredar el formato de la
+  // columna en un rango nuevo), y cambiar el formato despues solo cambia como
+  // se MUESTRA ese valor ya convertido -- no recupera el texto original. Con
+  // el formato de texto puesto de antemano, Sheets nunca reinterpreta el
+  // string y la columna queda con el mismo tipo en todas sus filas, viejas y
+  // nuevas (gviz infiere un solo tipo por columna para toda la hoja; con tipos
+  // mezclados las filas nuevas -o toda la respuesta- podian quedar fuera de lo
+  // que expone /gviz/tq aunque el valor crudo estuviera bien escrito -- eso es
+  // lo que se confirmo con cargas nuevas de Dashboard_1/2_Diario invisibles en
+  // el CSV publico).
+  const dataRowCount = totalRows - 2; // filas reales, sin contar buffer+encabezado
+  if (dataRowCount > 0) {
+    const headerRow = values[0] || [];
+    const dateTextTargets = new Set(DATE_TEXT_COLUMNS.map(normalizeHeader));
+    headerRow.forEach(function(header, idx) {
+      if (dateTextTargets.has(normalizeHeader(header))) {
+        sheet.getRange(3, idx + 1, dataRowCount, 1).setNumberFormat('@');
+      }
+    });
+  }
 
   sheet.getRange(1, 1, allRows.length, numCols).setValues(allRows); // una sola escritura
   SpreadsheetApp.flush(); // fuerza a confirmar antes de seguir: sin esto, en bases grandes
@@ -1238,7 +1278,6 @@ function writeWithBufferRow(sheet, values, numCols) {
   // una sola celda — confirmado reproduciendo el bug llamando al Web App directo, fuera
   // del navegador, con la base real de Catalogo_Asesores (263 filas).
 
-  const totalRows = allRows.length;
   if (prevMaxRows > totalRows) {
     sheet.getRange(totalRows + 1, 1, prevMaxRows - totalRows, Math.max(prevMaxCols, numCols)).clearContent();
   }
