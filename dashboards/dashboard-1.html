@@ -1748,7 +1748,7 @@
 </div>
 
   <script src="../js/config.js?v=20260902url2"></script>
-<script src="../js/core.js?v=20260902stores1"></script>
+<script src="../js/core.js?v=20260902month1"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d1;
@@ -1822,33 +1822,8 @@ const MES_ABBR = {
 function normalizeMesColumn(value){
   const raw = String(value ?? '').trim();
   if(!raw) return { key:'', label:'' };
-  const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[._/]+/g,'-');
-  const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
-  let month = 0;
-  let year = 0;
-  if(parts.length >= 2){
-    month = MES_ABBR[parts[0]] || Number(parts[0]);
-    year = Number(parts[1]);
-  } else {
-    const match = clean.match(/^([a-z]+)\s*(\d{2,4})$/);
-    if(match){
-      month = MES_ABBR[match[1]] || 0;
-      year = Number(match[2]);
-    }
-  }
-  if(year > 0 && year < 100) year += 2000;
-  if(month >= 1 && month <= 12 && year >= 2000){
-    const key = `${year}-${String(month).padStart(2,'0')}`;
-    return { key, label: monthShortLabel(key) };
-  }
-  if(/^\d{1,2}-\d{1,2}-\d{2,4}$/.test(clean) || /^\d{4}-\d{1,2}-\d{1,2}$/.test(clean)){
-    const date = parseFechaVacante(raw);
-    if(date){
-      const key = mesKeyFromDate(date);
-      return { key, label: monthShortLabel(key) };
-    }
-  }
-  return { key:raw, label:raw };
+  const key = OXXO.metricsNormalizeMonthKey(value);
+  return key ? { key, label: monthShortLabel(key) } : { key:'', label:'' };
 }
 
 function monthShortLabel(key){

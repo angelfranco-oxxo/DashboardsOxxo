@@ -134,6 +134,18 @@ assert.deepEqual(JSON.parse(JSON.stringify(OXXO.getSystemNoticeContext('/dashboa
 assert.equal(OXXO.systemNoticeMatches({ target: 'area:comercial' }, OXXO.getSystemNoticeContext('/dashboards/dashboard-14.html')), true);
 assert.equal(OXXO.systemNoticeMatches({ target: 'dashboard:dashboard-13' }, OXXO.getSystemNoticeContext('/dashboards/dashboard-14.html')), false);
 
+// Todos los formatos que pueden llegar desde Excel/Sheets deben producir la
+// misma clave mensual. Esto protege los selectores de Dashboard 1, Dashboard
+// 2, Mi Tienda, Mi Dashboard, RAE y la mascota.
+const septemberSerial = Math.round((Date.UTC(2026, 8, 1) - Date.UTC(1899, 11, 30)) / 86400000);
+[
+  'sep-26', 'septiembre 2026', 'September 2026', '2026-09', '2026/09/01',
+  '01/09/2026', '09/2026', String(septemberSerial), new Date(2026, 8, 1)
+].forEach((value) => assert.equal(OXXO.metricsNormalizeMonthKey(value), '2026-09', `Formato mensual no reconocido: ${value}`));
+assert.equal(OXXO.metricsNormalizeMonthKey('sin periodo'), '');
+assert.equal(OXXO.metricsRowMonthKeyD1({ Mes: 'sin periodo', Fecha: '2026-09-02' }, 'Mes', 'Fecha'), '2026-09');
+assert.equal(OXXO.metricsRowMonthKeyD2({ Mes: 'sin periodo', Fecha: '2026-09-02' }, 'Mes', 'Fecha'), '2026-09');
+
 // El formato historico del catalogo (solo ASESOR, TIENDA y CR TIENDA) debe
 // seguir siendo valido; las columnas nuevas se completan sin pedir cambios al
 // Excel que hoy usa Plaza Oaxaca.
@@ -166,4 +178,4 @@ assert.deepEqual(JSON.parse(JSON.stringify(parsed.rows[0])), {
   Region: 'TABASCO', Plaza: 'Plaza Oaxaca', Zona: '', ACTIVA: 'SI'
 });
 
-console.log('data-context, alcance regional, catalogo de tiendas y avisos: 30 pruebas correctas');
+console.log('data-context, alcance regional, periodos, catalogo de tiendas y avisos: 42 pruebas correctas');

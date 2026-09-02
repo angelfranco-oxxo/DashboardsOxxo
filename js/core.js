@@ -2225,21 +2225,31 @@ const METRICS_MES_ABBR = {
   may: 5, mayo: 5, jun: 6, junio: 6, jul: 7, julio: 7, ago: 8, agosto: 8,
   sep: 9, sept: 9, septiembre: 9, set: 9, setiembre: 9,
   oct: 10, octubre: 10, nov: 11, noviembre: 11, dic: 12, diciembre: 12,
+  jan: 1, january: 1, february: 2, march: 3, apr: 4, april: 4, june: 6,
+  july: 7, aug: 8, august: 8, september: 9, october: 10,
+  november: 11, dec: 12, december: 12,
 };
 // Convierte "Mes" (texto tipo "jul-26", "07-2026", "2026-07") a una clave
 // canónica "YYYY-MM". Usado por Dashboard_2_Diario (monthKeyFromRow).
 function metricsNormalizeMonthKey(value) {
+  if (value instanceof Date && !isNaN(value)) return metricsMesKeyFromDate(value);
   const raw = String(value ?? '').trim();
   if (!raw) return '';
-  const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[._/]+/g, '-').replace(/\s+/g, '-').trim();
+  const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[._/]+/g, '-').replace(/\s+/g, '-').replace(/^-+|-+$/g, '');
   let m = clean.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
-  if (m) return `${m[1]}-${String(+m[2]).padStart(2, '0')}`;
+  if (m && +m[2] >= 1 && +m[2] <= 12) return `${m[1]}-${String(+m[2]).padStart(2, '0')}`;
+  m = clean.match(/^(\d{1,2})-(\d{4})$/);
+  if (m && +m[1] >= 1 && +m[1] <= 12) return `${m[2]}-${String(+m[1]).padStart(2, '0')}`;
   m = clean.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
-  if (m) { const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(+m[2]).padStart(2, '0')}`; }
+  if (m && +m[2] >= 1 && +m[2] <= 12) { const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(+m[2]).padStart(2, '0')}`; }
   m = clean.match(/^([a-z]+)-?(\d{2,4})$/);
   if (m && METRICS_MES_ABBR[m[1]]) { const y = +m[2] < 100 ? 2000 + +m[2] : +m[2]; return `${y}-${String(METRICS_MES_ABBR[m[1]]).padStart(2, '0')}`; }
   m = clean.match(/^(\d{1,2})-([a-z]+)-(\d{2,4})$/);
   if (m && METRICS_MES_ABBR[m[2]]) { const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return `${y}-${String(METRICS_MES_ABBR[m[2]]).padStart(2, '0')}`; }
+  if (/^\d{4,5}(?:\.\d+)?$/.test(clean)) {
+    const parsed = metricsParseFecha(clean);
+    if (parsed) return metricsMesKeyFromDate(parsed);
+  }
   return '';
 }
 // Igual que parseFechaVacante() de dashboard-1.html: lee una fecha real
@@ -2284,34 +2294,15 @@ function metricsMesKeyFromDate(date) {
   if (!date) return '';
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
-// Réplica EXACTA (con su mismo comportamiento, incluido su "bug") de
-// Normaliza la columna "Mes" de Dashboard_1_Diario a clave YYYY-MM.
-// Acepta textos tipo "jul-26" y fechas completas tipo "26/07/2026".
+// Normaliza la columna "Mes" de Dashboard_1_Diario con el mismo parser
+// compartido que usa Dashboard 2. Así una fecha real, un serial de Excel y
+// un texto tipo "sep-26" siempre pertenecen al mismo periodo.
 function metricsNormalizeMesColumnD1(value) {
-  const raw = String(value ?? '').trim();
-  if (!raw) return '';
-  const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[._/]+/g, '-');
-  const parts = clean.split('-').map(p => p.trim()).filter(Boolean);
-  let month = 0, year = 0;
-  if (parts.length >= 2) {
-    month = METRICS_MES_ABBR[parts[0]] || Number(parts[0]) || 0;
-    year = Number(parts[1]) || 0;
-  } else {
-    const m = clean.match(/^([a-z]+)\s*(\d{2,4})$/);
-    if (m) { month = METRICS_MES_ABBR[m[1]] || 0; year = Number(m[2]) || 0; }
-  }
-  if (year > 0 && year < 100) year += 2000;
-  if (month >= 1 && month <= 12 && year >= 2000) return `${year}-${String(month).padStart(2, '0')}`;
-  if (/^\d{1,2}-\d{1,2}-\d{2,4}$/.test(clean) || /^\d{4}-\d{1,2}-\d{1,2}$/.test(clean)) {
-    const parsedDate = metricsParseFecha(raw);
-    if (parsedDate) return metricsMesKeyFromDate(parsedDate);
-  }
-  return raw;
+  return metricsNormalizeMonthKey(value);
 }
 // Clave de mes por fila para Dashboard_1_Diario: mesInfo.key ||
-// mesKeyFromDate(fechaObj). Como metricsNormalizeMesColumnD1 solo regresa
-// '' si la celda "Mes" está vacía, el respaldo por "Fecha" solo se activa
-// en ese caso.
+// mesKeyFromDate(fechaObj). Si "Mes" no es reconocible, "Fecha" evita que
+// la fila desaparezca del selector mensual.
 function metricsRowMonthKeyD1(row, mesKey, fechaKey) {
   return metricsNormalizeMesColumnD1(metricsVal(row, mesKey)) || metricsMesKeyFromDate(metricsParseFecha(metricsVal(row, fechaKey)));
 }

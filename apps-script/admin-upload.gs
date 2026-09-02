@@ -12,7 +12,7 @@
  * Despues de eso, admin.html publica directo sin pedir URL.
  */
 const SPREADSHEET_ID = '1EbUuyy-PRXiDwPmn9L14P93cGN6VXTyLfAHx-CE8M_A';
-const APP_VERSION = '43';
+const APP_VERSION = '44';
 const ADMIN_PASSWORD_PROPERTY = 'ADMIN_PASSWORD';
 const AUDIT_SHEET = '_Admin_Bitacora';
 const BACKUP_PREFIX = '_BK_';
@@ -192,6 +192,57 @@ function refreshHomeSheet() {
   const home = ensureHomeSheet_(ss);
   SpreadsheetApp.flush();
   return { ok: true, sheet: home.getName(), databases: home.getRange('K3').getValue() };
+}
+
+/**
+ * Convierte a texto uniforme las columnas que Google Sheets puede inferir
+ * parcialmente como fecha o numero. Esto repara hojas ya publicadas con una
+ * mezcla de valores (por ejemplo, "26/08/2026" y "sep-26" en Mes), que hace
+ * que gviz oculte filas aun cuando se ven correctamente dentro del Sheet.
+ *
+ * Se ejecuta manualmente una vez después de instalar esta versión. No cambia
+ * ninguna cifra: los Date reales se conservan como yyyy-MM-dd y el resto se
+ * reescribe exactamente como texto visible.
+ */
+function repairPublishedTextColumns() {
+  const ss = SPREADSHEET_ID
+    ? SpreadsheetApp.openById(SPREADSHEET_ID)
+    : SpreadsheetApp.getActiveSpreadsheet();
+  const repaired = [];
+  ALLOWED_SHEETS.forEach(function(sheetName) {
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 1) return;
+    const values = sheet.getDataRange().getValues();
+    const hasBuffer = values.length && values[0].length && values[0].every(function(value) {
+      return normalizeCell(value) === BUFFER_ROW_VALUE;
+    });
+    const headerIndex = hasBuffer ? 1 : 0;
+    const headers = (values[headerIndex] || []).map(String);
+    const firstDataRow = headerIndex + 2;
+    const rowCount = sheet.getLastRow() - firstDataRow + 1;
+    if (rowCount < 1) return;
+    const columns = [];
+    const textTargets = new Set(PUBLISHED_TEXT_COLUMNS.map(normalizeHeader));
+    headers.forEach(function(header, columnIndex) {
+      if (!textTargets.has(normalizeHeader(header))) return;
+      const range = sheet.getRange(firstDataRow, columnIndex + 1, rowCount, 1);
+      const rawColumn = range.getValues();
+      const displayColumn = range.getDisplayValues();
+      const normalized = rawColumn.map(function(row, rowIndex) {
+        const value = row[0];
+        if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value)) {
+          return [Utilities.formatDate(value, ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd')];
+        }
+        return [String(displayColumn[rowIndex][0] == null ? '' : displayColumn[rowIndex][0])];
+      });
+      range.setNumberFormat('@');
+      range.setValues(normalized);
+      columns.push(header);
+    });
+    if (columns.length) repaired.push({ sheet: sheetName, rows: rowCount, columns: columns });
+  });
+  SpreadsheetApp.flush();
+  return { ok: true, sheets: repaired.length, repaired: repaired };
 }
 
 function doPost(e) {
@@ -1225,8 +1276,10 @@ function assertAuthorized(payload) {
 // tiene pinta de encabezado), asi que esto sigue siendo compatible sin tocar los
 // dashboards.
 const BUFFER_ROW_VALUE = '_buffer_';
-// Columnas que los derive*() de js/admin/normalizers.js llenan con isoDate()
-// (texto plano "aaaa-mm-dd", nunca un objeto Date real) — ver DATE_TEXT_COLUMNS
+// Columnas que los derive*() de js/admin/normalizers.js llenan con texto
+// normalizado. Incluye fechas y dimensiones de periodo: "Mes" también puede
+// mezclar fechas reales con valores como "sep-26", y gviz elimina las filas
+// cuyo tipo no coincide con el tipo inferido de la columna.
 // abajo, mismo set replicado aqui porque Apps Script no puede importar ese
 // archivo. Si Sheets las autoformatea como Fecha (heredando el formato de la
 // columna, o autodetectando el patron "aaaa-mm-dd" al escribir mas alla del
@@ -1236,10 +1289,11 @@ const BUFFER_ROW_VALUE = '_buffer_';
 // pueden quedar fuera de lo que expone /gviz/tq, aunque el valor crudo este
 // bien escrito (confirmado: cargas nuevas de Dashboard_1/2_Diario invisibles
 // en el CSV publico hasta forzar texto plano en su columna Fecha).
-const DATE_TEXT_COLUMNS = [
+const PUBLISHED_TEXT_COLUMNS = [
   'Fecha', 'F.Crea', 'F. Crea', 'F.Crea.', 'Fecha_Inicio', 'Fecha_Fin',
   'Inicio de validez', 'Fin de validez', 'Inicio de semana', 'Fin de semana',
   'Fecha de Inventario', 'Fecha de Inventario Anterior',
+  'Mes', 'Periodo', 'Período', 'Semana',
 ];
 function writeWithBufferRow(sheet, values, numCols) {
   const prevMaxRows = sheet.getMaxRows();
@@ -1263,7 +1317,7 @@ function writeWithBufferRow(sheet, values, numCols) {
   const dataRowCount = totalRows - 2; // filas reales, sin contar buffer+encabezado
   if (dataRowCount > 0) {
     const headerRow = values[0] || [];
-    const dateTextTargets = new Set(DATE_TEXT_COLUMNS.map(normalizeHeader));
+    const dateTextTargets = new Set(PUBLISHED_TEXT_COLUMNS.map(normalizeHeader));
     headerRow.forEach(function(header, idx) {
       if (dateTextTargets.has(normalizeHeader(header))) {
         sheet.getRange(3, idx + 1, dataRowCount, 1).setNumberFormat('@');

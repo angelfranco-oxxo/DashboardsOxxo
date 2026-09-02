@@ -665,7 +665,7 @@
 </div>
 
   <script src="../js/config.js?v=20260902url2"></script>
-<script src="../js/core.js?v=20260902stores1"></script>
+<script src="../js/core.js?v=20260902month1"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
 const TAB = OXXO.SHEETS_CONFIG.TABS.d2;
@@ -741,31 +741,7 @@ const MONTH_MAP = {
   dic:12, diciembre:12, dec:12, december:12,
 };
 function normalizeMonthKey(value){
-  const raw = String(value ?? '').trim();
-  if(!raw) return '';
-  const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\./g,'').trim();
-  let m = clean.match(/^(\d{4})[-\/](\d{1,2})(?:[-\/]\d{1,2})?$/);
-  if(m) return `${m[1]}-${String(+m[2]).padStart(2,'0')}`;
-  m = clean.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
-  if(m){
-    const y = +m[3] < 100 ? 2000 + +m[3] : +m[3];
-    return `${y}-${String(+m[2]).padStart(2,'0')}`;
-  }
-  m = clean.match(/^([a-z]+)[-\/\s]?(\d{2,4})$/);
-  if(m && MONTH_MAP[m[1]]){
-    const y = +m[2] < 100 ? 2000 + +m[2] : +m[2];
-    return `${y}-${String(MONTH_MAP[m[1]]).padStart(2,'0')}`;
-  }
-  m = clean.match(/^(\d{1,2})[-\/\s]([a-z]+)[-\/\s](\d{2,4})$/);
-  if(m && MONTH_MAP[m[2]]){
-    const y = +m[3] < 100 ? 2000 + +m[3] : +m[3];
-    return `${y}-${String(MONTH_MAP[m[2]]).padStart(2,'0')}`;
-  }
-  if(/^\d{4,5}$/.test(clean)){
-    const date = new Date(Date.UTC(1899, 11, 30) + Number(clean) * 86400000);
-    if(!Number.isNaN(date.getTime())) return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,'0')}`;
-  }
-  return '';
+  return OXXO.metricsNormalizeMonthKey(value);
 }
 function monthKeyFromRow(row, cols){
   return normalizeMonthKey(val(row, cols, 'mes')) || normalizeMonthKey(val(row, cols, 'fecha'));
