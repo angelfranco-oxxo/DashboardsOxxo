@@ -777,6 +777,10 @@ function monthLabel(key){
   return `${names[+m[2]-1]} ${m[1]}`;
 }
 let BASE_BAJAS_DATA = [];
+// Filas crudas (solo timoteoantonioperez excluido + asesor resuelto por
+// catalogo), ANTES del filtro de Medida/Puesto de filterData(). Sirve unica-
+// mente para calcular que meses existen de verdad -- ver uniqueFilterOptions.
+let RAW_BAJAS_DATA = [];
 let BAJAS_COLS = {};
 // Boton local "Ver todas las plazas" del panel Ranking/Comparativo de
 // Plazas: por defecto solo muestra la plaza activa (ver renderPlazas).
@@ -818,7 +822,16 @@ function getFilterValue(row, cols, key) {
 }
 
 function uniqueFilterOptions(data, cols, key) {
-  const values = [...new Set(data.map(r => getFilterValue(r, cols, key)).filter(Boolean))];
+  // 'mes' se calcula sobre RAW_BAJAS_DATA (crudo), no sobre `data` (que ya
+  // paso por filterData(): Medida="BAJA" y Puesto operativo). Esos filtros
+  // se aplican al conjunto COMPLETO ("si queda algo, usalo") y pueden dejar
+  // fuera TODAS las filas de un mes reciente si, por ejemplo, la carga de
+  // hoy todavia no trae la columna Medida poblada -- ese mes desaparecia
+  // por completo del selector (ni siquiera aparecia como opcion), en vez de
+  // solo quedar vacio al elegirlo. Mismo patron de bug que ya se corrigio en
+  // Dashboard 1 (mes vigente elegido sobre datos ya filtrados).
+  const source = (key === 'mes' && RAW_BAJAS_DATA.length) ? RAW_BAJAS_DATA : data;
+  const values = [...new Set(source.map(r => getFilterValue(r, cols, key)).filter(Boolean))];
   if(key === 'mes') return values.sort((a,b)=>String(a).localeCompare(String(b)));
   return values.sort((a,b) => String(a).localeCompare(String(b), 'es'));
 }
@@ -1936,6 +1949,7 @@ async function initDashboard(){
   const data = filterData(rawSinTimoteo, cols);
   if(!data.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }
 
+  RAW_BAJAS_DATA = rawSinTimoteo;
   BASE_BAJAS_DATA = data;
   BAJAS_COLS = cols;
   if(rawOtras && rawOtras.length) OTRAS_PLAZAS_DATA = rawOtras;
