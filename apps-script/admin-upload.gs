@@ -395,7 +395,8 @@ function doPost(e) {
         backupSheet: backupName,
         audited: true,
         verification: verification,
-        storeCatalog: result.storeCatalog || null
+        storeCatalog: result.storeCatalog || null,
+        orphanedColumns: result.orphanedColumns || []
       });
     } finally {
       lock.releaseLock();
@@ -1503,8 +1504,9 @@ function replaceScope(sheet, rows, newHeaders, scopeColumns) {
     if (!currentScopeKey || incomingScopeKeys.indexOf(currentScopeKey) === -1) keptRows.push(projectRowToHeaders(existingHeaders, currentValues[i], newHeaders));
   }
   const finalRows = keptRows.concat(rows);
+  const orphanedColumns = detectOrphanedColumns(existingHeaders, currentValues, headerRowIndex, newHeaders);
   writeWithBufferRow(sheet, rowsToValues(finalRows, newHeaders), newHeaders.length);
-  return { mode: 'replaceScope', rows: rows.length, keptRows: keptRows.length, columns: newHeaders.length, scopeColumns: scopeColumns, scopeKeys: incomingScopeKeys };
+  return { mode: 'replaceScope', rows: rows.length, keptRows: keptRows.length, columns: newHeaders.length, scopeColumns: scopeColumns, scopeKeys: incomingScopeKeys, orphanedColumns: orphanedColumns };
 }
 
 function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues, scopeColumns) {
@@ -1548,6 +1550,7 @@ function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues, scop
 
   const finalRows = keptRows.concat(rows);
   const values = rowsToValues(finalRows, newHeaders);
+  const orphanedColumns = detectOrphanedColumns(existingHeaders, currentValues, headerRowIndex, newHeaders);
   writeWithBufferRow(sheet, values, newHeaders.length);
 
   return {
@@ -1558,7 +1561,8 @@ function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues, scop
     scopeKeys: incomingScopeKeys,
     rows: rows.length,
     keptRows: keptRows.length,
-    columns: newHeaders.length
+    columns: newHeaders.length,
+    orphanedColumns: orphanedColumns
   };
 }
 
@@ -1595,6 +1599,31 @@ function rowArrayToObject(headers, values) {
     row[String(header || '').trim()] = values[index] == null ? '' : values[index];
   });
   return row;
+}
+
+// La verificacion post-publish (verifyPublishedSheet) solo compara conteos de
+// filas/columnas, nunca contenido -- si dash.output cambia el nombre de una
+// columna entre publicaciones, projectRowToHeaders reproyecta las filas
+// conservadas por nombre normalizado y esa columna queda en '' para todas las
+// filas viejas conservadas: el conteo de filas sigue cuadrando, la
+// verificacion reporta "ok", pero los datos historicos de esa columna
+// quedaron vaciados en silencio. Esto detecta esa situacion especifica (una
+// columna vieja con datos reales que ya no existe en el esquema nuevo bajo
+// NINGUN nombre) para poder avisar en la respuesta, sin bloquear el publish
+// -- una columna que de verdad se dejo de usar (vacia en todas las filas) no
+// se reporta, solo la que tenia datos y los perderia.
+function detectOrphanedColumns(existingHeaders, currentValues, headerRowIndex, newHeaders) {
+  const targetKeys = {};
+  newHeaders.forEach(function(h) { targetKeys[normalizeHeader(h)] = true; });
+  const orphaned = [];
+  for (let c = 0; c < existingHeaders.length; c++) {
+    const key = normalizeHeader(existingHeaders[c]);
+    if (!key || targetKeys[key]) continue;
+    for (let r = headerRowIndex + 1; r < currentValues.length; r++) {
+      if (String((currentValues[r] || [])[c] || '').trim()) { orphaned.push(existingHeaders[c]); break; }
+    }
+  }
+  return orphaned;
 }
 
 function projectRowToHeaders(existingHeaders, values, targetHeaders) {
