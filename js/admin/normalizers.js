@@ -68,7 +68,14 @@ window.OXXO_ADMIN_NORMALIZERS = function createAdminNormalizers(deps){
   function deriveD1(row){const fecha=parseDate(row.Fecha)||extractStatusDate(row['Status ocupacion']);const today=new Date();const sourceMonth=monthFromSourceName();const dias=vacancyDaysValue(row['Dias Vacantes']);return {...row,Fecha:isoDate(fecha),'Dias Vacantes':dias!==''?dias:daysBetween(fecha,today),Mes:sourceMonth||monthKey(parseDate(row.Mes))||monthKey(fecha)};}
   function deriveD2(row){const fecha=parseDate(row.Fecha);const sourceMonth=monthFromSourceName();return {...row,Fecha:isoDate(fecha),Mes:sourceMonth||monthKey(parseDate(row.Mes))||monthKey(fecha)};}
   function deriveD2Denom(row){const fecha=parseDate(row['F.Crea']);const sourceMonth=monthFromSourceName();return {...row,'F.Crea':isoDate(fecha),Mes:sourceMonth||monthKey(parseDate(row.Mes))||monthKey(fecha)};}
-  function deriveD3(row){const raw=pctValue(row['Aprovechamiento Estructura']);return {...row,'Aprovechamiento Estructura':raw,'Aprovechamiento Binario':raw>=95?100:0};}
+  // Umbral 92.5%, no 95%: es el que usa dashboard-3.html en los ~7 lugares
+  // donde recalcula su propio binario desde Aprovechamiento Estructura (meta
+  // visible en la UI "Meta 92.5%") y rh-dashboard-enhancements.js. Esta
+  // columna publicada quedaba huerfana con un umbral distinto al real -- nadie
+  // la consume hoy (todos recalculan desde Aprovechamiento Estructura), pero
+  // cualquier consumo futuro directo de la hoja heredaria el umbral
+  // equivocado.
+  function deriveD3(row){const raw=pctValue(row['Aprovechamiento Estructura']);return {...row,'Aprovechamiento Estructura':raw,'Aprovechamiento Binario':raw>=92.5?100:0};}
   function deriveD5(row){return {...row,Fecha_Inicio:isoDate(parseDate(row.Fecha_Inicio)),Fecha_Fin:isoDate(parseDate(row.Fecha_Fin)),Periodo_Anterior:row.Periodo_Anterior||0,Periodo_Actual:row.Periodo_Actual||0,Dias_Restantes:row.Dias_Restantes||row['Total dias restantes']||0};}
   function deriveD6(row){return {...row,'Inicio de validez':isoDate(parseDate(row['Inicio de validez'])),'Fin de validez':isoDate(parseDate(row['Fin de validez'])),'Inicio de semana':isoDate(parseDate(row['Inicio de semana'])),'Fin de semana':isoDate(parseDate(row['Fin de semana'])),Dias:row.Dias||row['Absentismos solo en la semana']||0};}
   function deriveD7(row){return {...row,'Estructura Propuesta TREO P2 Jun - Ago':row['Estructura Propuesta TREO P2 Jun - Ago']||row.TREO,'Estructura SAP':row['Estructura SAP']||row.SAP,'Empleados Activos':row['Empleados Activos']||row.Activos,'Dif SAP vs Est Optima Final':row['Dif SAP vs Est Optima Final']||row.DIF,'Movimiento Inicial':row['Movimiento Inicial']||row.Movimiento};}
