@@ -1157,7 +1157,7 @@ function renderPlazaGauges(){
         const m1x=(cx+(r-sw/2-1)*Math.cos(ma)).toFixed(1), m1y=(cy-(r-sw/2-1)*Math.sin(ma)).toFixed(1);
         const m2x=(cx+(r+sw/2+3)*Math.cos(ma)).toFixed(1), m2y=(cy-(r+sw/2+3)*Math.sin(ma)).toFixed(1);
         const gid='pz'+i;
-        return `<div style="flex:0 1 30%;min-width:158px;max-width:240px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px 12px;border-radius:16px;background:rgba(0,0,0,.02);transition:transform .16s ease,box-shadow .16s ease" title="${p.plaza}: ${p.aprov.toFixed(2)}%" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 20px rgba(59,25,24,.10)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        return `<div style="flex:0 1 30%;min-width:158px;max-width:240px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px 12px;border-radius:16px;background:rgba(0,0,0,.02);transition:transform .16s ease,box-shadow .16s ease" title="${escHtml(p.plaza)}: ${p.aprov.toFixed(2)}%" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 20px rgba(59,25,24,.10)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
           <svg viewBox="0 0 200 128" style="width:100%;max-width:188px;overflow:visible">
             <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c.main}"/><stop offset="1" stop-color="${c.dark}"/></linearGradient></defs>
             <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" fill="none" stroke="#F2E6DE" stroke-width="${sw}" stroke-linecap="round"/>
@@ -1167,7 +1167,7 @@ function renderPlazaGauges(){
             <circle cx="${cx}" cy="${cy}" r="7" fill="#fff" stroke="#3B1918" stroke-width="2.5"/>
             <text x="${cx}" y="92" text-anchor="middle" style="font-family:var(--font-display,sans-serif);font-weight:800;font-size:31px;fill:${c.txt}">${p.aprov.toFixed(1)}<tspan style="font-size:16px" dy="-1">%</tspan></text>
           </svg>
-          <div style="font-weight:800;font-size:12px;letter-spacing:.04em;color:var(--color-dark);background:${c.soft};padding:4px 14px;border-radius:999px">${p.plaza}</div>
+          <div style="font-weight:800;font-size:12px;letter-spacing:.04em;color:var(--color-dark);background:${c.soft};padding:4px 14px;border-radius:999px">${escHtml(p.plaza)}</div>
         </div>`;
       }).join('');
       plazaEl.innerHTML = `
@@ -1176,7 +1176,7 @@ function renderPlazaGauges(){
         </div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;color:var(--color-gray)">
           <span style="display:inline-block;width:2px;height:12px;background:var(--color-ink,#1a1a1a);opacity:.55"></span>🏁 Meta 92.5%
-          ${(() => { const k = OTRAS_PLAZAS_D3.length ? findKey(OTRAS_PLAZAS_D3[0], ['Actualizado']) : null; const v = k ? String(OTRAS_PLAZAS_D3[0][k]||'').trim() : ''; return v ? `<span style="margin-left:auto">Otras plazas actualizado: ${v}</span>` : ''; })()}
+          ${(() => { const k = OTRAS_PLAZAS_D3.length ? findKey(OTRAS_PLAZAS_D3[0], ['Actualizado']) : null; const v = k ? String(OTRAS_PLAZAS_D3[0][k]||'').trim() : ''; return v ? `<span style="margin-left:auto">Otras plazas actualizado: ${escHtml(v)}</span>` : ''; })()}
         </div>`;
     }
   } else {
@@ -1311,14 +1311,14 @@ function renderEcAt(){
     const critica = v < 70;
     return `<div class="ecat-row" style="display:grid;grid-template-columns:32px 26% 1fr 84px;align-items:center;gap:9px;padding:8px 14px;border-radius:9px;transition:background .15s ease">
       <div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:12px;background:${c.tint};color:${c.txt}">${i+1}</div>
-      <div style="min-width:0" title="${at.asesor}">
-        <div style="font-weight:650;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2">${shortName(at.asesor)}${critica?' <span title="Crítico (&lt;70%)" style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</div>
+      <div style="min-width:0" title="${escHtml(at.asesor)}">
+        <div style="font-weight:650;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2">${escHtml(shortName(at.asesor))}${critica?' <span title="Crítico (&lt;70%)" style="color:var(--semaforo-rojo);font-size:11px">⚠</span>':''}</div>
         <div style="font-size:10.5px;color:var(--color-gray);font-weight:600;line-height:1.2">${at.total} tienda${at.total===1?'':'s'}</div>
       </div>
       <div style="position:relative;height:14px;background:var(--color-border);border-radius:7px">
         <div style="position:absolute;inset:0;width:${barW}%;background:linear-gradient(90deg,${c.bar}bb,${c.bar});border-radius:7px;box-shadow:0 1px 2px rgba(0,0,0,.10);transition:width .9s cubic-bezier(.4,0,.2,1)"></div>
         <div title="Meta 95%" style="position:absolute;top:-3px;bottom:-3px;left:95%;width:2px;background:#3B1918;opacity:.45"></div>
-        <div title="${at.asesor}: ${v.toFixed(2)}%" style="position:absolute;left:${barW}%;top:50%;transform:translate(-50%,-50%);font-size:14px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));transition:left .9s cubic-bezier(.4,0,.2,1);z-index:2">🛒</div>
+        <div title="${escHtml(at.asesor)}: ${v.toFixed(2)}%" style="position:absolute;left:${barW}%;top:50%;transform:translate(-50%,-50%);font-size:14px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));transition:left .9s cubic-bezier(.4,0,.2,1);z-index:2">🛒</div>
       </div>
       <div style="text-align:right;white-space:nowrap">
         <span style="display:inline-block;font-family:var(--font-display);font-size:1.05rem;font-weight:800;color:${c.txt};background:${c.tint};padding:3px 11px;border-radius:999px">${v.toFixed(2)}%</span>
@@ -1364,8 +1364,8 @@ function renderTablaAT(){
 
   const tbodyAT = sorted.map((at)=>{
     const pct=(at.aprov*100).toFixed(2);
-    return`<tr class="at-row${at.criticas>0?' row-critica':''}" data-at="${at.asesor.replace(/"/g,'&quot;')}" style="cursor:pointer" title="Ver detalle de ${at.asesor.replace(/"/g,'&quot;')}">
-      <td><strong>${shortName(at.asesor)}</strong> <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
+    return`<tr class="at-row${at.criticas>0?' row-critica':''}" data-at="${escHtml(at.asesor)}" style="cursor:pointer" title="Ver detalle de ${escHtml(at.asesor)}">
+      <td><strong>${escHtml(shortName(at.asesor))}</strong> <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
       <td class="text-center">${at.completas}</td>
       <td class="text-center">${at.incompletas}</td>
       <td class="text-center" style="color:${at.criticas>0?'var(--semaforo-rojo)':'var(--color-gray)'};font-weight:${at.criticas>0?700:400}">${at.criticas>0?at.criticas:'—'}</td>
@@ -1447,10 +1447,10 @@ function amArrow(col){ if(AM_SORT.col!==col) return '<span style="opacity:.3;mar
 function amDetRowsHTML(){
   const rows = amSortedTiendas().map(t=>{
     const c = isCritica(t.estatus)?'var(--semaforo-rojo)':isIncompleta(t.estatus)?'#B8960C':'var(--semaforo-verde)';
-    return `<tr data-f="${String(t.tienda||'').toLowerCase().replace(/"/g,'&quot;')}"${isCritica(t.estatus)?' style="background:#FFF5F5"':''}>
-      <td style="font-weight:600">${t.tienda}</td>
-      <td style="color:var(--color-gray)">${t.esquema||'—'}</td>
-      <td class="text-center" style="color:${c};font-weight:600">${t.estatus||'—'}</td>
+    return `<tr data-f="${escHtml(String(t.tienda||'').toLowerCase())}"${isCritica(t.estatus)?' style="background:#FFF5F5"':''}>
+      <td style="font-weight:600">${escHtml(t.tienda)}</td>
+      <td style="color:var(--color-gray)">${escHtml(t.esquema||'—')}</td>
+      <td class="text-center" style="color:${c};font-weight:600">${escHtml(t.estatus||'—')}</td>
       <td class="text-center">${t.ausent??'—'}</td>
       <td class="text-center">${t.vacante!=null?t.vacante:'—'}</td>
       <td class="text-right" style="font-weight:700;color:${(t.aprov||0)>=92.5?'var(--semaforo-verde)':'var(--semaforo-rojo)'}">${(t.aprov||0)>=92.5?100:0}%</td>
@@ -1725,9 +1725,9 @@ function renderDetalle(asesorSel, estatusSel){
 
   const dias = v => { const n = Number(v); if(!isFinite(n)) return '—'; const txt = (Math.round(n*10)/10).toString(); return `<span style="color:${n<=0?'var(--semaforo-verde)':'var(--color-ink,#181112)'};font-weight:600">${txt}</span>`; };
   const rows = d.map(r=>{
-    return `<tr class="det-row${isCritica(r.estatus)?' row-critica':''}" data-tienda="${String(r.tienda).replace(/"/g,'&quot;')}" style="cursor:pointer" title="Ver detalle de ${String(r.tienda).replace(/"/g,'&quot;')}">
-      <td style="font-weight:600">${r.tienda} <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
-      ${hasAsesor?`<td title="${String(r.asesor).replace(/"/g,'&quot;')}">${shortName(r.asesor)}</td>`:''}
+    return `<tr class="det-row${isCritica(r.estatus)?' row-critica':''}" data-tienda="${escHtml(String(r.tienda))}" style="cursor:pointer" title="Ver detalle de ${escHtml(String(r.tienda))}">
+      <td style="font-weight:600">${escHtml(r.tienda)} <span style="color:var(--color-gray);font-size:11px">🔍</span></td>
+      ${hasAsesor?`<td title="${escHtml(String(r.asesor))}">${escHtml(shortName(r.asesor))}</td>`:''}
       <td class="text-center">${r.estructura||'—'}</td>
       <td class="text-center">${r.ausent||0}</td>
       <td class="text-center">${r.vacante||0}</td>
@@ -1792,15 +1792,15 @@ function openTiendaModal(tiendaName){
   const sec = ti => `<tr><td colspan="2" style="background:var(--color-bg);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--color-gray);padding:9px 12px">${ti}</td></tr>`;
   const kv  = (l,v,st) => `<tr><td style="font-weight:600">${l}</td><td class="text-right" style="${st||''}">${v}</td></tr>`;
   const fmtMoney = n => '$'+Number(n||0).toLocaleString('es-MX',{maximumFractionDigits:0});
-  const flag = v => { const s=String(v||'').toUpperCase(); return s==='SI'||s==='SÍ'?'<span style="color:var(--semaforo-verde);font-weight:700">Sí</span>':s==='NO'?'<span style="color:var(--color-gray)">No</span>':(v||'—'); };
+  const flag = v => { const s=String(v||'').toUpperCase(); return s==='SI'||s==='SÍ'?'<span style="color:var(--semaforo-verde);font-weight:700">Sí</span>':s==='NO'?'<span style="color:var(--color-gray)">No</span>':escHtml(v||'—'); };
   body.innerHTML = `
     <div class="am-kpis">
       ${kpi('Estructura Diaria', t.estructura||0)}
       ${kpi('Ausentismos', t.ausent||0, (t.ausent||0)>promAus?'var(--semaforo-rojo)':'var(--semaforo-verde)')}
       ${kpi('Vacantes', t.vacante||0, totalVac>0?'#B8960C':'var(--semaforo-verde)')}
       ${kpi('Aprovechamiento', apr+'%', apr===100?'var(--semaforo-verde)':'var(--semaforo-rojo)')}
-      ${kpi('Estatus', `<span style="font-size:.95rem;color:${ecColorVar}">${t.estatus||'—'}</span>`)}
-      ${kpi('Esquema', `<span style="font-size:.95rem">${t.esquema||'—'}</span>`)}
+      ${kpi('Estatus', `<span style="font-size:.95rem;color:${ecColorVar}">${escHtml(t.estatus||'—')}</span>`)}
+      ${kpi('Esquema', `<span style="font-size:.95rem">${escHtml(t.esquema||'—')}</span>`)}
       ${kpi('Días rescate EC', dias(t.diasEC), (t.diasEC||0)<=0?'var(--semaforo-verde)':'#B8960C')}
       ${kpi('Días rescate TC', dias(t.diasTC), (t.diasTC||0)<=0?'var(--semaforo-verde)':'#B8960C')}
     </div>
@@ -1818,10 +1818,10 @@ function openTiendaModal(tiendaName){
     <div class="tbl-wrap"><table class="tbl">
       <tbody>
         ${sec('Identificación')}
-        ${kv('Tienda', t.tienda)}
-        ${t.asesor?kv('Asesor', t.asesor):''}
-        ${kv('Esquema', t.esquema||'—')}
-        ${t.clasifLider?kv('Clasificación Líder', t.clasifLider):''}
+        ${kv('Tienda', escHtml(t.tienda))}
+        ${t.asesor?kv('Asesor', escHtml(t.asesor)):''}
+        ${kv('Esquema', escHtml(t.esquema||'—'))}
+        ${t.clasifLider?kv('Clasificación Líder', escHtml(t.clasifLider)):''}
 
         ${sec('Aprovechamiento')}
         ${kv('Aprovechamiento (umbral)', apr+'%', `font-weight:700;color:${apr===100?'var(--semaforo-verde)':'var(--semaforo-rojo)'}`)}
@@ -1839,14 +1839,14 @@ function openTiendaModal(tiendaName){
         ${t.impactoVac?kv('% Impacto Vacante', t.impactoVac.toFixed(1)+'%'):''}
 
         ${sec('Estatus y rescate')}
-        ${kv('Estatus (con impacto)', t.estatus||'—', `color:${ecColorVar};font-weight:700`)}
-        ${kv('EC sin Ausentismo', t.ecSinAus||'—')}
+        ${kv('Estatus (con impacto)', escHtml(t.estatus||'—'), `color:${ecColorVar};font-weight:700`)}
+        ${kv('EC sin Ausentismo', escHtml(t.ecSinAus||'—'))}
         ${kv('Ausentismos restantes EC', t.ausRestEC)}
         ${kv('Ausentismos restantes TC', t.ausRestTC)}
         ${kv('Días rescate EC', dias(t.diasEC))}
         ${kv('Días rescate TC', dias(t.diasTC))}
-        ${t.fechaRescEC?kv('Fecha máx. rescate EC', t.fechaRescEC):''}
-        ${t.fechaRescTC?kv('Fecha máx. rescate TC', t.fechaRescTC):''}
+        ${t.fechaRescEC?kv('Fecha máx. rescate EC', escHtml(t.fechaRescEC)):''}
+        ${t.fechaRescTC?kv('Fecha máx. rescate TC', escHtml(t.fechaRescTC)):''}
 
         ${sec('Venta')}
         ${t.ventaMesAnt?kv('Venta mes anterior', fmtMoney(t.ventaMesAnt)):''}

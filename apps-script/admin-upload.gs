@@ -1642,6 +1642,18 @@ function normalizePeriodValue(value, periodColumn) {
     return monthNames[value.getMonth()] + '-' + String(value.getFullYear()).slice(-2);
   }
 
+  // Dashboard 12 (m12) publica su columna Mes ya canonica como "YYYY-MM" (ver mesKeyD12 en
+  // dashboard-definitions.js), formato que tambien espera nombreMes() en dashboard-12.html.
+  // Sin este chequeo el valor caia al parseo generico de mas abajo: new Date("2026-09") se
+  // interpreta en UTC, y al convertir a hora de Mexico (UTC-6) se corre un mes hacia atras
+  // (confirmado con datos reales: septiembre se publicaba como agosto). Se devuelve tal cual,
+  // sin reformatear a "mon-YY" como el resto de dashboards, porque ese es su formato correcto.
+  const isoYearMonth = raw.match(/^(\d{4})-(\d{1,2})$/);
+  if (isoYearMonth) {
+    const month = Number(isoYearMonth[2]);
+    if (month >= 1 && month <= 12) return isoYearMonth[1] + '-' + String(month).padStart(2, '0');
+  }
+
   const compact = raw.toLowerCase().replace(/[.\/]/g, '-').replace(/\s+/g, '-');
   const named = compact.match(/^(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)-?(\d{2}|\d{4})$/);
   if (named) return named[1] + '-' + named[2].slice(-2);
