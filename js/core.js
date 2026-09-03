@@ -1221,15 +1221,6 @@ function getSemaforo(valor, umbralVerde, umbralRojo, invertido = false) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// FUNCIÓN: Crear HTML de semáforo
-// ─────────────────────────────────────────────────────────────
-function semaforoHTML(texto, color) {
-  return `<span class="semaforo ${color}">
-    <span class="semaforo__dot"></span>${texto}
-  </span>`;
-}
-
-// ─────────────────────────────────────────────────────────────
 // FUNCIÓN: Calcular máximo de un array de valores
 // ─────────────────────────────────────────────────────────────
 function maxVal(arr, key) {
@@ -1268,42 +1259,6 @@ function escHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[ch]));
-}
-
-// ─────────────────────────────────────────────────────────────
-// FUNCIÓN: Renderizar tabla genérica
-// columnas: [{key, label, format, align, semaforo}]
-// ─────────────────────────────────────────────────────────────
-function renderTable(containerId, data, columnas) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  if (!data || data.length === 0) { showEmpty(containerId); return; }
-
-  const thead = columnas.map(c =>
-    `<th style="text-align:${c.align || 'left'}">${c.label}</th>`
-  ).join('');
-
-  const tbody = data.map((row, i) => {
-    const cells = columnas.map(col => {
-      let val = row[col.key] ?? '';
-      if (col.format === 'num') val = formatNum(val);
-      if (col.format === 'pct') val = formatPct(val);
-      if (col.semaforo) {
-        const color = getSemaforo(row[col.key], col.semaforo.verde, col.semaforo.rojo, col.semaforo.invertido);
-        val = semaforoHTML(val, color);
-      }
-      return `<td style="text-align:${col.align || 'left'}">${val}</td>`;
-    }).join('');
-    return `<tr>${cells}</tr>`;
-  }).join('');
-
-  el.innerHTML = `
-    <div class="table-wrapper">
-      <table class="data-table">
-        <thead><tr>${thead}</tr></thead>
-        <tbody>${tbody}</tbody>
-      </table>
-    </div>`;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -3164,8 +3119,6 @@ window.OXXO = {
   formatNum,
   formatPct,
   getSemaforo,
-  semaforoHTML,
-  renderTable,
   renderRanking,
   renderKPI,
   renderBarChart,
