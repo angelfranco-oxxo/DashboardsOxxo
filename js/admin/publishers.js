@@ -88,7 +88,20 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       :' Atención: Apps Script terminó la escritura, pero la comprobación interna requiere revisión.';
   }
   async function verifyPublicReadback(dash,result){
-    if(!dash?.tab||result?.compatibilityMode)return null;
+    if(!dash?.tab)return null;
+    // Modo compatible (fallback no-cors en postAdminPayload): el navegador
+    // nunca pudo leer la respuesta real del servidor, asi que no hay
+    // result.verification/rows/keptRows para calcular un conteo esperado --
+    // antes esto se saltaba el readback por completo (return null) y una
+    // publicacion en modo compatible se quedaba SIN ninguna verificacion
+    // automatica, dependiendo solo de que el admin fuera a revisar el
+    // dashboard el mismo. Aqui se sigue leyendo la hoja publica igual que en
+    // una publicacion normal, solo que sin exigir que el conteo coincida
+    // exactamente con uno que no conocemos: basta con que las columnas
+    // requeridas esten presentes y haya filas. No es una confirmacion tan
+    // fuerte como el conteo exacto de una publicacion normal, pero es real
+    // informacion en vez de nada.
+    const compatibilityMode=Boolean(result?.compatibilityMode);
     const expectedRows=Number(result?.verification?.expectedRows ?? (Number(result?.rows||0)+Number(result?.keptRows||0)));
     const required=(dash.output||[]).map(normHeader).filter(Boolean);
     let last={ok:false,rows:0,missing:required,error:''};
@@ -100,7 +113,7 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
         if(!Array.isArray(rows)||!rows.length){last={ok:false,rows:0,missing:required,error:'La lectura pública respondió sin filas.'};continue;}
         const headers=Object.keys(rows[0]||{}).map(normHeader);
         const missing=required.filter(header=>!headers.includes(header));
-        const countOk=rows.length===expectedRows;
+        const countOk=compatibilityMode||rows.length===expectedRows;
         last={ok:countOk&&!missing.length,rows:rows.length,missing,countOk,error:''};
         if(last.ok)return last;
       }catch(error){
