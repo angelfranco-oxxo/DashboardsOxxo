@@ -242,9 +242,20 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       const catalogMsg=result?.storeCatalog?.ok
         ?` Catálogo de tiendas activas actualizado: ${Number(result.storeCatalog.rows||0).toLocaleString('es-MX')} tiendas desde TREO.`
         :result?.storeCatalog?` TREO quedó publicado, pero el catálogo físico usará el respaldo directo hasta su siguiente sincronización.`:'';
-      const message=(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestaña reemplazada completa'}.`)+serverVerificationText(result)+readbackText(readback)+catalogMsg+autoMsg;
+      // orphanedColumns (admin-upload.gs, detectOrphanedColumns): columnas que
+      // existian en la hoja con datos reales y ya no aparecen bajo ningun
+      // nombre en el esquema nuevo -- senal de que alguien renombro una
+      // columna en dashboard-definitions.js y las filas conservadas de
+      // periodos/plazas anteriores perdieron esos datos en silencio (el
+      // conteo de filas sigue cuadrando, por eso la verificacion normal no lo
+      // detecta).
+      const orphanedColumns=Array.isArray(result?.orphanedColumns)?result.orphanedColumns:[];
+      const orphanedMsg=orphanedColumns.length
+        ?` ⚠ Atención: la columna ${orphanedColumns.join(', ')} existía con datos y ya no aparece en el esquema publicado — revisa si se renombró en dashboard-definitions.js, las filas conservadas de periodos anteriores pudieron perder ese dato.`
+        :'';
+      const message=(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestaña reemplazada completa'}.`)+serverVerificationText(result)+readbackText(readback)+catalogMsg+autoMsg+orphanedMsg;
       renderPublicationResult?.({
-        type:result.compatibilityMode||!readback?.ok||!autoOk?'warn':'ok',
+        type:result.compatibilityMode||!readback?.ok||!autoOk||orphanedColumns.length?'warn':'ok',
         title:result.compatibilityMode?'Solicitud enviada':'Publicación completada',
         area:getAdminArea?.()||'Panel Admin',
         text:message,
