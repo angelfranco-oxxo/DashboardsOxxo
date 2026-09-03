@@ -412,7 +412,7 @@ async function init(){
   const asesorCatalog = await OXXO.loadAsesorCatalog();
   raw.forEach(row => OXXO.applyAsesorCatalog(row, asesorCatalog, { asesorKey:'Asesor', tiendaKey:'Tienda', crKey:'CR' }));
 
-  ALL_DATA = raw
+  const conTienda = raw
     .filter(r => OXXO.isTiendaValid(asesorCatalog, r['Tienda'], r['CR']))
     .filter(r => String(r['Asesor']||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'') !== 'timoteoantonioperez')
     .map(r => ({
@@ -429,6 +429,18 @@ async function init(){
       fecha: String(r['Fecha']||'').trim(),
     }))
     .filter(r => r.tienda);
+
+  // Mismo criterio de puestos operativos que dashboard-2.html (filterData): solo
+  // Ayudante/Encargado/Lider entran al tablero de Bajas. Sin este filtro, este
+  // dashboard incluia puestos no operativos (gerencia/staff) que Dashboard 2
+  // excluye, mostrando totales distintos para el mismo universo de datos (misma
+  // pestaña d2). Con el mismo resguardo que filterData: si el filtro dejara todo
+  // vacio (formato de Puesto inesperado), se conserva la base sin filtrar.
+  const operativos = conTienda.filter(r => {
+    const p = r.puesto.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    return p.includes('AYUDANTE') || p.includes('ENCARGADO') || p.includes('LIDER');
+  });
+  ALL_DATA = operativos.length ? operativos : conTienda;
 
   const meses = [...new Set(ALL_DATA.map(r => r.mes).filter(Boolean))].sort();
   const selMes = document.getElementById('filtro-mes');
