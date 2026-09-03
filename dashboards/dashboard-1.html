@@ -1876,6 +1876,7 @@ function pillHTML(t,c){return`<span class="pill ${c}"><span class="pill-dot"></s
 
 // Estado global
 let allData=[], colMap={}, activePuesto='', selectedPuestoValues=[], selectedTiendaValues=[], tiendaOptionsData=[];
+let ALL_MESES_D1=[];
 let selectedAsesorValues=null, asesorOptionsData=[];
 const DEFAULT_PUESTOS = [
   'ENCARGADO TURNO',
@@ -2430,8 +2431,7 @@ function poblarFiltros(){
   setSelectedTiendas();
   renderTiendaOptions();
   const selMes=document.getElementById('filtro-mes');
-  const meses=[...new Map(allData.filter(r=>r.mesKey).map(r=>[r.mesKey,mesLabel(r.mesKey)])).entries()]
-    .sort((a,b)=>a[0].localeCompare(b[0]));
+  const meses=ALL_MESES_D1;
   meses.forEach(([value,label])=>selMes.add(new Option(label,value)));
   DEFAULT_MES=meses.length ? meses[meses.length-1][0] : '';
   selMes.value=OXXO.restoreDashboardPeriod(meses.map(([value])=>value), DEFAULT_MES);
@@ -2714,7 +2714,7 @@ async function initDashboard(){
   colMap=buildMap(rawData);
 
   // Normalizar datos
-  allData=rawData.map(r=>{
+  const mappedData=rawData.map(r=>{
     const fechaRaw = gv(r,colMap,'fecha','');
     const fechaObj = parseFechaVacante(fechaRaw);
     const mesInfo = normalizeMesColumn(gv(r,colMap,'mes',''));
@@ -2741,7 +2741,19 @@ async function initDashboard(){
       diasRaw: String(gv(r,colMap,'dias','')).trim(),
       tipo:   tipoPuesto(puesto),
     };
-  }).filter(r=>r.isVacante)
+  });
+
+  // El mes vigente/selector se calcula con la fuente completa (todas las
+  // posiciones publicadas, no solo las vacantes que sobreviven los filtros de
+  // abajo) -- mismo criterio que metricsD1Rows() en core.js. Si el mes mas
+  // reciente tiene cero vacantes (todas las posiciones cubiertas ese corte),
+  // el filtro de isVacante lo vaciaba de allData y el mes desaparecia del
+  // selector, retrocediendo en silencio a un periodo anterior.
+  ALL_MESES_D1=[...new Map(mappedData.filter(r=>r.mesKey).map(r=>[r.mesKey,mesLabel(r.mesKey)])).entries()]
+    .sort((a,b)=>a[0].localeCompare(b[0]));
+
+  allData=mappedData
+    .filter(r=>r.isVacante)
     .filter(r=>r.tienda && r.tienda !== 'Sin tienda')
     .filter(r=>OXXO.isTiendaValid(asesorCatalog, r.tienda, r.cr));
 
