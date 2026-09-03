@@ -1621,9 +1621,24 @@ function findHeaderByKey(headers, key) {
 function rowsToValues(rows, headers) {
   return [headers].concat(rows.map(function(row) {
     return headers.map(function(header) {
-      return row[header] == null ? '' : row[header];
+      return sanitizeSheetValue(row[header] == null ? '' : row[header]);
     });
   }));
+}
+
+// Mitigacion de formula injection: texto libre del Excel subido (causa de
+// baja, comentarios, nombres) se escribe tal cual en la hoja. Una celda cuyo
+// valor empiece con =, +, - o @ se interpreta como formula al escribirse con
+// setValues() -- igual que si alguien la tecleara a mano -- y podria ejecutar
+// algo como =HYPERLINK(...) contra quien abra el Sheet directamente (no
+// contra los dashboards, que solo leen el CSV ya renderizado). Se antepone un
+// apostrofe, la misma convencion que usa Sheets para forzar texto literal al
+// escribir a mano: Sheets lo interpreta como "no evaluar" y lo retira del
+// valor mostrado/exportado, sin alterar como se ve la celda.
+function sanitizeSheetValue(value) {
+  if (typeof value !== 'string') return value;
+  if (/^[=+\-@]/.test(value)) return "'" + value;
+  return value;
 }
 
 function normalizeHeader(value) {
