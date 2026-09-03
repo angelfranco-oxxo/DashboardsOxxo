@@ -136,9 +136,23 @@
     const droppedRows=Math.max(0,(state.sourceRows||0)-rows.length);
     const plazaCol=detectPlazaColumn(rows);
     const plazasDetected=plazaCol?[...new Set(rows.map(r=>String(r[plazaCol]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')):[];
+    // dash.required (arriba, "missing") solo revisa que la columna tenga
+    // datos EN ALGUNA fila del archivo, no que este llena en CADA fila -- una
+    // base con 990 de 1000 filas sin Asesor pasa esa validacion sin ningun
+    // aviso, porque una sola fila con dato ya la marca como "columna OK". No
+    // se vuelve bloqueante aqui (algunas bases reales traen huecos
+    // legitimos en ciertas columnas y romper el publish por eso seria
+    // excesivamente estricto), pero se agrega visibilidad real: cuantas
+    // filas concretas faltan por columna requerida, para que el admin lo vea
+    // antes de publicar en vez de descubrirlo despues en el dashboard.
+    const incompleteFields=dash.required
+      .filter(col=>!missing.includes(col))
+      .map(col=>({col,count:nonEmpty.filter(row=>String(row[col]??'').trim()==='').length}))
+      .filter(f=>f.count>0);
     setStatus([
       {type:rows.length?'ok':'bad',title:'Archivo leido',text:rows.length?`${rows.length} filas utiles listas desde "${state.sheetName}".`:'No se detectaron filas utiles en el archivo.',badge:rows.length?'OK':'Revisar'},
       {type:missing.length?'bad':'ok',title:'Columnas obligatorias',text:missing.length?`Faltan o vienen vacias: ${missing.join(', ')}`:`Columnas criticas OK para ${dash.label}.`,badge:missing.length?missing.length+' faltan':'OK'},
+      ...(incompleteFields.length?[{type:'warn',title:'Filas incompletas',text:incompleteFields.map(f=>`${f.col}: ${f.count} de ${nonEmpty.length} filas vacias`).join(' · '),badge:'Revisar'}]:[]),
       {type:droppedRows?'warn':'ok',title:'Plazas detectadas',text:plazasDetected.length?`Se van a publicar ${rows.length} filas de ${plazasDetected.length} plaza${plazasDetected.length===1?'':'s'}: ${plazasDetected.join(', ')}.${droppedRows?` ${droppedRows} fila(s) sin una plaza reconocida se descartaron.`:' Un mismo archivo puede traer varias plazas a la vez, cada una se publica sin pisar las demas.'}`:(droppedRows?`${droppedRows} fila(s) se descartaron por no tener una plaza reconocida.`:'No se detecto una columna de Plaza; se publican todas las filas utiles tal cual.'),badge:plazasDetected.length?`${plazasDetected.length} plaza${plazasDetected.length===1?'':'s'}`:`${rows.length} filas`},
       {type:'warn',title:'Regla aplicada',text:dash.notes||'Se normalizaron columnas al formato del dashboard.',badge:'Auto'},
       {type:period.enabled?'ok':'warn',title:'Modo de publicacion',text:period.enabled?`Se reemplazara solo ${period.column}: ${period.values.join(', ')}.`:'Sin periodo confiable: esta base reemplaza la pestana completa.',badge:period.enabled?'Por periodo':'Completo'}
