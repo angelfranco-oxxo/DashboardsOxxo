@@ -91,24 +91,33 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
     if(!dash?.tab||result?.compatibilityMode)return null;
     const expectedRows=Number(result?.verification?.expectedRows ?? (Number(result?.rows||0)+Number(result?.keptRows||0)));
     const required=(dash.output||[]).map(normHeader).filter(Boolean);
-    let last={ok:false,rows:0,missing:required};
+    let last={ok:false,rows:0,missing:required,error:''};
     for(const delay of [700,1200,1800]){
       await new Promise(resolve=>setTimeout(resolve,delay));
-      OXXO.clearSheetDataCache(dash.tab);
-      const rows=await OXXO.fetchSheetData(dash.tab,{fresh:true,allowStale:false,scoped:false});
-      if(!Array.isArray(rows)||!rows.length){last={ok:false,rows:0,missing:required};continue;}
-      const headers=Object.keys(rows[0]||{}).map(normHeader);
-      const missing=required.filter(header=>!headers.includes(header));
-      const countOk=rows.length===expectedRows;
-      last={ok:countOk&&!missing.length,rows:rows.length,missing,countOk};
-      if(last.ok)return last;
+      try{
+        OXXO.clearSheetDataCache(dash.tab);
+        const rows=await OXXO.fetchSheetData(dash.tab,{fresh:true,allowStale:false,scoped:false});
+        if(!Array.isArray(rows)||!rows.length){last={ok:false,rows:0,missing:required,error:'La lectura pública respondió sin filas.'};continue;}
+        const headers=Object.keys(rows[0]||{}).map(normHeader);
+        const missing=required.filter(header=>!headers.includes(header));
+        const countOk=rows.length===expectedRows;
+        last={ok:countOk&&!missing.length,rows:rows.length,missing,countOk,error:''};
+        if(last.ok)return last;
+      }catch(error){
+        // La escritura ya fue confirmada por Apps Script. Un 404/timeout del
+        // readback puede ser transitorio mientras Google refresca la hoja y
+        // no debe convertir una publicación correcta en un falso fracaso.
+        last={ok:false,rows:0,missing:required,error:String(error?.message||error||'Lectura no disponible')};
+      }
     }
     return last;
   }
   function readbackText(readback){
     if(!readback)return '';
     if(readback.ok)return ` Lectura pública comprobada: ${Number(readback.rows||0).toLocaleString('es-MX')} registros visibles en el dashboard.`;
-    const detail=readback.missing?.length?` faltan ${readback.missing.join(', ')}`:` se leyeron ${Number(readback.rows||0).toLocaleString('es-MX')} filas`;
+    const detail=readback.error
+      ?` la comprobación respondió ${readback.error}`
+      :readback.missing?.length?` faltan ${readback.missing.join(', ')}`:` se leyeron ${Number(readback.rows||0).toLocaleString('es-MX')} filas`;
     return ` Atención: la publicación se guardó, pero la lectura del dashboard todavía no coincide (${detail}). Revisa Calidad de datos.`;
   }
 
