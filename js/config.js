@@ -11,6 +11,12 @@ window.OXXO_CONFIG = {
   CONFIG_SHEET: "Configuracion",
   CATALOG_SHEET: "Catalogo_Asesores",
   STORE_CATALOG_SHEET: "Catalogo_Tiendas",
+  // Meta mensual de bajas por asesor (Dashboard 2, panel Compromiso).
+  // Columnas esperadas: Plaza | Asesor | Compromiso. Antes vivian como nombres
+  // reales hardcodeados en BAJAS_COMMITMENTS mas abajo, en este archivo JS
+  // publico -- se movieron a esta pestana (igual que Catalogo_Asesores/
+  // Catalogo_Tiendas) para no exponer nombres de personal en el codigo fuente.
+  COMMITMENTS_SHEET: "Compromisos_Bajas",
 
   // Contexto operativo predeterminado. Oaxaca se conserva como plaza inicial
   // durante la transición; todas las pantallas pueden cambiar de alcance sin
@@ -80,24 +86,9 @@ window.OXXO_CONFIG = {
   // datos de la plaza activa; esta tabla solo conserva las excepciones de meta
   // que ya estaban definidas para Oaxaca. Las plazas sin una meta particular
   // usan DEFAULT, por lo que nunca heredan nombres de otra plaza.
-  BAJAS_COMMITMENTS: {
-    DEFAULT: 4,
-    BY_PLAZA: {
-      "Plaza Oaxaca": {
-        "Timoteo Antonio Perez": 4,
-        "Ernesto Cruz Márquez": 4,
-        "Hector Demetrio Reyes Galo": 4,
-        "Jordan Vazquez Toala": 4,
-        "Jorge Adrian Posadas Lopez": 4,
-        "Laura Alejandra Moreno Mayoral": 4,
-        "Luis Javier Ramos Cruz": 4,
-        "Marisela Muñoz Sarabia": 4,
-        "Mirna Martinez Lorenzo": 4,
-        "Reyna Alicia Reyes Garcia": 7,
-        "Sofia Caridad Jimenez Gomez": 8
-      }
-    }
-  },
+  // Meta por defecto cuando un asesor no tiene fila propia en la pestana
+  // Compromisos_Bajas (ver COMMITMENTS_SHEET arriba) para la plaza activa.
+  BAJAS_COMMITMENTS_DEFAULT: 4,
 
   // Web App de Apps Script usado por el panel admin para publicar bases y
   // para leer hojas directo (sin pasar por gviz, ver ADMIN_READ_ACTION mas

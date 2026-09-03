@@ -664,7 +664,7 @@
   </div>
 </div>
 
-  <script src="../js/config.js?v=20260902scope1"></script>
+  <script src="../js/config.js?v=20260903commitments1"></script>
 <script src="../js/core.js?v=20260902scope1"></script>
 <script src="../js/mascota-chat.js?v=20260805d"></script>
 <script>
@@ -762,6 +762,11 @@ let BAJAS_COLS = {};
 // Plazas: por defecto solo muestra la plaza activa (ver renderPlazas).
 let PLAZAS_SHOW_ALL = false;
 let OTRAS_PLAZAS_DATA = [];
+// Meta mensual de bajas por asesor (pestana Compromisos_Bajas: Plaza | Asesor
+// | Compromiso), cargada una vez en initDashboard -- antes vivia hardcodeada
+// como nombres reales en OXXO.SHEETS_CONFIG.BAJAS_COMMITMENTS (config.js,
+// archivo JS publico). byPlaza: Map de plaza normalizada -> {Asesor: valor}.
+let COMPROMISOS_BY_PLAZA = new Map();
 let FILTER_STATE = {};
 let SELECTED_ASESORES = null; // array de asesores seleccionados (multi-select)
 
@@ -1176,12 +1181,32 @@ function shortAsesorName(fullName){
   return `${parts[0]} ${parts.slice(1).map(part=>`${part[0].toUpperCase()}.`).join('')}`;
 }
 
+// Carga la pestana Compromisos_Bajas (Plaza | Asesor | Compromiso) una sola
+// vez en initDashboard y arma COMPROMISOS_BY_PLAZA: Map de plaza (texto tal
+// cual viene en la hoja) -> {Asesor: valor}. Si la pestana no existe todavia
+// o viene vacia, queda vacio y compromisoConfigForScope() usa solo el
+// default -- no rompe el dashboard mientras se crea/migra la pestana.
+async function loadCompromisosBajas(){
+  const sheetName=OXXO.SHEETS_CONFIG.COMMITMENTS_SHEET;
+  if(!sheetName)return;
+  const rows=await OXXO.fetchSheetData(sheetName,{scoped:false}).catch(()=>null);
+  if(!Array.isArray(rows))return;
+  const byPlaza=new Map();
+  rows.forEach(row=>{
+    const plaza=String(row['Plaza']||'').trim();
+    const asesor=String(row['Asesor']||'').trim();
+    const compromiso=Number(row['Compromiso']);
+    if(!plaza||!asesor||!Number.isFinite(compromiso))return;
+    if(!byPlaza.has(plaza))byPlaza.set(plaza,{});
+    byPlaza.get(plaza)[asesor]=compromiso;
+  });
+  COMPROMISOS_BY_PLAZA=byPlaza;
+}
+
 function compromisoConfigForScope(){
-  const config=OXXO.SHEETS_CONFIG.BAJAS_COMMITMENTS||{};
-  const byPlaza=config.BY_PLAZA||{};
   const scope=OXXO.getActiveDataScope();
-  const target=Object.entries(byPlaza).find(([plaza])=>OXXO.matchesScopeValue(plaza,'plaza',scope));
-  return {defaultValue:Number(config.DEFAULT)||0,values:target?target[1]:{}};
+  const target=[...COMPROMISOS_BY_PLAZA.entries()].find(([plaza])=>OXXO.matchesScopeValue(plaza,'plaza',scope));
+  return {defaultValue:Number(OXXO.SHEETS_CONFIG.BAJAS_COMMITMENTS_DEFAULT)||0,values:target?target[1]:{}};
 }
 
 function compromisoRoster(cols){
@@ -1904,6 +1929,7 @@ async function initDashboard(){
     OXXO.fetchSheetData(TAB),
     OXXO.loadAsesorCatalog(),
     OXXO.fetchSheetData(OXXO.SHEETS_CONFIG.TABS.d2otras,{scoped:false}),
+    loadCompromisosBajas(),
   ]);
   if(raw === null){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showError(id,'No se pudo conectar con Google Sheets.')); return; }
   if(!raw.length){ ['kpi-section','tabla-detalle'].forEach(id=>OXXO.showEmpty(id)); return; }
