@@ -6,6 +6,7 @@
 
 window.OXXO_ADMIN_UI = function createAdminUI(deps){
   const {$,escapeHtml,dashboard} = deps;
+  let publicationToastTimer=null;
 
   function setStatus(items){$('status-list').innerHTML=items.map(item=>`<div class="status-item ${item.type}"><span class="status-dot"></span><div><div class="status-title">${escapeHtml(item.title)}</div><div class="status-sub">${escapeHtml(item.text)}</div></div><span class="status-badge">${escapeHtml(item.badge||'')}</span></div>`).join('');}
 
@@ -18,6 +19,34 @@ window.OXXO_ADMIN_UI = function createAdminUI(deps){
     if($('impact-mode'))$('impact-mode').textContent=mode;
   }
 
+  function showPublicationToast({type='ok',title='Publicación completada',facts=[]}={}){
+    const toast=$('publication-toast');
+    if(!toast)return;
+    const isBad=type==='bad',isWarn=type==='warn';
+    toast.classList.remove('bad','warn');
+    if(isBad||isWarn)toast.classList.add(type);
+    const icon=isBad?'!':isWarn?'!':'✓';
+    const summary=isBad
+      ?'No se modificaron los datos. Revisa el detalle antes de volver a intentar.'
+      :isWarn
+        ?'Los datos se guardaron; hay una comprobación pendiente por revisar.'
+        :'Datos guardados y verificados en Google Sheets.';
+    $('publication-toast-icon').textContent=icon;
+    $('publication-toast-title').textContent=title;
+    $('publication-toast-text').textContent=[summary,...(facts||[]).slice(0,2)].filter(Boolean).join(' · ');
+    toast.classList.add('visible');
+    if(publicationToastTimer)clearTimeout(publicationToastTimer);
+    if(!isBad){publicationToastTimer=setTimeout(()=>toast.classList.remove('visible'),isWarn?11000:8000);}
+    const close=$('publication-toast-close');
+    if(close&&!close.dataset.bound){
+      close.dataset.bound='1';
+      close.addEventListener('click',()=>{
+        toast.classList.remove('visible');
+        if(publicationToastTimer)clearTimeout(publicationToastTimer);
+      });
+    }
+  }
+
   function renderPublicationResult({type='ok',title='Resultado de publicación',area='—',text='',facts=[]}={}){
     const root=$('publication-result');
     if(!root)return;
@@ -27,6 +56,7 @@ window.OXXO_ADMIN_UI = function createAdminUI(deps){
     $('publication-result-area').textContent=area;
     $('publication-result-text').textContent=text;
     $('publication-result-facts').innerHTML=(facts||[]).filter(Boolean).map(fact=>`<span>${escapeHtml(fact)}</span>`).join('');
+    showPublicationToast({type,title,facts});
     root.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
 
