@@ -143,20 +143,30 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
     if(!state.workbook)return [];
     const keys=AUTO_PUBLISH_MAP[parentKey]||[];
     const publicados=[];
+    // Cada hoja derivada se publica de forma independiente: si una falla (ej.
+    // d2denom), las demas que ya se publicaron con exito (ej. d2otras) no deben
+    // perderse de `publicados` -- antes un solo error aqui rechazaba toda la
+    // funcion y el admin no podia saber cual de las hojas derivadas si se
+    // actualizo y cual no.
     for(const key of keys){
       const dashDef=getDashboards().find(d=>d.key===key);
       if(!dashDef)continue;
-      const sheetName=findSheetInWorkbook(dashDef.preferredSheets)||state.sheetName;
-      if(!sheetName)continue;
-      const matrix=getSheetMatrix(sheetName);
-      if(!matrix.length)continue;
-      const parsed=rowsFromMatrix(matrix,dashDef);
-      if(!parsed.rows.length)continue;
-      const result=await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:dashDef.tab,rows:parsed.rows,requiredHeaders:dashDef.required||[],scopeColumns:dashDef.scopeColumns||[],source:`DashboardsOxxo Admin (auto desde ${parentKey})`,sourceFile:state.fileName||'',updateMode:'replaceAll'});
-      OXXO.clearSheetDataCache(dashDef.tab);
-      notifyConfigDate(dashDef.key);
-      const readback=await verifyPublicReadback(dashDef,result);
-      publicados.push({label:dashDef.label,count:parsed.rows.length,verified:Boolean(result?.verification?.ok&&readback?.ok)});
+      try{
+        const sheetName=findSheetInWorkbook(dashDef.preferredSheets)||state.sheetName;
+        if(!sheetName)continue;
+        const matrix=getSheetMatrix(sheetName);
+        if(!matrix.length)continue;
+        const parsed=rowsFromMatrix(matrix,dashDef);
+        if(!parsed.rows.length)continue;
+        const result=await postAdminPayload({adminPassword:getAdminPassword(),targetSheet:dashDef.tab,rows:parsed.rows,requiredHeaders:dashDef.required||[],scopeColumns:dashDef.scopeColumns||[],source:`DashboardsOxxo Admin (auto desde ${parentKey})`,sourceFile:state.fileName||'',updateMode:'replaceAll'});
+        OXXO.clearSheetDataCache(dashDef.tab);
+        notifyConfigDate(dashDef.key);
+        const readback=await verifyPublicReadback(dashDef,result);
+        publicados.push({label:dashDef.label,count:parsed.rows.length,verified:Boolean(result?.verification?.ok&&readback?.ok)});
+      }catch(error){
+        console.error(`No se pudo auto-publicar ${dashDef.label} (${key}) desde ${parentKey}:`,error);
+        publicados.push({label:dashDef.label,count:0,verified:false});
+      }
     }
     return publicados;
   }
@@ -202,13 +212,18 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
       $('publish-btn').textContent='Verificando...';
       const readback=await verifyPublicReadback(dash,result);
       let autoMsg='';
+      let autoOk=true;
       if(AUTO_PUBLISH_MAP[dash.key]){
         try{
           const publicados=await publishAutoFor(dash.key);
-          if(publicados.length)autoMsg=' Tambien se actualizaron: '+publicados.map(p=>`${p.label} (${p.count}) ${p.verified?'✓':'⚠'}`).join(', ')+'.';
+          if(publicados.length){
+            autoMsg=' Tambien se actualizaron: '+publicados.map(p=>`${p.label} (${p.count}) ${p.verified?'✓':'⚠'}`).join(', ')+'.';
+            autoOk=publicados.every(p=>p.verified);
+          }
         }catch(autoError){
           console.error(`No se pudo publicar los dashboards derivados de ${dash.key} automaticamente:`,autoError);
           autoMsg=' Ojo: no se pudieron actualizar los dashboards derivados, revisalos aparte si hace falta.';
+          autoOk=false;
         }
       }
       const catalogMsg=result?.storeCatalog?.ok
@@ -216,7 +231,7 @@ window.OXXO_ADMIN_PUBLISHERS = function createAdminPublishers(deps){
         :result?.storeCatalog?` TREO quedó publicado, pero el catálogo físico usará el respaldo directo hasta su siguiente sincronización.`:'';
       const message=(result.compatibilityMode?`Solicitud enviada en modo compatible a ${dash.tab}. Espera unos segundos y valida el dashboard.`:`Base publicada correctamente en ${dash.tab}. ${period.enabled?'Periodo actualizado: '+period.values.join(', '):'Pestaña reemplazada completa'}.`)+serverVerificationText(result)+readbackText(readback)+catalogMsg+autoMsg;
       renderPublicationResult?.({
-        type:result.compatibilityMode||!readback?.ok?'warn':'ok',
+        type:result.compatibilityMode||!readback?.ok||!autoOk?'warn':'ok',
         title:result.compatibilityMode?'Solicitud enviada':'Publicación completada',
         area:getAdminArea?.()||'Panel Admin',
         text:message,
