@@ -1534,7 +1534,13 @@ function replacePeriod(sheet, rows, newHeaders, periodColumn, periodValues, scop
     const currentPeriod = normalizePeriodValue(projected[periodHeader], periodColumn);
     const currentScopeKey = scopeKeyFromObject(projected, normalizedScopeColumns);
     const scopeMatches = !normalizedScopeColumns.length || incomingScopeKeys.indexOf(currentScopeKey) !== -1;
-    if (!scopeMatches || (currentPeriod && !periodSet.has(currentPeriod))) {
+    // Antes se exigia currentPeriod truthy para conservar la fila, asi que una fila con la
+    // columna de periodo vacia (dato legado, o texto que normalizePeriodValue no reconocio) y
+    // scope coincidente se perdia en silencio: no entraba a keptRows ni a las filas nuevas.
+    // periodSet nunca contiene '' (se filtra con .filter(Boolean) al construirlo), asi que
+    // periodSet.has(currentPeriod) ya es false para periodo vacio -- basta con quitar el
+    // chequeo de truthy para conservar esas filas en vez de descartarlas.
+    if (!scopeMatches || !periodSet.has(currentPeriod)) {
       projected[periodHeader] = currentPeriod;
       keptRows.push(projected);
     }
