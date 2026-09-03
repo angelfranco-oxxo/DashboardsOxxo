@@ -1679,10 +1679,22 @@ function normalizePeriodValue(value, periodColumn) {
   const named = compact.match(/^(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)-?(\d{2}|\d{4})$/);
   if (named) return named[1] + '-' + named[2].slice(-2);
 
+  // Los pipelines actuales (monthKey/mesKeyD12 en el admin) nunca generan una
+  // fecha numerica suelta para la columna Mes -- siempre mandan "mon-YY" (rama
+  // named de arriba) o "YYYY-MM" (rama isoYearMonth de arriba). Esta rama solo
+  // se alcanza leyendo filas legadas o editadas a mano con un "Mes" tipo
+  // fecha numerica, y asume D-M-Y (como el resto de este archivo). Igual que
+  // el bug ya corregido en getSheetMatrix, esto es ambiguo cuando ambos
+  // grupos son <=12 -- no hay forma de saber la convencion solo con el texto.
+  // Se agrega un segundo intento (M-D-Y) unicamente para el caso donde D-M-Y
+  // es invalido (el "mes" da >12): ahi ya sabemos que D-M-Y esta mal, asi que
+  // probar M-D-Y no puede empeorar nada que ya funcionara.
   const numeric = raw.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2}|\d{4})$/);
   if (numeric) {
-    const month = Number(numeric[2]);
-    if (month >= 1 && month <= 12) return monthNames[month - 1] + '-' + numeric[3].slice(-2);
+    const monthDMY = Number(numeric[2]);
+    if (monthDMY >= 1 && monthDMY <= 12) return monthNames[monthDMY - 1] + '-' + numeric[3].slice(-2);
+    const monthMDY = Number(numeric[1]);
+    if (monthMDY >= 1 && monthMDY <= 12) return monthNames[monthMDY - 1] + '-' + numeric[3].slice(-2);
   }
 
   const parsed = new Date(raw);
