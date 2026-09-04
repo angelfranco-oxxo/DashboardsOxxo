@@ -531,7 +531,9 @@
     font-size:12px;font-weight:700;color:rgba(255,255,255,.82)}
   .hero-context b{font-family:var(--font-display);font-size:17px;font-weight:900;color:#fff;margin-right:5px}
   .row-main{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1fr);gap:14px;
-    align-items:start;margin-bottom:16px}
+    align-items:stretch;margin-bottom:16px}
+  .row-main__side>.card:last-child{flex:1;display:flex;flex-direction:column}
+  .row-main__side>.card:last-child #plazas-panel{flex:1;display:flex;flex-direction:column;justify-content:space-between}
   .row-main__side{display:flex;flex-direction:column;gap:14px;min-width:0}
   .riesgo-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
   .riesgo-legend .rg{display:inline-flex;align-items:baseline;gap:6px;padding:7px 12px;border-radius:10px;
@@ -554,20 +556,20 @@
   td.col-vac .vac-bar i{display:block;height:100%;border-radius:99px;background:var(--semaforo-rojo)}
   td.col-vac .vac-bar i.medio{background:var(--semaforo-amarillo)}
   td.col-vac .vac-bar i.bajo{background:var(--semaforo-verde)}
-  #plazas-panel .pz-lead{font-size:11.5px;font-weight:600;color:var(--color-gray);line-height:1.45;margin-bottom:12px}
+  #plazas-panel .pz-lead{font-size:12px;font-weight:600;color:var(--color-gray);line-height:1.5;margin-bottom:14px}
   #plazas-panel .pz-warn{display:block;margin-top:5px;font-style:italic;opacity:.85}
   .pz-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name val" "bar val" "sub val";
-    gap:0 12px;align-items:center;padding:9px 10px;border-radius:10px}
+    gap:0 12px;align-items:center;padding:11px 12px;border-radius:10px}
   .pz-row.activa{background:#FFF6F2;box-shadow:inset 0 0 0 1px #F3D9CE}
-  .pz-name{grid-area:name;font-size:12px;font-weight:800;color:var(--color-dark-mid);
+  .pz-name{grid-area:name;font-size:13px;font-weight:800;color:var(--color-dark-mid);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pz-tag{font-size:8.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--color-red);
     background:#FDECE8;border-radius:999px;padding:2px 6px;margin-left:6px}
-  .pz-val{grid-area:val;font-family:var(--font-display);font-size:24px;font-weight:900;text-align:right;line-height:1;min-width:38px}
+  .pz-val{grid-area:val;font-family:var(--font-display);font-size:26px;font-weight:900;text-align:right;line-height:1;min-width:42px}
   .pz-bar{grid-area:bar;height:7px;border-radius:99px;background:#F4EBE7;overflow:hidden;margin:6px 0 5px}
   .pz-bar i{display:block;height:100%;border-radius:99px;background:var(--semaforo-rojo)}
   .pz-bar i.bien{background:var(--semaforo-verde)}
-  .pz-sub{grid-area:sub;font-size:10.5px;font-weight:700;color:var(--color-gray)}
+  .pz-sub{grid-area:sub;font-size:11px;font-weight:700;color:var(--color-gray)}
   #vacantes-asesor-table .tbl-wrap,#tabla-detalle .tbl-wrap{overflow-x:auto}
   @media(max-width:1180px){.row-main{grid-template-columns:1fr}}
   .vacantes-asesor-nota{margin-top:11px;font-size:11px;font-style:italic;font-weight:600;color:var(--color-gray)}
@@ -1235,12 +1237,13 @@
   .dias-badge{
     backdrop-filter:blur(8px);
   }
-  .row-main__side .ranking-item{gap:10px}
-  .ranking-empate{margin-top:10px;padding-top:9px;border-top:1px dashed var(--color-border);
-    font-size:11px;font-style:italic;font-weight:600;color:var(--color-gray);text-align:center}
-  .row-main__side .ranking-item__value{display:flex;align-items:baseline;gap:4px;text-align:right}
+  .row-main__side .ranking-item{gap:12px;padding:12px 14px}
+  .row-main__side .ranking-item__name{font-size:13px;margin-bottom:7px}
+  .row-main__side .ranking-item__value{display:flex;align-items:baseline;gap:5px;min-width:auto;padding:7px 11px;font-size:10px}
+  .row-main__side .ranking-item__value strong{font-size:19px}
   .row-main__side .ranking-item__value span{font-size:9px}
-  .row-main__side .ranking-item__name{font-size:11.5px}
+  .ranking-empate{margin-top:12px;padding-top:11px;border-top:1px dashed var(--color-border);
+    font-size:11.5px;font-style:italic;font-weight:600;color:var(--color-gray);text-align:center}
   #ranking-container{
     position:relative;
     z-index:1;
