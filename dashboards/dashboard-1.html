@@ -13,7 +13,6 @@
   <link rel="apple-touch-icon" href="../assets/favicon.png" />
   <link rel="stylesheet" href="../css/global.css?v=20260820f" />
   <link rel="stylesheet" href="../css/mascota-chat.css?v=20260818a" />
-  <script defer src="../assets/vendor/chart.umd.min.js?v=chartjs440"></script>
   <style>
     .page { max-width:1500px; margin:0 auto; padding:18px 20px 36px; }
 
@@ -527,6 +526,51 @@
   #vacantes-asesor-table .tbl-wrap{
     max-height:none;
   }
+  /* ── Reorganizacion: un panel protagonista + contexto lateral ───────── */
+  .hero-context{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:12px;
+    font-size:12px;font-weight:700;color:rgba(255,255,255,.82)}
+  .hero-context b{font-family:var(--font-display);font-size:17px;font-weight:900;color:#fff;margin-right:5px}
+  .row-main{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1fr);gap:14px;
+    align-items:start;margin-bottom:16px}
+  .row-main__side{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .riesgo-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .riesgo-legend .rg{display:inline-flex;align-items:baseline;gap:6px;padding:7px 12px;border-radius:10px;
+    font-size:11px;font-weight:700;color:var(--color-gray);border:1px solid var(--color-border)}
+  .riesgo-legend .rg b{font-family:var(--font-display);font-size:17px;font-weight:900}
+  .riesgo-legend .rg em{font-style:normal;font-size:10px;opacity:.8}
+  .riesgo-legend .rg.alto{background:#FFF3F3;border-color:#F7D3D3}
+  .riesgo-legend .rg.alto b{color:var(--semaforo-rojo)}
+  .riesgo-legend .rg.medio{background:#FFFBEE;border-color:#F0E2B4}
+  .riesgo-legend .rg.medio b{color:var(--semaforo-amarillo)}
+  .riesgo-legend .rg.bajo{background:#EFFBF3;border-color:#C8E9D5}
+  .riesgo-legend .rg.bajo b{color:var(--semaforo-verde)}
+  .riesgo-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle}
+  .riesgo-dot.alto{background:var(--semaforo-rojo)}
+  .riesgo-dot.medio{background:var(--semaforo-amarillo)}
+  .riesgo-dot.bajo{background:var(--semaforo-verde)}
+  td.col-vac{display:flex;align-items:center;gap:9px;min-width:120px}
+  td.col-vac .vac-num{font-family:var(--font-display);font-size:16px;font-weight:900;min-width:16px;text-align:right}
+  td.col-vac .vac-bar{flex:1;height:7px;border-radius:99px;background:#F4EBE7;overflow:hidden}
+  td.col-vac .vac-bar i{display:block;height:100%;border-radius:99px;background:var(--semaforo-rojo)}
+  td.col-vac .vac-bar i.medio{background:var(--semaforo-amarillo)}
+  td.col-vac .vac-bar i.bajo{background:var(--semaforo-verde)}
+  #plazas-panel .pz-lead{font-size:11.5px;font-weight:600;color:var(--color-gray);line-height:1.45;margin-bottom:12px}
+  #plazas-panel .pz-warn{display:block;margin-top:5px;font-style:italic;opacity:.85}
+  .pz-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name val" "bar val" "sub val";
+    gap:0 12px;align-items:center;padding:9px 10px;border-radius:10px}
+  .pz-row.activa{background:#FFF6F2;box-shadow:inset 0 0 0 1px #F3D9CE}
+  .pz-name{grid-area:name;font-size:12px;font-weight:800;color:var(--color-dark-mid);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pz-tag{font-size:8.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--color-red);
+    background:#FDECE8;border-radius:999px;padding:2px 6px;margin-left:6px}
+  .pz-val{grid-area:val;font-family:var(--font-display);font-size:24px;font-weight:900;text-align:right;line-height:1;min-width:38px}
+  .pz-bar{grid-area:bar;height:7px;border-radius:99px;background:#F4EBE7;overflow:hidden;margin:6px 0 5px}
+  .pz-bar i{display:block;height:100%;border-radius:99px;background:var(--semaforo-rojo)}
+  .pz-bar i.bien{background:var(--semaforo-verde)}
+  .pz-sub{grid-area:sub;font-size:10.5px;font-weight:700;color:var(--color-gray)}
+  #vacantes-asesor-table .tbl-wrap,#tabla-detalle .tbl-wrap{overflow-x:auto}
+  @media(max-width:1180px){.row-main{grid-template-columns:1fr}}
+  .vacantes-asesor-nota{margin-top:11px;font-size:11px;font-style:italic;font-weight:600;color:var(--color-gray)}
   .vacantes-asesor-legend{
     display:flex;flex-wrap:wrap;gap:14px;
     padding:0 20px 10px;
@@ -535,10 +579,7 @@
   .chart-fallback{
     font-size:12px;font-weight:600;color:var(--color-gray);text-align:center;line-height:1.5;
   }
-  .vacantes-asesor-legend .vacantes-asesor-nota{
-    flex:1 1 100%;font-weight:600;font-style:italic;color:var(--color-gray);opacity:.9;
-  }
-  .vacantes-asesor-legend .dot{
+    .vacantes-asesor-legend .dot{
     display:inline-block;width:9px;height:9px;border-radius:50%;
     margin-right:5px;vertical-align:middle;
   }
@@ -1194,6 +1235,10 @@
   .dias-badge{
     backdrop-filter:blur(8px);
   }
+  .row-main__side .ranking-item{gap:10px}
+  .row-main__side .ranking-item__value{display:flex;align-items:baseline;gap:4px;text-align:right}
+  .row-main__side .ranking-item__value span{font-size:9px}
+  .row-main__side .ranking-item__name{font-size:11.5px}
   #ranking-container{
     position:relative;
     z-index:1;
@@ -1206,11 +1251,11 @@
   }
   .ranking-item{
     display:grid;
-    grid-template-columns:38px 74px minmax(0,1fr) auto;
+    grid-template-columns:34px minmax(0,1fr) auto;
     align-items:center;
     gap:14px;
-    min-height:70px;
-    padding:9px 13px 9px 11px;
+    min-height:0;
+    padding:10px 13px;
     border-radius:20px;
     border:1px solid rgba(166,65,42,.11);
     background:
@@ -1589,6 +1634,7 @@
       <span class="hero-badge">⟳ Diario · Plaza Oaxaca</span>
       <span id="hero-download" style="display:none"></span>
     </div>
+    <div class="hero-context" id="hero-context" aria-live="polite"></div>
     <div class="vac-filters">
       <div class="vac-fbox">
         <label>Asesor</label>
@@ -1662,64 +1708,36 @@
       <div class="kpi-card__value"><div class="spinner"></div></div></div>
   </div>
 
-  <!-- FILA 3 PANELES -->
-  <div class="row3">
-    <div class="card">
-      <div class="card-head"><div class="card-title">Top 5 · Más vacantes<span class="info-tip" tabindex="0" data-tip="Agrupa las vacantes filtradas por Tienda (columna 'Unidad org/') y muestra las 5 tiendas con más vacantes abiertas, de mayor a menor."></span></div></div>
-      <div id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
-    </div>
-    <div class="card puesto-card">
-      <div class="card-head"><div class="card-title">Distribución por puesto<span class="info-tip" tabindex="0" data-tip="Reparte las vacantes filtradas según la columna 'Descripción de Posición' (Lider / Encargado / Ayudante)."></span></div></div>
-      <div class="puesto-panel">
-        <div class="chart-sm"><canvas id="chart-dona" role="img" aria-label="Distribución de vacantes por puesto"></canvas></div>
-        <div class="puesto-breakdown" id="puesto-breakdown"></div>
-      </div>
-    </div>
-    <div class="card" style="display:flex;flex-direction:column;">
-      <div class="card-head"><div class="card-title">Riesgo operativo por asesor<span class="info-tip" tabindex="0" data-tip="Clasifica a cada Asesor por número de vacantes a su cargo: Alto = 4 o más, Medio = 2-3, Bajo = 0-1, según los filtros activos."></span></div></div>
-      <div id="risk-panel" style="flex:1;display:flex;flex-direction:column;">
-        <div class="risk-overview"><div><span>Panorama del equipo</span><strong>Calculando asesores…</strong></div><div class="risk-overview__attention">— con seguimiento</div></div>
-        <div class="risk-row">
-          <div class="risk-box alto"><div class="risk-copy"><div class="risk-lbl"><span class="risk-dot"></span>Alto <em>≥4 vacantes</em></div><div class="risk-meta">Atención prioritaria</div><div class="risk-meter"><span style="width:0%"></span></div></div><div class="risk-count"><div class="risk-val" id="risk-alto">—</div><span class="risk-unit">asesores</span></div><div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9 2.1 18a2 2 0 0 0 1.7 3h16.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg></div></div>
-          <div class="risk-box medio"><div class="risk-copy"><div class="risk-lbl"><span class="risk-dot"></span>Medio <em>2–3 vacantes</em></div><div class="risk-meta">Seguimiento semanal recomendado</div><div class="risk-meter"><span style="width:0%"></span></div></div><div class="risk-count"><div class="risk-val" id="risk-medio">—</div><span class="risk-unit">asesores</span></div><div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4M12 16h.01"></path><circle cx="12" cy="12" r="9"></circle></svg></div></div>
-          <div class="risk-box bajo"><div class="risk-copy"><div class="risk-lbl"><span class="risk-dot"></span>Bajo <em>0–1 vacante</em></div><div class="risk-meta">Cobertura estable o controlada</div><div class="risk-meter"><span style="width:0%"></span></div></div><div class="risk-count"><div class="risk-val" id="risk-bajo">—</div><span class="risk-unit">asesores</span></div><div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- FILA INFERIOR -->
-  <div class="row2">
-    <div class="card">
+  <!-- PANEL PRINCIPAL: asesores (protagonista) + contexto lateral -->
+  <div class="row-main">
+    <div class="card tabla-card">
       <div class="card-head">
-        <div class="card-title">Vacantes por Asesor<span class="info-tip" tabindex="0" data-tip="Suma de vacantes (filas filtradas) por cada Asesor responsable. Permite ver carga de trabajo entre asesores."></span></div>
-        <span class="card-badge" id="chart-total">—</span>
+        <div class="card-title">Vacantes por Asesor<span class="info-tip" tabindex="0" data-tip="Por cada Asesor (filtros activos aplicados): total de vacantes, días promedio y máximo, y cuántas caen en cada tramo de antigüedad (hasta 3 días, hasta 6, más de 6)."></span></div>
+        <span class="card-badge" id="vacantes-asesor-badge">— asesores</span>
       </div>
-      <div class="chart-lg"><canvas id="chart-barras" role="img" aria-label="Vacantes por asesor"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="card-title">Estado por Asesor<span class="info-tip" tabindex="0" data-tip="Semáforo por Asesor según su volumen de vacantes y antigüedad promedio. Verde = bajo riesgo, amarillo = atención, rojo = crítico."></span></div></div>
-      <div id="semaforo-table">
+      <div class="riesgo-legend" id="riesgo-legend"></div>
+      <div id="vacantes-asesor-table">
         <div class="state-box"><div class="spinner"></div></div>
       </div>
+      <div class="vacantes-asesor-nota" id="vacantes-asesor-nota" hidden></div>
     </div>
-  </div>
 
-  <!-- TABLA VACANTES POR ASESOR (dias) -->
-  <div class="card tabla-card" style="margin-bottom:16px">
-    <div class="card-head">
-      <div class="card-title">Vacantes por Asesor · Días<span class="info-tip" tabindex="0" data-tip="Por cada Asesor (filtros activos aplicados): total de vacantes, días promedio y máximo, y cuántas caen en cada semáforo de antigüedad (Verde ≤3 días, Amarillo ≤6, Rojo &gt;6)."></span></div>
-      <span class="card-badge" id="vacantes-asesor-badge">— asesores</span>
-    </div>
-    <div class="vacantes-asesor-legend">
-      <span><span class="dot verde"></span>Verde: hasta 3 días</span>
-      <span><span class="dot amarillo"></span>Amarillo: hasta 6 días</span>
-      <span><span class="dot rojo"></span>Rojo: más de 6 días</span>
-      <span class="vacantes-asesor-nota" id="vacantes-asesor-nota" hidden></span>
-    </div>
-    <div id="vacantes-asesor-table">
-      <div class="state-box"><div class="spinner"></div></div>
-    </div>
+    <aside class="row-main__side">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Tiendas con más vacantes<span class="info-tip" tabindex="0" data-tip="Agrupa las vacantes filtradas por Tienda y muestra las que más posiciones abiertas acumulan."></span></div>
+          <span class="card-badge">Top 8</span>
+        </div>
+        <div id="ranking-container"><div class="state-box"><div class="spinner"></div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Comparativo de plazas<span class="info-tip" tabindex="0" data-tip="Vacantes por cada 100 tiendas operativas de cada plaza, para compararlas entre sí pese a su tamaño. Es el único panel que mira toda la región: no sigue el filtro de plaza."></span></div>
+          <span class="card-badge">Toda la región</span>
+        </div>
+        <div id="plazas-panel"><div class="state-box"><div class="spinner"></div></div></div>
+      </div>
+    </aside>
   </div>
 
   <!-- TABLA DETALLE -->
@@ -2267,6 +2285,69 @@ function ordenarTabla(filtered){
   });
 }
 
+// Comparativo de plazas: el unico panel que mira toda la region. Se compara
+// por vacantes/100 tiendas operativas y no en bruto, porque Oaxaca tiene mas
+// de cinco veces las tiendas de cualquier otra plaza: en absolutos siempre
+// saldria como la peor cuando en realidad es de las mejores por densidad.
+// La lectura va sin filtro de plaza (scoped:false) y sin bloquear el render,
+// igual que loadRoster() en Dashboard 11.
+let PLAZAS_CACHE = null;
+function renderPlazasPanel(){
+  const el = document.getElementById('plazas-panel');
+  if(!el || !PLAZAS_CACHE) return;
+  if(!PLAZAS_CACHE.length){ el.innerHTML = '<div class="state-box">Sin datos de otras plazas.</div>'; return; }
+  const activa = OXXO.getActiveDataScope?.()?.plaza || '';
+  const max = Math.max(...PLAZAS_CACHE.map(p=>p.vacantes), 1);
+  const total = PLAZAS_CACHE.reduce((a,p)=>a+p.vacantes, 0);
+  el.innerHTML = `<div class="pz-lead">Vacantes abiertas en cada plaza con el mes y los puestos seleccionados. <b>${total}</b> en toda la región.
+      <span class="pz-warn">Son cifras absolutas: una plaza con más tiendas tiende a tener más vacantes. Para compararlas por densidad falta publicar el catálogo de tiendas de las otras cuatro plazas; hoy solo existe el de Oaxaca.</span></div>`
+    + PLAZAS_CACHE.map(p=>{
+      const esActiva = normalizeSearchText(p.plaza) === normalizeSearchText(activa)
+        || OXXO.matchesScopeValue?.(p.plaza,'plaza');
+      return `<div class="pz-row${esActiva?' activa':''}">
+        <div class="pz-name">${OXXO.escHtml(p.plaza)}${esActiva?'<span class="pz-tag">activa</span>':''}</div>
+        <div class="pz-val">${p.vacantes}</div>
+        <div class="pz-bar"><i style="width:${Math.max(4, p.vacantes/max*100).toFixed(0)}%"></i></div>
+        <div class="pz-sub">${p.tiendas} tiendas con vacante</div>
+      </div>`;
+    }).join('');
+}
+async function loadPlazas(){
+  const el = document.getElementById('plazas-panel');
+  try{
+    const filas = await OXXO.fetchSheetData(TAB, { scoped:false });
+    if(!Array.isArray(filas) || !filas.length) throw new Error('sin datos');
+    const map = buildMap(filas);
+    const mes = document.getElementById('filtro-mes')?.value || '';
+    const acc = new Map();
+    filas.forEach(r=>{
+      if(!isVacancySourceRow(r)) return;
+      const plaza = String(gv(r,map,'plaza','')).trim();
+      const tienda = String(gv(r,map,'tienda','')).trim();
+      if(!plaza || !tienda || tienda==='Sin tienda') return;
+      if(/entrenamiento|operaciones/i.test(tienda)) return;
+      if(!isAllowedPuesto(String(gv(r,map,'puesto','')).trim())) return;
+      const mesInfo = normalizeMesColumn(gv(r,map,'mes',''));
+      const key = mesInfo.key || mesKeyFromDate(parseFechaVacante(gv(r,map,'fecha','')));
+      if(mes && key !== mes) return;
+      // "OXXO OAXACA" y "Oaxaca" son la misma plaza escrita de dos formas en
+      // la fuente; se unen para no partir el comparativo en dos renglones.
+      const nombre = /oaxaca/i.test(plaza) ? 'Oaxaca' : plaza;
+      if(!acc.has(nombre)) acc.set(nombre, { vacantes:0, tiendas:new Set() });
+      const b = acc.get(nombre);
+      b.vacantes++; b.tiendas.add(normalizeSearchText(tienda));
+    });
+    PLAZAS_CACHE = [...acc.entries()]
+      .map(([plaza,v])=>({ plaza, vacantes:v.vacantes, tiendas:v.tiendas.size }))
+      .sort((a,b)=>b.vacantes-a.vacantes);
+    renderPlazasPanel();
+  }catch(error){
+    console.warn('[D1] comparativo de plazas no disponible:', error);
+    PLAZAS_CACHE = [];
+    if(el) el.innerHTML = '<div class="state-box" style="min-height:80px">No se pudo cargar el comparativo regional.</div>';
+  }
+}
+
 function renderTabla(filtered=filtrarDatos()){
   const el=document.getElementById('tabla-detalle');
   const _fc = document.getElementById('filtro-count'); if(_fc) _fc.textContent=`${filtered.length} vacantes`;
@@ -2287,22 +2368,22 @@ function renderTabla(filtered=filtrarDatos()){
     // antiguedad real, ya se marca aparte con el badge especial.
     const rowClass = sinAntiguedadReal(r) ? '' : `row-${vaColorDias(Number(r.dias)||0)}`;
     return`<tr class="${rowClass}">
-      <td>${OXXO.escHtml(OXXO.truncate(r.asesor,32))}</td>
+      <td class="text-center">${diasBadge(r)}</td>
       <td><div class="store-cell"><span class="store-cell__name">${OXXO.escHtml(OXXO.truncate(r.tienda,30))}</span></div></td>
       <td><span class="role-cell">${OXXO.escHtml(OXXO.truncate(r.puesto,34))}</span></td>
       <td class="text-center">${pillHTML(r.tipo,r.tipo==='Lider'?'rojo':r.tipo==='Encargado'?'amarillo':'verde')}</td>
-      <td class="text-center">${diasBadge(r)}</td>
+      <td>${OXXO.escHtml(OXXO.truncate(r.asesor,32))}</td>
       <td style="font-size:11px;color:var(--color-gray);text-align:center">${r.fecha||'—'}</td>
     </tr>`;
   }).join('');
 
   el.innerHTML=`<div class="tbl-wrap"><table class="tbl" data-rh-tools data-rh-sort="false" data-rh-page-size="15">
     <thead><tr>
-      <th data-col="asesor">Asesor</th>
+      <th data-col="dias" style="text-align:center">Días</th>
       <th data-col="tienda">Tienda</th>
       <th data-col="puesto">Descripción de Posición</th>
       <th data-col="tipo" style="text-align:center">Tipo</th>
-      <th data-col="dias" style="text-align:center">Días Vacantes</th>
+      <th data-col="asesor">Asesor</th>
       <th data-col="fecha" style="text-align:center">Fecha</th>
     </tr></thead>
     <tbody>${rows}</tbody>
@@ -2357,7 +2438,10 @@ function renderVacantesPorAsesorDias(allData){
   // filas de un asesor al hacer clic, sin tener que recalcular nada.
   VA_BY_ASESOR = byAsesor;
 
-  const asesores = Object.keys(byAsesor).sort((a,b)=>a.localeCompare(b,'es'));
+  // Orden por carga: la tabla es ahora el panel principal y debe abrir por
+  // el asesor mas cargado, no alfabeticamente.
+  const asesores = Object.keys(byAsesor).sort((a,b)=>byAsesor[b].count-byAsesor[a].count || a.localeCompare(b,'es'));
+  const maxCarga = Math.max(1, ...Object.values(byAsesor).map(v=>v.count));
   if(badge) badge.textContent = `${asesores.length} asesor${asesores.length===1?'':'es'}`;
 
   const total = { count:0, diasCount:0, sinDias:0, sumDias:0, maxDias:0, verde:0, amarillo:0, rojo:0 };
@@ -2367,9 +2451,11 @@ function renderVacantesPorAsesorDias(allData){
     total.sumDias += v.sumDias; total.maxDias = Math.max(total.maxDias, v.maxDias);
     total.verde += v.verde; total.amarillo += v.amarillo; total.rojo += v.rojo;
     const prom = v.diasCount ? (v.sumDias/v.diasCount).toFixed(1) : '—';
+    const riesgo = v.count>=4 ? 'alto' : v.count>=2 ? 'medio' : 'bajo';
+    const ancho = maxCarga ? Math.max(6, Math.round(v.count/maxCarga*100)) : 0;
     return `<tr data-asesor="${escapeAttr(a)}" title="Ver detalle de ${escapeAttr(a)}">
-      <td>${OXXO.escHtml(OXXO.truncate(a,34))}</td>
-      <td class="text-center">${v.count}</td>
+      <td><span class="riesgo-dot ${riesgo}" aria-label="Riesgo ${riesgo}"></span>${OXXO.escHtml(OXXO.truncate(a,34))}</td>
+      <td class="col-vac"><span class="vac-num">${v.count}</span><span class="vac-bar"><i class="${riesgo}" style="width:${ancho}%"></i></span></td>
       <td class="text-center">${prom}</td>
       <td class="text-center">${v.diasCount ? v.maxDias : '—'}</td>
       <td class="text-center">${v.verde?`<span class="va-badge verde">${v.verde}</span>`:'—'}</td>
@@ -2382,17 +2468,17 @@ function renderVacantesPorAsesorDias(allData){
   el.innerHTML = `<div class="tbl-wrap"><table class="tbl" data-rh-tools data-rh-page-size="15">
     <thead><tr>
       <th>Asesor</th>
-      <th style="text-align:center">Posiciones vacantes</th>
-      <th style="text-align:center">Días promedio</th>
-      <th style="text-align:center">Días máximo</th>
-      <th style="text-align:center">Verde</th>
-      <th style="text-align:center">Amarillo</th>
-      <th style="text-align:center">Rojo</th>
+      <th style="text-align:center">Vacantes</th>
+      <th style="text-align:center">Días prom.</th>
+      <th style="text-align:center">Días máx.</th>
+      <th style="text-align:center" title="Hasta 3 días">≤3 d</th>
+      <th style="text-align:center" title="Hasta 6 días">≤6 d</th>
+      <th style="text-align:center" title="Más de 6 días">&gt;6 d</th>
     </tr></thead>
     <tbody>${rows}</tbody>
     <tfoot><tr>
       <td>Total general</td>
-      <td class="text-center">${total.count}</td>
+      <td class="col-vac"><span class="vac-num">${total.count}</span></td>
       <td class="text-center">${promTotal}</td>
       <td class="text-center">${total.diasCount ? total.maxDias : '—'}</td>
       <td class="text-center">${total.verde||'—'}</td>
@@ -2468,6 +2554,8 @@ document.addEventListener('keydown', e=>{
 });
 
 function refreshDashboard(){
+  // El comparativo depende del mes activo: se recalcula cuando ya hay datos.
+  if(PLAZAS_CACHE) loadPlazas();
   const filtered = filtrarDatos();
   // Antes de renderOverview() (que crea el chart de barras): si Chart.js no
   // cargo por algun motivo, renderOverview() truena y el resto de la funcion
@@ -2627,138 +2715,10 @@ const chartTheme = {
   get text()     { return isDark() ? 'rgba(255,255,255,0.75)' : 'rgba(26,26,46,0.75)'; }
 };
 
-const chartValueLabels = {
-  id: 'chartValueLabels',
-  afterDatasetsDraw(chart){
-    const {ctx} = chart;
-    const dataset = chart.data.datasets[0];
-    if(!dataset || chart.config.type !== 'bar') return;
-    ctx.save();
-    ctx.font = '900 12px Barlow, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    chart.getDatasetMeta(0).data.forEach((bar, i) => {
-      const value = dataset.data[i];
-      if(value === undefined || value === null) return;
-      const label = `${value}`;
-      const w = Math.max(26, ctx.measureText(label).width + 16);
-      const h = 22;
-      const x = Math.min(chart.chartArea.right - w / 2 - 2, bar.x + w / 2 + 12);
-      const y = bar.y;
-      const r = 11;
-      ctx.beginPath();
-      ctx.moveTo(x - w / 2 + r, y - h / 2);
-      ctx.lineTo(x + w / 2 - r, y - h / 2);
-      ctx.quadraticCurveTo(x + w / 2, y - h / 2, x + w / 2, y - h / 2 + r);
-      ctx.lineTo(x + w / 2, y + h / 2 - r);
-      ctx.quadraticCurveTo(x + w / 2, y + h / 2, x + w / 2 - r, y + h / 2);
-      ctx.lineTo(x - w / 2 + r, y + h / 2);
-      ctx.quadraticCurveTo(x - w / 2, y + h / 2, x - w / 2, y + h / 2 - r);
-      ctx.lineTo(x - w / 2, y - h / 2 + r);
-      ctx.quadraticCurveTo(x - w / 2, y - h / 2, x - w / 2 + r, y - h / 2);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(255,248,240,.92)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(217,31,45,.14)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.fillStyle = '#4B2520';
-      ctx.fillText(label, x, y + .5);
-    });
-    ctx.restore();
-  }
-};
+// La dona por puesto y la grafica de barras por asesor se retiraron: sus
+// datos ya viven en las tarjetas de KPI y en la tabla de asesores. Con eso
+// esta pagina dejo de necesitar Chart.js, y su <script> tambien se quito.
 
-const donutCenterLabel = {
-  id: 'donutCenterLabel',
-  afterDraw(chart){
-    if(chart.config.type !== 'doughnut') return;
-    const total = chart.data.datasets[0].data.reduce((s,v)=>s+(Number(v)||0),0);
-    const values = chart.data.datasets[0].data.map(v=>Number(v)||0);
-    const dominantIndex = values.indexOf(Math.max(...values));
-    const dominant = values[dominantIndex] || 0;
-    const dominantLabel = chart.data.labels[dominantIndex] || 'Sin datos';
-    const {ctx, chartArea:{left,right,top,bottom}} = chart;
-    const x = (left + right) / 2;
-    const y = (top + bottom) / 2;
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.fillStyle = isDark() ? '#FFF8F0' : '#211514';
-    ctx.font = '800 38px Barlow Condensed, sans-serif';
-    ctx.fillText(String(total), x, y - 17);
-    ctx.fillStyle = isDark() ? 'rgba(255,248,240,.58)' : 'rgba(33,21,20,.56)';
-    ctx.font = '800 9px Barlow, sans-serif';
-    ctx.fillText('VACANTES TOTALES', x, y + 9);
-    ctx.fillStyle = isDark() ? '#FFD166' : '#D91F2D';
-    ctx.font = '800 10px Barlow, sans-serif';
-    ctx.fillText(total ? `${Math.round(dominant/total*100)}% ${String(dominantLabel).toUpperCase()}` : 'SIN REGISTROS', x, y + 31);
-    ctx.restore();
-  }
-};
-
-function makeBarGradient(ctx, chartArea, from, to){
-  const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
-  gradient.addColorStop(0, from);
-  gradient.addColorStop(1, to);
-  return gradient;
-}
-
-function renderD1Donut(labels, values){
-  const canvas = document.getElementById('chart-dona');
-  if(!canvas) return;
-  // El canvas no expone su contenido: se describe con los datos que pinta
-  // para que un lector de pantalla pueda leer la misma informacion.
-  canvas.setAttribute('aria-label', `Distribución de vacantes por puesto: ${labels.map((l,i)=>`${l} ${values[i]}`).join(', ')||'sin datos'}`);
-  if(typeof Chart === 'undefined') return;
-  if(canvas._ci) canvas._ci.destroy();
-  const ctx = canvas.getContext('2d');
-  canvas._ci = new Chart(ctx, {
-    type:'doughnut',
-    data:{
-      labels,
-      datasets:[{
-        data:values,
-        backgroundColor:['#D91F2D','#E97822','#F6B73C'],
-        borderColor:'rgba(255,255,255,.86)',
-        borderWidth:4,
-        spacing:5,
-        hoverOffset:7,
-        borderRadius:12,
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      cutout:'72%',
-      layout:{padding:16},
-      plugins:{
-        legend:{
-          position:'bottom',
-          labels:{
-            usePointStyle:true,
-            pointStyle:'circle',
-            boxWidth:7,
-            boxHeight:7,
-            padding:16,
-            color:isDark() ? 'rgba(255,248,240,.72)' : 'rgba(33,21,20,.70)',
-            font:{family:'Barlow',size:12,weight:'800'}
-          }
-        },
-        tooltip:{
-          backgroundColor:'#251313',
-          titleColor:'#FFF8EE',
-          bodyColor:'#FFF8EE',
-          titleFont:{family:'Barlow Condensed',weight:'800',size:14},
-          bodyFont:{family:'Barlow',size:13,weight:'600'},
-          padding:12,
-          cornerRadius:12,
-          displayColors:true,
-        }
-      }
-    },
-    plugins:[donutCenterLabel]
-  });
-}
 
 async function initDashboard(){
   OXXO.renderDownloadButton('hero-download','d1');
@@ -2819,6 +2779,7 @@ async function initDashboard(){
 
   poblarFiltros();
   refreshDashboard();
+  loadPlazas();
   OXXO.updateFooterTime('load-time');
 }
 
@@ -2926,7 +2887,9 @@ function renderOverview(allData){
   const byTienda={};
   allData.forEach(r=>{byTienda[r.tienda]=(byTienda[r.tienda]||0)+1;});
   const rankData=Object.entries(byTienda).map(([t,v])=>({tienda:t,vacantes:v}))
-    .sort((a,b)=>b.vacantes-a.vacantes).slice(0,5);
+    // Top 8 y no 5: con valores de 4, 2, 2, 2, 1 el corte en 5 partia un
+    // empate y dejaba fuera tiendas identicas a la ultima que si entraba.
+    .sort((a,b)=>b.vacantes-a.vacantes||a.tienda.localeCompare(b.tienda,'es')).slice(0,8);
   const rankingEl=document.getElementById('ranking-container');
   if(rankingEl){
     const maxVac=Math.max(1,...rankData.map(r=>r.vacantes));
@@ -2934,15 +2897,6 @@ function renderOverview(allData){
       const pct=Math.max(7,Math.round((r.vacantes/maxVac)*100));
       return `<div class="ranking-item" title="${escapeAttr(r.tienda)}: ${r.vacantes} vacante${r.vacantes===1?'':'s'}">
         <div class="ranking-item__pos" aria-label="Posición ${i+1}">${i+1}</div>
-        <div class="ranking-store" aria-hidden="true">
-          <span class="ranking-store__roof"></span>
-          <span class="ranking-store__body">
-            <span class="ranking-store__sign">OXXO</span>
-            <span class="ranking-store__window"></span>
-            <span class="ranking-store__door"></span>
-          </span>
-          <span class="ranking-store__base"></span>
-        </div>
         <div class="ranking-item__bar-wrap">
           <div class="ranking-item__name">${OXXO.escHtml(r.tienda)}</div>
           <div class="ranking-item__bar-bg"><div class="ranking-item__bar-fill" style="width:${pct}%"></div></div>
@@ -2952,144 +2906,35 @@ function renderOverview(allData){
     }).join('')}</div>` : '<div class="state-box">Sin tiendas con vacantes.</div>';
   }
 
-  // Dona por tipo
-  renderD1Donut(['Lider','Encargado','Ayudante'],[lideres,encargados,ayudantes]);
-  const puestoTotal = Math.max(lideres+encargados+ayudantes, 1);
-  const puestoData = [
-    {label:'Líder', value:lideres, color:'#D91F2D', icon:'<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/>'},
-    {label:'Encargado', value:encargados, color:'#E97822', icon:'<path d="M12 3 5 6v5c0 4.6 2.9 8.1 7 10 4.1-1.9 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>'},
-    {label:'Ayudante', value:ayudantes, color:'#F6B73C', icon:'<circle cx="12" cy="8" r="3"/><path d="M5.5 20c.6-4 2.8-6 6.5-6s5.9 2 6.5 6"/>'},
-  ].sort((a,b)=>b.value-a.value);
-  const puestoBreakdown = document.getElementById('puesto-breakdown');
-  if(puestoBreakdown){
-    puestoBreakdown.innerHTML = puestoData.map((p,i) => `
-      <div class="puesto-chip ${i===0?'is-dominant':''}" style="--puesto-color:${p.color}">
-        <div class="puesto-chip__top">
-          <span class="puesto-chip__heading">
-            <span class="puesto-chip__icon"><svg viewBox="0 0 24 24" aria-hidden="true">${p.icon}</svg></span>
-            <span><span class="puesto-chip__label">${p.label}</span><span class="puesto-chip__priority">${i===0?'Mayor necesidad':'Posición '+(i+1)}</span></span>
-          </span>
-          <span class="puesto-chip__pct">${Math.round(p.value/puestoTotal*100)}%</span>
-        </div>
-        <div class="puesto-chip__body">
-          <div class="puesto-chip__value">${p.value}</div>
-          <div class="puesto-chip__track">
-            <div class="puesto-chip__fill" style="width:${Math.max(6, Math.round(p.value/puestoTotal*100))}%"></div>
-          </div>
-        </div>
-      </div>
-    `).join('');
+  // Contexto de escala en el hero: sin el, el total no dice si 49 vacantes
+  // son muchas o pocas para el tamano de la plaza.
+  const ctxEl=document.getElementById('hero-context');
+  if(ctxEl){
+    // Solo cifras que la propia vista puede sostener. No se publica una tasa
+    // "vacantes por cada 100 tiendas" porque el universo de tiendas por plaza
+    // no existe todavia: Catalogo_Tiendas solo cubre Oaxaca, y contar nombres
+    // distintos en la hoja da un denominador que no es el parque real.
+    const tiendasConVacante=new Set(allData.map(r=>r.tienda).filter(Boolean)).size;
+    const puestosSel=selectedPuestos().length;
+    ctxEl.innerHTML=`<span><b>${asesoresUnicos}</b> asesores afectados</span>`
+      +`<span><b>${tiendasConVacante}</b> tiendas con vacante</span>`
+      +`<span><b>${puestosSel}</b> puestos en el filtro</span>`;
   }
 
-  // Riesgo por asesor
-  const byAsesor={};
-  allData.forEach(r=>{byAsesor[r.asesor]=(byAsesor[r.asesor]||0)+1;});
-  const alto=Object.values(byAsesor).filter(v=>v>=4).length;
-  const medio=Object.values(byAsesor).filter(v=>v>=2&&v<=3).length;
-  const bajo=Object.values(byAsesor).filter(v=>v<=1).length;
-  const asesoresOrdenados=Object.keys(byAsesor).sort((a,b)=>byAsesor[b]-byAsesor[a]);
-  const totalAsesores = asesoresOrdenados.length;
-  const pctAlto = totalAsesores ? Math.round(alto/totalAsesores*100) : 0;
-  const pctMedio = totalAsesores ? Math.round(medio/totalAsesores*100) : 0;
-  const pctBajo = totalAsesores ? Math.round(bajo/totalAsesores*100) : 0;
-  const riskPanel = document.getElementById('risk-panel');
-  if(riskPanel){
-    riskPanel.innerHTML = `
-      <div class="risk-overview">
-        <div><span>Panorama del equipo</span><strong>${totalAsesores} asesores evaluados</strong></div>
-        <div class="risk-overview__attention">${alto+medio} con seguimiento</div>
-      </div>
-      <div class="risk-row">
-        <div class="risk-box alto">
-          <div class="risk-copy">
-            <div class="risk-lbl"><span class="risk-dot"></span>Alto <em>≥4 vacantes</em></div>
-            <div class="risk-meta">${pctAlto}% del equipo · atención prioritaria</div>
-            <div class="risk-meter"><span style="width:${pctAlto}%"></span></div>
-          </div>
-          <div class="risk-count"><div class="risk-val">${alto}</div><span class="risk-unit">asesores</span></div>
-          <div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9 2.1 18a2 2 0 0 0 1.7 3h16.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg></div>
-        </div>
-        <div class="risk-box medio">
-          <div class="risk-copy">
-            <div class="risk-lbl"><span class="risk-dot"></span>Medio <em>2–3 vacantes</em></div>
-            <div class="risk-meta">${pctMedio}% del equipo · seguimiento semanal</div>
-            <div class="risk-meter"><span style="width:${pctMedio}%"></span></div>
-          </div>
-          <div class="risk-count"><div class="risk-val">${medio}</div><span class="risk-unit">asesores</span></div>
-          <div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4M12 16h.01"></path><circle cx="12" cy="12" r="9"></circle></svg></div>
-        </div>
-        <div class="risk-box bajo">
-          <div class="risk-copy">
-            <div class="risk-lbl"><span class="risk-dot"></span>Bajo <em>0–1 vacante</em></div>
-            <div class="risk-meta">${pctBajo}% del equipo · cobertura controlada</div>
-            <div class="risk-meter"><span style="width:${pctBajo}%"></span></div>
-          </div>
-          <div class="risk-count"><div class="risk-val">${bajo}</div><span class="risk-unit">asesores</span></div>
-          <div class="risk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></div>
-        </div>
-      </div>`;
+  // Leyenda de riesgo por asesor: lo que antes ocupaba un panel entero de
+  // tres cajas cabe en una linea sobre la tabla que ya lo desglosa.
+  const legEl=document.getElementById('riesgo-legend');
+  if(legEl){
+    const carga={};
+    allData.forEach(r=>{const a=r.asesor||'Sin asesor';carga[a]=(carga[a]||0)+1});
+    const cargas=Object.values(carga);
+    const alto=cargas.filter(v=>v>=4).length;
+    const medio=cargas.filter(v=>v>=2&&v<4).length;
+    const bajo=cargas.filter(v=>v<2).length;
+    legEl.innerHTML=`<span class="rg alto"><b>${alto}</b> riesgo alto <em>≥4 vacantes</em></span>`
+      +`<span class="rg medio"><b>${medio}</b> riesgo medio <em>2–3 vacantes</em></span>`
+      +`<span class="rg bajo"><b>${bajo}</b> riesgo bajo <em>0–1 vacante</em></span>`;
   }
-
-  // Gráfica horizontal por asesor
-  const asesores=asesoresOrdenados;
-  const vals=asesores.map(a=>byAsesor[a]);
-  const canvas=document.getElementById('chart-barras');
-  if(canvas) canvas.setAttribute('aria-label', asesores.length
-    ? `Vacantes por asesor: ${asesores.map((a,i)=>`${a} ${vals[i]}`).join(', ')}`
-    : 'Vacantes por asesor: sin datos');
-  // Misma guarda que renderD1Donut: sin Chart.js este new Chart() lanzaba y,
-  // como refreshDashboard() llama renderOverview() antes que renderTabla(),
-  // la tabla de detalle se quedaba en "Cargando datos..." para siempre.
-  if(canvas && typeof Chart === 'undefined'){
-    // Se oculta el canvas en vez de sustituirlo: el elemento sigue en el DOM
-    // y los refrescos posteriores no se quedan sin referencia.
-    canvas.hidden = true;
-    const box = canvas.parentElement;
-    if(box && !box.querySelector('.chart-fallback')){
-      const aviso = document.createElement('div');
-      aviso.className = 'chart-fallback state-box';
-      aviso.innerHTML = 'No se pudo cargar la librería de gráficas.<br>Los datos siguen disponibles en las tablas.';
-      box.appendChild(aviso);
-    }
-  } else if(canvas){if(canvas._ci)canvas._ci.destroy();
-    const ctx = canvas.getContext('2d');
-    canvas._ci=new Chart(canvas.getContext('2d'),{type:'bar',
-      data:{labels:asesores.map(a=>OXXO.truncate(a,22)),datasets:[{label:'Vacantes',data:vals,backgroundColor:(context)=>{
-        const area = context.chart.chartArea;
-        if(!area) return '#D91F2D';
-        const value = context.raw || 0;
-        if(value <= 1) return makeBarGradient(ctx, area, '#FFE087', '#F6B73C');
-        if(value <= 3) return makeBarGradient(ctx, area, '#F6B73C', '#F07B22');
-        return makeBarGradient(ctx, area, '#FF6A55', '#D91F2D');
-      },borderColor:'rgba(255,255,255,.68)',borderWidth:1,borderRadius:999,borderSkipped:false,barPercentage:.82,categoryPercentage:.72}]},
-      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-        layout:{padding:{top:16,right:46,bottom:12,left:14}},
-        animation:{duration:650,easing:'easeOutQuart'},
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#251313',titleColor:'#FFF8EE',bodyColor:'#FFF8EE',titleFont:{family:'Barlow Condensed',weight:'800',size:14},bodyFont:{family:'Barlow',size:13,weight:'600'},padding:12,cornerRadius:14,displayColors:false,callbacks:{label:(ctx)=>`${ctx.raw} vacantes`}}},
-        scales:{x:{beginAtZero:true,suggestedMax:Math.max(...vals,0)+1,border:{display:false},grid:{color:'rgba(128,63,38,.06)',drawTicks:false},ticks:{precision:0,font:{family:'Barlow',size:12,weight:'900'},color:'rgba(98,69,58,.52)',padding:12}},
-          y:{border:{display:false},grid:{display:false},ticks:{font:{family:'Barlow',size:13,weight:'900'},color:'#5A4037',padding:14}}}}
-      ,plugins:[chartValueLabels]
-    });
-  }
-  document.getElementById('chart-total').textContent=`${total} vacantes totales`;
-
-  // Semáforo por asesor
-  const maxAsesor = Math.max(...Object.values(byAsesor), 1);
-  const semHTML=asesores.map(a=>{
-    const v=byAsesor[a];
-    const color=v<=1?'verde':v<=3?'amarillo':'rojo';
-    const nivel=color==='rojo'?'Alto':color==='amarillo'?'Medio':'Bajo';
-    const pct=Math.max(8, Math.round(v/maxAsesor*100));
-    return`<div class="advisor-state-row">
-      <div>
-        <div class="advisor-state-name">${OXXO.escHtml(OXXO.truncate(a,34))}</div>
-        <div class="advisor-state-track"><div class="advisor-state-fill" style="width:${pct}%"></div></div>
-      </div>
-      <div class="advisor-state-num">${v}<span>Vacantes</span></div>
-      <div class="advisor-state-badge ${color}">${nivel}</div>
-    </div>`;
-  }).join('');
-  document.getElementById('semaforo-table').innerHTML=`<div class="advisor-state-list">${semHTML}</div>`;
 }
 
 document.addEventListener('DOMContentLoaded', () => {

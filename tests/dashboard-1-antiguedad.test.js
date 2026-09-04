@@ -60,11 +60,15 @@ assert.match(
   'el KPI "Vacante mas antigua" volvio a leer allData sin filtrar'
 );
 
-// Las dos graficas quedan protegidas si Chart.js no cargo.
-const usosDeChart = html.match(/_ci\s*=\s*new Chart\(/g) || [];
-assert.equal(usosDeChart.length, 2, 'cambio la cantidad de graficas: revisa que todas tengan guarda');
-const guardas = html.match(/typeof Chart === 'undefined'/g) || [];
-assert.equal(guardas.length, 2, 'alguna grafica se quedo sin la guarda de Chart.js');
+// Ninguna grafica puede quedarse sin guarda de Chart.js: sin ella, una
+// excepcion en renderOverview dejaba la tabla de detalle sin pintar. Hoy el
+// tablero no dibuja graficas, asi que tampoco debe cargar la libreria.
+const usosDeChart = (html.match(/_ci\s*=\s*new Chart\(/g) || []).length;
+const guardas = (html.match(/typeof Chart === 'undefined'/g) || []).length;
+assert.ok(guardas >= usosDeChart, `hay ${usosDeChart} graficas y solo ${guardas} guardas de Chart.js`);
+if (usosDeChart === 0) {
+  assert.ok(!/chart\.umd\.min\.js/.test(html), 'no hay graficas pero la pagina sigue cargando Chart.js');
+}
 
 // El semaforo de antiguedad tiene un solo criterio (3/6 dias). El viejo
 // colorDias() (7/15) quedaba muerto en el archivo invitando a reintroducirlo.
