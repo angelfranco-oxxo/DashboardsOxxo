@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="../assets/favicon.png" />
   <link rel="stylesheet" href="../css/global.css?v=20260820f" />
   <link rel="stylesheet" href="../css/mascota-chat.css?v=20260818a" />
-  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script defer src="../assets/vendor/chart.umd.min.js?v=chartjs440"></script>
   <style>
     .page { max-width:1500px; margin:0 auto; padding:18px 20px 36px; }
 
@@ -1671,7 +1671,7 @@
     <div class="card puesto-card">
       <div class="card-head"><div class="card-title">Distribución por puesto<span class="info-tip" tabindex="0" data-tip="Reparte las vacantes filtradas según la columna 'Descripción de Posición' (Lider / Encargado / Ayudante)."></span></div></div>
       <div class="puesto-panel">
-        <div class="chart-sm"><canvas id="chart-dona"></canvas></div>
+        <div class="chart-sm"><canvas id="chart-dona" role="img" aria-label="Distribución de vacantes por puesto"></canvas></div>
         <div class="puesto-breakdown" id="puesto-breakdown"></div>
       </div>
     </div>
@@ -1695,7 +1695,7 @@
         <div class="card-title">Vacantes por Asesor<span class="info-tip" tabindex="0" data-tip="Suma de vacantes (filas filtradas) por cada Asesor responsable. Permite ver carga de trabajo entre asesores."></span></div>
         <span class="card-badge" id="chart-total">—</span>
       </div>
-      <div class="chart-lg"><canvas id="chart-barras"></canvas></div>
+      <div class="chart-lg"><canvas id="chart-barras" role="img" aria-label="Vacantes por asesor"></canvas></div>
     </div>
     <div class="card">
       <div class="card-head"><div class="card-title">Estado por Asesor<span class="info-tip" tabindex="0" data-tip="Semáforo por Asesor según su volumen de vacantes y antigüedad promedio. Verde = bajo riesgo, amarillo = atención, rojo = crítico."></span></div></div>
@@ -2453,7 +2453,19 @@ function openAsesorDiasModal(asesorName){
 
   ov.classList.add('open');
 }
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAsesorDiasModal(); });
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  // Escape cierra primero el desplegable de filtro abierto (antes solo se
+  // cerraba con clic afuera) y devuelve el foco a su boton; si no hay
+  // ninguno abierto, cierra el modal de detalle por asesor.
+  const abierto=document.querySelector('.smart-filter.open');
+  if(abierto){
+    closeSmartFilters();
+    abierto.querySelector('.smart-filter__button')?.focus();
+    return;
+  }
+  closeAsesorDiasModal();
+});
 
 function refreshDashboard(){
   const filtered = filtrarDatos();
@@ -2693,7 +2705,11 @@ function makeBarGradient(ctx, chartArea, from, to){
 
 function renderD1Donut(labels, values){
   const canvas = document.getElementById('chart-dona');
-  if(!canvas || typeof Chart === 'undefined') return;
+  if(!canvas) return;
+  // El canvas no expone su contenido: se describe con los datos que pinta
+  // para que un lector de pantalla pueda leer la misma informacion.
+  canvas.setAttribute('aria-label', `Distribución de vacantes por puesto: ${labels.map((l,i)=>`${l} ${values[i]}`).join(', ')||'sin datos'}`);
+  if(typeof Chart === 'undefined') return;
   if(canvas._ci) canvas._ci.destroy();
   const ctx = canvas.getContext('2d');
   canvas._ci = new Chart(ctx, {
@@ -3018,6 +3034,9 @@ function renderOverview(allData){
   const asesores=asesoresOrdenados;
   const vals=asesores.map(a=>byAsesor[a]);
   const canvas=document.getElementById('chart-barras');
+  if(canvas) canvas.setAttribute('aria-label', asesores.length
+    ? `Vacantes por asesor: ${asesores.map((a,i)=>`${a} ${vals[i]}`).join(', ')}`
+    : 'Vacantes por asesor: sin datos');
   // Misma guarda que renderD1Donut: sin Chart.js este new Chart() lanzaba y,
   // como refreshDashboard() llama renderOverview() antes que renderTabla(),
   // la tabla de detalle se quedaba en "Cargando datos..." para siempre.
