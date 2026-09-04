@@ -26,6 +26,10 @@
   }
 
   function makeToolbar(table,state){
+    // Tablas cortas (un puñado de filas) no ganan nada con buscador ni
+    // paginacion: con data-rh-toolbar="false" se omite la barra completa y
+    // solo se conserva el ordenamiento por encabezado.
+    if(table.dataset.rhToolbar==='false')return;
     const toolbar=document.createElement('div');
     toolbar.className='rh-table-toolbar';
     toolbar.innerHTML=`
@@ -81,7 +85,7 @@
     bindHeaders(table,state);
     let rows=[...tbody.rows].filter(row=>!row.classList.contains('rh-table-empty-filter'));
     const placeholder=rows.length===1&&rows[0].cells.length===1&&rows[0].cells[0].colSpan>1;
-    state.toolbar.hidden=placeholder;
+    if(state.toolbar)state.toolbar.hidden=placeholder;
     if(placeholder)return;
     if(state.sortIndex!==null){
       rows.sort((a,b)=>compareCells(a,b,state.sortIndex)*(state.sortDirection==='asc'?1:-1));
@@ -100,10 +104,11 @@
       if(!empty){empty=document.createElement('tr');empty.className='rh-table-empty-filter';empty.innerHTML=`<td colspan="${Math.max(1,table.rows[0]?.cells.length||1)}">No hay coincidencias para esta búsqueda.</td>`;tbody.appendChild(empty);}
       empty.hidden=false;
     }else if(empty)empty.remove();
-    state.count.textContent=`${matched.length} ${matched.length===1?'registro':'registros'}`;
-    state.pageInfo.textContent=`Página ${state.page} de ${state.totalPages}`;
-    state.prev.disabled=state.page<=1;state.next.disabled=state.page>=state.totalPages;
-    state.pager.hidden=matched.length<=state.pageSize;
+    if(state.count)state.count.textContent=`${matched.length} ${matched.length===1?'registro':'registros'}`;
+    if(state.pageInfo)state.pageInfo.textContent=`Página ${state.page} de ${state.totalPages}`;
+    if(state.prev)state.prev.disabled=state.page<=1;
+    if(state.next)state.next.disabled=state.page>=state.totalPages;
+    if(state.pager)state.pager.hidden=matched.length<=state.pageSize;
     updateHeaders(table,state);
   }
 
@@ -111,7 +116,9 @@
     if(states.has(table))return;
     const requested=Number(table.dataset.rhPageSize)||15;
     const allowed=[10,15,25,50];
-    const state={page:1,pageSize:allowed.includes(requested)?requested:15,totalPages:1,query:'',sortIndex:null,sortDirection:'asc',observer:null};
+    const sinBarra=table.dataset.rhToolbar==='false';
+    const state={page:1,pageSize:sinBarra?Number.MAX_SAFE_INTEGER:(allowed.includes(requested)?requested:15),
+      totalPages:1,query:'',sortIndex:null,sortDirection:'asc',observer:null};
     states.set(table,state);
     table.dataset.rhTableTools='ready';
     makeToolbar(table,state);
