@@ -526,6 +526,12 @@
   #vacantes-asesor-table .tbl-wrap{
     max-height:none;
   }
+  /* Cuando la columna regional es más alta, la tabla aprovecha ese espacio
+     repartiendo el alto entre sus filas. Así ambas tarjetas cierran juntas
+     sin dejar un bloque vacío bajo la nota. */
+  .tabla-card--balanced #vacantes-asesor-table{display:flex;flex:1;min-height:0}
+  .tabla-card--balanced #vacantes-asesor-table .tbl-wrap{display:flex;flex:1}
+  .tabla-card--balanced #vacantes-asesor-table .tbl{height:100%}
   /* ── Reorganizacion: un panel protagonista + contexto lateral ───────── */
   .hero-context{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:12px;
     font-size:12px;font-weight:700;color:rgba(255,255,255,.82)}
@@ -2423,7 +2429,8 @@ function renderVacantesPorAsesorDias(allData){
   const el = document.getElementById('vacantes-asesor-table');
   const badge = document.getElementById('vacantes-asesor-badge');
   if(!el) return;
-  if(!allData.length){ OXXO.showEmpty('vacantes-asesor-table'); if(badge) badge.textContent='0 asesores'; return; }
+  const card=el.closest('.tabla-card');
+  if(!allData.length){ card?.classList.remove('tabla-card--balanced'); OXXO.showEmpty('vacantes-asesor-table'); if(badge) badge.textContent='0 asesores'; return; }
 
   const byAsesor = {};
   allData.forEach(r=>{
@@ -2450,6 +2457,7 @@ function renderVacantesPorAsesorDias(allData){
   const asesores = Object.keys(byAsesor).sort((a,b)=>byAsesor[b].count-byAsesor[a].count || a.localeCompare(b,'es'));
   const maxCarga = Math.max(1, ...Object.values(byAsesor).map(v=>v.count));
   if(badge) badge.textContent = `${asesores.length} asesor${asesores.length===1?'':'es'}`;
+  card?.classList.toggle('tabla-card--balanced',asesores.length>=6);
 
   const total = { count:0, diasCount:0, sinDias:0, sumDias:0, maxDias:0, verde:0, amarillo:0, rojo:0 };
   const rows = asesores.map(a=>{
