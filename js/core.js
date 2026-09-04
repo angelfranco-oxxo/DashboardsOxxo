@@ -2102,12 +2102,17 @@ function metricsNum(v) {
       : raw.replace(/,/g, '');
   } else if (comma >= 0) {
     const parts = raw.split(',');
-    const decimals = parts[parts.length - 1].length;
-    // Google gviz devuelve indicadores calculados con muchos decimales
-    // usando coma: "2,234592627". Una sola coma con 1-2 O 4+ digitos
-    // decimales es decimal; exactamente 3 se conserva como miles (12,345).
-    const commaIsDecimal = parts.length === 2 && (decimals <= 2 || decimals >= 4);
-    asDecimal = commaIsDecimal ? raw.replace(',', '.') : raw.replace(/,/g, '');
+    // Sin punto en la cadena, una sola coma SIEMPRE es el decimal es-MX:
+    // "0,96", "2,234592627" y tambien "0,939". La regla anterior reservaba
+    // el caso de exactamente 3 decimales para miles (12,345) y por eso
+    // "0,939" se leia 939 y "1,125" se leia 1125 -- en Dashboard 11 eso
+    // convertia 93.9% en 939% e inflaba KPIs, dona y ranking de asesores.
+    // Se reviso la publicacion completa (16 pestanas del Sheet): el patron
+    // "N,ddd" solo aparece en las columnas de % de Dashboard 11 y siempre es
+    // decimal; los miles reales llegan como "1,113.75", con coma Y punto,
+    // que resuelve la rama de arriba. Varias comas ("1,234,567") solo
+    // admiten lectura de miles y se siguen tratando asi.
+    asDecimal = parts.length === 2 ? raw.replace(',', '.') : raw.replace(/,/g, '');
   }
   const n = Number(asDecimal);
   return Number.isFinite(n) ? n : 0;
